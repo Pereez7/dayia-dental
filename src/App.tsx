@@ -1,38 +1,61 @@
 import { useState } from 'react'
 import './App.css'
-import { AppointmentsOverview } from './components/AppointmentsOverview'
-import { Header } from './components/Header'
-import { PatientForm } from './components/PatientForm'
-import { PatientsList } from './components/PatientsList'
-import { appointments } from './data/appointments'
-import { patients as initialPatients } from './data/patients'
-import type { Patient, PatientFormValues } from './types/Patient'
+import { AppLayout } from './layout/AppLayout'
+import type { AppSection } from './layout/navigation'
+import { AppointmentsView } from './views/AppointmentsView'
+import { ClinicalHistoryView } from './views/ClinicalHistoryView'
+import { DashboardView } from './views/DashboardView'
+import { OdontogramView } from './views/OdontogramView'
+import { PatientsView } from './views/PatientsView'
+import { SettingsView } from './views/SettingsView'
+import { WhatsAppRemindersView } from './views/WhatsAppRemindersView'
 
 function App() {
-  const [patients, setPatients] = useState<Patient[]>(initialPatients)
+  const [activeSection, setActiveSection] = useState<AppSection>('dashboard')
 
-  function handleCreatePatient(values: PatientFormValues) {
-    const newPatient: Patient = {
-      id: Date.now(),
-      fullName: `${values.firstName.trim()} ${values.lastName.trim()}`,
-      phone: `${values.countryCode}${values.localPhone.trim()}`,
-      email: values.email.trim() || undefined,
-      birthDate: values.birthDate || undefined,
-      lastVisit: 'Sin registro',
-      nextAppointment: null,
-      status: 'active',
+  function renderActiveView() {
+    if (activeSection === 'patients-list') {
+      return <PatientsView initialMode="list" />
     }
 
-    setPatients((currentPatients) => [newPatient, ...currentPatients])
+    if (activeSection === 'patient-new') {
+      return <PatientsView initialMode="new" />
+    }
+
+    if (activeSection === 'appointments-agenda') {
+      return <AppointmentsView mode="agenda" />
+    }
+
+    if (activeSection === 'appointment-new') {
+      return <AppointmentsView mode="new" />
+    }
+
+    if (activeSection === 'clinical-history') {
+      return <ClinicalHistoryView />
+    }
+
+    if (activeSection === 'odontogram') {
+      return <OdontogramView />
+    }
+
+    if (activeSection === 'whatsapp-reminders') {
+      return <WhatsAppRemindersView />
+    }
+
+    if (activeSection === 'settings') {
+      return <SettingsView />
+    }
+
+    return <DashboardView />
   }
 
   return (
-    <main className="app-shell">
-      <Header />
-      <AppointmentsOverview appointments={appointments} />
-      <PatientForm onCreatePatient={handleCreatePatient} />
-      <PatientsList patients={patients} />
-    </main>
+    <AppLayout
+      activeSection={activeSection}
+      onSectionChange={setActiveSection}
+    >
+      {renderActiveView()}
+    </AppLayout>
   )
 }
 

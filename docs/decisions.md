@@ -41,6 +41,24 @@ Separamos componentes para mantener cada archivo con una responsabilidad clara.
 listado y `PatientCard` muestra un registro individual. Esto facilita leer,
 cambiar y reutilizar codigo.
 
+## Layout y vistas
+
+Separamos `src/layout` para la estructura comun de la aplicacion y `src/views`
+para pantallas completas. Esto mantiene `App.tsx` pequeno y evita que el layout
+se mezcle con la logica de pacientes, citas u otros modulos.
+
+## Navegacion con estado local
+
+Por ahora la navegacion usa estado local en `App.tsx` en lugar de React Router.
+Es suficiente mientras no necesitemos URLs reales, rutas con parametros,
+historial del navegador o proteccion de rutas. Cuando esas necesidades aparezcan,
+podremos introducir React Router con menos ruido.
+
+La navegacion se define como un mapa en `src/layout/navigation.ts`. Por ahora el
+sidebar muestra solo secciones principales. Las creaciones frecuentes viven como
+acciones rapidas (`+ Paciente`, `+ Cita`) para evitar duplicar opciones y mantener
+la interfaz limpia.
+
 ## Utilidades separadas
 
 Separamos funciones de formato en `src/utils` para evitar mezclar logica dentro
@@ -59,9 +77,10 @@ Las validaciones del formulario de pacientes viven en `src/utils`. El formulario
 solo maneja estado local y muestra errores; las reglas obligatorias se prueban
 sin depender de React.
 
-Los nombres y apellidos aceptan letras, espacios, tildes y `ñ`. El telefono
-acepta numeros, espacios, un `+` opcional y debe tener mas de 5 digitos. El
-email es opcional, pero si existe debe tener formato valido. La fecha de
+Los nombres y apellidos aceptan letras, espacios, tildes y `ñ`. El telefono se
+captura como prefijo de pais y numero local. El numero local solo acepta digitos
+y debe tener mas de 5 digitos. El email es opcional, pero si existe debe tener
+formato valido. La fecha de
 nacimiento es opcional, pero no puede ser futura ni representar una edad mayor a
 120 años. Estas reglas evitan datos claramente invalidos antes de integrar
 backend.

@@ -9,8 +9,10 @@ dentales. Por ahora no incluye backend, base de datos ni autenticacion.
 src/
   components/
   data/
+  layout/
   types/
   utils/
+  views/
   App.tsx
   App.css
   index.css
@@ -29,6 +31,11 @@ renderizar UI y recibir datos por props cuando sea posible.
 Contiene datos de ejemplo usados por la interfaz mientras no existe backend.
 Actualmente guarda citas y pacientes mock.
 
+`src/layout`
+
+Contiene la estructura principal de la aplicacion: layout base, navegacion,
+sidebar y header superior.
+
 `src/types`
 
 Contiene tipos compartidos del dominio. Por ejemplo, `Patient` describe la
@@ -39,10 +46,16 @@ forma minima que debe tener un paciente dentro del frontend.
 Contiene funciones puras para transformar, formatear o filtrar datos. Estas
 funciones no dependen de React y son buenas candidatas para pruebas unitarias.
 
+`src/views`
+
+Contiene vistas completas de la aplicacion. Una vista puede componer varios
+componentes y manejar estado local propio de esa pantalla.
+
 `src/App.tsx`
 
-Compone la pantalla principal de la aplicacion. Debe mantenerse simple y evitar
-mezclar demasiada logica de UI o datos.
+Controla la seccion activa y renderiza la vista correspondiente dentro de
+`AppLayout`. Debe mantenerse simple y evitar mezclar logica propia de cada
+pantalla.
 
 `src/App.css`
 
@@ -55,14 +68,21 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
 ## Flujo general
 
 1. `src/main.tsx` monta la aplicacion React.
-2. `src/App.tsx` importa datos mock desde `src/data`.
-3. `App.tsx` mantiene el listado local de pacientes, renderiza el encabezado,
-   el resumen de citas, el formulario de pacientes y el listado de pacientes.
-4. `AppointmentsOverview` recibe las citas y renderiza tarjetas individuales.
-5. `AppointmentCard` usa funciones de `src/utils` para mostrar fecha, hora y
+2. `src/App.tsx` mantiene la seccion activa con estado local.
+3. `AppLayout` muestra `Sidebar`, `Header` superior y el contenido de la vista
+   activa.
+4. `Sidebar` usa el mapa de `src/layout/navigation.ts` para renderizar
+   secciones principales y acciones rapidas.
+5. `PatientsView` mantiene el listado local de pacientes y compone
+   `PatientForm` con `PatientsList`.
+6. Las vistas de modulos futuros muestran placeholders simples hasta que se
+   implemente su flujo real.
+7. `AppointmentsOverview` recibe las citas y renderiza tarjetas individuales.
+8. `AppointmentCard` usa funciones de `src/utils` para mostrar fecha, hora y
    estado en formato legible.
-6. `PatientForm` maneja los campos del formulario con estado local, valida con
-   funciones de `src/utils` y avisa a `App.tsx` cuando hay un nuevo paciente.
-7. `PatientsList` recibe pacientes, maneja el texto de busqueda local y usa
+9. `PatientForm` maneja los campos del formulario con estado local, valida con
+   funciones de `src/utils` y avisa a `PatientsView` cuando hay un nuevo
+   paciente.
+10. `PatientsList` recibe pacientes, maneja el texto de busqueda local y usa
    `filterPatients` para decidir que registros mostrar.
-8. `PatientCard` muestra cada paciente filtrado.
+11. `PatientCard` muestra cada paciente filtrado.

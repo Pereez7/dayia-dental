@@ -23,6 +23,14 @@ Registro breve de cambios relevantes en DayIA Dental.
 - Se guarda el telefono del paciente en formato internacional compacto.
 - Se agrego mensaje visual de exito al registrar pacientes.
 - Se agregaron pruebas unitarias para validaciones de pacientes.
+- Se agrego layout base con sidebar, header superior y navegacion local.
+- Se rediseño la navegacion principal con mapa futuro de modulos.
+- Se agregaron subitems simples para Pacientes y Citas.
+- Se agregaron acciones rapidas para nuevo paciente y nueva cita.
+- Se simplifico el sidebar eliminando submenus visibles duplicados.
+- Se agregaron placeholders para Historial clinico, Odontograma y Recordatorios WhatsApp.
+- Se crearon vistas iniciales para Dashboard, Pacientes, Citas y Configuracion.
+- Se movio el flujo de pacientes a `PatientsView`.
 - Se agregaron estilos responsive para tarjetas de pacientes.
 - Se actualizo la documentacion tecnica.
 
