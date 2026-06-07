@@ -59,6 +59,11 @@ Las validaciones del formulario de pacientes viven en `src/utils`. El formulario
 solo maneja estado local y muestra errores; las reglas obligatorias se prueban
 sin depender de React.
 
+Los nombres y apellidos aceptan letras, espacios, tildes y `ñ`. El telefono
+acepta numeros, espacios y un `+` opcional. El email es opcional, pero si existe
+debe tener formato valido. Estas reglas evitan datos claramente invalidos antes
+de integrar backend.
+
 ## Registro local de pacientes
 
 El alta de pacientes se maneja en frontend con estado local dentro de `App.tsx`.

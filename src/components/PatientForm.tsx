@@ -21,12 +21,14 @@ export function PatientForm({ onCreatePatient }: PatientFormProps) {
   const [formValues, setFormValues] =
     useState<PatientFormValues>(initialFormValues)
   const [errors, setErrors] = useState<PatientFormErrors>({})
+  const [successMessage, setSuccessMessage] = useState('')
 
   function updateField(field: keyof PatientFormValues, value: string) {
     setFormValues((currentValues) => ({
       ...currentValues,
       [field]: value,
     }))
+    setSuccessMessage('')
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -41,6 +43,8 @@ export function PatientForm({ onCreatePatient }: PatientFormProps) {
 
     onCreatePatient(formValues)
     setFormValues(initialFormValues)
+    setErrors({})
+    setSuccessMessage('Paciente registrado correctamente.')
   }
 
   return (
@@ -103,6 +107,12 @@ export function PatientForm({ onCreatePatient }: PatientFormProps) {
           Registrar paciente
         </button>
       </form>
+
+      {successMessage && (
+        <p className="success-message" role="status">
+          {successMessage}
+        </p>
+      )}
     </section>
   )
 }
