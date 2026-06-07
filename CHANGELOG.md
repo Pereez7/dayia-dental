@@ -32,6 +32,8 @@ Registro breve de cambios relevantes en DayIA Dental.
 - Se crearon vistas iniciales para Dashboard, Pacientes, Citas y Configuracion.
 - Se movio el flujo de pacientes a `PatientsView`.
 - Se agregaron estilos responsive para tarjetas de pacientes.
+- Se agrego documentacion de contexto del proyecto.
+- Se agrego roadmap funcional.
 - Se actualizo la documentacion tecnica.
 
 ### Motivo del cambio

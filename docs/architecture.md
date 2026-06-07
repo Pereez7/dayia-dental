@@ -3,6 +3,13 @@
 DayIA Dental empieza como una aplicacion frontend interna para clinicas
 dentales. Por ahora no incluye backend, base de datos ni autenticacion.
 
+## Base tecnica
+
+- React + TypeScript + Vite.
+- Vitest para pruebas unitarias de logica pura.
+- Git inicializado y remoto GitHub configurado.
+- Navegacion por estado local, sin React Router por ahora.
+
 ## Estructura de carpetas
 
 ```text
@@ -59,7 +66,8 @@ pantalla.
 
 `src/App.css`
 
-Contiene estilos de la pantalla principal y sus componentes actuales.
+Contiene estilos globales de layout y de los componentes actuales. Todavia no
+hay sistema de diseno separado.
 
 `src/index.css`
 
@@ -86,3 +94,21 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
 10. `PatientsList` recibe pacientes, maneja el texto de busqueda local y usa
    `filterPatients` para decidir que registros mostrar.
 11. `PatientCard` muestra cada paciente filtrado.
+
+## Modulos actuales
+
+`Pacientes`
+
+Incluye listado, busqueda, formulario de registro, validaciones y telefono en
+formato internacional compacto.
+
+`Citas`
+
+Incluye datos mock y resumen visual de proximas atenciones. La agenda real y el
+formulario de nueva cita siguen pendientes.
+
+`Dashboard`, `Historial clinico`, `Odontograma`, `Recordatorios` y
+`Configuracion`
+
+Existen como vistas iniciales o placeholders para sostener la navegacion y el
+mapa futuro de la aplicacion.

@@ -7,11 +7,13 @@ historiales y otros modulos clinicos.
 ## Estado actual
 
 - Frontend con React, Vite y TypeScript.
-- Dashboard inicial responsive.
-- Datos de citas separados en `src/data`.
+- Layout base con sidebar, header y navegacion por estado local.
+- Modulo de pacientes con listado, busqueda, formulario y validaciones.
+- Datos mock separados en `src/data`.
+- Tipos compartidos en `src/types`.
 - Componentes pequenos y reutilizables en `src/components`.
-- Utilidades de formato en `src/utils`.
-- Pruebas unitarias basicas con Vitest.
+- Utilidades puras en `src/utils`.
+- Pruebas unitarias con Vitest.
 
 ## Comandos
 
@@ -53,6 +55,8 @@ npm run lint
 
 ## Documentacion
 
+- [Contexto del proyecto](docs/project-context.md)
 - [Arquitectura](docs/architecture.md)
 - [Decisiones tecnicas](docs/decisions.md)
+- [Roadmap](docs/roadmap.md)
 - [Changelog](CHANGELOG.md)

@@ -87,9 +87,9 @@ backend.
 
 ## Registro local de pacientes
 
-El alta de pacientes se maneja en frontend con estado local dentro de `App.tsx`.
-Esto permite validar el flujo de interfaz antes de introducir backend, base de
-datos o autenticacion.
+El alta de pacientes se maneja en frontend con estado local dentro de
+`PatientsView`. Esto permite validar el flujo de interfaz antes de introducir
+backend, base de datos o autenticacion.
 
 ## Telefonos en formato internacional
 
@@ -104,3 +104,15 @@ libreria especializada sin cambiar el modelo principal.
 El proyecto se mantiene solo en frontend mientras se define bien el modulo de
 citas. Backend, base de datos y autenticacion se agregaran mas adelante cuando
 la interfaz y el flujo principal esten mas claros.
+
+## Funcionalidad antes que diseno visual final
+
+La prioridad actual es construir flujos correctos, tipados y testeables antes de
+invertir en un sistema visual definitivo. El diseno se mantiene limpio y
+responsive, pero todavia puede evolucionar cuando el producto tenga mas modulos.
+
+## Backend fuera temporalmente
+
+No se agrega backend hasta validar los flujos principales en frontend. Supabase,
+autenticacion, permisos, persistencia y despliegue se evaluaran cuando pacientes
+y citas tengan una forma mas estable.
