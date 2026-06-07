@@ -21,6 +21,12 @@ Usamos TypeScript para describir la forma de los datos y detectar errores antes
 de ejecutar la app. En el modulo de citas, por ejemplo, `Appointment` define que
 campos debe tener una cita.
 
+## Tipos de dominio separados
+
+Creamos `src/types` para tipos que representan entidades del producto, como
+`Patient`. Esto evita duplicar estructuras entre datos mock, componentes y
+futura logica de negocio.
+
 ## Vitest
 
 Usamos Vitest para probar logica simple sin montar componentes visuales. Es una
@@ -31,7 +37,9 @@ formatters, validaciones y reglas de negocio.
 
 Separamos componentes para mantener cada archivo con una responsabilidad clara.
 `AppointmentCard` muestra una cita, `StatsCard` muestra una metrica y
-`Header` muestra el encabezado. Esto facilita leer, cambiar y reutilizar codigo.
+`Header` muestra el encabezado. Para pacientes, `PatientsList` compone el
+listado y `PatientCard` muestra un registro individual. Esto facilita leer,
+cambiar y reutilizar codigo.
 
 ## Utilidades separadas
 

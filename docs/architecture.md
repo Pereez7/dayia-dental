@@ -9,6 +9,7 @@ dentales. Por ahora no incluye backend, base de datos ni autenticacion.
 src/
   components/
   data/
+  types/
   utils/
   App.tsx
   App.css
@@ -25,8 +26,13 @@ renderizar UI y recibir datos por props cuando sea posible.
 
 `src/data`
 
-Contiene datos de ejemplo y tipos relacionados con esos datos. Actualmente
-guarda las citas odontologicas iniciales.
+Contiene datos de ejemplo usados por la interfaz mientras no existe backend.
+Actualmente guarda citas y pacientes mock.
+
+`src/types`
+
+Contiene tipos compartidos del dominio. Por ejemplo, `Patient` describe la
+forma minima que debe tener un paciente dentro del frontend.
 
 `src/utils`
 
@@ -49,8 +55,11 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
 ## Flujo general
 
 1. `src/main.tsx` monta la aplicacion React.
-2. `src/App.tsx` importa los datos de citas desde `src/data`.
-3. `App.tsx` renderiza el encabezado y el resumen de citas.
+2. `src/App.tsx` importa datos mock desde `src/data`.
+3. `App.tsx` renderiza el encabezado, el resumen de citas y el listado de
+   pacientes.
 4. `AppointmentsOverview` recibe las citas y renderiza tarjetas individuales.
 5. `AppointmentCard` usa funciones de `src/utils` para mostrar fecha, hora y
    estado en formato legible.
+6. `PatientsList` recibe pacientes y renderiza una `PatientCard` por cada
+   registro.

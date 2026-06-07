@@ -146,6 +146,67 @@
   white-space: nowrap;
 }
 
+.patients-section {
+  margin-top: 28px;
+}
+
+.patients-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.patient-card {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-soft);
+  padding: clamp(18px, 3vw, 22px);
+}
+
+.patient-name {
+  margin: 0 0 4px;
+  color: var(--color-heading);
+  font-weight: 800;
+  overflow-wrap: break-word;
+}
+
+.patient-phone {
+  margin: 0;
+  color: var(--color-text-muted);
+  overflow-wrap: break-word;
+}
+
+.patient-details {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.patient-details div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.patient-details dt {
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+}
+
+.patient-details dd {
+  margin: 0;
+  color: var(--color-heading);
+  font-weight: 700;
+  text-align: right;
+  overflow-wrap: break-word;
+}
+
 @media (max-width: 900px) {
   .app-header {
     display: grid;
@@ -186,5 +247,18 @@
   .status-pill {
     justify-self: start;
     white-space: normal;
+  }
+
+  .patients-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .patient-details div {
+    display: grid;
+    gap: 4px;
+  }
+
+  .patient-details dd {
+    text-align: left;
   }
 }
