@@ -150,6 +150,55 @@
   margin-top: 28px;
 }
 
+.patient-form-section {
+  margin-top: 28px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-soft);
+  padding: clamp(18px, 3vw, 24px);
+}
+
+.patient-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.patient-form label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.patient-form input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  padding: 12px 14px;
+}
+
+.patient-form input:focus {
+  border-color: var(--color-primary);
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.patient-form small {
+  color: #b42318;
+  font-weight: 700;
+}
+
+.patient-form .primary-action {
+  align-self: end;
+}
+
 .patients-header {
   display: flex;
   align-items: end;
@@ -261,6 +310,10 @@
   .primary-action {
     justify-self: start;
   }
+
+  .patient-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 600px) {
@@ -289,6 +342,14 @@
   .status-pill {
     justify-self: start;
     white-space: normal;
+  }
+
+  .patient-form {
+    grid-template-columns: 1fr;
+  }
+
+  .patient-form .primary-action {
+    width: 100%;
   }
 
   .patients-header {

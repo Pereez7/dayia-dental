@@ -53,6 +53,18 @@ La busqueda de pacientes usa `filterPatients` en `src/utils`. El componente solo
 guarda el texto ingresado por el usuario, mientras la funcion decide que
 pacientes coinciden. Esto permite probar el filtro sin renderizar componentes.
 
+## Validaciones como funciones puras
+
+Las validaciones del formulario de pacientes viven en `src/utils`. El formulario
+solo maneja estado local y muestra errores; las reglas obligatorias se prueban
+sin depender de React.
+
+## Registro local de pacientes
+
+El alta de pacientes se maneja en frontend con estado local dentro de `App.tsx`.
+Esto permite validar el flujo de interfaz antes de introducir backend, base de
+datos o autenticacion.
+
 ## Sin backend por ahora
 
 El proyecto se mantiene solo en frontend mientras se define bien el modulo de

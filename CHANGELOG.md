@@ -13,6 +13,9 @@ Registro breve de cambios relevantes en DayIA Dental.
 - Se agrego busqueda frontend por nombre, apellido o telefono.
 - Se agrego `filterPatients` como funcion pura testeable.
 - Se agregaron pruebas unitarias para el filtro de pacientes.
+- Se agrego formulario frontend para registrar pacientes.
+- Se agregaron validaciones puras para campos obligatorios del paciente.
+- Se agregaron pruebas unitarias para validaciones de pacientes.
 - Se agregaron estilos responsive para tarjetas de pacientes.
 - Se actualizo la documentacion tecnica.
 

@@ -56,11 +56,13 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
 
 1. `src/main.tsx` monta la aplicacion React.
 2. `src/App.tsx` importa datos mock desde `src/data`.
-3. `App.tsx` renderiza el encabezado, el resumen de citas y el listado de
-   pacientes.
+3. `App.tsx` mantiene el listado local de pacientes, renderiza el encabezado,
+   el resumen de citas, el formulario de pacientes y el listado de pacientes.
 4. `AppointmentsOverview` recibe las citas y renderiza tarjetas individuales.
 5. `AppointmentCard` usa funciones de `src/utils` para mostrar fecha, hora y
    estado en formato legible.
-6. `PatientsList` recibe pacientes, maneja el texto de busqueda local y usa
+6. `PatientForm` maneja los campos del formulario con estado local, valida con
+   funciones de `src/utils` y avisa a `App.tsx` cuando hay un nuevo paciente.
+7. `PatientsList` recibe pacientes, maneja el texto de busqueda local y usa
    `filterPatients` para decidir que registros mostrar.
-7. `PatientCard` muestra cada paciente filtrado.
+8. `PatientCard` muestra cada paciente filtrado.
