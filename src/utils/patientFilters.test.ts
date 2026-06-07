@@ -6,7 +6,7 @@ const patients: Patient[] = [
   {
     id: 1,
     fullName: 'Mariana Rojas',
-    phone: '+591 70012345',
+    phone: '+59170012345',
     lastVisit: '2026-05-18',
     nextAppointment: '2026-06-05',
     status: 'active',
@@ -14,7 +14,7 @@ const patients: Patient[] = [
   {
     id: 2,
     fullName: 'Carlos Medina',
-    phone: '+591 71234567',
+    phone: '+59171234567',
     lastVisit: '2026-04-29',
     nextAppointment: '2026-06-05',
     status: 'follow-up',

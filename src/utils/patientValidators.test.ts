@@ -2,18 +2,20 @@ import { describe, expect, it } from 'vitest'
 import type { PatientFormValues } from '../types/Patient'
 import {
   hasPatientFormErrors,
+  validateCountryCode,
+  validateLocalPhone,
   validateOptionalBirthDate,
   validateOptionalEmail,
   validatePatientForm,
   validatePersonName,
-  validatePhone,
   validateRequired,
 } from './patientValidators'
 
 const validFormValues: PatientFormValues = {
   firstName: 'Lucia',
   lastName: 'Vargas',
-  phone: '+591 70000000',
+  countryCode: '+591',
+  localPhone: '70000000',
   email: '',
   birthDate: '',
 }
@@ -34,14 +36,16 @@ describe('patientValidators', () => {
       validatePatientForm({
         firstName: '',
         lastName: '',
-        phone: '',
+        countryCode: '',
+        localPhone: '',
         email: '',
         birthDate: '',
       }),
     ).toEqual({
       firstName: 'El nombre es requerido',
       lastName: 'El apellido es requerido',
-      phone: 'El telefono es requerido',
+      countryCode: 'El prefijo de pais es requerido',
+      localPhone: 'El numero local es requerido',
     })
   })
 
@@ -63,14 +67,32 @@ describe('patientValidators', () => {
     )
   })
 
-  it('allows phone numbers with numbers, spaces and an optional plus sign', () => {
-    expect(validatePhone('+591 70012345')).toBe('')
-    expect(validatePhone('700 123 45')).toBe('')
+  it('allows country codes that start with plus and contain digits', () => {
+    expect(validateCountryCode('+591')).toBe('')
   })
 
-  it('rejects phone numbers with invalid characters', () => {
-    expect(validatePhone('764544_df')).toBe(
-      'El telefono solo debe contener numeros, espacios o +',
+  it('rejects invalid country codes', () => {
+    expect(validateCountryCode('591')).toBe(
+      'El prefijo debe iniciar con + y contener solo numeros',
+    )
+    expect(validateCountryCode('+BO')).toBe(
+      'El prefijo debe iniciar con + y contener solo numeros',
+    )
+  })
+
+  it('allows local phone numbers with digits only', () => {
+    expect(validateLocalPhone('70012345')).toBe('')
+  })
+
+  it('rejects local phone numbers with letters or symbols', () => {
+    expect(validateLocalPhone('764544_df')).toBe(
+      'El numero local solo debe contener digitos',
+    )
+  })
+
+  it('rejects local phone numbers with fewer than 6 digits', () => {
+    expect(validateLocalPhone('12345')).toBe(
+      'El numero local debe tener mas de 5 digitos',
     )
   })
 
@@ -111,7 +133,8 @@ describe('patientValidators', () => {
         {
           firstName: 'Charles:#',
           lastName: 'Rojas',
-          phone: '764544_df',
+          countryCode: '591',
+          localPhone: '764544_df',
           email: 'correo-invalido',
           birthDate: '2026-06-08',
         },
@@ -119,9 +142,25 @@ describe('patientValidators', () => {
       ),
     ).toEqual({
       firstName: 'El nombre solo debe contener letras y espacios',
-      phone: 'El telefono solo debe contener numeros, espacios o +',
+      countryCode: 'El prefijo debe iniciar con + y contener solo numeros',
+      localPhone: 'El numero local solo debe contener digitos',
       email: 'El email debe tener un formato valido',
       birthDate: 'La fecha de nacimiento no puede ser futura',
+    })
+  })
+
+  it('returns patient form error for short phone numbers', () => {
+    expect(
+      validatePatientForm({
+        firstName: 'Lucia',
+        lastName: 'Vargas',
+        countryCode: '+591',
+        localPhone: '12345',
+        email: '',
+        birthDate: '',
+      }),
+    ).toEqual({
+      localPhone: 'El numero local debe tener mas de 5 digitos',
     })
   })
 

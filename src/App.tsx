@@ -15,7 +15,7 @@ function App() {
     const newPatient: Patient = {
       id: Date.now(),
       fullName: `${values.firstName.trim()} ${values.lastName.trim()}`,
-      phone: values.phone.trim(),
+      phone: `${values.countryCode}${values.localPhone.trim()}`,
       email: values.email.trim() || undefined,
       birthDate: values.birthDate || undefined,
       lastVisit: 'Sin registro',

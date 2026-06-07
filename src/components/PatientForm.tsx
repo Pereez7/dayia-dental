@@ -8,10 +8,20 @@ import {
 const initialFormValues: PatientFormValues = {
   firstName: '',
   lastName: '',
-  phone: '',
+  countryCode: '+591',
+  localPhone: '',
   email: '',
   birthDate: '',
 }
+
+const countryCodeOptions = [
+  { country: 'Bolivia', code: '+591' },
+  { country: 'Argentina', code: '+54' },
+  { country: 'Brasil', code: '+55' },
+  { country: 'Chile', code: '+56' },
+  { country: 'Peru', code: '+51' },
+  { country: 'Paraguay', code: '+595' },
+]
 
 interface PatientFormProps {
   onCreatePatient: (values: PatientFormValues) => void
@@ -59,6 +69,7 @@ export function PatientForm({ onCreatePatient }: PatientFormProps) {
           <span>Nombre</span>
           <input
             type="text"
+            placeholder="Ej. Charles"
             value={formValues.firstName}
             onChange={(event) => updateField('firstName', event.target.value)}
           />
@@ -69,29 +80,54 @@ export function PatientForm({ onCreatePatient }: PatientFormProps) {
           <span>Apellido</span>
           <input
             type="text"
+            placeholder="Ej. Pérez"
             value={formValues.lastName}
             onChange={(event) => updateField('lastName', event.target.value)}
           />
           {errors.lastName && <small>{errors.lastName}</small>}
         </label>
 
-        <label>
-          <span>Telefono</span>
-          <input
-            type="tel"
-            value={formValues.phone}
-            onChange={(event) => updateField('phone', event.target.value)}
-          />
-          {errors.phone && <small>{errors.phone}</small>}
-        </label>
+        <fieldset className="phone-field">
+          <legend>Telefono</legend>
+          <div className="phone-control">
+            <select
+              aria-label="Prefijo de pais"
+              value={formValues.countryCode}
+              onChange={(event) =>
+                updateField('countryCode', event.target.value)
+              }
+            >
+              {countryCodeOptions.map((option) => (
+                <option key={option.code} value={option.code}>
+                  {option.code}
+                </option>
+              ))}
+            </select>
+
+            <input
+              type="tel"
+              inputMode="numeric"
+              aria-label="Numero local"
+              placeholder="70000000"
+              value={formValues.localPhone}
+              onChange={(event) =>
+                updateField('localPhone', event.target.value)
+              }
+            />
+          </div>
+          {errors.countryCode && <small>{errors.countryCode}</small>}
+          {errors.localPhone && <small>{errors.localPhone}</small>}
+        </fieldset>
 
         <label>
           <span>Email opcional</span>
           <input
             type="email"
+            placeholder="correo@ejemplo.com"
             value={formValues.email}
             onChange={(event) => updateField('email', event.target.value)}
           />
+          {errors.email && <small>{errors.email}</small>}
         </label>
 
         <label>
@@ -101,6 +137,7 @@ export function PatientForm({ onCreatePatient }: PatientFormProps) {
             value={formValues.birthDate}
             onChange={(event) => updateField('birthDate', event.target.value)}
           />
+          {errors.birthDate && <small>{errors.birthDate}</small>}
         </label>
 
         <button className="primary-action" type="submit">

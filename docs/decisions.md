@@ -60,16 +60,25 @@ solo maneja estado local y muestra errores; las reglas obligatorias se prueban
 sin depender de React.
 
 Los nombres y apellidos aceptan letras, espacios, tildes y `ñ`. El telefono
-acepta numeros, espacios y un `+` opcional. El email es opcional, pero si existe
-debe tener formato valido. La fecha de nacimiento es opcional, pero no puede ser
-futura ni representar una edad mayor a 120 años. Estas reglas evitan datos
-claramente invalidos antes de integrar backend.
+acepta numeros, espacios, un `+` opcional y debe tener mas de 5 digitos. El
+email es opcional, pero si existe debe tener formato valido. La fecha de
+nacimiento es opcional, pero no puede ser futura ni representar una edad mayor a
+120 años. Estas reglas evitan datos claramente invalidos antes de integrar
+backend.
 
 ## Registro local de pacientes
 
 El alta de pacientes se maneja en frontend con estado local dentro de `App.tsx`.
 Esto permite validar el flujo de interfaz antes de introducir backend, base de
 datos o autenticacion.
+
+## Telefonos en formato internacional
+
+El formulario separa prefijo de pais y numero local, pero guarda `Patient.phone`
+como un string internacional compacto, por ejemplo `+59170000000`. Esto prepara
+el dato para futura integracion con WhatsApp API. Por ahora usamos una lista
+manual corta de prefijos regionales; mas adelante puede reemplazarse por una
+libreria especializada sin cambiar el modelo principal.
 
 ## Sin backend por ahora
 

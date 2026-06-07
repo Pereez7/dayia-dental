@@ -12,7 +12,8 @@ export interface Patient {
 export interface PatientFormValues {
   firstName: string
   lastName: string
-  phone: string
+  countryCode: string
+  localPhone: string
   email: string
   birthDate: string
 }

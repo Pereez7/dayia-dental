@@ -1,9 +1,11 @@
 import type { PatientFormErrors, PatientFormValues } from '../types/Patient'
 
 const namePattern = /^[\p{L}\s]+$/u
-const phonePattern = /^\+?[\d\s]+$/
+const countryCodePattern = /^\+\d+$/
+const localPhonePattern = /^\d+$/
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const maxPatientAge = 120
+const minPhoneLength = 6
 
 export function validateRequired(value: string, message: string) {
   return value.trim() === '' ? message : ''
@@ -23,15 +25,33 @@ export function validatePersonName(value: string, fieldLabel: string) {
   return ''
 }
 
-export function validatePhone(value: string) {
+export function validateCountryCode(value: string) {
   const trimmedValue = value.trim()
 
   if (trimmedValue === '') {
-    return 'El telefono es requerido'
+    return 'El prefijo de pais es requerido'
   }
 
-  if (!phonePattern.test(trimmedValue)) {
-    return 'El telefono solo debe contener numeros, espacios o +'
+  if (!countryCodePattern.test(trimmedValue)) {
+    return 'El prefijo debe iniciar con + y contener solo numeros'
+  }
+
+  return ''
+}
+
+export function validateLocalPhone(value: string) {
+  const trimmedValue = value.trim()
+
+  if (trimmedValue === '') {
+    return 'El numero local es requerido'
+  }
+
+  if (!localPhonePattern.test(trimmedValue)) {
+    return 'El numero local solo debe contener digitos'
+  }
+
+  if (trimmedValue.length < minPhoneLength) {
+    return 'El numero local debe tener mas de 5 digitos'
   }
 
   return ''
@@ -89,7 +109,8 @@ export function validatePatientForm(
 
   const firstNameError = validatePersonName(values.firstName, 'El nombre')
   const lastNameError = validatePersonName(values.lastName, 'El apellido')
-  const phoneError = validatePhone(values.phone)
+  const countryCodeError = validateCountryCode(values.countryCode)
+  const localPhoneError = validateLocalPhone(values.localPhone)
   const emailError = validateOptionalEmail(values.email)
   const birthDateError = validateOptionalBirthDate(
     values.birthDate,
@@ -104,8 +125,12 @@ export function validatePatientForm(
     errors.lastName = lastNameError
   }
 
-  if (phoneError) {
-    errors.phone = phoneError
+  if (countryCodeError) {
+    errors.countryCode = countryCodeError
+  }
+
+  if (localPhoneError) {
+    errors.localPhone = localPhoneError
   }
 
   if (emailError) {
