@@ -16,6 +16,7 @@ Registro breve de cambios relevantes en DayIA Dental.
 - Se agrego formulario frontend para registrar pacientes.
 - Se agregaron validaciones puras para campos obligatorios del paciente.
 - Se mejoraron validaciones de nombre, apellido, telefono y email.
+- Se agrego validacion de fecha de nacimiento opcional.
 - Se agrego mensaje visual de exito al registrar pacientes.
 - Se agregaron pruebas unitarias para validaciones de pacientes.
 - Se agregaron estilos responsive para tarjetas de pacientes.

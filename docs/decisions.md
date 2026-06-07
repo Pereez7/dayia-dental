@@ -61,8 +61,9 @@ sin depender de React.
 
 Los nombres y apellidos aceptan letras, espacios, tildes y `ñ`. El telefono
 acepta numeros, espacios y un `+` opcional. El email es opcional, pero si existe
-debe tener formato valido. Estas reglas evitan datos claramente invalidos antes
-de integrar backend.
+debe tener formato valido. La fecha de nacimiento es opcional, pero no puede ser
+futura ni representar una edad mayor a 120 años. Estas reglas evitan datos
+claramente invalidos antes de integrar backend.
 
 ## Registro local de pacientes
 

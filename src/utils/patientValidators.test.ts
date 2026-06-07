@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { PatientFormValues } from '../types/Patient'
 import {
   hasPatientFormErrors,
+  validateOptionalBirthDate,
   validateOptionalEmail,
   validatePatientForm,
   validatePersonName,
@@ -16,6 +17,8 @@ const validFormValues: PatientFormValues = {
   email: '',
   birthDate: '',
 }
+
+const referenceDate = new Date('2026-06-07T00:00:00')
 
 describe('patientValidators', () => {
   it('returns an error message when a required value is empty', () => {
@@ -82,19 +85,43 @@ describe('patientValidators', () => {
     )
   })
 
+  it('allows empty optional birth date', () => {
+    expect(validateOptionalBirthDate('', referenceDate)).toBe('')
+  })
+
+  it('allows a valid birth date', () => {
+    expect(validateOptionalBirthDate('1995-04-12', referenceDate)).toBe('')
+  })
+
+  it('rejects a future birth date', () => {
+    expect(validateOptionalBirthDate('2026-06-08', referenceDate)).toBe(
+      'La fecha de nacimiento no puede ser futura',
+    )
+  })
+
+  it('rejects a birth date older than 120 years', () => {
+    expect(validateOptionalBirthDate('1906-06-06', referenceDate)).toBe(
+      'La edad no puede ser mayor a 120 años',
+    )
+  })
+
   it('returns patient form errors for invalid formats', () => {
     expect(
-      validatePatientForm({
-        firstName: 'Charles:#',
-        lastName: 'Rojas',
-        phone: '764544_df',
-        email: 'correo-invalido',
-        birthDate: '',
-      }),
+      validatePatientForm(
+        {
+          firstName: 'Charles:#',
+          lastName: 'Rojas',
+          phone: '764544_df',
+          email: 'correo-invalido',
+          birthDate: '2026-06-08',
+        },
+        referenceDate,
+      ),
     ).toEqual({
       firstName: 'El nombre solo debe contener letras y espacios',
       phone: 'El telefono solo debe contener numeros, espacios o +',
       email: 'El email debe tener un formato valido',
+      birthDate: 'La fecha de nacimiento no puede ser futura',
     })
   })
 

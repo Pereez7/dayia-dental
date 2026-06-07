@@ -3,6 +3,7 @@ import type { PatientFormErrors, PatientFormValues } from '../types/Patient'
 const namePattern = /^[\p{L}\s]+$/u
 const phonePattern = /^\+?[\d\s]+$/
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const maxPatientAge = 120
 
 export function validateRequired(value: string, message: string) {
   return value.trim() === '' ? message : ''
@@ -50,13 +51,50 @@ export function validateOptionalEmail(value: string) {
   return ''
 }
 
-export function validatePatientForm(values: PatientFormValues) {
+export function validateOptionalBirthDate(
+  value: string,
+  referenceDate = new Date(),
+) {
+  const trimmedValue = value.trim()
+
+  if (trimmedValue === '') {
+    return ''
+  }
+
+  const birthDate = new Date(`${trimmedValue}T00:00:00`)
+  const today = new Date(
+    referenceDate.getFullYear(),
+    referenceDate.getMonth(),
+    referenceDate.getDate(),
+  )
+  const oldestAllowedBirthDate = new Date(today)
+  oldestAllowedBirthDate.setFullYear(today.getFullYear() - maxPatientAge)
+
+  if (birthDate > today) {
+    return 'La fecha de nacimiento no puede ser futura'
+  }
+
+  if (birthDate < oldestAllowedBirthDate) {
+    return 'La edad no puede ser mayor a 120 años'
+  }
+
+  return ''
+}
+
+export function validatePatientForm(
+  values: PatientFormValues,
+  referenceDate = new Date(),
+) {
   const errors: PatientFormErrors = {}
 
   const firstNameError = validatePersonName(values.firstName, 'El nombre')
   const lastNameError = validatePersonName(values.lastName, 'El apellido')
   const phoneError = validatePhone(values.phone)
   const emailError = validateOptionalEmail(values.email)
+  const birthDateError = validateOptionalBirthDate(
+    values.birthDate,
+    referenceDate,
+  )
 
   if (firstNameError) {
     errors.firstName = firstNameError
@@ -72,6 +110,10 @@ export function validatePatientForm(values: PatientFormValues) {
 
   if (emailError) {
     errors.email = emailError
+  }
+
+  if (birthDateError) {
+    errors.birthDate = birthDateError
   }
 
   return errors
