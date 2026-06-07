@@ -36,8 +36,8 @@ forma minima que debe tener un paciente dentro del frontend.
 
 `src/utils`
 
-Contiene funciones puras para transformar o formatear datos. Estas funciones no
-dependen de React y son buenas candidatas para pruebas unitarias.
+Contiene funciones puras para transformar, formatear o filtrar datos. Estas
+funciones no dependen de React y son buenas candidatas para pruebas unitarias.
 
 `src/App.tsx`
 
@@ -61,5 +61,6 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
 4. `AppointmentsOverview` recibe las citas y renderiza tarjetas individuales.
 5. `AppointmentCard` usa funciones de `src/utils` para mostrar fecha, hora y
    estado en formato legible.
-6. `PatientsList` recibe pacientes y renderiza una `PatientCard` por cada
-   registro.
+6. `PatientsList` recibe pacientes, maneja el texto de busqueda local y usa
+   `filterPatients` para decidir que registros mostrar.
+7. `PatientCard` muestra cada paciente filtrado.

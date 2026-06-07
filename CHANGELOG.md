@@ -10,6 +10,9 @@ Registro breve de cambios relevantes en DayIA Dental.
 - Se agregaron pacientes mock en `src/data/patients.ts`.
 - Se crearon los componentes `PatientsList` y `PatientCard`.
 - Se integro un listado simple de pacientes en la pantalla principal.
+- Se agrego busqueda frontend por nombre, apellido o telefono.
+- Se agrego `filterPatients` como funcion pura testeable.
+- Se agregaron pruebas unitarias para el filtro de pacientes.
 - Se agregaron estilos responsive para tarjetas de pacientes.
 - Se actualizo la documentacion tecnica.
 

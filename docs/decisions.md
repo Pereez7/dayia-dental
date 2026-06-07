@@ -47,6 +47,12 @@ Separamos funciones de formato en `src/utils` para evitar mezclar logica dentro
 de componentes. Esto hace que la UI sea mas simple y que la logica sea mas facil
 de probar.
 
+## Filtros como funciones puras
+
+La busqueda de pacientes usa `filterPatients` en `src/utils`. El componente solo
+guarda el texto ingresado por el usuario, mientras la funcion decide que
+pacientes coinciden. Esto permite probar el filtro sin renderizar componentes.
+
 ## Sin backend por ahora
 
 El proyecto se mantiene solo en frontend mientras se define bien el modulo de
