@@ -32,6 +32,21 @@ Actualmente existe:
 Este modulo esta preparado para una futura integracion con WhatsApp, pero aun no
 envia mensajes ni consume APIs externas.
 
+## Modulo citas
+
+Actualmente existe una primera version de agenda:
+
+- Usa citas mock desde `src/data/appointments.ts`.
+- Muestra proximas citas agrupadas por fecha.
+- Ordena las citas por fecha y hora.
+- Muestra resumen superior con total de proximas citas, confirmadas, pendientes
+  y reprogramadas.
+- Cada cita muestra hora, paciente, tratamiento o motivo y estado.
+- Los estados usan badges con colores semanticos suaves.
+
+Todavia no existe creacion, edicion, eliminacion, cancelacion real ni
+persistencia de citas.
+
 ## Navegacion
 
 La app usa `AppLayout` con:

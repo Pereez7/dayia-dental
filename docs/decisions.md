@@ -59,6 +59,29 @@ sidebar muestra solo secciones principales. Las creaciones frecuentes viven como
 acciones rapidas (`+ Paciente`, `+ Cita`) para evitar duplicar opciones y mantener
 la interfaz limpia.
 
+## Citas con datos mock por ahora
+
+El modulo Citas se mantiene en frontend usando datos mock. Esto permite validar
+la experiencia de agenda, estados y jerarquia visual antes de integrar base de
+datos, permisos o flujos de edicion.
+
+## Agenda visual antes de CRUD de citas
+
+Primero se implemento una agenda visual de proximas citas. La creacion, edicion,
+eliminacion y cancelacion real de citas quedan pendientes hasta que el modelo de
+agenda sea claro y estable.
+
+## Estados con badges semanticos
+
+Los estados de cita usan badges con colores suaves para facilitar lectura rapida
+sin saturar la interfaz. `Recordatorio` no se usa como estado de cita; los
+recordatorios pertenecen al modulo futuro de WhatsApp.
+
+## Sin iconos por ahora
+
+No se agregan iconos todavia. Se evaluaran cuando la UI global este mas estable
+y exista una necesidad clara de mejorar escaneo visual sin aumentar ruido.
+
 ## Utilidades separadas
 
 Separamos funciones de formato en `src/utils` para evitar mezclar logica dentro

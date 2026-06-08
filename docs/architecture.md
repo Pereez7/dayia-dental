@@ -105,8 +105,27 @@ formato internacional compacto.
 `Citas`
 
 Incluye datos mock, resumen visual de proximas atenciones y una primera agenda
-mobile-first ordenada por fecha y hora. El formulario de nueva cita sigue
-pendiente.
+mobile-first.
+
+Participan:
+
+- `src/types/Appointment.ts`: define `Appointment` y `AppointmentStatus`.
+- `src/data/appointments.ts`: contiene citas mock.
+- `src/views/AppointmentsView.tsx`: compone la vista de agenda o el placeholder
+  de nueva cita.
+- `src/components/AppointmentsAgenda.tsx`: muestra la agenda agrupada por fecha
+  y el resumen superior.
+- `src/components/AppointmentAgendaCard.tsx`: muestra cada cita.
+- `src/utils/appointmentSorters.ts`: ordena citas por fecha y hora.
+- `src/utils/appointmentGroups.ts`: agrupa citas por fecha y calcula resumen por
+  estado.
+- `src/utils/appointmentFormatters.ts`: formatea fecha, hora y estados.
+
+La logica de ordenamiento, agrupacion y resumen debe mantenerse fuera de los
+componentes para poder probarse con Vitest.
+
+El formulario de nueva cita, la edicion, eliminacion, cancelacion real y
+persistencia siguen pendientes.
 
 `Dashboard`, `Historial clinico`, `Odontograma`, `Recordatorios` y
 `Configuracion`

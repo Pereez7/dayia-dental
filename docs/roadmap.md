@@ -21,10 +21,24 @@ formato internacional.
 
 ### Citas
 
-Estado: agenda basica iniciada.
+Estado: parcialmente implementado.
 
-Incluye una primera lista mobile-first de citas mock ordenadas por fecha y hora.
-Pendiente construir nueva cita, edicion de citas y estados de confirmacion.
+Implementado:
+
+- Agenda visual de proximas citas.
+- Citas mock ordenadas por fecha y hora.
+- Agrupacion por fecha.
+- Resumen superior con KPIs.
+- Estados visuales con badges semanticos.
+
+Pendiente:
+
+- Nueva cita.
+- Edicion de cita.
+- Eliminacion o cancelacion real.
+- Estados funcionales conectados a acciones.
+- Persistencia.
+- Integracion con WhatsApp.
 
 ### Historial clinico
 
@@ -58,7 +72,6 @@ notificaciones.
 
 - Mejorar navegacion a medida que crezcan los modulos.
 - Mejorar diseno visual general.
-- Crear agenda de citas.
 - Crear formulario de nueva cita.
 - Implementar historial clinico.
 - Implementar odontograma.
