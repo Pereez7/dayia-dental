@@ -238,6 +238,210 @@
   gap: 12px;
 }
 
+.agenda-section {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-soft);
+  padding: clamp(16px, 3vw, 20px);
+}
+
+.agenda-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.agenda-kpi {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-background);
+  padding: 9px 10px;
+}
+
+.agenda-kpi--total {
+  background: #eef8fc;
+  border-color: #cbe8f2;
+}
+
+.agenda-kpi--total strong,
+.agenda-kpi--total span {
+  color: #0f6f98;
+}
+
+.agenda-kpi--confirmed {
+  background: #e9f8f1;
+  border-color: #b7e4ce;
+}
+
+.agenda-kpi--confirmed strong,
+.agenda-kpi--confirmed span {
+  color: #237b55;
+}
+
+.agenda-kpi--pending {
+  background: #fff7df;
+  border-color: #f0d487;
+}
+
+.agenda-kpi--pending strong,
+.agenda-kpi--pending span {
+  color: #8a5a00;
+}
+
+.agenda-kpi--rescheduled {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+}
+
+.agenda-kpi--rescheduled strong,
+.agenda-kpi--rescheduled span {
+  color: #4f46e5;
+}
+
+.agenda-summary strong {
+  display: block;
+  color: var(--color-heading);
+  font-size: 1.12rem;
+  line-height: 1;
+}
+
+.agenda-summary span {
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.agenda-groups {
+  display: grid;
+  gap: 18px;
+}
+
+.agenda-day {
+  display: grid;
+  gap: 8px;
+}
+
+.agenda-day h3 {
+  margin: 0;
+  color: var(--color-heading);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.agenda-list {
+  display: grid;
+  gap: 6px;
+}
+
+.agenda-card {
+  display: grid;
+  grid-template-columns: 66px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.agenda-card-time {
+  color: var(--color-primary-dark);
+  font-size: 1.05rem;
+  font-weight: 900;
+  line-height: 1;
+  padding-top: 2px;
+}
+
+.agenda-card-body {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.agenda-card-body > div {
+  min-width: 0;
+}
+
+.agenda-card-body h3 {
+  margin: 0 0 2px;
+  color: var(--color-heading);
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+
+.agenda-card-body p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.86rem;
+}
+
+.agenda-status {
+  justify-self: start;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 4px 7px;
+  white-space: nowrap;
+}
+
+.agenda-status.appointment-status--confirmed,
+.status-pill.appointment-status--confirmed {
+  background: #e9f8f1;
+  border-color: #b7e4ce;
+  color: #237b55;
+}
+
+.agenda-status.appointment-status--pending,
+.status-pill.appointment-status--pending {
+  background: #fff7df;
+  border-color: #f0d487;
+  color: #8a5a00;
+}
+
+.agenda-status.appointment-status--rescheduled,
+.status-pill.appointment-status--rescheduled {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #4f46e5;
+}
+
+.agenda-status.appointment-status--cancelled,
+.status-pill.appointment-status--cancelled {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #be123c;
+}
+
+.agenda-status.appointment-status--completed,
+.status-pill.appointment-status--completed {
+  background: #eef6fb;
+  border-color: #c9dce8;
+  color: #406176;
+}
+
+@media (min-width: 760px) {
+  .agenda-summary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .agenda-card {
+    align-items: center;
+  }
+
+  .agenda-card-body {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .agenda-status {
+    justify-self: end;
+  }
+}
+
 .appointment-item {
   display: grid;
   grid-template-columns: 64px minmax(0, 1fr) auto;
@@ -276,8 +480,7 @@
 
 .status-pill {
   border-radius: 999px;
-  background: var(--color-soft-green);
-  color: var(--color-success);
+  border: 1px solid transparent;
   font-size: 0.82rem;
   font-weight: 700;
   padding: 6px 10px;

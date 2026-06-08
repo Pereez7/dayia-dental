@@ -1,4 +1,4 @@
-import { AppointmentsOverview } from '../components/AppointmentsOverview'
+import { AppointmentsAgenda } from '../components/AppointmentsAgenda'
 import { appointments } from '../data/appointments'
 
 interface AppointmentsViewProps {
@@ -19,18 +19,5 @@ export function AppointmentsView({ mode = 'agenda' }: AppointmentsViewProps) {
     )
   }
 
-  return (
-    <section className="view-stack">
-      <div className="placeholder-panel">
-        <p className="eyebrow">Modulo de citas</p>
-        <h2>Agenda odontologica</h2>
-        <p>
-          Aqui construiremos el flujo completo para crear, editar y recordar
-          citas.
-        </p>
-      </div>
-
-      <AppointmentsOverview appointments={appointments} />
-    </section>
-  )
+  return <AppointmentsAgenda appointments={appointments} />
 }

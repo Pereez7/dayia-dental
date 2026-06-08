@@ -1,7 +1,8 @@
-import type { Appointment } from '../data/appointments'
+import type { Appointment } from '../types/Appointment'
 import {
   formatAppointmentDate,
   formatAppointmentTime,
+  getAppointmentStatusClassName,
   getAppointmentStatusLabel,
 } from '../utils/appointmentFormatters'
 
@@ -12,6 +13,7 @@ interface AppointmentCardProps {
 export function AppointmentCard({ appointment }: AppointmentCardProps) {
   const appointmentDate = formatAppointmentDate(appointment.date)
   const appointmentTime = formatAppointmentTime(appointment.time)
+  const statusClassName = getAppointmentStatusClassName(appointment.status)
   const statusLabel = getAppointmentStatusLabel(appointment.status)
 
   return (
@@ -24,7 +26,7 @@ export function AppointmentCard({ appointment }: AppointmentCardProps) {
         <strong>{appointment.patient}</strong>
         <span>{appointment.treatment}</span>
       </div>
-      <span className="status-pill">{statusLabel}</span>
+      <span className={`status-pill ${statusClassName}`}>{statusLabel}</span>
     </div>
   )
 }

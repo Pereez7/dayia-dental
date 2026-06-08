@@ -31,6 +31,9 @@ Registro breve de cambios relevantes en DayIA Dental.
 - Se agregaron placeholders para Historial clinico, Odontograma y Recordatorios WhatsApp.
 - Se crearon vistas iniciales para Dashboard, Pacientes, Citas y Configuracion.
 - Se movio el flujo de pacientes a `PatientsView`.
+- Se agrego primera agenda mobile-first de citas.
+- Se agrego ordenamiento puro de citas por fecha y hora.
+- Se agregaron pruebas unitarias para ordenamiento de citas.
 - Se agregaron estilos responsive para tarjetas de pacientes.
 - Se agrego documentacion de contexto del proyecto.
 - Se agrego roadmap funcional.

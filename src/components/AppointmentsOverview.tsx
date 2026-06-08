@@ -1,4 +1,4 @@
-import type { Appointment } from '../data/appointments'
+import type { Appointment } from '../types/Appointment'
 import { AppointmentCard } from './AppointmentCard'
 import { StatsCard } from './StatsCard'
 

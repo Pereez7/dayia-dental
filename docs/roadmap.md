@@ -21,10 +21,10 @@ formato internacional.
 
 ### Citas
 
-Estado: inicial.
+Estado: agenda basica iniciada.
 
-Pendiente construir agenda, nueva cita, edicion de citas y estados de
-confirmacion.
+Incluye una primera lista mobile-first de citas mock ordenadas por fecha y hora.
+Pendiente construir nueva cita, edicion de citas y estados de confirmacion.
 
 ### Historial clinico
 

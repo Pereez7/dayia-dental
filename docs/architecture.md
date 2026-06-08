@@ -104,8 +104,9 @@ formato internacional compacto.
 
 `Citas`
 
-Incluye datos mock y resumen visual de proximas atenciones. La agenda real y el
-formulario de nueva cita siguen pendientes.
+Incluye datos mock, resumen visual de proximas atenciones y una primera agenda
+mobile-first ordenada por fecha y hora. El formulario de nueva cita sigue
+pendiente.
 
 `Dashboard`, `Historial clinico`, `Odontograma`, `Recordatorios` y
 `Configuracion`

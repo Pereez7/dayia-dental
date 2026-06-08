@@ -1,9 +1,19 @@
-import type { AppointmentStatus } from '../data/appointments'
+import type { AppointmentStatus } from '../types/Appointment'
 
 const appointmentStatusLabels: Record<AppointmentStatus, string> = {
+  cancelled: 'Cancelada',
+  completed: 'Atendida',
   confirmed: 'Confirmada',
   pending: 'Pendiente',
-  reminder: 'Recordatorio',
+  rescheduled: 'Reprogramada',
+}
+
+const appointmentStatusClassNames: Record<AppointmentStatus, string> = {
+  cancelled: 'appointment-status--cancelled',
+  completed: 'appointment-status--completed',
+  confirmed: 'appointment-status--confirmed',
+  pending: 'appointment-status--pending',
+  rescheduled: 'appointment-status--rescheduled',
 }
 
 export function formatAppointmentDate(date: string) {
@@ -19,4 +29,8 @@ export function formatAppointmentTime(time: string) {
 
 export function getAppointmentStatusLabel(status: AppointmentStatus) {
   return appointmentStatusLabels[status]
+}
+
+export function getAppointmentStatusClassName(status: AppointmentStatus) {
+  return appointmentStatusClassNames[status]
 }

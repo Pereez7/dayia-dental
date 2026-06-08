@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   formatAppointmentDate,
   formatAppointmentTime,
+  getAppointmentStatusClassName,
   getAppointmentStatusLabel,
 } from './appointmentFormatters'
 
@@ -17,6 +18,26 @@ describe('appointmentFormatters', () => {
   it('returns the visible label for an appointment status', () => {
     expect(getAppointmentStatusLabel('confirmed')).toBe('Confirmada')
     expect(getAppointmentStatusLabel('pending')).toBe('Pendiente')
-    expect(getAppointmentStatusLabel('reminder')).toBe('Recordatorio')
+    expect(getAppointmentStatusLabel('cancelled')).toBe('Cancelada')
+    expect(getAppointmentStatusLabel('completed')).toBe('Atendida')
+    expect(getAppointmentStatusLabel('rescheduled')).toBe('Reprogramada')
+  })
+
+  it('returns the css class for an appointment status', () => {
+    expect(getAppointmentStatusClassName('confirmed')).toBe(
+      'appointment-status--confirmed',
+    )
+    expect(getAppointmentStatusClassName('pending')).toBe(
+      'appointment-status--pending',
+    )
+    expect(getAppointmentStatusClassName('cancelled')).toBe(
+      'appointment-status--cancelled',
+    )
+    expect(getAppointmentStatusClassName('completed')).toBe(
+      'appointment-status--completed',
+    )
+    expect(getAppointmentStatusClassName('rescheduled')).toBe(
+      'appointment-status--rescheduled',
+    )
   })
 })
