@@ -36,7 +36,7 @@ renderizar UI y recibir datos por props cuando sea posible.
 `src/data`
 
 Contiene datos de ejemplo usados por la interfaz mientras no existe backend.
-Actualmente guarda citas y pacientes mock.
+Actualmente guarda citas, pacientes y tratamientos mock.
 
 `src/layout`
 
@@ -83,17 +83,20 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
    secciones principales y acciones rapidas.
 5. `PatientsView` mantiene el listado local de pacientes y compone
    `PatientForm` con `PatientsList`.
-6. Las vistas de modulos futuros muestran placeholders simples hasta que se
-   implemente su flujo real.
-7. `AppointmentsOverview` recibe las citas y renderiza tarjetas individuales.
-8. `AppointmentCard` usa funciones de `src/utils` para mostrar fecha, hora y
+6. `AppointmentsView` alterna entre la agenda y el formulario de nueva cita.
+7. `AppointmentsOverview` recibe las citas desde `App.tsx` y renderiza metricas
+   y tarjetas individuales para el dashboard.
+8. `AppointmentForm` busca pacientes mock, valida campos con funciones de
+   `src/utils` y avisa a `App.tsx` cuando hay una nueva cita.
+9. `App.tsx` agrega la nueva cita al estado local y vuelve a la agenda.
+10. `AppointmentCard` usa funciones de `src/utils` para mostrar fecha, hora y
    estado en formato legible.
-9. `PatientForm` maneja los campos del formulario con estado local, valida con
+11. `PatientForm` maneja los campos del formulario con estado local, valida con
    funciones de `src/utils` y avisa a `PatientsView` cuando hay un nuevo
    paciente.
-10. `PatientsList` recibe pacientes, maneja el texto de busqueda local y usa
+12. `PatientsList` recibe pacientes, maneja el texto de busqueda local y usa
    `filterPatients` para decidir que registros mostrar.
-11. `PatientCard` muestra cada paciente filtrado.
+13. `PatientCard` muestra cada paciente filtrado.
 
 ## Modulos actuales
 
@@ -104,28 +107,33 @@ formato internacional compacto.
 
 `Citas`
 
-Incluye datos mock, resumen visual de proximas atenciones y una primera agenda
-mobile-first.
+Incluye datos mock, resumen visual de proximas atenciones, una agenda
+mobile-first y creacion local de citas en memoria.
 
 Participan:
 
-- `src/types/Appointment.ts`: define `Appointment` y `AppointmentStatus`.
+- `src/types/Appointment.ts`: define `Appointment`, `AppointmentStatus` y los
+  valores del formulario de citas.
 - `src/data/appointments.ts`: contiene citas mock.
-- `src/views/AppointmentsView.tsx`: compone la vista de agenda o el placeholder
+- `src/data/treatments.ts`: contiene el catalogo mock de tratamientos.
+- `src/views/AppointmentsView.tsx`: compone la vista de agenda o el formulario
   de nueva cita.
 - `src/components/AppointmentsAgenda.tsx`: muestra la agenda agrupada por fecha
   y el resumen superior.
 - `src/components/AppointmentAgendaCard.tsx`: muestra cada cita.
+- `src/components/AppointmentForm.tsx`: registra una cita nueva en el estado
+  local de la aplicacion.
 - `src/utils/appointmentSorters.ts`: ordena citas por fecha y hora.
 - `src/utils/appointmentGroups.ts`: agrupa citas por fecha y calcula resumen por
   estado.
 - `src/utils/appointmentFormatters.ts`: formatea fecha, hora y estados.
+- `src/utils/appointmentValidators.ts`: valida los campos del formulario de
+  nueva cita.
 
-La logica de ordenamiento, agrupacion y resumen debe mantenerse fuera de los
-componentes para poder probarse con Vitest.
+La logica de ordenamiento, agrupacion, resumen y validacion debe mantenerse
+fuera de los componentes para poder probarse con Vitest.
 
-El formulario de nueva cita, la edicion, eliminacion, cancelacion real y
-persistencia siguen pendientes.
+La edicion, eliminacion, cancelacion real y persistencia siguen pendientes.
 
 `Dashboard`, `Historial clinico`, `Odontograma`, `Recordatorios` y
 `Configuracion`

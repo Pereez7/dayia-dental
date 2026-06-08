@@ -9,11 +9,23 @@ historiales y otros modulos clinicos.
 - Frontend con React, Vite y TypeScript.
 - Layout base con sidebar, header y navegacion por estado local.
 - Modulo de pacientes con listado, busqueda, formulario y validaciones.
+- Modulo de citas con dashboard, agenda agrupada y formulario de nueva cita.
 - Datos mock separados en `src/data`.
 - Tipos compartidos en `src/types`.
 - Componentes pequenos y reutilizables en `src/components`.
 - Utilidades puras en `src/utils`.
 - Pruebas unitarias con Vitest.
+
+## Modulos actuales
+
+- **Dashboard:** resumen de citas y proximas atenciones.
+- **Pacientes:** listado, busqueda, alta local y validaciones.
+- **Citas:** agenda mobile-first, KPIs por estado y creacion local de citas.
+- **Historial clinico, Odontograma, Recordatorios y Configuracion:** vistas
+  iniciales o placeholders para el crecimiento futuro.
+
+La aplicacion todavia no tiene backend, base de datos, autenticacion,
+persistencia ni integracion real con WhatsApp.
 
 ## Comandos
 

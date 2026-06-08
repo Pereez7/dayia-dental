@@ -9,7 +9,8 @@ los modulos esten implementados hoy.
 
 Estado: iniciado.
 
-Debe mostrar resumen operativo: citas del dia, pacientes recientes, pendientes y
+Muestra un resumen inicial de citas y proximas atenciones usando el estado local
+actual. Debe crecer hacia citas del dia, pacientes recientes, pendientes y
 actividad relevante del consultorio.
 
 ### Pacientes
@@ -30,10 +31,14 @@ Implementado:
 - Agrupacion por fecha.
 - Resumen superior con KPIs.
 - Estados visuales con badges semanticos.
+- Formulario de nueva cita.
+- Busqueda y seleccion de pacientes mock para agendar.
+- Catalogo mock de tratamientos.
+- Validaciones de paciente, fecha, hora, tratamiento y estado inicial.
+- Creacion local de citas en memoria.
 
 Pendiente:
 
-- Nueva cita.
 - Edicion de cita.
 - Eliminacion o cancelacion real.
 - Estados funcionales conectados a acciones.
@@ -72,7 +77,6 @@ notificaciones.
 
 - Mejorar navegacion a medida que crezcan los modulos.
 - Mejorar diseno visual general.
-- Crear formulario de nueva cita.
 - Implementar historial clinico.
 - Implementar odontograma.
 - Integrar WhatsApp.

@@ -65,11 +65,30 @@ El modulo Citas se mantiene en frontend usando datos mock. Esto permite validar
 la experiencia de agenda, estados y jerarquia visual antes de integrar base de
 datos, permisos o flujos de edicion.
 
-## Agenda visual antes de CRUD de citas
+## Agenda visual antes de acciones completas de citas
 
-Primero se implemento una agenda visual de proximas citas. La creacion, edicion,
+Primero se implemento una agenda visual de proximas citas. Luego se agrego la
+creacion local de citas para validar el flujo de registro. La edicion,
 eliminacion y cancelacion real de citas quedan pendientes hasta que el modelo de
-agenda sea claro y estable.
+agenda sea mas claro y estable.
+
+## Creacion local de citas antes de persistencia
+
+El formulario de nueva cita se implementa primero en frontend con estado local.
+Esto permite validar seleccion de paciente, fecha, hora, tratamiento y estado
+inicial antes de introducir base de datos o reglas de negocio mas complejas.
+
+Las citas creadas en esta etapa se agregan en memoria desde `App.tsx` y se
+reflejan en Dashboard y Agenda durante la sesion actual. La persistencia,
+edicion, eliminacion y cancelacion real siguen fuera del alcance inmediato.
+
+## Catalogo mock de tratamientos
+
+Los tratamientos de una cita viven temporalmente en `src/data/treatments.ts`.
+El formulario usa ese catalogo para evitar texto libre inconsistente y las
+validaciones verifican que el tratamiento seleccionado pertenezca a la lista.
+Mas adelante este catalogo puede venir de backend o configuracion del
+consultorio.
 
 ## Estados con badges semanticos
 
@@ -107,6 +126,12 @@ formato valido. La fecha de
 nacimiento es opcional, pero no puede ser futura ni representar una edad mayor a
 120 años. Estas reglas evitan datos claramente invalidos antes de integrar
 backend.
+
+Las validaciones de citas tambien viven en `src/utils`. El formulario de nueva
+cita exige paciente, fecha no anterior a hoy, hora, tratamiento valido y estado
+inicial permitido. Por ahora solo `Pendiente` y `Confirmada` son estados
+iniciales validos; estados como `Cancelada`, `Completada` o `Reprogramada`
+pertenecen a acciones posteriores sobre una cita existente.
 
 ## Registro local de pacientes
 

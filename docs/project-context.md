@@ -34,18 +34,23 @@ envia mensajes ni consume APIs externas.
 
 ## Modulo citas
 
-Actualmente existe una primera version de agenda:
+Actualmente existe una primera version funcional en frontend:
 
 - Usa citas mock desde `src/data/appointments.ts`.
+- Mantiene las citas en estado local dentro de `src/App.tsx`.
 - Muestra proximas citas agrupadas por fecha.
 - Ordena las citas por fecha y hora.
 - Muestra resumen superior con total de proximas citas, confirmadas, pendientes
   y reprogramadas.
 - Cada cita muestra hora, paciente, tratamiento o motivo y estado.
 - Los estados usan badges con colores semanticos suaves.
+- Permite registrar una nueva cita desde la accion rapida `+ Cita`.
+- El formulario de nueva cita permite buscar y seleccionar pacientes mock.
+- El formulario valida paciente, fecha, hora, tratamiento y estado inicial.
+- Los tratamientos disponibles viven en `src/data/treatments.ts`.
 
-Todavia no existe creacion, edicion, eliminacion, cancelacion real ni
-persistencia de citas.
+Todavia no existe edicion, eliminacion, cancelacion real ni persistencia de
+citas. Las citas nuevas solo viven en memoria durante la sesion actual.
 
 ## Navegacion
 
