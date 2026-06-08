@@ -49,7 +49,6 @@ export function Header({ activeSection }: HeaderProps) {
   return (
     <header className="top-header">
       <div>
-        <p className="eyebrow">DayIA Dental</p>
         <h1>{content.title}</h1>
         <p>{content.description}</p>
       </div>

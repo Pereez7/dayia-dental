@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import type { AppointmentFormValues } from '../types/Appointment'
+import type { Treatment } from '../types/Treatment'
 import {
   hasAppointmentFormErrors,
   validateAppointmentForm,
 } from './appointmentValidators'
+
+const activeTreatments: Treatment[] = [
+  { id: 1, name: 'Limpieza dental', isActive: true },
+  { id: 2, name: 'Endodoncia', isActive: false },
+]
 
 const validAppointmentFormValues: AppointmentFormValues = {
   patientId: 1,
@@ -14,151 +20,136 @@ const validAppointmentFormValues: AppointmentFormValues = {
   status: 'pending',
 }
 
+function validate(values: AppointmentFormValues) {
+  return validateAppointmentForm(
+    values,
+    new Date('2026-06-08T10:00:00'),
+    activeTreatments,
+  )
+}
+
 describe('validateAppointmentForm', () => {
   it('returns no errors when values are valid', () => {
-    expect(
-      validateAppointmentForm(
-        validAppointmentFormValues,
-        new Date('2026-06-08T10:00:00'),
-      ),
-    ).toEqual({})
+    expect(validate(validAppointmentFormValues)).toEqual({})
   })
 
   it('requires a patient', () => {
-    const errors = validateAppointmentForm(
-      {
-        ...validAppointmentFormValues,
-        patientId: null,
-        patient: '',
-      },
-      new Date('2026-06-08T10:00:00'),
-    )
+    const errors = validate({
+      ...validAppointmentFormValues,
+      patientId: null,
+      patient: '',
+    })
 
     expect(errors.patient).toBe('Selecciona un paciente.')
   })
 
   it('validates the selected patient id instead of the search text', () => {
-    const errors = validateAppointmentForm(
-      {
-        ...validAppointmentFormValues,
-        patientId: null,
-        patient: 'Carlos Medina',
-      },
-      new Date('2026-06-08T10:00:00'),
-    )
+    const errors = validate({
+      ...validAppointmentFormValues,
+      patientId: null,
+      patient: 'Carlos Medina',
+    })
 
     expect(errors.patient).toBe('Selecciona un paciente.')
   })
 
   it('requires a date', () => {
-    const errors = validateAppointmentForm(
-      {
-        ...validAppointmentFormValues,
-        date: '',
-      },
-      new Date('2026-06-08T10:00:00'),
-    )
+    const errors = validate({
+      ...validAppointmentFormValues,
+      date: '',
+    })
 
     expect(errors.date).toBe('Selecciona una fecha.')
   })
 
   it('does not allow a date before today', () => {
-    const errors = validateAppointmentForm(
-      {
-        ...validAppointmentFormValues,
-        date: '2026-06-07',
-      },
-      new Date('2026-06-08T10:00:00'),
-    )
+    const errors = validate({
+      ...validAppointmentFormValues,
+      date: '2026-06-07',
+    })
 
     expect(errors.date).toBe('La fecha no puede ser anterior a hoy.')
   })
 
   it('allows today as appointment date', () => {
-    const errors = validateAppointmentForm(
-      {
-        ...validAppointmentFormValues,
-        date: '2026-06-08',
-      },
-      new Date('2026-06-08T10:00:00'),
-    )
+    const errors = validate({
+      ...validAppointmentFormValues,
+      date: '2026-06-08',
+    })
 
     expect(errors.date).toBeUndefined()
   })
 
   it('requires a time', () => {
-    const errors = validateAppointmentForm(
-      {
-        ...validAppointmentFormValues,
-        time: '',
-      },
-      new Date('2026-06-08T10:00:00'),
-    )
+    const errors = validate({
+      ...validAppointmentFormValues,
+      time: '',
+    })
 
     expect(errors.time).toBe('Selecciona una hora.')
   })
 
   it('requires a time from the 15 minute slot catalog', () => {
-    const errors = validateAppointmentForm(
-      {
-        ...validAppointmentFormValues,
-        time: '10:10',
-      },
-      new Date('2026-06-08T10:00:00'),
-    )
+    const errors = validate({
+      ...validAppointmentFormValues,
+      time: '10:10',
+    })
 
     expect(errors.time).toBe('Selecciona una hora valida.')
   })
 
   it('requires a treatment', () => {
-    const errors = validateAppointmentForm(
-      {
-        ...validAppointmentFormValues,
-        treatment: '   ',
-      },
-      new Date('2026-06-08T10:00:00'),
-    )
+    const errors = validate({
+      ...validAppointmentFormValues,
+      treatment: '   ',
+    })
 
     expect(errors.treatment).toBe('Ingresa el motivo o tratamiento.')
   })
 
   it('allows only valid initial statuses', () => {
-    const errors = validateAppointmentForm(
-      {
-        ...validAppointmentFormValues,
-        status: 'rescheduled',
-      },
-      new Date('2026-06-08T10:00:00'),
-    )
+    const errors = validate({
+      ...validAppointmentFormValues,
+      status: 'rescheduled',
+    })
 
     expect(errors.status).toBe('Selecciona un estado valido.')
   })
 
   it('does not allow cancelled or completed as initial statuses', () => {
     expect(
-      validateAppointmentForm({
+      validate({
         ...validAppointmentFormValues,
         status: 'cancelled',
-      }, new Date('2026-06-08T10:00:00')).status,
+      }).status,
     ).toBe('Selecciona un estado valido.')
     expect(
-      validateAppointmentForm({
+      validate({
         ...validAppointmentFormValues,
         status: 'completed',
-      }, new Date('2026-06-08T10:00:00')).status,
+      }).status,
     ).toBe('Selecciona un estado valido.')
   })
 
-  it('requires a treatment from the defined catalog', () => {
-    const errors = validateAppointmentForm(
-      {
-        ...validAppointmentFormValues,
-        treatment: 'Tratamiento inventado',
-      },
-      new Date('2026-06-08T10:00:00'),
-    )
+  it('requires a treatment from the active treatment catalog', () => {
+    const errors = validate({
+      ...validAppointmentFormValues,
+      treatment: 'Endodoncia',
+    })
 
     expect(errors.treatment).toBe('Selecciona un tratamiento valido.')
+  })
+
+  it('requires at least one active treatment', () => {
+    const errors = validateAppointmentForm(
+      validAppointmentFormValues,
+      new Date('2026-06-08T10:00:00'),
+      [{ id: 1, name: 'Limpieza dental', isActive: false }],
+    )
+
+    expect(errors.treatment).toBe(
+      'Activa al menos un tratamiento en Configuracion.',
+    )
   })
 })
 

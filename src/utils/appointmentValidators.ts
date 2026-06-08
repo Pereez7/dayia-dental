@@ -3,8 +3,9 @@ import type {
   AppointmentFormValues,
   AppointmentStatus,
 } from '../types/Appointment'
-import { treatments } from '../data/treatments'
+import type { Treatment } from '../types/Treatment'
 import { appointmentTimeSlots } from './appointmentTimeSlots'
+import { getActiveTreatments } from './treatmentUtils'
 
 export const appointmentInitialStatuses: AppointmentStatus[] = [
   'pending',
@@ -14,6 +15,7 @@ export const appointmentInitialStatuses: AppointmentStatus[] = [
 export function validateAppointmentForm(
   values: AppointmentFormValues,
   referenceDate = new Date(),
+  treatments: Treatment[] = [],
 ): AppointmentFormErrors {
   const errors: AppointmentFormErrors = {}
 
@@ -33,9 +35,15 @@ export function validateAppointmentForm(
     errors.time = 'Selecciona una hora valida.'
   }
 
+  const activeTreatments = getActiveTreatments(treatments)
+
   if (!values.treatment.trim()) {
     errors.treatment = 'Ingresa el motivo o tratamiento.'
-  } else if (!treatments.includes(values.treatment)) {
+  } else if (activeTreatments.length === 0) {
+    errors.treatment = 'Activa al menos un tratamiento en Configuracion.'
+  } else if (
+    !activeTreatments.some((treatment) => treatment.name === values.treatment)
+  ) {
     errors.treatment = 'Selecciona un tratamiento valido.'
   }
 

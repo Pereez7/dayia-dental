@@ -2,10 +2,12 @@ import { useState } from 'react'
 import './App.css'
 import { appointments as initialAppointments } from './data/appointments'
 import { patients as initialPatients } from './data/patients'
+import { treatments as initialTreatments } from './data/treatments'
 import { AppLayout } from './layout/AppLayout'
 import type { AppSection } from './layout/navigation'
 import type { Appointment, AppointmentFormValues } from './types/Appointment'
 import type { Patient, PatientFormValues } from './types/Patient'
+import type { Treatment } from './types/Treatment'
 import { AppointmentsView } from './views/AppointmentsView'
 import { ClinicalHistoryView } from './views/ClinicalHistoryView'
 import { DashboardView } from './views/DashboardView'
@@ -19,6 +21,8 @@ function App() {
   const [appointments, setAppointments] =
     useState<Appointment[]>(initialAppointments)
   const [patients, setPatients] = useState<Patient[]>(initialPatients)
+  const [treatments, setTreatments] =
+    useState<Treatment[]>(initialTreatments)
 
   function handleCreatePatient(values: PatientFormValues) {
     const newPatient: Patient = {
@@ -80,6 +84,7 @@ function App() {
           appointments={appointments}
           mode="agenda"
           patients={patients}
+          treatments={treatments}
         />
       )
     }
@@ -90,6 +95,7 @@ function App() {
           appointments={appointments}
           mode="new"
           patients={patients}
+          treatments={treatments}
           onCreateAppointment={handleCreateAppointment}
           onNavigateToAgenda={() => setActiveSection('appointments-agenda')}
         />
@@ -109,7 +115,12 @@ function App() {
     }
 
     if (activeSection === 'settings') {
-      return <SettingsView />
+      return (
+        <SettingsView
+          treatments={treatments}
+          onTreatmentsChange={setTreatments}
+        />
+      )
     }
 
     return <DashboardView appointments={appointments} patients={patients} />

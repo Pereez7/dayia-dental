@@ -1,12 +1,21 @@
-export function SettingsView() {
+import { TreatmentsSettings } from '../components/TreatmentsSettings'
+import type { Treatment } from '../types/Treatment'
+
+interface SettingsViewProps {
+  treatments: Treatment[]
+  onTreatmentsChange: (treatments: Treatment[]) => void
+}
+
+export function SettingsView({
+  treatments,
+  onTreatmentsChange,
+}: SettingsViewProps) {
   return (
-    <section className="placeholder-panel">
-      <p className="eyebrow">Configuracion</p>
-      <h2>Preferencias del consultorio</h2>
-      <p>
-        Mas adelante agregaremos datos de la clinica, horarios, plantillas de
-        mensajes y preferencias de notificaciones.
-      </p>
+    <section className="view-stack">
+      <TreatmentsSettings
+        treatments={treatments}
+        onTreatmentsChange={onTreatmentsChange}
+      />
     </section>
   )
 }

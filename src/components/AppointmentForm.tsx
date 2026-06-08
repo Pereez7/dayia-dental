@@ -5,10 +5,11 @@ import type {
   AppointmentStatus,
 } from '../types/Appointment'
 import type { Patient } from '../types/Patient'
-import { treatments } from '../data/treatments'
+import type { Treatment } from '../types/Treatment'
 import { getAppointmentStatusLabel } from '../utils/appointmentFormatters'
 import { appointmentTimeSlots } from '../utils/appointmentTimeSlots'
 import { filterPatients } from '../utils/patientFilters'
+import { getActiveTreatments } from '../utils/treatmentUtils'
 import {
   appointmentInitialStatuses,
   hasAppointmentFormErrors,
@@ -35,12 +36,14 @@ function getTodayDateInputValue() {
 
 interface AppointmentFormProps {
   patients: Patient[]
+  treatments: Treatment[]
   onCancel: () => void
   onCreateAppointment: (values: AppointmentFormValues) => void
 }
 
 export function AppointmentForm({
   patients,
+  treatments,
   onCancel,
   onCreateAppointment,
 }: AppointmentFormProps) {
@@ -51,6 +54,7 @@ export function AppointmentForm({
 
   const minAppointmentDate = getTodayDateInputValue()
   const filteredPatients = filterPatients(patients, patientSearch).slice(0, 5)
+  const activeTreatments = getActiveTreatments(treatments)
 
   function updateField(field: keyof AppointmentFormValues, value: string) {
     setFormValues((currentValues) => ({
@@ -84,7 +88,11 @@ export function AppointmentForm({
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    const validationErrors = validateAppointmentForm(formValues)
+    const validationErrors = validateAppointmentForm(
+      formValues,
+      new Date(),
+      activeTreatments,
+    )
     setErrors(validationErrors)
 
     if (hasAppointmentFormErrors(validationErrors)) {
@@ -236,18 +244,22 @@ export function AppointmentForm({
             onChange={(event) => updateField('treatment', event.target.value)}
           >
             <option value="">Seleccionar tratamiento</option>
-            {treatments.map((treatment) => (
-              <option key={treatment} value={treatment}>
-                {treatment}
+            {activeTreatments.map((treatment) => (
+              <option key={treatment.id} value={treatment.name}>
+                {treatment.name}
               </option>
             ))}
           </select>
           <div className="appointment-message-slot">
-            {errors.treatment && (
+            {activeTreatments.length === 0 ? (
+              <p className="field-message field-message--error">
+                Activa al menos un tratamiento en Configuracion.
+              </p>
+            ) : errors.treatment ? (
               <p className="field-message field-message--error">
                 {errors.treatment}
               </p>
-            )}
+            ) : null}
           </div>
         </div>
 
