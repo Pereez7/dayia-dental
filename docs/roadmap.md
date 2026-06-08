@@ -46,7 +46,8 @@ Implementado:
 - Formulario de nueva cita.
 - Busqueda y seleccion de pacientes mock para agendar.
 - Seleccion real de paciente separada del texto del buscador.
-- Catalogo mock de tratamientos.
+- Catalogo inicial tipado de tratamientos.
+- Nueva Cita consume solo tratamientos activos definidos en Configuracion.
 - Selector de hora con horarios exactos de 24 horas en intervalos de 15 minutos.
 - Validaciones de paciente, fecha, hora, tratamiento y estado inicial.
 - Validacion de hora contra el catalogo de intervalos de 15 minutos.
@@ -83,10 +84,29 @@ WhatsApp API.
 
 ### Configuracion
 
-Estado: placeholder.
+Estado: iniciado.
 
-Pendiente datos del consultorio, horarios, usuarios, preferencias y ajustes de
-notificaciones.
+Implementado:
+
+- Tratamientos del consultorio.
+- Alta local de tratamientos.
+- Normalizacion y capitalizacion de nombres.
+- Validacion de duplicados ignorando acentos, mayusculas/minusculas y espacios
+  extra.
+- Busqueda de tratamientos.
+- Edicion simple sin cambiar `id`.
+- Activacion y desactivacion sin eliminacion fisica.
+- Feedback visual por agregar, editar, activar y desactivar.
+- Conexion con Nueva Cita para mostrar solo tratamientos activos.
+- Pruebas unitarias para utilidades de tratamientos.
+
+Pendiente:
+
+- Datos del consultorio.
+- Horarios.
+- Usuarios.
+- Preferencias y ajustes de notificaciones.
+- Persistencia de tratamientos.
 
 ## Pendientes generales
 

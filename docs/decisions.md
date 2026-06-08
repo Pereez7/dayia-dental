@@ -61,13 +61,16 @@ la interfaz limpia.
 
 ## Estado local compartido
 
-`App.tsx` mantiene el estado local de citas y pacientes mientras no existe
-backend. Esto permite que Dashboard, Pacientes, Agenda y Nueva Cita usen la
-misma fuente de datos sin duplicar estado.
+`App.tsx` mantiene el estado local de citas, pacientes y tratamientos mientras
+no existe backend. Esto permite que Dashboard, Pacientes, Agenda, Nueva Cita y
+Configuracion usen la misma fuente de datos sin duplicar estado.
 
 Los pacientes creados localmente se agregan al estado compartido y pueden ser
 usados por el Dashboard y por el formulario de nueva cita durante la sesion
 actual.
+
+Los tratamientos tambien se mantienen en ese estado compartido para que los
+cambios hechos en Configuracion se reflejen inmediatamente en Nueva Cita.
 
 ## Dashboard operativo
 
@@ -117,11 +120,25 @@ que se seleccione uno.
 
 ## Catalogo mock de tratamientos
 
-Los tratamientos de una cita viven temporalmente en `src/data/treatments.ts`.
-El formulario usa ese catalogo para evitar texto libre inconsistente y las
-validaciones verifican que el tratamiento seleccionado pertenezca a la lista.
-Mas adelante este catalogo puede venir de backend o configuracion del
-consultorio.
+Los tratamientos iniciales viven en `src/data/treatments.ts` como datos mock
+tipados, pero se gestionan localmente desde Configuracion. El formulario de
+Nueva Cita usa solo tratamientos activos para evitar texto libre inconsistente.
+
+Los tratamientos no se eliminan fisicamente en esta etapa. Se activan o
+desactivan para evitar perder referencias si ya existen citas relacionadas.
+Mas adelante este catalogo puede venir de backend o configuracion persistente
+del consultorio.
+
+## Normalizacion de tratamientos
+
+Los nombres de tratamientos se normalizan antes de guardarse: se recortan
+espacios, se colapsan espacios internos y se capitalizan de forma consistente.
+Las comparaciones para duplicados y busqueda ignoran acentos, mayusculas y
+espacios extra. Esto evita registros duplicados como `Evaluacion inicial` y
+`EVALUACIÓN   INICIAL`.
+
+La logica vive en `src/utils/treatmentUtils.ts` para poder probarla sin montar
+componentes visuales.
 
 ## Estados con badges semanticos
 

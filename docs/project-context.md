@@ -12,6 +12,7 @@ especialmente pensando en una futura integracion con WhatsApp.
 - Layout base con sidebar, header superior y navegacion por estado local.
 - Dashboard operativo con KPIs, proximas atenciones, pacientes recientes y
   resumen operativo.
+- Configuracion de tratamientos del consultorio conectada con Nueva Cita.
 - Componentes separados en `src/components`.
 - Vistas completas en `src/views`.
 - Datos mock separados en `src/data`.
@@ -70,10 +71,27 @@ Actualmente existe una primera version funcional en frontend:
   por ejemplo `08:15`, `08:30` o `08:45`.
 - Los mensajes de ayuda, seleccion y error del formulario usan espacios
   consistentes para no desalinear la grilla.
-- Los tratamientos disponibles viven en `src/data/treatments.ts`.
+- El formulario muestra solo tratamientos activos configurados localmente.
 
 Todavia no existe edicion, eliminacion, cancelacion real ni persistencia de
 citas. Las citas nuevas solo viven en memoria durante la sesion actual.
+
+## Configuracion
+
+Actualmente existe una primera version de tratamientos del consultorio:
+
+- Usa el tipo `Treatment` con `id`, `name` e `isActive`.
+- Permite agregar tratamientos.
+- Normaliza nombres antes de guardarlos, por ejemplo `LIMPIEZA DentaL` pasa a
+  `Limpieza dental`.
+- Evita duplicados ignorando acentos, mayusculas/minusculas y espacios extra.
+- Permite buscar tratamientos ignorando acentos y mayusculas.
+- Permite editar el nombre sin cambiar el `id`.
+- Permite activar y desactivar tratamientos.
+- No permite eliminar tratamientos fisicamente para evitar problemas con citas
+  relacionadas.
+- Muestra feedback visual por agregar, editar, activar y desactivar.
+- Nueva Cita consume solo tratamientos activos desde el estado local compartido.
 
 ## Navegacion
 

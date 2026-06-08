@@ -14,6 +14,8 @@ historiales y otros modulos clinicos.
 - Modulo de citas con agenda agrupada y formulario de nueva cita.
 - Nueva cita con seleccion real de paciente, horarios exactos cada 15 minutos y
   validaciones de campos.
+- Configuracion de tratamientos con alta, busqueda, edicion, activacion y
+  desactivacion local.
 - Datos mock separados en `src/data`.
 - Tipos compartidos en `src/types`.
 - Componentes pequenos y reutilizables en `src/components`.
@@ -27,8 +29,9 @@ historiales y otros modulos clinicos.
 - **Pacientes:** listado, busqueda, alta local y validaciones.
 - **Citas:** agenda mobile-first, KPIs por estado, creacion local de citas,
   seleccion de paciente y horarios de 24 horas en intervalos de 15 minutos.
-- **Historial clinico, Odontograma, Recordatorios y Configuracion:** vistas
-  iniciales o placeholders para el crecimiento futuro.
+- **Configuracion:** gestion local de tratamientos disponibles para Nueva Cita.
+- **Historial clinico, Odontograma y Recordatorios:** vistas iniciales o
+  placeholders para el crecimiento futuro.
 
 La aplicacion todavia no tiene backend, base de datos, autenticacion,
 persistencia ni integracion real con WhatsApp.

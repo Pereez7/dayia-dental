@@ -42,12 +42,27 @@ Registro breve de cambios relevantes en DayIA Dental.
   pendientes por confirmar, pacientes registrados y reprogramadas del mes.
 - Se elimino temporalmente el KPI de nuevos pacientes del mes porque no existe
   una fecha real de registro en los pacientes mock.
+- Se agrego el tipo `Treatment` con `id`, `name` e `isActive`.
+- Se convirtio `src/data/treatments.ts` en un catalogo tipado de tratamientos.
+- Se levanto el estado local de tratamientos a `src/App.tsx` para compartirlo
+  entre Configuracion y Nueva Cita.
+- Se implemento Configuracion > Tratamientos del consultorio.
+- Se agrego alta local de tratamientos con normalizacion de nombres.
+- Se agrego busqueda de tratamientos ignorando acentos y mayusculas.
+- Se agrego edicion simple de tratamientos conservando el mismo `id`.
+- Se agrego activacion y desactivacion de tratamientos sin eliminacion fisica.
+- Se agregaron mensajes de exito por agregar, editar, activar y desactivar.
+- Se ajustaron colores de feedback y botones: verde para agregar/activar,
+  ambar para editar y rojo suave para desactivar.
+- Se conecto Nueva Cita para mostrar solo tratamientos activos.
+- Se agregaron utilidades puras para tratamientos y pruebas unitarias.
+- Se redujo repeticion visual de encabezados manteniendo la marca en el sidebar.
 - Se actualizo la documentacion para reflejar el estado real del proyecto.
 
 ### Motivo del cambio
 
-Avanzar el modulo de citas y el Dashboard desde una vista solamente visual hacia
-flujos frontend funcionales, con estado local compartido, logica testeable, una
+Avanzar los modulos principales desde vistas solamente visuales hacia flujos
+frontend funcionales, con estado local compartido, logica testeable, una
 interfaz estable y sin introducir backend ni persistencia todavia.
 
 ## 2026-06-07
