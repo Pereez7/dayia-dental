@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import './App.css'
 import { appointments as initialAppointments } from './data/appointments'
+import { patients as initialPatients } from './data/patients'
 import { AppLayout } from './layout/AppLayout'
 import type { AppSection } from './layout/navigation'
 import type { Appointment, AppointmentFormValues } from './types/Appointment'
+import type { Patient, PatientFormValues } from './types/Patient'
 import { AppointmentsView } from './views/AppointmentsView'
 import { ClinicalHistoryView } from './views/ClinicalHistoryView'
 import { DashboardView } from './views/DashboardView'
@@ -16,6 +18,22 @@ function App() {
   const [activeSection, setActiveSection] = useState<AppSection>('dashboard')
   const [appointments, setAppointments] =
     useState<Appointment[]>(initialAppointments)
+  const [patients, setPatients] = useState<Patient[]>(initialPatients)
+
+  function handleCreatePatient(values: PatientFormValues) {
+    const newPatient: Patient = {
+      id: Date.now(),
+      fullName: `${values.firstName.trim()} ${values.lastName.trim()}`,
+      phone: `${values.countryCode}${values.localPhone.trim()}`,
+      email: values.email.trim() || undefined,
+      birthDate: values.birthDate || undefined,
+      lastVisit: 'Sin registro',
+      nextAppointment: null,
+      status: 'active',
+    }
+
+    setPatients((currentPatients) => [newPatient, ...currentPatients])
+  }
 
   function handleCreateAppointment(values: AppointmentFormValues) {
     const newAppointment: Appointment = {
@@ -37,15 +55,33 @@ function App() {
 
   function renderActiveView() {
     if (activeSection === 'patients-list') {
-      return <PatientsView initialMode="list" />
+      return (
+        <PatientsView
+          initialMode="list"
+          patients={patients}
+          onCreatePatient={handleCreatePatient}
+        />
+      )
     }
 
     if (activeSection === 'patient-new') {
-      return <PatientsView initialMode="new" />
+      return (
+        <PatientsView
+          initialMode="new"
+          patients={patients}
+          onCreatePatient={handleCreatePatient}
+        />
+      )
     }
 
     if (activeSection === 'appointments-agenda') {
-      return <AppointmentsView appointments={appointments} mode="agenda" />
+      return (
+        <AppointmentsView
+          appointments={appointments}
+          mode="agenda"
+          patients={patients}
+        />
+      )
     }
 
     if (activeSection === 'appointment-new') {
@@ -53,6 +89,7 @@ function App() {
         <AppointmentsView
           appointments={appointments}
           mode="new"
+          patients={patients}
           onCreateAppointment={handleCreateAppointment}
           onNavigateToAgenda={() => setActiveSection('appointments-agenda')}
         />
@@ -75,7 +112,7 @@ function App() {
       return <SettingsView />
     }
 
-    return <DashboardView appointments={appointments} />
+    return <DashboardView appointments={appointments} patients={patients} />
   }
 
   return (

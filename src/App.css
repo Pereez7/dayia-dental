@@ -270,6 +270,259 @@
   gap: 12px;
 }
 
+.dashboard-view {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.dashboard-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.dashboard-kpi {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  padding: 14px;
+}
+
+.dashboard-kpi strong {
+  color: var(--color-heading);
+  font-size: clamp(1.45rem, 4vw, 2rem);
+  line-height: 1;
+}
+
+.dashboard-kpi span {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 800;
+}
+
+.dashboard-kpi--blue {
+  background: #eef8fc;
+  border-color: #cbe8f2;
+}
+
+.dashboard-kpi--green {
+  background: #e9f8f1;
+  border-color: #b7e4ce;
+}
+
+.dashboard-kpi--amber {
+  background: #fff7df;
+  border-color: #f0d487;
+}
+
+.dashboard-kpi--indigo {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+}
+
+.dashboard-kpi--slate {
+  background: #eef6fb;
+  border-color: #c9dce8;
+}
+
+.dashboard-content-grid {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.dashboard-side-stack {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.dashboard-panel {
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  padding: var(--space-panel);
+}
+
+.dashboard-appointment-list,
+.dashboard-patient-list,
+.dashboard-activity-list {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.dashboard-appointment-card {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  gap: 10px;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 11px;
+}
+
+.dashboard-appointment-card time {
+  display: grid;
+  gap: 3px;
+  align-content: start;
+  color: var(--color-primary-dark);
+}
+
+.dashboard-appointment-card time strong {
+  font-size: var(--text-md);
+  line-height: 1;
+}
+
+.dashboard-appointment-card time span {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 800;
+}
+
+.dashboard-appointment-card div {
+  min-width: 0;
+}
+
+.dashboard-appointment-card h3,
+.dashboard-patient-row h3 {
+  margin: 0 0 3px;
+  color: var(--color-heading);
+  font-size: var(--text-md);
+  line-height: 1.2;
+  overflow-wrap: break-word;
+}
+
+.dashboard-appointment-card p,
+.dashboard-patient-row p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  overflow-wrap: break-word;
+}
+
+.dashboard-status {
+  grid-column: 2;
+  justify-self: start;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 5px 8px;
+  white-space: nowrap;
+}
+
+.dashboard-status.appointment-status--confirmed {
+  background: #e9f8f1;
+  border-color: #b7e4ce;
+  color: #237b55;
+}
+
+.dashboard-status.appointment-status--pending {
+  background: #fff7df;
+  border-color: #f0d487;
+  color: #8a5a00;
+}
+
+.dashboard-status.appointment-status--rescheduled {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #4f46e5;
+}
+
+.dashboard-status.appointment-status--cancelled {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #be123c;
+}
+
+.dashboard-status.appointment-status--completed {
+  background: #eef6fb;
+  border-color: #c9dce8;
+  color: #406176;
+}
+
+.dashboard-patient-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 10px;
+}
+
+.dashboard-patient-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.dashboard-patient-row div {
+  min-width: 0;
+}
+
+.dashboard-patient-row > span {
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 800;
+}
+
+.dashboard-activity-list p {
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  padding: 10px 12px;
+}
+
+.dashboard-empty-state {
+  margin: 0;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  padding: 14px;
+}
+
+@media (min-width: 760px) {
+  .dashboard-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .dashboard-appointment-card {
+    grid-template-columns: 76px minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .dashboard-status {
+    grid-column: auto;
+  }
+}
+
+@media (min-width: 1040px) {
+  .dashboard-kpi-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .dashboard-content-grid {
+    grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.75fr);
+    align-items: start;
+  }
+}
+
 .agenda-section {
   background: var(--color-surface);
   border: 1px solid var(--color-border);

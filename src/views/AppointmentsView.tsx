@@ -1,10 +1,11 @@
 import { AppointmentForm } from '../components/AppointmentForm'
 import { AppointmentsAgenda } from '../components/AppointmentsAgenda'
-import { patients } from '../data/patients'
 import type { Appointment, AppointmentFormValues } from '../types/Appointment'
+import type { Patient } from '../types/Patient'
 
 interface AppointmentsViewProps {
   appointments: Appointment[]
+  patients: Patient[]
   mode?: 'agenda' | 'new'
   onCreateAppointment?: (values: AppointmentFormValues) => void
   onNavigateToAgenda?: () => void
@@ -12,6 +13,7 @@ interface AppointmentsViewProps {
 
 export function AppointmentsView({
   appointments,
+  patients,
   mode = 'agenda',
   onCreateAppointment,
   onNavigateToAgenda,
