@@ -83,29 +83,34 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
    secciones principales y acciones rapidas.
 5. `App.tsx` mantiene el estado local de citas, pacientes y tratamientos para
    compartirlo entre Dashboard, Pacientes, Citas y Configuracion.
-6. `PatientsView` recibe pacientes y el callback de alta desde `App.tsx`, y
-   compone `PatientForm` con `PatientsList`.
-7. `AppointmentsView` alterna entre la agenda y el formulario de nueva cita.
-8. `DashboardView` recibe citas y pacientes desde `App.tsx`, calcula metricas
+6. `PatientsView` recibe pacientes, el callback de alta y el callback para ver
+   detalle desde `App.tsx`, y compone `PatientForm` con `PatientsList`.
+7. `PatientCard` puede solicitar ver el detalle de un paciente.
+8. `App.tsx` guarda `selectedPatientId`, cambia a la seccion interna
+   `patient-detail` y renderiza `PatientDetailView`.
+9. `PatientDetailView` compone la ficha del paciente con sus citas asociadas y
+   permite volver al listado.
+10. `AppointmentsView` alterna entre la agenda y el formulario de nueva cita.
+11. `DashboardView` recibe citas y pacientes desde `App.tsx`, calcula metricas
    con `src/utils/dashboardMetrics.ts` y compone las secciones del Dashboard.
-9. `SettingsView` recibe tratamientos desde `App.tsx` y compone la gestion de
+12. `SettingsView` recibe tratamientos desde `App.tsx` y compone la gestion de
    tratamientos del consultorio.
-10. `TreatmentsSettings` agrega, busca, edita, activa y desactiva tratamientos
+13. `TreatmentsSettings` agrega, busca, edita, activa y desactiva tratamientos
    usando utilidades puras de `src/utils/treatmentUtils.ts`.
-11. `AppointmentForm` busca pacientes mock, guarda el paciente seleccionado por
+14. `AppointmentForm` busca pacientes mock, guarda el paciente seleccionado por
    identificador, valida campos con funciones de `src/utils` y avisa a
    `App.tsx` cuando hay una nueva cita.
-12. `AppointmentForm` recibe tratamientos desde `App.tsx` y muestra solo los
+15. `AppointmentForm` recibe tratamientos desde `App.tsx` y muestra solo los
    tratamientos activos.
-13. `App.tsx` agrega la nueva cita al estado local y vuelve a la agenda.
-14. `AppointmentCard` usa funciones de `src/utils` para mostrar fecha, hora y
+16. `App.tsx` agrega la nueva cita al estado local y vuelve a la agenda.
+17. `AppointmentCard` usa funciones de `src/utils` para mostrar fecha, hora y
    estado en formato legible.
-15. `PatientForm` maneja los campos del formulario con estado local, valida con
+18. `PatientForm` maneja los campos del formulario con estado local, valida con
    funciones de `src/utils` y avisa a `PatientsView` cuando hay un nuevo
    paciente.
-16. `PatientsList` recibe pacientes, maneja el texto de busqueda local y usa
+19. `PatientsList` recibe pacientes, maneja el texto de busqueda local y usa
    `filterPatients` para decidir que registros mostrar.
-17. `PatientCard` muestra cada paciente filtrado.
+20. `PatientCard` muestra cada paciente filtrado.
 
 ## Modulos actuales
 
@@ -128,8 +133,24 @@ Participan:
 
 `Pacientes`
 
-Incluye listado, busqueda, formulario de registro, validaciones y telefono en
-formato internacional compacto.
+Incluye listado, busqueda, formulario de registro, validaciones, telefono en
+formato internacional compacto y detalle de paciente como vista completa.
+
+Participan:
+
+- `src/views/PatientsView.tsx`: compone listado y formulario de registro.
+- `src/views/PatientDetailView.tsx`: muestra la ficha completa del paciente.
+- `src/components/PatientsList.tsx`: filtra y lista pacientes.
+- `src/components/PatientCard.tsx`: muestra cada paciente y permite abrir el
+  detalle.
+- `src/components/PatientAppointmentsList.tsx`: lista citas asociadas al
+  paciente.
+- `src/utils/patientFilters.ts`: filtra pacientes por busqueda.
+- `src/utils/patientDetails.ts`: calcula edad y obtiene citas relacionadas.
+
+El detalle asocia citas por `patientId` cuando existe. Para mantener
+compatibilidad con citas mock antiguas, tambien acepta coincidencia por nombre
+exacto del paciente.
 
 `Citas`
 
@@ -176,6 +197,20 @@ Incluye gestion local de tratamientos del consultorio. Participan:
 
 Los tratamientos se mantienen en estado local dentro de `App.tsx`; Nueva Cita
 recibe esa misma lista y muestra solo tratamientos activos.
+
+## Estilos reutilizables
+
+`src/App.css` contiene clases globales simples para botones:
+
+- `primary-action`
+- `secondary-action`
+- `soft-action`
+- `success-action`
+- `warning-action`
+- `danger-action`
+
+Estas clases mantienen una base visual compartida y permiten aplicar color
+semantico sin crear estilos aislados por vista.
 
 `Historial clinico`, `Odontograma` y `Recordatorios`
 

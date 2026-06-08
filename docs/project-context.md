@@ -42,13 +42,22 @@ Actualmente existe:
 - Listado de pacientes.
 - Busqueda por nombre, apellido o telefono.
 - Formulario de registro de paciente.
+- Vista completa de detalle de paciente.
 - Validaciones de nombre, apellido, telefono, email y fecha de nacimiento.
 - Selector manual de prefijo telefonico.
 - Guardado del telefono en formato internacional compacto, por ejemplo
   `+59170000000`.
+- Ficha de paciente con telefono, email, fecha de nacimiento, edad, ultima
+  visita y proxima cita.
+- Citas asociadas al paciente usando `patientId` cuando existe y nombre exacto
+  como fallback para citas mock antiguas.
 
 Este modulo esta preparado para una futura integracion con WhatsApp, pero aun no
 envia mensajes ni consume APIs externas.
+
+El detalle de paciente se mantiene como vista completa, no como popup ni drawer,
+porque mas adelante debe alojar secciones clinicas con mas contexto, como
+historial clinico, odontograma, recordatorios y evoluciones.
 
 ## Modulo citas
 
@@ -101,6 +110,7 @@ La app usa `AppLayout` con:
 - Acciones rapidas: `+ Paciente` y `+ Cita`.
 - Header superior por seccion.
 - Navegacion controlada con estado local en `App.tsx`.
+- Seccion interna de detalle de paciente controlada tambien por estado local.
 
 No se usa React Router todavia.
 

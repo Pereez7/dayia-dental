@@ -29,8 +29,26 @@ Pendiente:
 
 Estado: iniciado.
 
-Incluye listado, busqueda, formulario de registro, validaciones y telefono en
-formato internacional.
+Implementado:
+
+- Listado de pacientes.
+- Busqueda por nombre, apellido o telefono.
+- Formulario de registro.
+- Validaciones de datos principales.
+- Telefono en formato internacional.
+- Detalle de paciente como vista completa.
+- Ficha con datos generales, edad, ultima visita y proxima cita.
+- Citas asociadas al paciente.
+- Navegacion local entre listado y detalle sin React Router.
+- Pruebas unitarias para filtros, validaciones y utilidades de detalle.
+
+Pendiente:
+
+- Edicion de paciente.
+- Eliminacion o desactivacion de paciente.
+- Historial clinico dentro de la ficha.
+- Odontograma dentro de la ficha.
+- Recordatorios y evoluciones clinicas.
 
 ### Citas
 

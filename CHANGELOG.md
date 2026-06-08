@@ -57,6 +57,19 @@ Registro breve de cambios relevantes en DayIA Dental.
 - Se conecto Nueva Cita para mostrar solo tratamientos activos.
 - Se agregaron utilidades puras para tratamientos y pruebas unitarias.
 - Se redujo repeticion visual de encabezados manteniendo la marca en el sidebar.
+- Se agrego la vista completa de detalle de paciente desde el modulo Pacientes.
+- Se agrego navegacion local hacia detalle de paciente sin React Router.
+- Se agrego una ficha de paciente con nombre, telefono, email, fecha de
+  nacimiento, edad, ultima visita y proxima cita.
+- Se agrego listado de citas asociadas al paciente con fecha, hora, tratamiento
+  y estado.
+- Se agrego asociacion de citas por `patientId` y fallback por nombre exacto
+  para citas mock antiguas.
+- Se agregaron utilidades puras para detalle de paciente y pruebas unitarias.
+- Se unificaron clases globales de botones para acciones primarias,
+  secundarias, suaves, de advertencia, exito y peligro.
+- Se dejo la estructura visual del detalle preparada para futuros modulos
+  clinicos como historial, odontograma, recordatorios y evoluciones.
 - Se actualizo la documentacion para reflejar el estado real del proyecto.
 
 ### Motivo del cambio

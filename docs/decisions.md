@@ -72,6 +72,27 @@ actual.
 Los tratamientos tambien se mantienen en ese estado compartido para que los
 cambios hechos en Configuracion se reflejen inmediatamente en Nueva Cita.
 
+## Detalle de paciente como vista completa
+
+El detalle de paciente se mantiene como vista completa en lugar de popup, modal
+o drawer. La ficha necesita espacio para mostrar datos generales, citas
+asociadas y, mas adelante, modulos clinicos como historial, odontograma,
+recordatorios y evoluciones.
+
+La navegacion hacia esta vista sigue usando estado local en `App.tsx`, sin React
+Router. Esto mantiene la arquitectura actual mientras todavia no se necesitan
+URLs reales ni rutas con parametros.
+
+## Asociacion de citas en detalle de paciente
+
+Las citas se relacionan con pacientes usando `patientId` cuando el dato existe.
+Como algunas citas mock antiguas todavia pueden no tener ese identificador, el
+detalle acepta una coincidencia por nombre exacto como fallback temporal.
+
+La decision evita perder citas visibles durante la transicion del modelo mock.
+Mas adelante, con backend o persistencia real, la relacion principal deberia ser
+por identificador.
+
 ## Dashboard operativo
 
 El Dashboard muestra indicadores accionables para el consultorio en lugar de
@@ -86,6 +107,12 @@ un indicador incompleto.
 
 Los calculos del Dashboard viven en `src/utils/dashboardMetrics.ts` para poder
 probarlos con Vitest y mantener la vista enfocada en composicion visual.
+
+## Botones reutilizables
+
+Se unifican clases globales de botones para evitar estilos aislados por modulo.
+Las acciones principales, secundarias, suaves, de exito, advertencia y peligro
+comparten base visual y solo cambian el color semantico necesario.
 
 ## Citas con datos mock por ahora
 
