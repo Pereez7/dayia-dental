@@ -13,6 +13,10 @@ const sectionContent: Record<AppSection, { title: string; description: string }>
     title: 'Nuevo paciente',
     description: 'Registra un paciente con datos listos para contacto.',
   },
+  'patient-detail': {
+    title: 'Detalle de paciente',
+    description: 'Ficha basica y proximas citas asociadas.',
+  },
   'appointments-agenda': {
     title: 'Citas',
     description: 'Agenda odontologica y proximas atenciones.',

@@ -4,10 +4,11 @@ import { filterPatients } from '../utils/patientFilters'
 import { PatientCard } from './PatientCard'
 
 interface PatientsListProps {
+  onViewPatient: (patientId: number) => void
   patients: Patient[]
 }
 
-export function PatientsList({ patients }: PatientsListProps) {
+export function PatientsList({ onViewPatient, patients }: PatientsListProps) {
   const [searchText, setSearchText] = useState('')
   const filteredPatients = filterPatients(patients, searchText)
 
@@ -32,7 +33,11 @@ export function PatientsList({ patients }: PatientsListProps) {
 
       <div className="patients-grid">
         {filteredPatients.map((patient) => (
-          <PatientCard key={patient.id} patient={patient} />
+          <PatientCard
+            key={patient.id}
+            onViewDetail={onViewPatient}
+            patient={patient}
+          />
         ))}
       </div>
 

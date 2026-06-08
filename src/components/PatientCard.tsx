@@ -7,10 +7,11 @@ const patientStatusLabels: Record<Patient['status'], string> = {
 }
 
 interface PatientCardProps {
+  onViewDetail: (patientId: number) => void
   patient: Patient
 }
 
-export function PatientCard({ patient }: PatientCardProps) {
+export function PatientCard({ onViewDetail, patient }: PatientCardProps) {
   const nextAppointmentLabel = patient.nextAppointment ?? 'Sin cita agendada'
 
   return (
@@ -31,7 +32,16 @@ export function PatientCard({ patient }: PatientCardProps) {
         </div>
       </dl>
 
-      <span className="status-pill">{patientStatusLabels[patient.status]}</span>
+      <div className="patient-card-footer">
+        <span className="status-pill">{patientStatusLabels[patient.status]}</span>
+        <button
+          className="secondary-action"
+          type="button"
+          onClick={() => onViewDetail(patient.id)}
+        >
+          Ver detalle
+        </button>
+      </div>
     </article>
   )
 }

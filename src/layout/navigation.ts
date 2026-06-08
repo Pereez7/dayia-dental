@@ -1,6 +1,7 @@
 export type AppSection =
   | 'dashboard'
   | 'patients-list'
+  | 'patient-detail'
   | 'patient-new'
   | 'appointments-agenda'
   | 'appointment-new'

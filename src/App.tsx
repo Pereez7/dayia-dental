@@ -12,6 +12,7 @@ import { AppointmentsView } from './views/AppointmentsView'
 import { ClinicalHistoryView } from './views/ClinicalHistoryView'
 import { DashboardView } from './views/DashboardView'
 import { OdontogramView } from './views/OdontogramView'
+import { PatientDetailView } from './views/PatientDetailView'
 import { PatientsView } from './views/PatientsView'
 import { SettingsView } from './views/SettingsView'
 import { WhatsAppRemindersView } from './views/WhatsAppRemindersView'
@@ -23,6 +24,7 @@ function App() {
   const [patients, setPatients] = useState<Patient[]>(initialPatients)
   const [treatments, setTreatments] =
     useState<Treatment[]>(initialTreatments)
+  const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null)
 
   function handleCreatePatient(values: PatientFormValues) {
     const newPatient: Patient = {
@@ -57,11 +59,21 @@ function App() {
     setActiveSection('appointments-agenda')
   }
 
+  function handleViewPatient(patientId: number) {
+    setSelectedPatientId(patientId)
+    setActiveSection('patient-detail')
+  }
+
+  function handleBackToPatientsList() {
+    setActiveSection('patients-list')
+  }
+
   function renderActiveView() {
     if (activeSection === 'patients-list') {
       return (
         <PatientsView
           initialMode="list"
+          onViewPatient={handleViewPatient}
           patients={patients}
           onCreatePatient={handleCreatePatient}
         />
@@ -72,8 +84,34 @@ function App() {
       return (
         <PatientsView
           initialMode="new"
+          onViewPatient={handleViewPatient}
           patients={patients}
           onCreatePatient={handleCreatePatient}
+        />
+      )
+    }
+
+    if (activeSection === 'patient-detail') {
+      const selectedPatient = patients.find(
+        (patient) => patient.id === selectedPatientId,
+      )
+
+      if (!selectedPatient) {
+        return (
+          <PatientsView
+            initialMode="list"
+            onViewPatient={handleViewPatient}
+            patients={patients}
+            onCreatePatient={handleCreatePatient}
+          />
+        )
+      }
+
+      return (
+        <PatientDetailView
+          appointments={appointments}
+          onBackToList={handleBackToPatientsList}
+          patient={selectedPatient}
         />
       )
     }
