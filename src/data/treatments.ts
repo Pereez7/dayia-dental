@@ -1,0 +1,18 @@
+export const treatments = [
+  'Evaluación inicial',
+  'Limpieza dental',
+  'Control odontológico',
+  'Consulta de emergencia',
+  'Extracción simple',
+  'Curación dental',
+  'Restauración / resina',
+  'Endodoncia',
+  'Control de ortodoncia',
+  'Instalación de brackets',
+  'Retiro de brackets',
+  'Blanqueamiento dental',
+  'Radiografía / diagnóstico',
+  'Revisión post tratamiento',
+  'Cirugía menor',
+  'Otro',
+]

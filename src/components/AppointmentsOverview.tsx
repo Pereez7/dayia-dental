@@ -1,4 +1,6 @@
 import type { Appointment } from '../types/Appointment'
+import { summarizeAppointmentsByStatus } from '../utils/appointmentGroups'
+import { sortAppointmentsByDateTime } from '../utils/appointmentSorters'
 import { AppointmentCard } from './AppointmentCard'
 import { StatsCard } from './StatsCard'
 
@@ -7,18 +9,21 @@ interface AppointmentsOverviewProps {
 }
 
 export function AppointmentsOverview({ appointments }: AppointmentsOverviewProps) {
+  const statusSummary = summarizeAppointmentsByStatus(appointments)
+  const upcomingAppointments = sortAppointmentsByDateTime(appointments).slice(0, 5)
+
   return (
     <section className="dashboard-grid" aria-label="Resumen de citas">
       <article className="overview-panel">
         <div className="section-heading">
-          <p className="eyebrow">Hoy</p>
-          <h2>Citas programadas</h2>
+          <p className="eyebrow">Dashboard</p>
+          <h2>Resumen de citas</h2>
         </div>
 
         <div className="metric-row">
-          <StatsCard value={8} label="Citas del dia" />
-          <StatsCard value={5} label="Confirmadas" />
-          <StatsCard value={3} label="Por recordar" />
+          <StatsCard value={appointments.length} label="Proximas citas" />
+          <StatsCard value={statusSummary.confirmed} label="Confirmadas" />
+          <StatsCard value={statusSummary.pending} label="Pendientes" />
         </div>
       </article>
 
@@ -29,7 +34,7 @@ export function AppointmentsOverview({ appointments }: AppointmentsOverviewProps
         </div>
 
         <div className="appointment-list">
-          {appointments.map((appointment) => (
+          {upcomingAppointments.map((appointment) => (
             <AppointmentCard appointment={appointment} key={appointment.id} />
           ))}
         </div>

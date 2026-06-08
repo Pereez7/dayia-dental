@@ -1,7 +1,11 @@
 import { AppointmentsOverview } from '../components/AppointmentsOverview'
-import { appointments } from '../data/appointments'
+import type { Appointment } from '../types/Appointment'
 
-export function DashboardView() {
+interface DashboardViewProps {
+  appointments: Appointment[]
+}
+
+export function DashboardView({ appointments }: DashboardViewProps) {
   return (
     <section className="view-stack">
       <AppointmentsOverview appointments={appointments} />

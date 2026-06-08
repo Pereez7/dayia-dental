@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import './App.css'
+import { appointments as initialAppointments } from './data/appointments'
 import { AppLayout } from './layout/AppLayout'
 import type { AppSection } from './layout/navigation'
+import type { Appointment, AppointmentFormValues } from './types/Appointment'
 import { AppointmentsView } from './views/AppointmentsView'
 import { ClinicalHistoryView } from './views/ClinicalHistoryView'
 import { DashboardView } from './views/DashboardView'
@@ -12,6 +14,25 @@ import { WhatsAppRemindersView } from './views/WhatsAppRemindersView'
 
 function App() {
   const [activeSection, setActiveSection] = useState<AppSection>('dashboard')
+  const [appointments, setAppointments] =
+    useState<Appointment[]>(initialAppointments)
+
+  function handleCreateAppointment(values: AppointmentFormValues) {
+    const newAppointment: Appointment = {
+      id: Date.now(),
+      date: values.date,
+      time: values.time,
+      patient: values.patient,
+      treatment: values.treatment,
+      status: values.status,
+    }
+
+    setAppointments((currentAppointments) => [
+      ...currentAppointments,
+      newAppointment,
+    ])
+    setActiveSection('appointments-agenda')
+  }
 
   function renderActiveView() {
     if (activeSection === 'patients-list') {
@@ -23,11 +44,18 @@ function App() {
     }
 
     if (activeSection === 'appointments-agenda') {
-      return <AppointmentsView mode="agenda" />
+      return <AppointmentsView appointments={appointments} mode="agenda" />
     }
 
     if (activeSection === 'appointment-new') {
-      return <AppointmentsView mode="new" />
+      return (
+        <AppointmentsView
+          appointments={appointments}
+          mode="new"
+          onCreateAppointment={handleCreateAppointment}
+          onNavigateToAgenda={() => setActiveSection('appointments-agenda')}
+        />
+      )
     }
 
     if (activeSection === 'clinical-history') {
@@ -46,7 +74,7 @@ function App() {
       return <SettingsView />
     }
 
-    return <DashboardView />
+    return <DashboardView appointments={appointments} />
   }
 
   return (
