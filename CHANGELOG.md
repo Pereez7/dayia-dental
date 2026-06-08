@@ -29,12 +29,25 @@ Registro breve de cambios relevantes en DayIA Dental.
 - Se conecto la accion rapida `+ Cita` con el formulario de nueva cita.
 - Se agrego creacion local de citas en memoria desde `App.tsx`.
 - Se hizo que Dashboard y Agenda usen el estado local actualizado de citas.
+- Se levanto el estado local de pacientes a `src/App.tsx` para compartirlo con
+  Dashboard, Pacientes y Nueva Cita.
+- Se mejoro el Dashboard con KPIs operativos, proximas atenciones, pacientes
+  recientes y resumen operativo.
+- Se agregaron componentes visuales especificos para el Dashboard.
+- Se agrego `dashboardMetrics` como utilidad pura para calcular indicadores,
+  citas de hoy, citas del mes, proximas citas, pacientes recientes y mensajes
+  operativos.
+- Se agregaron pruebas unitarias para las metricas del Dashboard.
+- Se ajustaron los KPIs del Dashboard a: atenciones de hoy, atenciones del mes,
+  pendientes por confirmar, pacientes registrados y reprogramadas del mes.
+- Se elimino temporalmente el KPI de nuevos pacientes del mes porque no existe
+  una fecha real de registro en los pacientes mock.
 - Se actualizo la documentacion para reflejar el estado real del proyecto.
 
 ### Motivo del cambio
 
-Avanzar el modulo de citas desde una agenda solamente visual hacia un flujo
-frontend funcional de registro local, manteniendo la logica testeable, una
+Avanzar el modulo de citas y el Dashboard desde una vista solamente visual hacia
+flujos frontend funcionales, con estado local compartido, logica testeable, una
 interfaz estable y sin introducir backend ni persistencia todavia.
 
 ## 2026-06-07

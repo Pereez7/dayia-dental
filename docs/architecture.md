@@ -81,25 +81,44 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
    activa.
 4. `Sidebar` usa el mapa de `src/layout/navigation.ts` para renderizar
    secciones principales y acciones rapidas.
-5. `PatientsView` mantiene el listado local de pacientes y compone
-   `PatientForm` con `PatientsList`.
-6. `AppointmentsView` alterna entre la agenda y el formulario de nueva cita.
-7. `AppointmentsOverview` recibe las citas desde `App.tsx` y renderiza metricas
-   y tarjetas individuales para el dashboard.
-8. `AppointmentForm` busca pacientes mock, guarda el paciente seleccionado por
+5. `App.tsx` mantiene el estado local de citas y pacientes para compartirlo
+   entre Dashboard, Pacientes y Citas.
+6. `PatientsView` recibe pacientes y el callback de alta desde `App.tsx`, y
+   compone `PatientForm` con `PatientsList`.
+7. `AppointmentsView` alterna entre la agenda y el formulario de nueva cita.
+8. `DashboardView` recibe citas y pacientes desde `App.tsx`, calcula metricas
+   con `src/utils/dashboardMetrics.ts` y compone las secciones del Dashboard.
+9. `AppointmentForm` busca pacientes mock, guarda el paciente seleccionado por
    identificador, valida campos con funciones de `src/utils` y avisa a
    `App.tsx` cuando hay una nueva cita.
-9. `App.tsx` agrega la nueva cita al estado local y vuelve a la agenda.
-10. `AppointmentCard` usa funciones de `src/utils` para mostrar fecha, hora y
+10. `App.tsx` agrega la nueva cita al estado local y vuelve a la agenda.
+11. `AppointmentCard` usa funciones de `src/utils` para mostrar fecha, hora y
    estado en formato legible.
-11. `PatientForm` maneja los campos del formulario con estado local, valida con
+12. `PatientForm` maneja los campos del formulario con estado local, valida con
    funciones de `src/utils` y avisa a `PatientsView` cuando hay un nuevo
    paciente.
-12. `PatientsList` recibe pacientes, maneja el texto de busqueda local y usa
+13. `PatientsList` recibe pacientes, maneja el texto de busqueda local y usa
    `filterPatients` para decidir que registros mostrar.
-13. `PatientCard` muestra cada paciente filtrado.
+14. `PatientCard` muestra cada paciente filtrado.
 
 ## Modulos actuales
+
+`Dashboard`
+
+Incluye KPIs operativos, proximas atenciones, pacientes recientes y resumen
+operativo. No muestra nuevos pacientes del mes porque aun no existe una fecha
+real de registro para pacientes.
+
+Participan:
+
+- `src/views/DashboardView.tsx`: compone la pantalla principal.
+- `src/components/DashboardKpiCard.tsx`: muestra cada indicador principal.
+- `src/components/DashboardAppointmentList.tsx`: muestra hasta 5 proximas
+  atenciones.
+- `src/components/DashboardPatientsList.tsx`: muestra pacientes recientes.
+- `src/components/DashboardActivityList.tsx`: muestra mensajes operativos.
+- `src/utils/dashboardMetrics.ts`: calcula KPIs, citas de hoy, citas del mes,
+  proximas citas, pacientes recientes y mensajes operativos.
 
 `Pacientes`
 
@@ -138,8 +157,7 @@ mantenerse fuera de los componentes para poder probarse con Vitest.
 
 La edicion, eliminacion, cancelacion real y persistencia siguen pendientes.
 
-`Dashboard`, `Historial clinico`, `Odontograma`, `Recordatorios` y
-`Configuracion`
+`Historial clinico`, `Odontograma`, `Recordatorios` y `Configuracion`
 
 Existen como vistas iniciales o placeholders para sostener la navegacion y el
 mapa futuro de la aplicacion.

@@ -59,6 +59,31 @@ sidebar muestra solo secciones principales. Las creaciones frecuentes viven como
 acciones rapidas (`+ Paciente`, `+ Cita`) para evitar duplicar opciones y mantener
 la interfaz limpia.
 
+## Estado local compartido
+
+`App.tsx` mantiene el estado local de citas y pacientes mientras no existe
+backend. Esto permite que Dashboard, Pacientes, Agenda y Nueva Cita usen la
+misma fuente de datos sin duplicar estado.
+
+Los pacientes creados localmente se agregan al estado compartido y pueden ser
+usados por el Dashboard y por el formulario de nueva cita durante la sesion
+actual.
+
+## Dashboard operativo
+
+El Dashboard muestra indicadores accionables para el consultorio en lugar de
+duplicar la agenda completa. Sus KPIs actuales son atenciones de hoy,
+atenciones del mes, pendientes por confirmar, pacientes registrados y
+reprogramadas del mes.
+
+No se muestra `N/D` como KPI principal. El indicador de nuevos pacientes del mes
+queda fuera temporalmente porque los pacientes mock no tienen una fecha real de
+registro. Es mejor ocultar ese dato hasta tener un campo confiable que mostrar
+un indicador incompleto.
+
+Los calculos del Dashboard viven en `src/utils/dashboardMetrics.ts` para poder
+probarlos con Vitest y mantener la vista enfocada en composicion visual.
+
 ## Citas con datos mock por ahora
 
 El modulo Citas se mantiene en frontend usando datos mock. Esto permite validar

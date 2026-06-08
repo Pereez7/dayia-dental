@@ -9,9 +9,21 @@ los modulos esten implementados hoy.
 
 Estado: iniciado.
 
-Muestra un resumen inicial de citas y proximas atenciones usando el estado local
-actual. Debe crecer hacia citas del dia, pacientes recientes, pendientes y
-actividad relevante del consultorio.
+Implementado:
+
+- KPIs operativos de atenciones de hoy, atenciones del mes, pendientes por
+  confirmar, pacientes registrados y reprogramadas del mes.
+- Proximas atenciones, con maximo 5 citas.
+- Pacientes recientes.
+- Resumen operativo con mensajes derivados de los datos actuales.
+- Calculos puros en `src/utils/dashboardMetrics.ts`.
+- Pruebas unitarias para metricas del Dashboard.
+
+Pendiente:
+
+- Nuevos pacientes del mes cuando exista una fecha real de registro.
+- Comparativas con periodos anteriores.
+- Graficos o reportes avanzados.
 
 ### Pacientes
 

@@ -9,7 +9,9 @@ historiales y otros modulos clinicos.
 - Frontend con React, Vite y TypeScript.
 - Layout base con sidebar, header y navegacion por estado local.
 - Modulo de pacientes con listado, busqueda, formulario y validaciones.
-- Modulo de citas con dashboard, agenda agrupada y formulario de nueva cita.
+- Dashboard operativo con KPIs, proximas atenciones, pacientes recientes y
+  resumen de actividad.
+- Modulo de citas con agenda agrupada y formulario de nueva cita.
 - Nueva cita con seleccion real de paciente, horarios exactos cada 15 minutos y
   validaciones de campos.
 - Datos mock separados en `src/data`.
@@ -20,7 +22,8 @@ historiales y otros modulos clinicos.
 
 ## Modulos actuales
 
-- **Dashboard:** resumen de citas y proximas atenciones.
+- **Dashboard:** KPIs operativos, proximas atenciones, pacientes recientes y
+  resumen operativo.
 - **Pacientes:** listado, busqueda, alta local y validaciones.
 - **Citas:** agenda mobile-first, KPIs por estado, creacion local de citas,
   seleccion de paciente y horarios de 24 horas en intervalos de 15 minutos.

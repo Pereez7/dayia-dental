@@ -10,12 +10,29 @@ especialmente pensando en una futura integracion con WhatsApp.
 - Pruebas unitarias configuradas con Vitest.
 - Git inicializado y remoto GitHub configurado.
 - Layout base con sidebar, header superior y navegacion por estado local.
+- Dashboard operativo con KPIs, proximas atenciones, pacientes recientes y
+  resumen operativo.
 - Componentes separados en `src/components`.
 - Vistas completas en `src/views`.
 - Datos mock separados en `src/data`.
 - Tipos compartidos en `src/types`.
 - Utilidades puras en `src/utils`.
 - Pruebas unitarias para formatters, filtros y validaciones.
+
+## Dashboard
+
+Actualmente existe una pantalla principal operativa:
+
+- Muestra KPIs de atenciones de hoy, atenciones del mes, pendientes por
+  confirmar, pacientes registrados y reprogramadas del mes.
+- Muestra maximo 5 proximas atenciones con fecha, hora, paciente, tratamiento y
+  estado.
+- Muestra pacientes recientes usando el estado local actual de pacientes.
+- Muestra un resumen operativo con mensajes derivados de citas actuales.
+- No muestra nuevos pacientes del mes porque los pacientes mock no tienen fecha
+  real de registro.
+- Los calculos viven en `src/utils/dashboardMetrics.ts` y tienen pruebas
+  unitarias.
 
 ## Modulo pacientes
 
