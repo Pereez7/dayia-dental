@@ -7,6 +7,7 @@ export type AppointmentStatus =
 
 export interface Appointment {
   id: number
+  patientId?: number
   date: string
   time: string
   patient: string
@@ -15,6 +16,7 @@ export interface Appointment {
 }
 
 export interface AppointmentFormValues {
+  patientId: number | null
   patient: string
   date: string
   time: string

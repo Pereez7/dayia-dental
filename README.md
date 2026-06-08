@@ -10,6 +10,8 @@ historiales y otros modulos clinicos.
 - Layout base con sidebar, header y navegacion por estado local.
 - Modulo de pacientes con listado, busqueda, formulario y validaciones.
 - Modulo de citas con dashboard, agenda agrupada y formulario de nueva cita.
+- Nueva cita con seleccion real de paciente, horarios exactos cada 15 minutos y
+  validaciones de campos.
 - Datos mock separados en `src/data`.
 - Tipos compartidos en `src/types`.
 - Componentes pequenos y reutilizables en `src/components`.
@@ -20,7 +22,8 @@ historiales y otros modulos clinicos.
 
 - **Dashboard:** resumen de citas y proximas atenciones.
 - **Pacientes:** listado, busqueda, alta local y validaciones.
-- **Citas:** agenda mobile-first, KPIs por estado y creacion local de citas.
+- **Citas:** agenda mobile-first, KPIs por estado, creacion local de citas,
+  seleccion de paciente y horarios de 24 horas en intervalos de 15 minutos.
 - **Historial clinico, Odontograma, Recordatorios y Configuracion:** vistas
   iniciales o placeholders para el crecimiento futuro.
 
@@ -66,6 +69,9 @@ npm run lint
 ```
 
 ## Documentacion
+
+Cuando se actualice la documentacion del proyecto, mantener alineados estos
+archivos:
 
 - [Contexto del proyecto](docs/project-context.md)
 - [Arquitectura](docs/architecture.md)

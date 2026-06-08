@@ -7,6 +7,7 @@ import type {
 import type { Patient } from '../types/Patient'
 import { treatments } from '../data/treatments'
 import { getAppointmentStatusLabel } from '../utils/appointmentFormatters'
+import { appointmentTimeSlots } from '../utils/appointmentTimeSlots'
 import { filterPatients } from '../utils/patientFilters'
 import {
   appointmentInitialStatuses,
@@ -15,6 +16,7 @@ import {
 } from '../utils/appointmentValidators'
 
 const initialFormValues: AppointmentFormValues = {
+  patientId: null,
   patient: '',
   date: '',
   time: '',
@@ -59,12 +61,24 @@ export function AppointmentForm({
 
   function handlePatientSearch(value: string) {
     setPatientSearch(value)
-    updateField('patient', '')
+    setFormValues((currentValues) => ({
+      ...currentValues,
+      patientId: null,
+      patient: '',
+    }))
   }
 
   function selectPatient(patient: Patient) {
     setPatientSearch(patient.fullName)
-    updateField('patient', patient.fullName)
+    setFormValues((currentValues) => ({
+      ...currentValues,
+      patientId: patient.id,
+      patient: patient.fullName,
+    }))
+    setErrors((currentErrors) => ({
+      ...currentErrors,
+      patient: undefined,
+    }))
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -101,47 +115,58 @@ export function AppointmentForm({
       </div>
 
       <form className="appointment-form" onSubmit={handleSubmit}>
-        <div className="patient-picker">
-          <span>Paciente</span>
-          <input
-            type="search"
-            placeholder="Buscar por nombre o telefono"
-            value={patientSearch}
-            onChange={(event) => handlePatientSearch(event.target.value)}
-          />
+        <div className="appointment-field patient-picker">
+          <label htmlFor="appointment-patient">Paciente</label>
+          <div className="appointment-control">
+            <input
+              id="appointment-patient"
+              type="search"
+              placeholder="Buscar por nombre o telefono"
+              value={patientSearch}
+              onChange={(event) => handlePatientSearch(event.target.value)}
+            />
 
-          {patientSearch && !formValues.patient && (
-            <div className="patient-picker-results">
-              {filteredPatients.length > 0 ? (
-                filteredPatients.map((patient) => (
-                  <button
-                    key={patient.id}
-                    type="button"
-                    onClick={() => selectPatient(patient)}
-                  >
-                    <strong>{patient.fullName}</strong>
-                    <span>{patient.phone}</span>
-                  </button>
-                ))
-              ) : (
-                <p>No se encontraron pacientes.</p>
-              )}
-            </div>
-          )}
+            {patientSearch && formValues.patientId === null && (
+              <div className="patient-picker-results">
+                {filteredPatients.length > 0 ? (
+                  filteredPatients.map((patient) => (
+                    <button
+                      key={patient.id}
+                      type="button"
+                      onClick={() => selectPatient(patient)}
+                    >
+                      <strong>{patient.fullName}</strong>
+                      <span>{patient.phone}</span>
+                    </button>
+                  ))
+                ) : (
+                  <p>No se encontraron pacientes.</p>
+                )}
+              </div>
+            )}
+          </div>
 
-          <p
-            className={`selected-patient${
-              formValues.patient ? '' : ' selected-patient--empty'
-            }`}
-          >
-            Paciente seleccionado: {formValues.patient || 'Sin seleccionar'}
-          </p>
-          {errors.patient && <small>{errors.patient}</small>}
+          <div className="appointment-message-slot">
+            {errors.patient ? (
+              <p className="field-message field-message--error">
+                {errors.patient}
+              </p>
+            ) : formValues.patientId !== null ? (
+              <p className="field-message field-message--success">
+                Paciente seleccionado: {formValues.patient}
+              </p>
+            ) : (
+              <p className="field-message field-message--help">
+                Busca y selecciona un paciente.
+              </p>
+            )}
+          </div>
         </div>
 
-        <label>
-          <span>Estado inicial</span>
+        <div className="appointment-field">
+          <label htmlFor="appointment-status">Estado inicial</label>
           <select
+            id="appointment-status"
             value={formValues.status}
             onChange={(event) =>
               updateField('status', event.target.value as AppointmentStatus)
@@ -153,33 +178,60 @@ export function AppointmentForm({
               </option>
             ))}
           </select>
-          {errors.status && <small>{errors.status}</small>}
-        </label>
+          <div className="appointment-message-slot">
+            {errors.status && (
+              <p className="field-message field-message--error">
+                {errors.status}
+              </p>
+            )}
+          </div>
+        </div>
 
-        <label>
-          <span>Fecha</span>
+        <div className="appointment-field">
+          <label htmlFor="appointment-date">Fecha</label>
           <input
+            id="appointment-date"
             type="date"
             min={minAppointmentDate}
             value={formValues.date}
             onChange={(event) => updateField('date', event.target.value)}
           />
-          {errors.date && <small>{errors.date}</small>}
-        </label>
+          <div className="appointment-message-slot">
+            {errors.date && (
+              <p className="field-message field-message--error">
+                {errors.date}
+              </p>
+            )}
+          </div>
+        </div>
 
-        <label>
-          <span>Hora</span>
-          <input
-            type="time"
+        <div className="appointment-field">
+          <label htmlFor="appointment-time">Hora</label>
+          <select
+            id="appointment-time"
             value={formValues.time}
             onChange={(event) => updateField('time', event.target.value)}
-          />
-          {errors.time && <small>{errors.time}</small>}
-        </label>
+          >
+            <option value="">Seleccionar horario</option>
+            {appointmentTimeSlots.map((slot) => (
+              <option key={slot.value} value={slot.value}>
+                {slot.label}
+              </option>
+            ))}
+          </select>
+          <div className="appointment-message-slot">
+            {errors.time && (
+              <p className="field-message field-message--error">
+                {errors.time}
+              </p>
+            )}
+          </div>
+        </div>
 
-        <label className="appointment-form-full">
-          <span>Motivo o tratamiento</span>
+        <div className="appointment-field appointment-form-full">
+          <label htmlFor="appointment-treatment">Motivo o tratamiento</label>
           <select
+            id="appointment-treatment"
             value={formValues.treatment}
             onChange={(event) => updateField('treatment', event.target.value)}
           >
@@ -190,8 +242,14 @@ export function AppointmentForm({
               </option>
             ))}
           </select>
-          {errors.treatment && <small>{errors.treatment}</small>}
-        </label>
+          <div className="appointment-message-slot">
+            {errors.treatment && (
+              <p className="field-message field-message--error">
+                {errors.treatment}
+              </p>
+            )}
+          </div>
+        </div>
 
         <div className="form-actions">
           <button className="primary-action" type="submit">

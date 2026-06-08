@@ -82,6 +82,14 @@ Las citas creadas en esta etapa se agregan en memoria desde `App.tsx` y se
 reflejan en Dashboard y Agenda durante la sesion actual. La persistencia,
 edicion, eliminacion y cancelacion real siguen fuera del alcance inmediato.
 
+## Seleccion real de paciente en citas
+
+El formulario de nueva cita separa el texto escrito en el buscador del paciente
+realmente seleccionado. El texto permite filtrar resultados, pero la validacion
+usa un identificador de paciente seleccionado. Esto evita estados visuales
+contradictorios, como mostrar un paciente seleccionado y al mismo tiempo pedir
+que se seleccione uno.
+
 ## Catalogo mock de tratamientos
 
 Los tratamientos de una cita viven temporalmente en `src/data/treatments.ts`.
@@ -132,6 +140,11 @@ cita exige paciente, fecha no anterior a hoy, hora, tratamiento valido y estado
 inicial permitido. Por ahora solo `Pendiente` y `Confirmada` son estados
 iniciales validos; estados como `Cancelada`, `Completada` o `Reprogramada`
 pertenecen a acciones posteriores sobre una cita existente.
+
+La hora de una cita debe pertenecer al catalogo de horarios exactos generado en
+intervalos de 15 minutos. Se usa un selector en lugar del picker nativo de hora
+para evitar seleccion minuto a minuto y mantener valores consistentes como
+`08:15`, `08:30` o `08:45` durante las 24 horas del dia.
 
 ## Registro local de pacientes
 

@@ -4,6 +4,7 @@ import type {
   AppointmentStatus,
 } from '../types/Appointment'
 import { treatments } from '../data/treatments'
+import { appointmentTimeSlots } from './appointmentTimeSlots'
 
 export const appointmentInitialStatuses: AppointmentStatus[] = [
   'pending',
@@ -16,7 +17,7 @@ export function validateAppointmentForm(
 ): AppointmentFormErrors {
   const errors: AppointmentFormErrors = {}
 
-  if (!values.patient.trim()) {
+  if (values.patientId === null) {
     errors.patient = 'Selecciona un paciente.'
   }
 
@@ -28,6 +29,8 @@ export function validateAppointmentForm(
 
   if (!values.time) {
     errors.time = 'Selecciona una hora.'
+  } else if (!appointmentTimeSlots.some((slot) => slot.value === values.time)) {
+    errors.time = 'Selecciona una hora valida.'
   }
 
   if (!values.treatment.trim()) {

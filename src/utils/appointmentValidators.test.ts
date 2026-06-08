@@ -6,6 +6,7 @@ import {
 } from './appointmentValidators'
 
 const validAppointmentFormValues: AppointmentFormValues = {
+  patientId: 1,
   patient: 'Mariana Rojas',
   date: '2026-06-12',
   time: '09:30',
@@ -27,7 +28,21 @@ describe('validateAppointmentForm', () => {
     const errors = validateAppointmentForm(
       {
         ...validAppointmentFormValues,
+        patientId: null,
         patient: '',
+      },
+      new Date('2026-06-08T10:00:00'),
+    )
+
+    expect(errors.patient).toBe('Selecciona un paciente.')
+  })
+
+  it('validates the selected patient id instead of the search text', () => {
+    const errors = validateAppointmentForm(
+      {
+        ...validAppointmentFormValues,
+        patientId: null,
+        patient: 'Carlos Medina',
       },
       new Date('2026-06-08T10:00:00'),
     )
@@ -81,6 +96,18 @@ describe('validateAppointmentForm', () => {
     )
 
     expect(errors.time).toBe('Selecciona una hora.')
+  })
+
+  it('requires a time from the 15 minute slot catalog', () => {
+    const errors = validateAppointmentForm(
+      {
+        ...validAppointmentFormValues,
+        time: '10:10',
+      },
+      new Date('2026-06-08T10:00:00'),
+    )
+
+    expect(errors.time).toBe('Selecciona una hora valida.')
   })
 
   it('requires a treatment', () => {

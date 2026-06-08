@@ -20,6 +20,7 @@ function App() {
   function handleCreateAppointment(values: AppointmentFormValues) {
     const newAppointment: Appointment = {
       id: Date.now(),
+      patientId: values.patientId ?? undefined,
       date: values.date,
       time: values.time,
       patient: values.patient,

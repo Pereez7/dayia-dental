@@ -33,8 +33,11 @@ Implementado:
 - Estados visuales con badges semanticos.
 - Formulario de nueva cita.
 - Busqueda y seleccion de pacientes mock para agendar.
+- Seleccion real de paciente separada del texto del buscador.
 - Catalogo mock de tratamientos.
+- Selector de hora con horarios exactos de 24 horas en intervalos de 15 minutos.
 - Validaciones de paciente, fecha, hora, tratamiento y estado inicial.
+- Validacion de hora contra el catalogo de intervalos de 15 minutos.
 - Creacion local de citas en memoria.
 
 Pendiente:

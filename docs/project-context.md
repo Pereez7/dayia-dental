@@ -46,7 +46,13 @@ Actualmente existe una primera version funcional en frontend:
 - Los estados usan badges con colores semanticos suaves.
 - Permite registrar una nueva cita desde la accion rapida `+ Cita`.
 - El formulario de nueva cita permite buscar y seleccionar pacientes mock.
+- La seleccion de paciente distingue el texto del buscador del paciente
+  realmente seleccionado mediante un identificador interno.
 - El formulario valida paciente, fecha, hora, tratamiento y estado inicial.
+- La hora se elige desde un catalogo de 24 horas en intervalos de 15 minutos,
+  por ejemplo `08:15`, `08:30` o `08:45`.
+- Los mensajes de ayuda, seleccion y error del formulario usan espacios
+  consistentes para no desalinear la grilla.
 - Los tratamientos disponibles viven en `src/data/treatments.ts`.
 
 Todavia no existe edicion, eliminacion, cancelacion real ni persistencia de

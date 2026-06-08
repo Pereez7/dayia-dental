@@ -86,8 +86,9 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
 6. `AppointmentsView` alterna entre la agenda y el formulario de nueva cita.
 7. `AppointmentsOverview` recibe las citas desde `App.tsx` y renderiza metricas
    y tarjetas individuales para el dashboard.
-8. `AppointmentForm` busca pacientes mock, valida campos con funciones de
-   `src/utils` y avisa a `App.tsx` cuando hay una nueva cita.
+8. `AppointmentForm` busca pacientes mock, guarda el paciente seleccionado por
+   identificador, valida campos con funciones de `src/utils` y avisa a
+   `App.tsx` cuando hay una nueva cita.
 9. `App.tsx` agrega la nueva cita al estado local y vuelve a la agenda.
 10. `AppointmentCard` usa funciones de `src/utils` para mostrar fecha, hora y
    estado en formato legible.
@@ -129,9 +130,11 @@ Participan:
 - `src/utils/appointmentFormatters.ts`: formatea fecha, hora y estados.
 - `src/utils/appointmentValidators.ts`: valida los campos del formulario de
   nueva cita.
+- `src/utils/appointmentTimeSlots.ts`: genera el catalogo de horas exactas en
+  intervalos de 15 minutos para el formulario.
 
-La logica de ordenamiento, agrupacion, resumen y validacion debe mantenerse
-fuera de los componentes para poder probarse con Vitest.
+La logica de ordenamiento, agrupacion, resumen, horarios y validacion debe
+mantenerse fuera de los componentes para poder probarse con Vitest.
 
 La edicion, eliminacion, cancelacion real y persistencia siguen pendientes.
 

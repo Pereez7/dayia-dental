@@ -7,12 +7,25 @@ Registro breve de cambios relevantes en DayIA Dental.
 ### Cambios realizados
 
 - Se agrego el tipo `AppointmentFormValues` y errores de formulario de citas.
+- Se agrego `patientId` al formulario de citas para distinguir texto de busqueda
+  de paciente realmente seleccionado.
+- Se corrigio la validacion de paciente para evitar mostrar seleccion positiva y
+  error al mismo tiempo.
+- Se estabilizo la grilla del formulario de nueva cita con zonas de mensaje
+  consistentes.
 - Se agrego el catalogo mock de tratamientos en `src/data/treatments.ts`.
 - Se creo `AppointmentForm` para registrar nuevas citas desde el frontend.
 - Se agrego busqueda y seleccion de pacientes dentro del formulario de citas.
 - Se agregaron validaciones puras para paciente, fecha, hora, tratamiento y
   estado inicial de citas.
+- Se agrego un catalogo de horarios exactos de 24 horas en intervalos de 15
+  minutos.
+- Se cambio el selector de hora para elegir valores como `08:15`, `08:30` o
+  `08:45`, evitando seleccion minuto a minuto.
+- Se valido que la hora seleccionada pertenezca al catalogo de intervalos de 15
+  minutos.
 - Se agregaron pruebas unitarias para validaciones de citas.
+- Se agregaron pruebas unitarias para el catalogo de horarios.
 - Se conecto la accion rapida `+ Cita` con el formulario de nueva cita.
 - Se agrego creacion local de citas en memoria desde `App.tsx`.
 - Se hizo que Dashboard y Agenda usen el estado local actualizado de citas.
@@ -21,8 +34,8 @@ Registro breve de cambios relevantes en DayIA Dental.
 ### Motivo del cambio
 
 Avanzar el modulo de citas desde una agenda solamente visual hacia un flujo
-frontend funcional de registro local, manteniendo la logica testeable y sin
-introducir backend ni persistencia todavia.
+frontend funcional de registro local, manteniendo la logica testeable, una
+interfaz estable y sin introducir backend ni persistencia todavia.
 
 ## 2026-06-07
 
