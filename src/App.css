@@ -132,9 +132,9 @@
 .placeholder-panel {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-soft);
-  padding: clamp(18px, 3vw, 24px);
+  padding: var(--space-panel);
 }
 
 .placeholder-panel p:last-child {
@@ -155,7 +155,7 @@
 .eyebrow {
   margin: 0 0 8px;
   color: var(--color-primary);
-  font-size: 0.78rem;
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -190,7 +190,7 @@
 .dashboard-grid {
   display: grid;
   grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
-  gap: 20px;
+  gap: 16px;
   min-width: 0;
 }
 
@@ -198,39 +198,44 @@
 .appointments-panel {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-soft);
   min-width: 0;
-  padding: clamp(18px, 3vw, 24px);
+  padding: var(--space-panel);
 }
 
 .section-heading {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .metric-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 8px;
 }
 
-.metric-row div {
-  background: var(--color-soft-blue);
-  border-radius: 8px;
-  padding: 16px;
+.ui-kpi,
+.agenda-kpi {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+  padding: 9px 10px;
 }
 
-.metric-row strong {
+.ui-kpi strong,
+.agenda-kpi strong {
   display: block;
   color: var(--color-heading);
-  font-size: 2rem;
+  font-size: var(--text-lg);
   line-height: 1;
 }
 
-.metric-row span,
+.ui-kpi span,
+.agenda-kpi span,
 .appointment-item span {
   color: var(--color-text-muted);
-  font-size: 0.92rem;
+  font-size: var(--text-xs);
+  font-weight: 700;
 }
 
 .appointment-list {
@@ -241,9 +246,9 @@
 .agenda-section {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-soft);
-  padding: clamp(16px, 3vw, 20px);
+  padding: var(--space-panel);
 }
 
 .agenda-summary {
@@ -251,13 +256,6 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin-bottom: 18px;
-}
-
-.agenda-kpi {
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-background);
-  padding: 9px 10px;
 }
 
 .agenda-kpi--total {
@@ -300,19 +298,6 @@
   color: #4f46e5;
 }
 
-.agenda-summary strong {
-  display: block;
-  color: var(--color-heading);
-  font-size: 1.12rem;
-  line-height: 1;
-}
-
-.agenda-summary span {
-  color: var(--color-text-muted);
-  font-size: 0.76rem;
-  font-weight: 700;
-}
-
 .agenda-groups {
   display: grid;
   gap: 18px;
@@ -326,7 +311,7 @@
 .agenda-day h3 {
   margin: 0;
   color: var(--color-heading);
-  font-size: 0.9rem;
+  font-size: var(--text-md);
   font-weight: 800;
 }
 
@@ -342,7 +327,7 @@
   gap: 10px;
   min-width: 0;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 10px;
 }
 
@@ -367,14 +352,14 @@
 .agenda-card-body h3 {
   margin: 0 0 2px;
   color: var(--color-heading);
-  font-size: 0.95rem;
+  font-size: var(--text-md);
   line-height: 1.2;
 }
 
 .agenda-card-body p {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.86rem;
+  font-size: var(--text-sm);
 }
 
 .agenda-status {
@@ -481,9 +466,12 @@
 .status-pill {
   border-radius: 999px;
   border: 1px solid transparent;
-  font-size: 0.82rem;
-  font-weight: 700;
-  padding: 6px 10px;
+  background: var(--color-soft-blue);
+  color: var(--color-primary-dark);
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 5px 8px;
   text-align: center;
   white-space: nowrap;
 }
@@ -496,9 +484,9 @@
   margin-top: 28px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-soft);
-  padding: clamp(18px, 3vw, 24px);
+  padding: var(--space-panel);
 }
 
 .patient-form-section .section-heading {
@@ -520,7 +508,7 @@
   gap: 6px;
   min-width: 0;
   color: var(--color-text-muted);
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
   font-weight: 700;
 }
 
@@ -529,7 +517,7 @@
   width: 100%;
   min-width: 0;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-text);
   padding: 10px 12px;
@@ -553,7 +541,7 @@
 
 .phone-field legend {
   color: var(--color-text-muted);
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
   font-weight: 800;
 }
 
@@ -583,6 +571,7 @@
 
 .patient-form small {
   color: #b42318;
+  font-size: var(--text-xs);
   font-weight: 700;
 }
 
@@ -597,7 +586,7 @@
   margin: 16px 0 0;
   margin-left: auto;
   margin-right: auto;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--color-soft-green);
   color: var(--color-success);
   font-weight: 700;
@@ -621,7 +610,7 @@
   gap: 6px;
   width: min(100%, 320px);
   color: var(--color-text-muted);
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
   font-weight: 700;
 }
 
@@ -629,10 +618,10 @@
   width: 100%;
   min-width: 0;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-text);
-  padding: 12px 14px;
+  padding: 10px 12px;
 }
 
 .patient-search input:focus {
@@ -644,23 +633,24 @@
 .patients-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
+  gap: 12px;
 }
 
 .patient-card {
   display: grid;
-  gap: 18px;
+  gap: 14px;
   min-width: 0;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-soft);
-  padding: clamp(18px, 3vw, 22px);
+  padding: var(--space-panel);
 }
 
 .patient-name {
   margin: 0 0 4px;
   color: var(--color-heading);
+  font-size: var(--text-md);
   font-weight: 800;
   overflow-wrap: break-word;
 }
@@ -668,6 +658,7 @@
 .patient-phone {
   margin: 0;
   color: var(--color-text-muted);
+  font-size: var(--text-sm);
   overflow-wrap: break-word;
 }
 
@@ -687,12 +678,14 @@
 
 .patient-details dt {
   color: var(--color-text-muted);
-  font-size: 0.88rem;
+  font-size: var(--text-xs);
+  font-weight: 700;
 }
 
 .patient-details dd {
   margin: 0;
   color: var(--color-heading);
+  font-size: var(--text-sm);
   font-weight: 700;
   text-align: right;
   overflow-wrap: break-word;

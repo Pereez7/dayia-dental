@@ -5,7 +5,7 @@ interface StatsCardProps {
 
 export function StatsCard({ value, label }: StatsCardProps) {
   return (
-    <div>
+    <div className="ui-kpi">
       <strong>{value}</strong>
       <span>{label}</span>
     </div>
