@@ -17,6 +17,8 @@ historiales y otros modulos clinicos.
   validaciones de campos.
 - Historial clinico inicial dentro del detalle de paciente, con registros
   asociados por paciente, normalizacion de textos y fechas con año.
+- Odontograma inicial dentro del detalle de paciente, con piezas permanentes
+  adultas, estados por pieza y resumen por estado.
 - Configuracion de tratamientos con alta, busqueda, edicion, activacion y
   desactivacion local.
 - Datos mock separados en `src/data`.
@@ -35,9 +37,10 @@ historiales y otros modulos clinicos.
   seleccion de paciente y horarios de 24 horas en intervalos de 15 minutos.
 - **Historial clinico:** registros clinicos dentro del detalle de paciente,
   ordenados por fecha, con resumen temporal y formulario de evolucion basica.
+- **Odontograma:** grilla inicial de piezas permanentes adultas dentro del
+  detalle de paciente, con actualizacion simple por pieza.
 - **Configuracion:** gestion local de tratamientos disponibles para Nueva Cita.
-- **Odontograma y Recordatorios:** vistas iniciales o placeholders para el
-  crecimiento futuro.
+- **Recordatorios:** vista inicial o placeholder para el crecimiento futuro.
 
 La aplicacion todavia no tiene backend, base de datos, autenticacion,
 persistencia ni integracion real con WhatsApp.

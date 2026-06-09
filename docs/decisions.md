@@ -61,10 +61,10 @@ la interfaz limpia.
 
 ## Estado local compartido
 
-`App.tsx` mantiene el estado local de citas, pacientes, tratamientos y registros
-clinicos mientras no existe backend. Esto permite que Dashboard, Pacientes,
-Agenda, Nueva Cita, Configuracion y Detalle de paciente usen la misma fuente de
-datos sin duplicar estado.
+`App.tsx` mantiene el estado local de citas, pacientes, tratamientos, registros
+clinicos y odontograma mientras no existe backend. Esto permite que Dashboard,
+Pacientes, Agenda, Nueva Cita, Configuracion y Detalle de paciente usen la
+misma fuente de datos sin duplicar estado.
 
 Los pacientes creados localmente se agregan al estado compartido y pueden ser
 usados por el Dashboard y por el formulario de nueva cita durante la sesion
@@ -76,6 +76,9 @@ cambios hechos en Configuracion se reflejen inmediatamente en Nueva Cita.
 Los registros clinicos tambien viven en ese estado compartido y se asocian a
 pacientes mediante `patientId`. Esto evita duplicar historial dentro del
 paciente y prepara una futura persistencia relacional.
+
+Las entradas del odontograma viven en ese mismo estado compartido y se asocian a
+pacientes mediante `patientId` y a piezas mediante `toothNumber`.
 
 ## Detalle de paciente como vista completa
 
@@ -97,6 +100,31 @@ ni rutas con parametros.
 
 El item lateral `Historial clinico` se mantiene como placeholder hasta que exista
 una experiencia clara para consultar historiales entre pacientes.
+
+## Odontograma dentro del paciente
+
+El odontograma inicial se implementa dentro del detalle del paciente, no como
+pantalla global. En esta etapa cada odontograma necesita el contexto del
+paciente seleccionado y una vista global requeriria busqueda de pacientes,
+filtros y posiblemente rutas con parametros.
+
+El item lateral `Odontograma` se mantiene como placeholder global hasta definir
+una experiencia visual mas completa.
+
+## Odontograma funcional antes que grafico complejo
+
+La primera version del odontograma usa una grilla simple de piezas permanentes
+adultas con numeracion FDI. Esto permite validar el modelo de datos, estados por
+pieza, resumen y actualizacion antes de invertir en SVG, superficies dentales,
+denticion temporal infantil o una libreria especializada.
+
+Los estados actuales son sano, caries, restaurado, ausente, tratamiento
+pendiente, en observacion y otro. Cada estado usa colores suaves para mantener
+lectura rapida sin saturar la ficha del paciente.
+
+Las observaciones del odontograma se normalizan con la utilidad global
+`textNormalizers` para mantener consistencia con historial clinico y futuros
+formularios.
 
 ## Normalizacion de textos clinicos
 

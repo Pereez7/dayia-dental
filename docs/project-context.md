@@ -14,6 +14,7 @@ especialmente pensando en una futura integracion con WhatsApp.
   resumen operativo.
 - Configuracion de tratamientos del consultorio conectada con Nueva Cita.
 - Primera version de historial clinico dentro del detalle de paciente.
+- Primera version de odontograma dentro del detalle de paciente.
 - Componentes separados en `src/components`.
 - Vistas completas en `src/views`.
 - Datos mock separados en `src/data`.
@@ -59,6 +60,10 @@ Actualmente existe:
   capitalizacion como oracion.
 - Fechas del historial clinico mostradas con año y resumen temporal del rango
   de registros.
+- Odontograma asociado al paciente mediante `patientId`.
+- Grilla simple de piezas permanentes adultas usando numeracion FDI.
+- Registro local de estado, observaciones y fecha de actualizacion por pieza.
+- Resumen de piezas por estado con colores suaves.
 
 Este modulo esta preparado para una futura integracion con WhatsApp, pero aun no
 envia mensajes ni consume APIs externas.
@@ -86,6 +91,28 @@ Actualmente existe una primera version dentro del detalle de paciente:
 El menu lateral `Historial clinico` sigue como placeholder. Por ahora el
 historial permanece dentro del detalle de cada paciente porque necesita contexto
 clinico del paciente seleccionado.
+
+## Odontograma
+
+Actualmente existe una primera version dentro del detalle de paciente:
+
+- Usa datos mock desde `src/data/odontogram.ts`.
+- Mantiene las entradas del odontograma en estado local dentro de `src/App.tsx`.
+- Cada entrada se asocia a un paciente mediante `patientId` y a una pieza por
+  `toothNumber`.
+- Usa piezas permanentes adultas con numeracion FDI: `11-18`, `21-28`,
+  `31-38` y `41-48`.
+- Muestra una grilla simple y responsive de piezas dentales.
+- Cada pieza muestra numero y estado actual.
+- Si una pieza no tiene entrada, se considera `Sano`.
+- Permite seleccionar una pieza y actualizar estado y observaciones.
+- Normaliza observaciones antes de guardarlas.
+- Actualiza `updatedAt` al guardar.
+- Muestra resumen por estado con colores suaves.
+
+El menu lateral `Odontograma` sigue como placeholder global. Por ahora el
+odontograma permanece dentro del detalle de cada paciente porque necesita el
+contexto del paciente seleccionado.
 
 ## Modulo citas
 

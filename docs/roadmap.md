@@ -40,6 +40,7 @@ Implementado:
 - Ficha con datos generales, edad, ultima visita y proxima cita.
 - Citas asociadas al paciente.
 - Historial clinico inicial dentro del detalle del paciente.
+- Odontograma inicial dentro del detalle del paciente.
 - Navegacion local entre listado y detalle sin React Router.
 - Pruebas unitarias para filtros, validaciones, utilidades de detalle e
   historial clinico.
@@ -48,8 +49,8 @@ Pendiente:
 
 - Edicion de paciente.
 - Eliminacion o desactivacion de paciente.
-- Odontograma dentro de la ficha.
 - Edicion y eliminacion de registros clinicos.
+- Edicion avanzada del odontograma.
 - Antecedentes, recetas, archivos adjuntos y evoluciones clinicas avanzadas.
 - Recordatorios asociados al paciente.
 
@@ -115,10 +116,37 @@ Pendiente:
 
 ### Odontograma
 
-Estado: placeholder.
+Estado: iniciado dentro del detalle de paciente.
 
-Pendiente definir representacion visual, piezas dentales, tratamientos y
-observaciones.
+Implementado:
+
+- Tipo compartido `OdontogramEntry`.
+- Datos mock asociados a pacientes existentes.
+- Estado local compartido en `App.tsx`.
+- Visualizacion dentro del detalle de paciente.
+- Piezas permanentes adultas con numeracion FDI.
+- Grilla simple y responsive de piezas dentales.
+- Estados iniciales: sano, caries, restaurado, ausente, tratamiento pendiente,
+  en observacion y otro.
+- Colores suaves por estado.
+- Resumen de cantidad de piezas por estado.
+- Seleccion de pieza y panel simple de actualizacion.
+- Actualizacion o creacion de entrada por `patientId` y `toothNumber`.
+- Normalizacion de observaciones antes de guardar.
+- Fecha de ultima actualizacion con formato compacto con año.
+- Pruebas unitarias para generacion de piezas, filtrado, resumen, validacion y
+  actualizacion de entradas.
+
+Pendiente:
+
+- Odontograma grafico avanzado.
+- Superficies dentales.
+- Denticion temporal infantil.
+- Historial de cambios por pieza.
+- Edicion avanzada.
+- Eliminacion de entradas.
+- Impresion PDF.
+- Imagenes o radiografias.
 
 ### Recordatorios WhatsApp
 
@@ -158,7 +186,7 @@ Pendiente:
 - Mejorar navegacion a medida que crezcan los modulos.
 - Mejorar diseno visual general.
 - Ampliar historial clinico.
-- Implementar odontograma.
+- Ampliar odontograma.
 - Integrar WhatsApp.
 - Integrar Supabase.
 - Agregar autenticacion.

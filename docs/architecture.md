@@ -36,7 +36,8 @@ renderizar UI y recibir datos por props cuando sea posible.
 `src/data`
 
 Contiene datos de ejemplo usados por la interfaz mientras no existe backend.
-Actualmente guarda citas, pacientes, tratamientos y registros clinicos mock.
+Actualmente guarda citas, pacientes, tratamientos, registros clinicos y
+odontograma mock.
 
 `src/layout`
 
@@ -81,16 +82,16 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
    activa.
 4. `Sidebar` usa el mapa de `src/layout/navigation.ts` para renderizar
    secciones principales y acciones rapidas.
-5. `App.tsx` mantiene el estado local de citas, pacientes, tratamientos y
-   registros clinicos para compartirlo entre Dashboard, Pacientes, Citas,
-   Configuracion y Detalle de paciente.
+5. `App.tsx` mantiene el estado local de citas, pacientes, tratamientos,
+   registros clinicos y odontograma para compartirlo entre Dashboard,
+   Pacientes, Citas, Configuracion y Detalle de paciente.
 6. `PatientsView` recibe pacientes, el callback de alta y el callback para ver
    detalle desde `App.tsx`, y compone `PatientForm` con `PatientsList`.
 7. `PatientCard` puede solicitar ver el detalle de un paciente.
 8. `App.tsx` guarda `selectedPatientId`, cambia a la seccion interna
    `patient-detail` y renderiza `PatientDetailView`.
 9. `PatientDetailView` compone la ficha del paciente con sus citas asociadas,
-   historial clinico y permite volver al listado.
+   historial clinico, odontograma y permite volver al listado.
 10. `AppointmentsView` alterna entre la agenda y el formulario de nueva cita.
 11. `DashboardView` recibe citas y pacientes desde `App.tsx`, calcula metricas
    con `src/utils/dashboardMetrics.ts` y compone las secciones del Dashboard.
@@ -116,6 +117,8 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
    textos antes de avisar a `App.tsx`.
 22. `ClinicalRecordsList` muestra los registros clinicos filtrados del paciente,
    con fechas compactas con año y resumen temporal.
+23. `PatientOdontogram` muestra piezas permanentes adultas, resumen por estado y
+   permite actualizar una pieza dental.
 
 ## Modulos actuales
 
@@ -140,7 +143,7 @@ Participan:
 
 Incluye listado, busqueda, formulario de registro, validaciones, telefono en
 formato internacional compacto, detalle de paciente como vista completa e
-historial clinico inicial asociado al paciente.
+historial clinico y odontograma inicial asociados al paciente.
 
 Participan:
 
@@ -155,10 +158,14 @@ Participan:
   basica.
 - `src/components/ClinicalRecordsList.tsx`: muestra registros clinicos del
   paciente.
+- `src/components/PatientOdontogram.tsx`: muestra y actualiza estados basicos
+  de piezas dentales.
 - `src/utils/patientFilters.ts`: filtra pacientes por busqueda.
 - `src/utils/patientDetails.ts`: calcula edad y obtiene citas relacionadas.
 - `src/utils/clinicalRecords.ts`: filtra, ordena, valida, normaliza y resume
   registros clinicos.
+- `src/utils/odontogram.ts`: genera piezas FDI adultas, filtra entradas,
+  obtiene estados, calcula resumen, valida y actualiza entradas.
 - `src/utils/textNormalizers.ts`: normaliza textos escritos en formularios.
 - `src/utils/dateFormatters.ts`: formatea fechas compactas con año.
 
@@ -168,6 +175,10 @@ exacto del paciente.
 
 El historial clinico se asocia siempre por `patientId`. Por ahora vive dentro
 del detalle del paciente y no en la vista global del menu lateral.
+
+El odontograma tambien se asocia por `patientId`; cada entrada identifica una
+pieza mediante `toothNumber`. Por ahora vive dentro del detalle del paciente y
+no en la vista global del menu lateral.
 
 `Citas`
 
@@ -235,6 +246,25 @@ Existe como primera version dentro de `PatientDetailView`. Participan:
 El modulo lateral `Historial clinico` sigue siendo placeholder hasta definir una
 experiencia global de busqueda, filtros y seleccion de paciente.
 
+`Odontograma`
+
+Existe como primera version dentro de `PatientDetailView`. Participan:
+
+- `src/types/Odontogram.ts`: define `OdontogramEntry`, `ToothStatus` y valores
+  del formulario.
+- `src/data/odontogram.ts`: contiene entradas mock asociadas a pacientes.
+- `src/components/PatientOdontogram.tsx`: renderiza grilla de piezas, resumen
+  por estado y panel de actualizacion.
+- `src/utils/odontogram.ts`: genera piezas permanentes adultas FDI, filtra por
+  paciente, obtiene estado por pieza, cuenta estados, valida formulario,
+  normaliza observaciones y crea o actualiza entradas.
+- `src/utils/textNormalizers.ts`: normaliza observaciones.
+- `src/utils/dateFormatters.ts`: muestra `updatedAt` como `09-jun-2026`.
+
+El modulo lateral `Odontograma` sigue siendo placeholder global hasta definir
+una experiencia visual mas completa. La primera version evita superficies
+dentales, denticion temporal infantil y graficos complejos.
+
 ## Estilos reutilizables
 
 `src/App.css` contiene clases globales simples para botones:
@@ -249,7 +279,7 @@ experiencia global de busqueda, filtros y seleccion de paciente.
 Estas clases mantienen una base visual compartida y permiten aplicar color
 semantico sin crear estilos aislados por vista.
 
-`Odontograma` y `Recordatorios`
+`Recordatorios`
 
-Existen como vistas iniciales o placeholders para sostener la navegacion y el
-mapa futuro de la aplicacion.
+Existe como vista inicial o placeholder para sostener la navegacion y el mapa
+futuro de la aplicacion.

@@ -25,14 +25,29 @@ Registro breve de cambios relevantes en DayIA Dental.
   rango de fechas.
 - Se agregaron pruebas unitarias para historial clinico, normalizacion de texto
   y formateo de fechas.
+- Se agrego el tipo `OdontogramEntry` para representar estados por pieza dental
+  y paciente.
+- Se agregaron datos mock de odontograma en `src/data/odontogram.ts`.
+- Se agrego estado local de odontograma en `src/App.tsx`.
+- Se integro el odontograma dentro del detalle de paciente.
+- Se agrego una grilla simple de piezas permanentes adultas con numeracion FDI.
+- Se agrego seleccion de pieza dental y panel simple de actualizacion.
+- Se agregaron estados iniciales de pieza: sano, caries, restaurado, ausente,
+  tratamiento pendiente, en observacion y otro.
+- Se agregaron colores suaves por estado y resumen de piezas por estado.
+- Se normalizan observaciones del odontograma antes de guardarlas.
+- Se usa formato compacto con año para la ultima actualizacion de una pieza.
+- Se agregaron pruebas unitarias para piezas FDI, filtrado por paciente,
+  resumen por estado, validacion y actualizacion de entradas de odontograma.
 - Se actualizo la documentacion del proyecto para reflejar el historial clinico
-  inicial.
+  inicial y el odontograma inicial.
 
 ### Motivo del cambio
 
-Preparar DayIA Dental para seguimiento odontologico por paciente, manteniendo el
-historial dentro del detalle del paciente y sin introducir backend,
-persistencia, odontograma ni pantalla global de historial clinico todavia.
+Preparar DayIA Dental para seguimiento odontologico por paciente, manteniendo
+historial clinico y odontograma dentro del detalle del paciente y sin introducir
+backend, persistencia, odontograma grafico avanzado ni pantalla global de
+historial clinico todavia.
 
 ## 2026-06-08
 
