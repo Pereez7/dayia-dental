@@ -10,8 +10,9 @@ especialmente pensando en una futura integracion con WhatsApp.
 - Pruebas unitarias configuradas con Vitest.
 - Git inicializado y remoto GitHub configurado.
 - Layout base con sidebar, header superior y navegacion por estado local.
+- Sidebar visualmente estructurado con marca, acciones rapidas y modulos.
 - Dashboard operativo con KPIs, proximas atenciones, pacientes recientes y
-  resumen operativo.
+  resumen operativo, con composicion visual refinada.
 - Configuracion de tratamientos del consultorio conectada con Nueva Cita.
 - Primera version de historial clinico dentro del detalle de paciente.
 - Primera version de odontograma dentro del detalle de paciente.
@@ -34,6 +35,8 @@ Actualmente existe una pantalla principal operativa:
 - Muestra un resumen operativo con mensajes derivados de citas actuales.
 - No muestra nuevos pacientes del mes porque los pacientes mock no tienen fecha
   real de registro.
+- Organiza los KPIs en un panel visual equilibrado para evitar huecos en
+  desktop y mantener lectura clara en mobile.
 - Los calculos viven en `src/utils/dashboardMetrics.ts` y tienen pruebas
   unitarias.
 
@@ -43,6 +46,7 @@ Actualmente existe:
 
 - Listado de pacientes.
 - Busqueda por nombre, apellido o telefono.
+- Cards de pacientes con formato de ficha clinica escaneable.
 - Formulario de registro de paciente.
 - Vista completa de detalle de paciente.
 - Validaciones de nombre, apellido, telefono, email y fecha de nacimiento.
@@ -64,6 +68,8 @@ Actualmente existe:
 - Grilla simple de piezas permanentes adultas usando numeracion FDI.
 - Registro local de estado, observaciones y fecha de actualizacion por pieza.
 - Resumen de piezas por estado con colores suaves.
+- Sidebar y fichas de pacientes tienen mejoras visuales controladas sin cambiar
+  el flujo funcional.
 
 Este modulo esta preparado para una futura integracion con WhatsApp, pero aun no
 envia mensajes ni consume APIs externas.
@@ -163,9 +169,12 @@ La app usa `AppLayout` con:
 
 - Sidebar principal.
 - Acciones rapidas: `+ Paciente` y `+ Cita`.
+- Secciones visuales para marca, acciones y modulos.
 - Header superior por seccion.
 - Navegacion controlada con estado local en `App.tsx`.
 - Seccion interna de detalle de paciente controlada tambien por estado local.
+- En mobile, la navegacion se mantiene horizontal y desplazable, sin drawer ni
+  bottom navigation.
 
 No se usa React Router todavia.
 

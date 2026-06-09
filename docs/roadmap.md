@@ -13,6 +13,7 @@ Implementado:
 
 - KPIs operativos de atenciones de hoy, atenciones del mes, pendientes por
   confirmar, pacientes registrados y reprogramadas del mes.
+- Panel visual de KPIs equilibrado para desktop y mobile.
 - Proximas atenciones, con maximo 5 citas.
 - Pacientes recientes.
 - Resumen operativo con mensajes derivados de los datos actuales.
@@ -33,6 +34,7 @@ Implementado:
 
 - Listado de pacientes.
 - Busqueda por nombre, apellido o telefono.
+- Cards de pacientes como fichas clinicas escaneables.
 - Formulario de registro.
 - Validaciones de datos principales.
 - Telefono en formato internacional.
@@ -184,7 +186,8 @@ Pendiente:
 ## Pendientes generales
 
 - Mejorar navegacion a medida que crezcan los modulos.
-- Mejorar diseno visual general.
+- Seguir refinando diseno visual general sin romper flujos existentes.
+- Evaluar mas adelante iconos, graficos o una navegacion movil mas avanzada.
 - Ampliar historial clinico.
 - Ampliar odontograma.
 - Integrar WhatsApp.

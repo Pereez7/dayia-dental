@@ -59,6 +59,11 @@ sidebar muestra solo secciones principales. Las creaciones frecuentes viven como
 acciones rapidas (`+ Paciente`, `+ Cita`) para evitar duplicar opciones y mantener
 la interfaz limpia.
 
+El Sidebar se mejora visualmente con bloque de marca, seccion de acciones y
+seccion de modulos, pero sigue usando el mismo estado local y el mismo mapa de
+navegacion. En mobile se mantiene como navegacion horizontal desplazable; no se
+introducen drawer, bottom navigation ni React Router.
+
 ## Estado local compartido
 
 `App.tsx` mantiene el estado local de citas, pacientes, tratamientos, registros
@@ -175,6 +180,18 @@ probarlos con Vitest y mantener la vista enfocada en composicion visual.
 Se unifican clases globales de botones para evitar estilos aislados por modulo.
 Las acciones principales, secundarias, suaves, de exito, advertencia y peligro
 comparten base visual y solo cambian el color semantico necesario.
+
+## Pulido visual controlado
+
+Las mejoras visuales recientes se concentran en composicion, jerarquia y ritmo,
+sin alterar logica funcional. Se priorizan Dashboard, Detalle de paciente,
+Odontograma, Sidebar y fichas de pacientes porque son las superficies mas
+visibles del producto.
+
+La direccion visual es clinica, limpia y operativa. No se agregan iconos,
+graficos, librerias, animaciones complejas ni cambios de arquitectura todavia.
+Los ajustes viven principalmente en `src/App.css` y `src/index.css`, con cambios
+JSX solo para wrappers o clases visuales.
 
 ## Citas con datos mock por ahora
 

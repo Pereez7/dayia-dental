@@ -81,7 +81,8 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
 3. `AppLayout` muestra `Sidebar`, `Header` superior y el contenido de la vista
    activa.
 4. `Sidebar` usa el mapa de `src/layout/navigation.ts` para renderizar
-   secciones principales y acciones rapidas.
+   secciones principales y acciones rapidas, separadas visualmente en marca,
+   acciones y modulos.
 5. `App.tsx` mantiene el estado local de citas, pacientes, tratamientos,
    registros clinicos y odontograma para compartirlo entre Dashboard,
    Pacientes, Citas, Configuracion y Detalle de paciente.
@@ -150,8 +151,8 @@ Participan:
 - `src/views/PatientsView.tsx`: compone listado y formulario de registro.
 - `src/views/PatientDetailView.tsx`: muestra la ficha completa del paciente.
 - `src/components/PatientsList.tsx`: filtra y lista pacientes.
-- `src/components/PatientCard.tsx`: muestra cada paciente y permite abrir el
-  detalle.
+- `src/components/PatientCard.tsx`: muestra cada paciente como ficha clinica
+  escaneable y permite abrir el detalle.
 - `src/components/PatientAppointmentsList.tsx`: lista citas asociadas al
   paciente.
 - `src/components/ClinicalRecordForm.tsx`: registra una evolucion clinica
@@ -278,6 +279,18 @@ dentales, denticion temporal infantil y graficos complejos.
 
 Estas clases mantienen una base visual compartida y permiten aplicar color
 semantico sin crear estilos aislados por vista.
+
+Tambien centraliza el pulido visual actual de:
+
+- Sidebar desktop y navegacion movil horizontal.
+- Panel de KPIs del Dashboard.
+- Cards de pacientes y badges semanticos de estado.
+- Cabecera clinica del detalle de paciente.
+- Grilla, resumen y editor visual del odontograma.
+- Inputs, selects, textareas, mensajes y estados vacios.
+
+Estos ajustes son visuales; la logica sigue viviendo en componentes y
+utilidades separadas.
 
 `Recordatorios`
 

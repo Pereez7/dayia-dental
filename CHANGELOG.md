@@ -39,6 +39,21 @@ Registro breve de cambios relevantes en DayIA Dental.
 - Se usa formato compacto con año para la ultima actualizacion de una pieza.
 - Se agregaron pruebas unitarias para piezas FDI, filtrado por paciente,
   resumen por estado, validacion y actualizacion de entradas de odontograma.
+- Se aplico una mejora visual mediana controlada sin cambiar logica funcional.
+- Se reorganizo visualmente el Dashboard con un panel de KPIs equilibrado y
+  mejor jerarquia entre indicadores, proximas atenciones y resumen lateral.
+- Se reforzo el detalle de paciente con una cabecera clinica mas destacada y
+  secciones secundarias mejor diferenciadas.
+- Se mejoro el odontograma visualmente para sentirse mas como herramienta
+  clinica, con grilla, seleccion y editor mas claros.
+- Se mejoro el Sidebar con bloque de marca, secciones de acciones y modulos, y
+  estado activo mas visible.
+- Se hizo que la navegacion movil horizontal se vea mas intencional, sin drawer
+  ni bottom navigation.
+- Se rediseñaron visualmente las cards de pacientes como fichas clinicas
+  escaneables, con badge semantico por estado.
+- Se consolidaron estilos visuales de botones, inputs, cards, badges, mensajes
+  y superficies manteniendo la identidad actual.
 - Se actualizo la documentacion del proyecto para reflejar el historial clinico
   inicial y el odontograma inicial.
 
@@ -47,7 +62,8 @@ Registro breve de cambios relevantes en DayIA Dental.
 Preparar DayIA Dental para seguimiento odontologico por paciente, manteniendo
 historial clinico y odontograma dentro del detalle del paciente y sin introducir
 backend, persistencia, odontograma grafico avanzado ni pantalla global de
-historial clinico todavia.
+historial clinico todavia. Tambien elevar la calidad visual de las pantallas
+principales sin agregar librerias, iconos, graficos ni cambios funcionales.
 
 ## 2026-06-08
 
