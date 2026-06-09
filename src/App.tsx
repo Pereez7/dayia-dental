@@ -1,11 +1,16 @@
 import { useState } from 'react'
 import './App.css'
 import { appointments as initialAppointments } from './data/appointments'
+import { clinicalRecords as initialClinicalRecords } from './data/clinicalRecords'
 import { patients as initialPatients } from './data/patients'
 import { treatments as initialTreatments } from './data/treatments'
 import { AppLayout } from './layout/AppLayout'
 import type { AppSection } from './layout/navigation'
 import type { Appointment, AppointmentFormValues } from './types/Appointment'
+import type {
+  ClinicalRecord,
+  ClinicalRecordFormValues,
+} from './types/ClinicalRecord'
 import type { Patient, PatientFormValues } from './types/Patient'
 import type { Treatment } from './types/Treatment'
 import { AppointmentsView } from './views/AppointmentsView'
@@ -24,37 +29,38 @@ function App() {
   const [patients, setPatients] = useState<Patient[]>(initialPatients)
   const [treatments, setTreatments] =
     useState<Treatment[]>(initialTreatments)
+  const [clinicalRecords, setClinicalRecords] =
+    useState<ClinicalRecord[]>(initialClinicalRecords)
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null)
 
   function handleCreatePatient(values: PatientFormValues) {
-    const newPatient: Patient = {
-      id: Date.now(),
-      fullName: `${values.firstName.trim()} ${values.lastName.trim()}`,
-      phone: `${values.countryCode}${values.localPhone.trim()}`,
-      email: values.email.trim() || undefined,
-      birthDate: values.birthDate || undefined,
-      lastVisit: 'Sin registro',
-      nextAppointment: null,
-      status: 'active',
-    }
-
-    setPatients((currentPatients) => [newPatient, ...currentPatients])
+    setPatients((currentPatients) => [
+      {
+        id: getNextNumericId(currentPatients),
+        fullName: `${values.firstName.trim()} ${values.lastName.trim()}`,
+        phone: `${values.countryCode}${values.localPhone.trim()}`,
+        email: values.email.trim() || undefined,
+        birthDate: values.birthDate || undefined,
+        lastVisit: 'Sin registro',
+        nextAppointment: null,
+        status: 'active',
+      },
+      ...currentPatients,
+    ])
   }
 
   function handleCreateAppointment(values: AppointmentFormValues) {
-    const newAppointment: Appointment = {
-      id: Date.now(),
-      patientId: values.patientId ?? undefined,
-      date: values.date,
-      time: values.time,
-      patient: values.patient,
-      treatment: values.treatment,
-      status: values.status,
-    }
-
     setAppointments((currentAppointments) => [
       ...currentAppointments,
-      newAppointment,
+      {
+        id: getNextNumericId(currentAppointments),
+        patientId: values.patientId ?? undefined,
+        date: values.date,
+        time: values.time,
+        patient: values.patient,
+        treatment: values.treatment,
+        status: values.status,
+      },
     ])
     setActiveSection('appointments-agenda')
   }
@@ -62,6 +68,24 @@ function App() {
   function handleViewPatient(patientId: number) {
     setSelectedPatientId(patientId)
     setActiveSection('patient-detail')
+  }
+
+  function handleCreateClinicalRecord(
+    patientId: number,
+    values: ClinicalRecordFormValues,
+  ) {
+    setClinicalRecords((currentRecords) => [
+      {
+        id: getNextNumericId(currentRecords),
+        patientId,
+        date: values.date,
+        reason: values.reason,
+        diagnosis: values.diagnosis,
+        treatment: values.treatment,
+        notes: values.notes,
+      },
+      ...currentRecords,
+    ])
   }
 
   function handleBackToPatientsList() {
@@ -110,6 +134,10 @@ function App() {
       return (
         <PatientDetailView
           appointments={appointments}
+          clinicalRecords={clinicalRecords}
+          onCreateClinicalRecord={(values) =>
+            handleCreateClinicalRecord(selectedPatient.id, values)
+          }
           onBackToList={handleBackToPatientsList}
           patient={selectedPatient}
         />
@@ -172,6 +200,10 @@ function App() {
       {renderActiveView()}
     </AppLayout>
   )
+}
+
+function getNextNumericId(items: { id: number }[]) {
+  return Math.max(0, ...items.map((item) => item.id)) + 1
 }
 
 export default App

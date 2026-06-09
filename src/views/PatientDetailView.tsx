@@ -1,6 +1,13 @@
+import { ClinicalRecordForm } from '../components/ClinicalRecordForm'
+import { ClinicalRecordsList } from '../components/ClinicalRecordsList'
 import { PatientAppointmentsList } from '../components/PatientAppointmentsList'
 import type { Appointment } from '../types/Appointment'
+import type {
+  ClinicalRecord,
+  ClinicalRecordFormValues,
+} from '../types/ClinicalRecord'
 import type { Patient } from '../types/Patient'
+import { getClinicalRecordsByPatient } from '../utils/clinicalRecords'
 import {
   calculatePatientAge,
   getUpcomingPatientAppointments,
@@ -8,12 +15,16 @@ import {
 
 interface PatientDetailViewProps {
   appointments: Appointment[]
+  clinicalRecords: ClinicalRecord[]
+  onCreateClinicalRecord: (values: ClinicalRecordFormValues) => void
   onBackToList: () => void
   patient: Patient
 }
 
 export function PatientDetailView({
   appointments,
+  clinicalRecords,
+  onCreateClinicalRecord,
   onBackToList,
   patient,
 }: PatientDetailViewProps) {
@@ -24,6 +35,10 @@ export function PatientDetailView({
   const ageLabel = patient.birthDate
     ? `${calculatePatientAge(patient.birthDate)} años`
     : 'Sin registro'
+  const patientClinicalRecords = getClinicalRecordsByPatient(
+    clinicalRecords,
+    patient.id,
+  )
   const patientData = [
     { label: 'Telefono', value: patient.phone },
     { label: 'Email', value: patient.email ?? 'Sin registro' },
@@ -81,6 +96,19 @@ export function PatientDetailView({
           </div>
 
           <PatientAppointmentsList appointments={upcomingAppointments} />
+        </article>
+
+        <article className="patient-detail-panel patient-clinical-panel">
+          <div className="section-heading">
+            <p className="eyebrow">Seguimiento odontologico</p>
+            <h2>Historial clinico</h2>
+            <p className="section-description">
+              Registra evoluciones basicas asociadas a este paciente.
+            </p>
+          </div>
+
+          <ClinicalRecordForm onCreateRecord={onCreateClinicalRecord} />
+          <ClinicalRecordsList records={patientClinicalRecords} />
         </article>
       </section>
     </section>

@@ -1502,6 +1502,120 @@
   overflow-wrap: break-word;
 }
 
+.patient-clinical-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.clinical-record-form {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+  padding: 12px;
+}
+
+.clinical-form-grid {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.clinical-form-grid label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.clinical-form-grid input,
+.clinical-form-grid textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  padding: 10px 12px;
+}
+
+.clinical-form-grid textarea {
+  resize: vertical;
+}
+
+.clinical-form-grid input:focus,
+.clinical-form-grid textarea:focus {
+  border-color: var(--color-primary);
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.clinical-record-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.clinical-record-feedback-slot {
+  min-height: 40px;
+}
+
+.clinical-record-list {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.clinical-record-summary {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: 800;
+}
+
+.clinical-record-card {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+
+.clinical-record-card time {
+  color: var(--color-primary-dark);
+  font-size: var(--text-sm);
+  font-weight: 900;
+}
+
+.clinical-record-card dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.clinical-record-card div {
+  min-width: 0;
+}
+
+.clinical-record-card dt {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 800;
+}
+
+.clinical-record-card dd {
+  margin: 3px 0 0;
+  color: var(--color-heading);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  overflow-wrap: break-word;
+}
+
 @media (min-width: 840px) {
   .patient-detail-grid {
     grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
@@ -1520,6 +1634,22 @@
 
   .patient-appointment-row .dashboard-status {
     grid-column: auto;
+  }
+
+  .patient-clinical-panel {
+    grid-column: 1 / -1;
+  }
+
+  .clinical-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .clinical-form-full {
+    grid-column: 1 / -1;
+  }
+
+  .clinical-record-card {
+    grid-template-columns: 120px minmax(0, 1fr);
   }
 }
 
