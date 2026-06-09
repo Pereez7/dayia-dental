@@ -1,13 +1,19 @@
 import { ClinicalRecordForm } from '../components/ClinicalRecordForm'
 import { ClinicalRecordsList } from '../components/ClinicalRecordsList'
 import { PatientAppointmentsList } from '../components/PatientAppointmentsList'
+import { PatientOdontogram } from '../components/PatientOdontogram'
 import type { Appointment } from '../types/Appointment'
 import type {
   ClinicalRecord,
   ClinicalRecordFormValues,
 } from '../types/ClinicalRecord'
+import type {
+  OdontogramEntry,
+  OdontogramFormValues,
+} from '../types/Odontogram'
 import type { Patient } from '../types/Patient'
 import { getClinicalRecordsByPatient } from '../utils/clinicalRecords'
+import { getOdontogramEntriesByPatient } from '../utils/odontogram'
 import {
   calculatePatientAge,
   getUpcomingPatientAppointments,
@@ -16,7 +22,12 @@ import {
 interface PatientDetailViewProps {
   appointments: Appointment[]
   clinicalRecords: ClinicalRecord[]
+  odontogramEntries: OdontogramEntry[]
   onCreateClinicalRecord: (values: ClinicalRecordFormValues) => void
+  onSaveOdontogramTooth: (
+    toothNumber: number,
+    values: OdontogramFormValues,
+  ) => void
   onBackToList: () => void
   patient: Patient
 }
@@ -24,7 +35,9 @@ interface PatientDetailViewProps {
 export function PatientDetailView({
   appointments,
   clinicalRecords,
+  odontogramEntries,
   onCreateClinicalRecord,
+  onSaveOdontogramTooth,
   onBackToList,
   patient,
 }: PatientDetailViewProps) {
@@ -37,6 +50,10 @@ export function PatientDetailView({
     : 'Sin registro'
   const patientClinicalRecords = getClinicalRecordsByPatient(
     clinicalRecords,
+    patient.id,
+  )
+  const patientOdontogramEntries = getOdontogramEntriesByPatient(
+    odontogramEntries,
     patient.id,
   )
   const patientData = [
@@ -85,7 +102,7 @@ export function PatientDetailView({
           </dl>
 
           <div className="patient-future-sections">
-            <p>Preparado para agregar historial clinico, odontograma, recordatorios y evoluciones.</p>
+            <p>Preparado para agregar recordatorios, antecedentes y evoluciones avanzadas.</p>
           </div>
         </article>
 
@@ -109,6 +126,21 @@ export function PatientDetailView({
 
           <ClinicalRecordForm onCreateRecord={onCreateClinicalRecord} />
           <ClinicalRecordsList records={patientClinicalRecords} />
+        </article>
+
+        <article className="patient-detail-panel patient-odontogram-panel">
+          <div className="section-heading">
+            <p className="eyebrow">Registro dental</p>
+            <h2>Odontograma</h2>
+            <p className="section-description">
+              Registra estados basicos por pieza dental permanente.
+            </p>
+          </div>
+
+          <PatientOdontogram
+            entries={patientOdontogramEntries}
+            onSaveTooth={onSaveOdontogramTooth}
+          />
         </article>
       </section>
     </section>

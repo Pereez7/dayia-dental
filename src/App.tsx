@@ -2,6 +2,7 @@ import { useState } from 'react'
 import './App.css'
 import { appointments as initialAppointments } from './data/appointments'
 import { clinicalRecords as initialClinicalRecords } from './data/clinicalRecords'
+import { odontogramEntries as initialOdontogramEntries } from './data/odontogram'
 import { patients as initialPatients } from './data/patients'
 import { treatments as initialTreatments } from './data/treatments'
 import { AppLayout } from './layout/AppLayout'
@@ -11,8 +12,13 @@ import type {
   ClinicalRecord,
   ClinicalRecordFormValues,
 } from './types/ClinicalRecord'
+import type {
+  OdontogramEntry,
+  OdontogramFormValues,
+} from './types/Odontogram'
 import type { Patient, PatientFormValues } from './types/Patient'
 import type { Treatment } from './types/Treatment'
+import { upsertOdontogramEntry } from './utils/odontogram'
 import { AppointmentsView } from './views/AppointmentsView'
 import { ClinicalHistoryView } from './views/ClinicalHistoryView'
 import { DashboardView } from './views/DashboardView'
@@ -31,6 +37,8 @@ function App() {
     useState<Treatment[]>(initialTreatments)
   const [clinicalRecords, setClinicalRecords] =
     useState<ClinicalRecord[]>(initialClinicalRecords)
+  const [odontogramEntries, setOdontogramEntries] =
+    useState<OdontogramEntry[]>(initialOdontogramEntries)
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null)
 
   function handleCreatePatient(values: PatientFormValues) {
@@ -88,6 +96,29 @@ function App() {
     ])
   }
 
+  function handleSaveOdontogramTooth(
+    patientId: number,
+    toothNumber: number,
+    values: OdontogramFormValues,
+  ) {
+    const toothStatus = values.status
+
+    if (!toothStatus) {
+      return
+    }
+
+    setOdontogramEntries((currentEntries) =>
+      upsertOdontogramEntry(currentEntries, {
+        id: getNextNumericId(currentEntries),
+        patientId,
+        toothNumber,
+        status: toothStatus,
+        notes: values.notes,
+        updatedAt: getTodayDateInputValue(),
+      }),
+    )
+  }
+
   function handleBackToPatientsList() {
     setActiveSection('patients-list')
   }
@@ -135,8 +166,12 @@ function App() {
         <PatientDetailView
           appointments={appointments}
           clinicalRecords={clinicalRecords}
+          odontogramEntries={odontogramEntries}
           onCreateClinicalRecord={(values) =>
             handleCreateClinicalRecord(selectedPatient.id, values)
+          }
+          onSaveOdontogramTooth={(toothNumber, values) =>
+            handleSaveOdontogramTooth(selectedPatient.id, toothNumber, values)
           }
           onBackToList={handleBackToPatientsList}
           patient={selectedPatient}
@@ -204,6 +239,15 @@ function App() {
 
 function getNextNumericId(items: { id: number }[]) {
   return Math.max(0, ...items.map((item) => item.id)) + 1
+}
+
+function getTodayDateInputValue() {
+  const today = new Date()
+  const year = today.getFullYear()
+  const month = String(today.getMonth() + 1).padStart(2, '0')
+  const day = String(today.getDate()).padStart(2, '0')
+
+  return `${year}-${month}-${day}`
 }
 
 export default App
