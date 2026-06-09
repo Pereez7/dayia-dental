@@ -61,9 +61,10 @@ la interfaz limpia.
 
 ## Estado local compartido
 
-`App.tsx` mantiene el estado local de citas, pacientes y tratamientos mientras
-no existe backend. Esto permite que Dashboard, Pacientes, Agenda, Nueva Cita y
-Configuracion usen la misma fuente de datos sin duplicar estado.
+`App.tsx` mantiene el estado local de citas, pacientes, tratamientos y registros
+clinicos mientras no existe backend. Esto permite que Dashboard, Pacientes,
+Agenda, Nueva Cita, Configuracion y Detalle de paciente usen la misma fuente de
+datos sin duplicar estado.
 
 Los pacientes creados localmente se agregan al estado compartido y pueden ser
 usados por el Dashboard y por el formulario de nueva cita durante la sesion
@@ -71,6 +72,10 @@ actual.
 
 Los tratamientos tambien se mantienen en ese estado compartido para que los
 cambios hechos en Configuracion se reflejen inmediatamente en Nueva Cita.
+
+Los registros clinicos tambien viven en ese estado compartido y se asocian a
+pacientes mediante `patientId`. Esto evita duplicar historial dentro del
+paciente y prepara una futura persistencia relacional.
 
 ## Detalle de paciente como vista completa
 
@@ -82,6 +87,35 @@ recordatorios y evoluciones.
 La navegacion hacia esta vista sigue usando estado local en `App.tsx`, sin React
 Router. Esto mantiene la arquitectura actual mientras todavia no se necesitan
 URLs reales ni rutas con parametros.
+
+## Historial clinico dentro del paciente
+
+El historial clinico inicial se implementa dentro del detalle del paciente, no
+como pantalla global. En esta etapa cada registro necesita el contexto del
+paciente seleccionado y no se requieren busquedas globales, filtros por doctor
+ni rutas con parametros.
+
+El item lateral `Historial clinico` se mantiene como placeholder hasta que exista
+una experiencia clara para consultar historiales entre pacientes.
+
+## Normalizacion de textos clinicos
+
+Los textos escritos por el doctor en historial clinico se normalizan antes de
+guardarse: se recortan espacios, se colapsan espacios internos y se capitalizan
+como oracion. Esto evita registros inconsistentes como `CARIES`,
+`dolor   dental` o textos con espacios sobrantes.
+
+La logica vive en `src/utils/textNormalizers.ts` para poder reutilizarla en
+futuros formularios y probarla sin depender de React.
+
+## Fechas clinicas con año
+
+Las fechas del historial clinico se muestran con año, por ejemplo
+`09-jun-2026`, porque los registros clinicos pueden consultarse mucho tiempo
+despues. La agenda puede usar formatos mas cortos, pero el historial necesita
+mayor claridad temporal.
+
+El formateo compacto vive en `src/utils/dateFormatters.ts`.
 
 ## Asociacion de citas en detalle de paciente
 

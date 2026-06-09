@@ -39,16 +39,19 @@ Implementado:
 - Detalle de paciente como vista completa.
 - Ficha con datos generales, edad, ultima visita y proxima cita.
 - Citas asociadas al paciente.
+- Historial clinico inicial dentro del detalle del paciente.
 - Navegacion local entre listado y detalle sin React Router.
-- Pruebas unitarias para filtros, validaciones y utilidades de detalle.
+- Pruebas unitarias para filtros, validaciones, utilidades de detalle e
+  historial clinico.
 
 Pendiente:
 
 - Edicion de paciente.
 - Eliminacion o desactivacion de paciente.
-- Historial clinico dentro de la ficha.
 - Odontograma dentro de la ficha.
-- Recordatorios y evoluciones clinicas.
+- Edicion y eliminacion de registros clinicos.
+- Antecedentes, recetas, archivos adjuntos y evoluciones clinicas avanzadas.
+- Recordatorios asociados al paciente.
 
 ### Citas
 
@@ -81,10 +84,34 @@ Pendiente:
 
 ### Historial clinico
 
-Estado: placeholder.
+Estado: iniciado dentro del detalle de paciente.
 
-Pendiente definir estructura clinica, evoluciones, notas, antecedentes y
-relacion con pacientes.
+Implementado:
+
+- Tipo compartido `ClinicalRecord`.
+- Datos mock asociados a pacientes existentes.
+- Estado local compartido en `App.tsx`.
+- Visualizacion dentro del detalle de paciente.
+- Filtrado por `patientId`.
+- Ordenamiento del mas reciente al mas antiguo.
+- Formulario para agregar evolucion clinica basica.
+- Validacion de campos obligatorios y fecha no futura.
+- Normalizacion de textos clinicos antes de guardar.
+- Fechas del historial con año.
+- Resumen temporal de cantidad y rango de registros.
+- Pruebas unitarias para filtrado, ordenamiento, validacion, normalizacion y
+  resumen temporal.
+
+Pendiente:
+
+- Pantalla global de historial clinico.
+- Edicion de registros clinicos.
+- Eliminacion de registros clinicos.
+- Antecedentes clinicos estructurados.
+- Recetas.
+- Impresion PDF.
+- Archivos adjuntos.
+- Firma digital.
 
 ### Odontograma
 
@@ -130,7 +157,7 @@ Pendiente:
 
 - Mejorar navegacion a medida que crezcan los modulos.
 - Mejorar diseno visual general.
-- Implementar historial clinico.
+- Ampliar historial clinico.
 - Implementar odontograma.
 - Integrar WhatsApp.
 - Integrar Supabase.

@@ -13,6 +13,7 @@ especialmente pensando en una futura integracion con WhatsApp.
 - Dashboard operativo con KPIs, proximas atenciones, pacientes recientes y
   resumen operativo.
 - Configuracion de tratamientos del consultorio conectada con Nueva Cita.
+- Primera version de historial clinico dentro del detalle de paciente.
 - Componentes separados en `src/components`.
 - Vistas completas en `src/views`.
 - Datos mock separados en `src/data`.
@@ -51,6 +52,13 @@ Actualmente existe:
   visita y proxima cita.
 - Citas asociadas al paciente usando `patientId` cuando existe y nombre exacto
   como fallback para citas mock antiguas.
+- Historial clinico asociado al paciente mediante `patientId`.
+- Registro local de evoluciones clinicas con fecha, motivo, diagnostico,
+  tratamiento y observaciones.
+- Textos clinicos normalizados antes de guardarse: espacios compactados y
+  capitalizacion como oracion.
+- Fechas del historial clinico mostradas con año y resumen temporal del rango
+  de registros.
 
 Este modulo esta preparado para una futura integracion con WhatsApp, pero aun no
 envia mensajes ni consume APIs externas.
@@ -58,6 +66,26 @@ envia mensajes ni consume APIs externas.
 El detalle de paciente se mantiene como vista completa, no como popup ni drawer,
 porque mas adelante debe alojar secciones clinicas con mas contexto, como
 historial clinico, odontograma, recordatorios y evoluciones.
+
+## Historial clinico
+
+Actualmente existe una primera version dentro del detalle de paciente:
+
+- Usa datos mock desde `src/data/clinicalRecords.ts`.
+- Mantiene los registros clinicos en estado local dentro de `src/App.tsx`.
+- Cada registro se asocia a un paciente mediante `patientId`.
+- Muestra registros del paciente ordenados del mas reciente al mas antiguo.
+- Cada registro muestra fecha con año, motivo de consulta, diagnostico,
+  tratamiento y observaciones.
+- Muestra un resumen temporal cuando existen registros, por ejemplo
+  `3 registros · Desde 10-mar-2025 hasta 09-jun-2026`.
+- Permite agregar una evolucion clinica basica desde el detalle del paciente.
+- Valida campos obligatorios y no permite fechas futuras.
+- Normaliza los textos clinicos escritos por el doctor antes de guardarlos.
+
+El menu lateral `Historial clinico` sigue como placeholder. Por ahora el
+historial permanece dentro del detalle de cada paciente porque necesita contexto
+clinico del paciente seleccionado.
 
 ## Modulo citas
 

@@ -2,6 +2,38 @@
 
 Registro breve de cambios relevantes en DayIA Dental.
 
+## 2026-06-09
+
+### Cambios realizados
+
+- Se agrego el tipo `ClinicalRecord` para representar registros clinicos por
+  paciente.
+- Se agregaron datos mock de historial clinico en `src/data/clinicalRecords.ts`.
+- Se agrego estado local de registros clinicos en `src/App.tsx`.
+- Se integro el historial clinico dentro del detalle de paciente.
+- Se agrego formulario para registrar evoluciones clinicas basicas.
+- Se agrego listado de registros clinicos asociados por `patientId`.
+- Se ordenan los registros clinicos del mas reciente al mas antiguo.
+- Se agrego validacion de campos obligatorios y fecha no futura.
+- Se agrego mensaje de exito al guardar un registro clinico.
+- Se agrego normalizacion reutilizable de textos en `src/utils/textNormalizers.ts`.
+- Se normalizan motivo, diagnostico, tratamiento y observaciones antes de
+  guardar.
+- Se agrego formateo de fechas clinicas con año en
+  `src/utils/dateFormatters.ts`.
+- Se agrego resumen temporal del historial clinico, con cantidad de registros y
+  rango de fechas.
+- Se agregaron pruebas unitarias para historial clinico, normalizacion de texto
+  y formateo de fechas.
+- Se actualizo la documentacion del proyecto para reflejar el historial clinico
+  inicial.
+
+### Motivo del cambio
+
+Preparar DayIA Dental para seguimiento odontologico por paciente, manteniendo el
+historial dentro del detalle del paciente y sin introducir backend,
+persistencia, odontograma ni pantalla global de historial clinico todavia.
+
 ## 2026-06-08
 
 ### Cambios realizados

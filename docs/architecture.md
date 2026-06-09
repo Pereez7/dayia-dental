@@ -36,7 +36,7 @@ renderizar UI y recibir datos por props cuando sea posible.
 `src/data`
 
 Contiene datos de ejemplo usados por la interfaz mientras no existe backend.
-Actualmente guarda citas, pacientes y tratamientos mock.
+Actualmente guarda citas, pacientes, tratamientos y registros clinicos mock.
 
 `src/layout`
 
@@ -81,15 +81,16 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
    activa.
 4. `Sidebar` usa el mapa de `src/layout/navigation.ts` para renderizar
    secciones principales y acciones rapidas.
-5. `App.tsx` mantiene el estado local de citas, pacientes y tratamientos para
-   compartirlo entre Dashboard, Pacientes, Citas y Configuracion.
+5. `App.tsx` mantiene el estado local de citas, pacientes, tratamientos y
+   registros clinicos para compartirlo entre Dashboard, Pacientes, Citas,
+   Configuracion y Detalle de paciente.
 6. `PatientsView` recibe pacientes, el callback de alta y el callback para ver
    detalle desde `App.tsx`, y compone `PatientForm` con `PatientsList`.
 7. `PatientCard` puede solicitar ver el detalle de un paciente.
 8. `App.tsx` guarda `selectedPatientId`, cambia a la seccion interna
    `patient-detail` y renderiza `PatientDetailView`.
-9. `PatientDetailView` compone la ficha del paciente con sus citas asociadas y
-   permite volver al listado.
+9. `PatientDetailView` compone la ficha del paciente con sus citas asociadas,
+   historial clinico y permite volver al listado.
 10. `AppointmentsView` alterna entre la agenda y el formulario de nueva cita.
 11. `DashboardView` recibe citas y pacientes desde `App.tsx`, calcula metricas
    con `src/utils/dashboardMetrics.ts` y compone las secciones del Dashboard.
@@ -111,6 +112,10 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
 19. `PatientsList` recibe pacientes, maneja el texto de busqueda local y usa
    `filterPatients` para decidir que registros mostrar.
 20. `PatientCard` muestra cada paciente filtrado.
+21. `ClinicalRecordForm` registra una evolucion clinica basica y normaliza los
+   textos antes de avisar a `App.tsx`.
+22. `ClinicalRecordsList` muestra los registros clinicos filtrados del paciente,
+   con fechas compactas con año y resumen temporal.
 
 ## Modulos actuales
 
@@ -134,7 +139,8 @@ Participan:
 `Pacientes`
 
 Incluye listado, busqueda, formulario de registro, validaciones, telefono en
-formato internacional compacto y detalle de paciente como vista completa.
+formato internacional compacto, detalle de paciente como vista completa e
+historial clinico inicial asociado al paciente.
 
 Participan:
 
@@ -145,12 +151,23 @@ Participan:
   detalle.
 - `src/components/PatientAppointmentsList.tsx`: lista citas asociadas al
   paciente.
+- `src/components/ClinicalRecordForm.tsx`: registra una evolucion clinica
+  basica.
+- `src/components/ClinicalRecordsList.tsx`: muestra registros clinicos del
+  paciente.
 - `src/utils/patientFilters.ts`: filtra pacientes por busqueda.
 - `src/utils/patientDetails.ts`: calcula edad y obtiene citas relacionadas.
+- `src/utils/clinicalRecords.ts`: filtra, ordena, valida, normaliza y resume
+  registros clinicos.
+- `src/utils/textNormalizers.ts`: normaliza textos escritos en formularios.
+- `src/utils/dateFormatters.ts`: formatea fechas compactas con año.
 
 El detalle asocia citas por `patientId` cuando existe. Para mantener
 compatibilidad con citas mock antiguas, tambien acepta coincidencia por nombre
 exacto del paciente.
+
+El historial clinico se asocia siempre por `patientId`. Por ahora vive dentro
+del detalle del paciente y no en la vista global del menu lateral.
 
 `Citas`
 
@@ -198,6 +215,26 @@ Incluye gestion local de tratamientos del consultorio. Participan:
 Los tratamientos se mantienen en estado local dentro de `App.tsx`; Nueva Cita
 recibe esa misma lista y muestra solo tratamientos activos.
 
+`Historial clinico`
+
+Existe como primera version dentro de `PatientDetailView`. Participan:
+
+- `src/types/ClinicalRecord.ts`: define `ClinicalRecord` y los valores del
+  formulario.
+- `src/data/clinicalRecords.ts`: contiene registros clinicos mock.
+- `src/components/ClinicalRecordForm.tsx`: captura fecha, motivo, diagnostico,
+  tratamiento y observaciones.
+- `src/components/ClinicalRecordsList.tsx`: renderiza los registros del
+  paciente y el resumen temporal.
+- `src/utils/clinicalRecords.ts`: filtra por paciente, ordena por fecha
+  descendente, valida fecha no futura y campos obligatorios, normaliza valores
+  y calcula el resumen temporal.
+- `src/utils/textNormalizers.ts`: compacta espacios y capitaliza como oracion.
+- `src/utils/dateFormatters.ts`: muestra fechas como `09-jun-2026`.
+
+El modulo lateral `Historial clinico` sigue siendo placeholder hasta definir una
+experiencia global de busqueda, filtros y seleccion de paciente.
+
 ## Estilos reutilizables
 
 `src/App.css` contiene clases globales simples para botones:
@@ -212,7 +249,7 @@ recibe esa misma lista y muestra solo tratamientos activos.
 Estas clases mantienen una base visual compartida y permiten aplicar color
 semantico sin crear estilos aislados por vista.
 
-`Historial clinico`, `Odontograma` y `Recordatorios`
+`Odontograma` y `Recordatorios`
 
 Existen como vistas iniciales o placeholders para sostener la navegacion y el
 mapa futuro de la aplicacion.
