@@ -570,6 +570,16 @@
   border-color: #c9dce8;
 }
 
+.dashboard-kpi--red {
+  background: #fff1f2;
+  border-color: #fecdd3;
+}
+
+.dashboard-kpi--red strong,
+.dashboard-kpi--red span {
+  color: var(--color-danger);
+}
+
 .dashboard-content-grid {
   display: grid;
   gap: 16px;
@@ -2133,6 +2143,289 @@
   font-weight: 800;
 }
 
+.reminders-view {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.reminder-kpi-panel,
+.reminders-panel,
+.reminder-message-panel {
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 1)),
+    var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  padding: var(--space-panel);
+}
+
+.reminder-kpi-panel {
+  border-color: #cbe8f2;
+  background:
+    linear-gradient(135deg, rgba(234, 247, 251, 0.96), rgba(255, 255, 255, 0.98)),
+    var(--color-surface);
+}
+
+.reminder-simulation-note {
+  max-width: 680px;
+  margin: 10px 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.reminder-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.reminder-kpi-card {
+  min-height: 104px;
+}
+
+.reminders-layout {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.reminder-list,
+.reminder-appointment-list,
+.reminder-row-list {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.reminder-date-group {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.reminder-date-group h3 {
+  margin: 0;
+  color: var(--color-heading);
+  font-size: var(--text-md);
+  font-weight: 900;
+}
+
+.reminder-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.reminder-filter {
+  min-height: 34px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: 800;
+  padding: 7px 10px;
+}
+
+.reminder-filter:hover {
+  border-color: #b9ddec;
+  color: var(--color-primary-dark);
+}
+
+.reminder-filter[aria-pressed='true'] {
+  border-color: #cbe8f2;
+  background: var(--color-soft-blue);
+  color: var(--color-primary-dark);
+}
+
+.reminder-filter:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.reminder-card {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.78);
+  padding: 12px;
+}
+
+.reminder-card--selected {
+  border-color: #b9ddec;
+  box-shadow: var(--shadow-focus);
+}
+
+.reminder-card-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.reminder-card-main div {
+  min-width: 0;
+}
+
+.reminder-card h4 {
+  margin: 0 0 4px;
+  color: var(--color-heading);
+  font-size: var(--text-md);
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.reminder-card p {
+  margin: 0;
+}
+
+.reminder-card-main p,
+.reminder-note {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.reminder-phone--missing {
+  color: var(--color-warning);
+  font-weight: 700;
+}
+
+.reminder-appointment-time {
+  display: grid;
+  gap: 3px;
+  justify-items: end;
+  min-width: 0;
+  text-align: right;
+}
+
+.reminder-appointment-time strong {
+  color: var(--color-heading);
+  font-size: var(--text-lg);
+  line-height: 1;
+}
+
+.reminder-appointment-time span {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.reminder-row {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  border: 1px solid rgba(217, 232, 239, 0.78);
+  border-radius: var(--radius-md);
+  background: rgba(246, 251, 253, 0.62);
+  padding: 10px;
+}
+
+.reminder-row--selected {
+  border-color: #b9ddec;
+  background: var(--color-soft-blue);
+}
+
+.reminder-row-meta {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.reminder-row-meta div {
+  min-width: 0;
+}
+
+.reminder-row-meta span {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.reminder-row-meta strong {
+  color: var(--color-heading);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  overflow-wrap: break-word;
+}
+
+.reminder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.reminder-actions button {
+  min-height: 38px;
+  padding: 9px 12px;
+}
+
+.reminder-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: var(--text-xs);
+  font-weight: 900;
+  line-height: 1;
+  padding: 6px 9px;
+  white-space: nowrap;
+}
+
+.reminder-status--pending {
+  background: #fff7df;
+  border-color: #f0d487;
+  color: var(--color-warning);
+}
+
+.reminder-status--scheduled {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: var(--color-indigo);
+}
+
+.reminder-status--sent {
+  background: var(--color-soft-green);
+  border-color: #b7e4ce;
+  color: var(--color-success);
+}
+
+.reminder-status--failed {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: var(--color-danger);
+}
+
+.reminder-message-preview {
+  margin: 0;
+  border: 1px solid #cbe8f2;
+  border-radius: var(--radius-lg);
+  background: #eef8fc;
+  color: var(--color-heading);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1.55;
+  padding: 14px;
+}
+
+.reminder-note {
+  margin: 12px 0 0;
+  font-weight: 700;
+}
+
 @media (min-width: 840px) {
   .patient-detail-grid {
     grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.75fr);
@@ -2180,6 +2473,29 @@
   .odontogram-layout {
     grid-template-columns: minmax(0, 1.42fr) minmax(300px, 0.58fr);
     align-items: start;
+  }
+
+  .reminder-kpi-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .reminders-layout {
+    grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.65fr);
+    align-items: start;
+  }
+
+  .reminder-message-panel {
+    position: sticky;
+    top: 24px;
+  }
+
+  .reminder-row {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+  }
+
+  .reminder-row-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -2388,6 +2704,32 @@
   }
 
   .patient-card-footer .secondary-action {
+    width: 100%;
+  }
+
+  .reminder-kpi-grid,
+  .reminder-row-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .reminder-card-main {
+    display: grid;
+  }
+
+  .reminder-appointment-time {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .reminder-status {
+    justify-self: start;
+  }
+
+  .reminder-actions {
+    display: grid;
+  }
+
+  .reminder-actions button {
     width: 100%;
   }
 }

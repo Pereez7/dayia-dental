@@ -212,7 +212,12 @@ function App() {
     }
 
     if (activeSection === 'whatsapp-reminders') {
-      return <WhatsAppRemindersView />
+      return (
+        <WhatsAppRemindersView
+          appointments={appointments}
+          patients={patients}
+        />
+      )
     }
 
     if (activeSection === 'settings') {

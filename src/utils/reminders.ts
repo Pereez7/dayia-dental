@@ -1,0 +1,287 @@
+import type { Appointment } from '../types/Appointment'
+import type { Patient } from '../types/Patient'
+import type {
+  Reminder,
+  ReminderAppointmentGroup,
+  ReminderDateGroup,
+  ReminderStatus,
+  ReminderStatusFilter,
+  ReminderSummary,
+  ReminderType,
+} from '../types/Reminder'
+
+const reminderHoursBeforeAppointment: Record<ReminderType, number> = {
+  '24h': 24,
+  '2h': 2,
+}
+
+const initialReminderSummary: ReminderSummary = {
+  failed: 0,
+  pending: 0,
+  scheduled: 0,
+  sent: 0,
+}
+
+export function generateAppointmentReminders(
+  appointments: Appointment[],
+  patients: Patient[],
+  referenceDate = new Date(),
+) {
+  return appointments
+    .filter((appointment) => isFutureAppointment(appointment, referenceDate))
+    .flatMap((appointment) => {
+      const patient = findAppointmentPatient(appointment, patients)
+
+      return createReminderTypes().map((reminderType) =>
+        createReminder(appointment, patient, reminderType),
+      )
+    })
+}
+
+export function summarizeRemindersByStatus(reminders: Reminder[]) {
+  return reminders.reduce<ReminderSummary>(
+    (summary, reminder) => ({
+      ...summary,
+      [reminder.status]: summary[reminder.status] + 1,
+    }),
+    { ...initialReminderSummary },
+  )
+}
+
+export function filterRemindersByStatus(
+  reminders: Reminder[],
+  statusFilter: ReminderStatusFilter,
+) {
+  if (statusFilter === 'all') {
+    return reminders
+  }
+
+  return reminders.filter((reminder) => reminder.status === statusFilter)
+}
+
+export function groupRemindersByAppointmentDate(
+  reminders: Reminder[],
+  referenceDate = new Date(),
+): ReminderDateGroup[] {
+  const appointmentGroups = groupRemindersByAppointment(reminders)
+  const dateGroups = new Map<string, ReminderAppointmentGroup[]>()
+
+  for (const appointmentGroup of appointmentGroups) {
+    const groups = dateGroups.get(appointmentGroup.appointmentDate) ?? []
+    groups.push(appointmentGroup)
+    dateGroups.set(appointmentGroup.appointmentDate, groups)
+  }
+
+  return Array.from(dateGroups, ([appointmentDate, groups]) => ({
+    appointmentDate,
+    appointmentGroups: groups,
+    label: getReminderDateGroupLabel(appointmentDate, referenceDate),
+  })).sort((firstGroup, secondGroup) =>
+    firstGroup.appointmentDate.localeCompare(secondGroup.appointmentDate),
+  )
+}
+
+export function groupRemindersByAppointment(reminders: Reminder[]) {
+  const appointmentGroups = new Map<number, ReminderAppointmentGroup>()
+
+  for (const reminder of sortRemindersByAppointment(reminders)) {
+    const currentGroup = appointmentGroups.get(reminder.appointmentId)
+
+    if (currentGroup) {
+      currentGroup.reminders.push(reminder)
+      continue
+    }
+
+    appointmentGroups.set(reminder.appointmentId, {
+      appointmentDate: reminder.appointmentDate,
+      appointmentId: reminder.appointmentId,
+      appointmentTime: reminder.appointmentTime,
+      patientId: reminder.patientId,
+      patientName: reminder.patientName,
+      phone: reminder.phone,
+      reminders: [reminder],
+      treatment: reminder.treatment,
+    })
+  }
+
+  return Array.from(appointmentGroups.values())
+}
+
+export function updateReminderStatus(
+  reminders: Reminder[],
+  reminderId: string,
+  status: ReminderStatus,
+) {
+  return reminders.map((reminder) =>
+    reminder.id === reminderId ? { ...reminder, status } : reminder,
+  )
+}
+
+export function getReminderTypeLabel(reminderType: ReminderType) {
+  return reminderType === '24h' ? '24 horas antes' : '2 horas antes'
+}
+
+export function getReminderStatusLabel(status: ReminderStatus) {
+  const labels: Record<ReminderStatus, string> = {
+    failed: 'Fallido',
+    pending: 'Pendiente',
+    scheduled: 'Programado',
+    sent: 'Enviado',
+  }
+
+  return labels[status]
+}
+
+export function getReminderStatusClassName(status: ReminderStatus) {
+  return `reminder-status--${status}`
+}
+
+export function getScheduledFor(
+  appointmentDate: string,
+  appointmentTime: string,
+  reminderType: ReminderType,
+) {
+  const scheduledDate = getAppointmentDateTime(appointmentDate, appointmentTime)
+  scheduledDate.setHours(
+    scheduledDate.getHours() - reminderHoursBeforeAppointment[reminderType],
+  )
+
+  return formatDateTimeValue(scheduledDate)
+}
+
+export function createWhatsAppReminderMessage(
+  patientName: string,
+  treatment: string,
+  appointmentDate: string,
+  appointmentTime: string,
+) {
+  const firstName = patientName.trim().split(/\s+/)[0] || patientName
+  const formattedDate = new Intl.DateTimeFormat('es-BO', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+    .format(new Date(`${appointmentDate}T00:00:00`))
+    .replace(/\s/g, '-')
+
+  return `Hola ${firstName}, te recordamos tu cita odontologica para ${treatment} el ${formattedDate} a las ${appointmentTime}. Por favor confirma tu asistencia.`
+}
+
+export function getReminderDateGroupLabel(
+  appointmentDate: string,
+  referenceDate = new Date(),
+) {
+  const targetDate = new Date(`${appointmentDate}T00:00:00`)
+  const today = new Date(
+    referenceDate.getFullYear(),
+    referenceDate.getMonth(),
+    referenceDate.getDate(),
+  )
+  const tomorrow = new Date(today)
+  tomorrow.setDate(today.getDate() + 1)
+  const formattedDate = new Intl.DateTimeFormat('es-BO', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+    .format(targetDate)
+    .replace(/\s/g, '-')
+
+  if (targetDate.getTime() === today.getTime()) {
+    return `Hoy, ${formattedDate}`
+  }
+
+  if (targetDate.getTime() === tomorrow.getTime()) {
+    return `Mañana, ${formattedDate}`
+  }
+
+  return formattedDate
+}
+
+function createReminder(
+  appointment: Appointment,
+  patient: Patient | undefined,
+  reminderType: ReminderType,
+): Reminder {
+  const patientName = appointment.patient.trim() || 'Paciente sin nombre'
+
+  return {
+    appointmentDate: appointment.date,
+    appointmentId: appointment.id,
+    appointmentTime: appointment.time,
+    id: `${appointment.id}-${reminderType}`,
+    message: createWhatsAppReminderMessage(
+      patientName,
+      appointment.treatment,
+      appointment.date,
+      appointment.time,
+    ),
+    patientId: patient?.id ?? appointment.patientId ?? null,
+    patientName,
+    phone: patient?.phone ?? 'Sin telefono registrado',
+    reminderType,
+    scheduledFor: getScheduledFor(
+      appointment.date,
+      appointment.time,
+      reminderType,
+    ),
+    status: reminderType === '24h' ? 'scheduled' : 'pending',
+    treatment: appointment.treatment,
+  }
+}
+
+function createReminderTypes(): ReminderType[] {
+  return ['24h', '2h']
+}
+
+function sortRemindersByAppointment(reminders: Reminder[]) {
+  return [...reminders].sort((firstReminder, secondReminder) => {
+    const firstDateTime = `${firstReminder.appointmentDate}T${firstReminder.appointmentTime}`
+    const secondDateTime = `${secondReminder.appointmentDate}T${secondReminder.appointmentTime}`
+
+    if (firstDateTime === secondDateTime) {
+      return firstReminder.reminderType.localeCompare(secondReminder.reminderType)
+    }
+
+    return firstDateTime.localeCompare(secondDateTime)
+  })
+}
+
+function findAppointmentPatient(
+  appointment: Appointment,
+  patients: Patient[],
+) {
+  if (appointment.patientId) {
+    return patients.find((patient) => patient.id === appointment.patientId)
+  }
+
+  return patients.find((patient) => patient.fullName === appointment.patient)
+}
+
+function isFutureAppointment(
+  appointment: Appointment,
+  referenceDate: Date,
+) {
+  const referenceDay = new Date(
+    referenceDate.getFullYear(),
+    referenceDate.getMonth(),
+    referenceDate.getDate(),
+  )
+  const appointmentDay = new Date(`${appointment.date}T00:00:00`)
+
+  return appointmentDay >= referenceDay
+}
+
+function getAppointmentDateTime(date: string, time: string) {
+  return new Date(`${date}T${time}:00`)
+}
+
+function formatDateTimeValue(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
