@@ -24,32 +24,39 @@ export function DashboardView({ appointments, patients }: DashboardViewProps) {
 
   return (
     <section className="dashboard-view" aria-label="Dashboard principal">
-      <section className="dashboard-kpi-grid" aria-label="Indicadores principales">
-        <DashboardKpiCard
-          label="Atenciones de hoy"
-          tone="blue"
-          value={summary.todayAppointments}
-        />
-        <DashboardKpiCard
-          label="Atenciones del mes"
-          tone="slate"
-          value={summary.monthlyAppointments}
-        />
-        <DashboardKpiCard
-          label="Pendientes por confirmar"
-          tone="amber"
-          value={summary.pendingAppointments}
-        />
-        <DashboardKpiCard
-          label="Pacientes registrados"
-          tone="green"
-          value={summary.registeredPatients}
-        />
-        <DashboardKpiCard
-          label="Reprogramadas del mes"
-          tone="indigo"
-          value={summary.monthlyRescheduledAppointments}
-        />
+      <section className="dashboard-kpi-panel" aria-label="Indicadores principales">
+        <div className="section-heading dashboard-kpi-heading">
+          <p className="eyebrow">Operacion diaria</p>
+          <h2>Indicadores del consultorio</h2>
+        </div>
+
+        <div className="dashboard-kpi-grid">
+          <DashboardKpiCard
+            label="Atenciones de hoy"
+            tone="blue"
+            value={summary.todayAppointments}
+          />
+          <DashboardKpiCard
+            label="Atenciones del mes"
+            tone="slate"
+            value={summary.monthlyAppointments}
+          />
+          <DashboardKpiCard
+            label="Pendientes por confirmar"
+            tone="amber"
+            value={summary.pendingAppointments}
+          />
+          <DashboardKpiCard
+            label="Pacientes registrados"
+            tone="green"
+            value={summary.registeredPatients}
+          />
+          <DashboardKpiCard
+            label="Reprogramadas del mes"
+            tone="indigo"
+            value={summary.monthlyRescheduledAppointments}
+          />
+        </div>
       </section>
 
       <section className="dashboard-content-grid">

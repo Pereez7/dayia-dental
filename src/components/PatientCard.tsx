@@ -13,12 +13,16 @@ interface PatientCardProps {
 
 export function PatientCard({ onViewDetail, patient }: PatientCardProps) {
   const nextAppointmentLabel = patient.nextAppointment ?? 'Sin cita agendada'
+  const statusClassName = `patient-status patient-status--${patient.status}`
 
   return (
     <article className="patient-card">
-      <div>
-        <p className="patient-name">{patient.fullName}</p>
-        <p className="patient-phone">{patient.phone}</p>
+      <div className="patient-card-header">
+        <div>
+          <p className="patient-name">{patient.fullName}</p>
+          <p className="patient-phone">{patient.phone}</p>
+        </div>
+        <span className={statusClassName}>{patientStatusLabels[patient.status]}</span>
       </div>
 
       <dl className="patient-details">
@@ -33,7 +37,6 @@ export function PatientCard({ onViewDetail, patient }: PatientCardProps) {
       </dl>
 
       <div className="patient-card-footer">
-        <span className="status-pill">{patientStatusLabels[patient.status]}</span>
         <button
           className="secondary-action"
           type="button"

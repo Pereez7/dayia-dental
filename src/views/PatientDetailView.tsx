@@ -80,7 +80,7 @@ export function PatientDetailView({
       </div>
 
       <section className="patient-detail-grid">
-        <article className="patient-detail-panel">
+        <article className="patient-detail-panel patient-detail-panel--hero">
           <div className="patient-detail-hero">
             <div>
               <p className="eyebrow">Ficha del paciente</p>
@@ -106,7 +106,7 @@ export function PatientDetailView({
           </div>
         </article>
 
-        <article className="patient-detail-panel">
+        <article className="patient-detail-panel patient-detail-panel--appointments">
           <div className="section-heading">
             <p className="eyebrow">Agenda del paciente</p>
             <h2>Proximas citas</h2>
