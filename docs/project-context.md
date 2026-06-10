@@ -14,7 +14,7 @@ especialmente pensando en una futura integracion con WhatsApp.
 - Dashboard operativo con KPIs, proximas atenciones, pacientes recientes y
   resumen operativo, con composicion visual refinada.
 - Configuracion de horarios y tratamientos del consultorio, conectada con
-  Nueva Cita para tratamientos activos.
+  Nueva Cita para tratamientos activos y disponibilidad de horarios.
 - Primera version de historial clinico dentro del detalle de paciente.
 - Primera version de odontograma dentro del detalle de paciente.
 - Primera version del modulo Recordatorios WhatsApp con simulacion local.
@@ -141,6 +141,18 @@ Actualmente existe una primera version funcional en frontend:
 - El formulario valida paciente, fecha, hora, tratamiento y estado inicial.
 - La hora se elige desde un catalogo de 24 horas en intervalos de 15 minutos,
   por ejemplo `08:15`, `08:30` o `08:45`.
+- Las opciones de hora se calculan con los horarios del consultorio, el
+  intervalo configurado y las citas existentes.
+- Nueva Cita oculta horas ocupadas por citas pendientes, confirmadas o
+  reprogramadas.
+- Las citas canceladas no bloquean un horario.
+- Si una fecha no tiene horas disponibles, el formulario muestra un mensaje
+  claro sin permitir seleccionar una hora invalida.
+- El guardado mantiene una validacion final de choque exacto por fecha y hora.
+- El formulario no permite que el mismo paciente tenga mas de una cita activa
+  en el mismo dia.
+- El buscador de pacientes desactiva el autocompletado nativo del navegador
+  para que no compita con el dropdown propio de la app.
 - Los mensajes de ayuda, seleccion y error del formulario usan espacios
   consistentes para no desalinear la grilla.
 - El formulario muestra solo tratamientos activos configurados localmente.

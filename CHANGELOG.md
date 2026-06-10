@@ -6,6 +6,22 @@ Registro breve de cambios relevantes en DayIA Dental.
 
 ### Cambios realizados
 
+- Se conecto Nueva Cita con los horarios del consultorio configurados en
+  Configuracion.
+- Se agrego validacion para impedir choques exactos de fecha y hora entre citas
+  activas.
+- Se ocultaron en Nueva Cita las horas ya ocupadas por citas pendientes,
+  confirmadas o reprogramadas.
+- Se mantiene disponible una hora si la cita existente esta cancelada.
+- Se agrego mensaje cuando una fecha no tiene horarios disponibles.
+- Se agrego validacion para impedir que un mismo paciente tenga mas de una cita
+  activa el mismo dia.
+- Se desactivo el autocompletado nativo del navegador en el buscador de
+  pacientes de Nueva Cita para no competir con el dropdown propio.
+- Se agregaron utilidades puras para conflictos de citas, disponibilidad de
+  horarios y doble cita activa por paciente.
+- Se agregaron pruebas unitarias para conflictos de horario, horas disponibles,
+  citas canceladas, dias cerrados y doble cita del paciente.
 - Se refino la vista Configuracion para alinear visualmente Horarios y
   Tratamientos con el lenguaje del modulo Recordatorios.
 - Se agrego el panel `Horarios del consultorio` con horario semanal base,
@@ -68,6 +84,10 @@ visual estable sin mover el contenido de la pantalla.
 Tambien consolidar Configuracion como una pantalla operativa coherente con el
 sistema visual actual, evitando alertas que empujen contenido, botones
 demasiado pesados y documentacion incompleta sobre criterios de producto.
+
+Nueva Cita queda mas protegida contra sobreagendamiento: el usuario ve solo
+horas disponibles, pero la validacion final sigue bloqueando choques si el
+estado cambia antes de guardar.
 
 ## 2026-06-09
 

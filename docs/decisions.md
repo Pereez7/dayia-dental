@@ -216,6 +216,32 @@ Las citas creadas en esta etapa se agregan en memoria desde `App.tsx` y se
 reflejan en Dashboard y Agenda durante la sesion actual. La persistencia,
 edicion, eliminacion y cancelacion real siguen fuera del alcance inmediato.
 
+## Disponibilidad de horarios en Nueva Cita
+
+Nueva Cita calcula las opciones de hora a partir de los horarios del
+consultorio, el intervalo configurado y las citas existentes. Las citas
+pendientes, confirmadas y reprogramadas bloquean el horario; las canceladas no
+lo bloquean.
+
+El selector oculta horas ocupadas para reducir errores operativos, pero la
+validacion final al guardar se mantiene. Esta doble proteccion evita
+sobreagendamiento si el estado local cambia o si una hora seleccionada deja de
+estar disponible antes del envio del formulario.
+
+Por ahora no se consideran duracion del tratamiento, doctores, sillones ni
+excepciones de calendario. Esas reglas quedan pendientes hasta que el modelo de
+agenda sea mas completo.
+
+## Una cita activa por paciente y dia
+
+El formulario de Nueva Cita no permite registrar mas de una cita activa del
+mismo paciente en la misma fecha. Para esta regla cuentan las citas pendientes,
+confirmadas y reprogramadas; las canceladas no bloquean.
+
+La regla vive como funcion pura en `src/utils/appointmentConflicts.ts` para
+poder probarla con Vitest y dejar preparado un `appointmentIdToIgnore` para una
+futura edicion de citas.
+
 ## Seleccion real de paciente en citas
 
 El formulario de nueva cita separa el texto escrito en el buscador del paciente
@@ -353,6 +379,10 @@ La hora de una cita debe pertenecer al catalogo de horarios exactos generado en
 intervalos de 15 minutos. Se usa un selector en lugar del picker nativo de hora
 para evitar seleccion minuto a minuto y mantener valores consistentes como
 `08:15`, `08:30` o `08:45` durante las 24 horas del dia.
+
+Cuando existen horarios del consultorio configurados, el catalogo visible se
+reduce a los horarios disponibles de la fecha seleccionada. Si no hay opciones
+libres, se muestra un mensaje inline en el formulario.
 
 ## Registro local de pacientes
 

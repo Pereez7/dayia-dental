@@ -105,8 +105,9 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
    usando utilidades puras de `src/utils/treatmentUtils.ts` y feedback mediante
    `Toast`.
 15. `AppointmentForm` busca pacientes mock, guarda el paciente seleccionado por
-   identificador, valida campos con funciones de `src/utils` y avisa a
-   `App.tsx` cuando hay una nueva cita.
+   identificador, calcula horas disponibles con horarios del consultorio y citas
+   existentes, valida campos con funciones de `src/utils` y avisa a `App.tsx`
+   cuando hay una nueva cita.
 16. `AppointmentForm` recibe tratamientos desde `App.tsx` y muestra solo los
    tratamientos activos.
 17. `App.tsx` agrega la nueva cita al estado local y vuelve a la agenda.
@@ -214,9 +215,19 @@ Participan:
   nueva cita.
 - `src/utils/appointmentTimeSlots.ts`: genera el catalogo de horas exactas en
   intervalos de 15 minutos para el formulario.
+- `src/utils/businessHours.ts`: genera slots validos por fecha segun horario
+  semanal e intervalo configurado.
+- `src/utils/appointmentConflicts.ts`: detecta choques de fecha/hora, doble
+  cita activa de paciente en el dia y calcula horas disponibles.
 
-La logica de ordenamiento, agrupacion, resumen, horarios y validacion debe
-mantenerse fuera de los componentes para poder probarse con Vitest.
+Nueva Cita recibe las citas existentes para ocultar horas ocupadas por citas
+pendientes, confirmadas o reprogramadas. Las citas canceladas no bloquean
+horario. Aunque el selector solo muestra horas disponibles, la validacion final
+vuelve a comprobar choque exacto y doble cita activa del paciente en el dia.
+
+La logica de ordenamiento, agrupacion, resumen, horarios, conflictos y
+validacion debe mantenerse fuera de los componentes para poder probarse con
+Vitest.
 
 La edicion, eliminacion, cancelacion real y persistencia siguen pendientes.
 

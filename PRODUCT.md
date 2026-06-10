@@ -54,6 +54,9 @@ de backend antes de validar la experiencia local.
   la accion, no de exceso de tamaño, negrita o fondos saturados.
 - Validar primero en frontend: construir flujos locales, tipados y testeables
   antes de agregar persistencia o integraciones externas.
+- Prevenir sobreagendamiento desde la experiencia: mostrar solo horarios
+  disponibles cuando sea posible y mantener validaciones finales antes de
+  guardar.
 - Hacer visible solo lo confiable: no mostrar indicadores incompletos ni datos
   inventados para cubrir vacios del modelo mock.
 - Disenar mobile-first: cada flujo importante debe ser usable en pantallas
@@ -70,6 +73,8 @@ producto.
   interactivos.
 - Los estados no deben depender unicamente del color.
 - Mensajes de error y exito claros, cercanos al campo o accion correspondiente.
+- Formularios de agenda con errores inline para conflictos de horario o doble
+  cita activa del paciente, sin depender de Toast para errores de validacion.
 - Tamanos tactiles comodos en mobile.
 - Interfaz mobile-first.
 - Respetar `prefers-reduced-motion` si se agregan animaciones.

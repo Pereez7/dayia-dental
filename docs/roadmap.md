@@ -73,6 +73,15 @@ Implementado:
 - Catalogo inicial tipado de tratamientos.
 - Nueva Cita consume solo tratamientos activos definidos en Configuracion.
 - Selector de hora con horarios exactos de 24 horas en intervalos de 15 minutos.
+- Horas disponibles calculadas desde horarios del consultorio, intervalo de
+  atencion y citas existentes.
+- Ocultamiento de horas ocupadas por citas pendientes, confirmadas o
+  reprogramadas.
+- Validacion final de choque exacto por fecha y hora.
+- Bloqueo de doble cita activa del mismo paciente en el mismo dia.
+- Mensaje cuando una fecha no tiene horarios disponibles.
+- Autocompletado nativo del navegador desactivado en el buscador de pacientes
+  de Nueva Cita.
 - Validaciones de paciente, fecha, hora, tratamiento y estado inicial.
 - Validacion de hora contra el catalogo de intervalos de 15 minutos.
 - Creacion local de citas en memoria.
@@ -82,6 +91,9 @@ Pendiente:
 - Edicion de cita.
 - Eliminacion o cancelacion real.
 - Estados funcionales conectados a acciones.
+- Duracion real por tratamiento.
+- Multiples doctores o sillones.
+- Excepciones de calendario, feriados y cierres especiales.
 - Persistencia.
 - Integracion con WhatsApp.
 
