@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import './App.css'
 import { appointments as initialAppointments } from './data/appointments'
+import { businessHours as initialBusinessHours } from './data/businessHours'
 import { clinicalRecords as initialClinicalRecords } from './data/clinicalRecords'
 import { odontogramEntries as initialOdontogramEntries } from './data/odontogram'
 import { patients as initialPatients } from './data/patients'
@@ -8,6 +9,7 @@ import { treatments as initialTreatments } from './data/treatments'
 import { AppLayout } from './layout/AppLayout'
 import type { AppSection } from './layout/navigation'
 import type { Appointment, AppointmentFormValues } from './types/Appointment'
+import type { BusinessHoursSettings } from './types/BusinessHours'
 import type {
   ClinicalRecord,
   ClinicalRecordFormValues,
@@ -35,6 +37,8 @@ function App() {
   const [patients, setPatients] = useState<Patient[]>(initialPatients)
   const [treatments, setTreatments] =
     useState<Treatment[]>(initialTreatments)
+  const [businessHours, setBusinessHours] =
+    useState<BusinessHoursSettings>(initialBusinessHours)
   const [clinicalRecords, setClinicalRecords] =
     useState<ClinicalRecord[]>(initialClinicalRecords)
   const [odontogramEntries, setOdontogramEntries] =
@@ -183,6 +187,7 @@ function App() {
       return (
         <AppointmentsView
           appointments={appointments}
+          businessHours={businessHours}
           mode="agenda"
           patients={patients}
           treatments={treatments}
@@ -194,6 +199,7 @@ function App() {
       return (
         <AppointmentsView
           appointments={appointments}
+          businessHours={businessHours}
           mode="new"
           patients={patients}
           treatments={treatments}
@@ -223,6 +229,8 @@ function App() {
     if (activeSection === 'settings') {
       return (
         <SettingsView
+          businessHours={businessHours}
+          onBusinessHoursChange={setBusinessHours}
           treatments={treatments}
           onTreatmentsChange={setTreatments}
         />

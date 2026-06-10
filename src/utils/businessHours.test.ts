@@ -2,9 +2,14 @@ import { describe, expect, it } from 'vitest'
 import type { BusinessHoursSettings } from '../types/BusinessHours'
 import {
   areBusinessHoursSettingsEqual,
+  generateBusinessTimeSlotsForDate,
+  getBusinessDayScheduleForDate,
+  getWeekdayFromDate,
   hasBusinessHoursErrors,
   isEndTimeAfterStartTime,
+  isTimeInsideBusinessHours,
   isValidBusinessTimeFormat,
+  validateAppointmentAgainstBusinessHours,
   validateBusinessDaySchedule,
   validateBusinessHours,
 } from './businessHours'
@@ -157,5 +162,113 @@ describe('areBusinessHoursSettingsEqual', () => {
         ],
       }),
     ).toBe(false)
+  })
+})
+
+describe('business hours by appointment date', () => {
+  const weeklySettings: BusinessHoursSettings = {
+    appointmentInterval: 30,
+    weeklySchedule: [
+      {
+        day: 'monday',
+        endTime: '18:00',
+        isOpen: true,
+        startTime: '08:00',
+      },
+      {
+        day: 'saturday',
+        endTime: '12:00',
+        isOpen: true,
+        startTime: '08:00',
+      },
+      {
+        day: 'sunday',
+        endTime: '12:00',
+        isOpen: false,
+        startTime: '08:00',
+      },
+    ],
+  }
+
+  it('gets the configured weekday schedule from a date', () => {
+    expect(getWeekdayFromDate('2026-06-08')).toBe('monday')
+    expect(
+      getBusinessDayScheduleForDate(weeklySettings, '2026-06-13')?.day,
+    ).toBe('saturday')
+  })
+
+  it('allows a time inside an open day schedule', () => {
+    const mondaySchedule = getBusinessDayScheduleForDate(
+      weeklySettings,
+      '2026-06-08',
+    )
+
+    expect(mondaySchedule).toBeDefined()
+    expect(isTimeInsideBusinessHours(mondaySchedule!, '09:30')).toBe(true)
+  })
+
+  it('rejects appointments on closed days', () => {
+    expect(
+      validateAppointmentAgainstBusinessHours(
+        weeklySettings,
+        '2026-06-14',
+        '09:00',
+      ),
+    ).toBe('El consultorio está cerrado ese día.')
+  })
+
+  it('rejects time before opening or after closing', () => {
+    expect(
+      validateAppointmentAgainstBusinessHours(
+        weeklySettings,
+        '2026-06-08',
+        '07:30',
+      ),
+    ).toBe('La hora seleccionada está fuera del horario de atención.')
+    expect(
+      validateAppointmentAgainstBusinessHours(
+        weeklySettings,
+        '2026-06-08',
+        '18:30',
+      ),
+    ).toBe('La hora seleccionada está fuera del horario de atención.')
+  })
+
+  it('generates appointment slots using a 30 minute interval', () => {
+    expect(generateBusinessTimeSlotsForDate(weeklySettings, '2026-06-13')).toEqual(
+      [
+        { label: '08:00', value: '08:00' },
+        { label: '08:30', value: '08:30' },
+        { label: '09:00', value: '09:00' },
+        { label: '09:30', value: '09:30' },
+        { label: '10:00', value: '10:00' },
+        { label: '10:30', value: '10:30' },
+        { label: '11:00', value: '11:00' },
+        { label: '11:30', value: '11:30' },
+      ],
+    )
+  })
+
+  it('generates appointment slots using a 60 minute interval', () => {
+    expect(
+      generateBusinessTimeSlotsForDate(
+        {
+          ...weeklySettings,
+          appointmentInterval: 60,
+        },
+        '2026-06-13',
+      ),
+    ).toEqual([
+      { label: '08:00', value: '08:00' },
+      { label: '09:00', value: '09:00' },
+      { label: '10:00', value: '10:00' },
+      { label: '11:00', value: '11:00' },
+    ])
+  })
+
+  it('does not generate slots for closed days', () => {
+    expect(generateBusinessTimeSlotsForDate(weeklySettings, '2026-06-14')).toEqual(
+      [],
+    )
   })
 })

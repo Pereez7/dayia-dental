@@ -1,11 +1,13 @@
 import { AppointmentForm } from '../components/AppointmentForm'
 import { AppointmentsAgenda } from '../components/AppointmentsAgenda'
 import type { Appointment, AppointmentFormValues } from '../types/Appointment'
+import type { BusinessHoursSettings } from '../types/BusinessHours'
 import type { Patient } from '../types/Patient'
 import type { Treatment } from '../types/Treatment'
 
 interface AppointmentsViewProps {
   appointments: Appointment[]
+  businessHours: BusinessHoursSettings
   patients: Patient[]
   treatments: Treatment[]
   mode?: 'agenda' | 'new'
@@ -15,6 +17,7 @@ interface AppointmentsViewProps {
 
 export function AppointmentsView({
   appointments,
+  businessHours,
   patients,
   treatments,
   mode = 'agenda',
@@ -28,6 +31,7 @@ export function AppointmentsView({
   if (mode === 'new') {
     return (
       <AppointmentForm
+        businessHours={businessHours}
         patients={patients}
         treatments={treatments}
         onCancel={() => onNavigateToAgenda?.()}

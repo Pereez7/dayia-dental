@@ -1,13 +1,17 @@
-import { useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import type {
   AppointmentFormErrors,
   AppointmentFormValues,
   AppointmentStatus,
 } from '../types/Appointment'
+import type { BusinessHoursSettings } from '../types/BusinessHours'
 import type { Patient } from '../types/Patient'
 import type { Treatment } from '../types/Treatment'
 import { getAppointmentStatusLabel } from '../utils/appointmentFormatters'
-import { appointmentTimeSlots } from '../utils/appointmentTimeSlots'
+import {
+  generateBusinessTimeSlotsForDate,
+  getBusinessDayScheduleForDate,
+} from '../utils/businessHours'
 import { filterPatients } from '../utils/patientFilters'
 import { getActiveTreatments } from '../utils/treatmentUtils'
 import {
@@ -35,6 +39,7 @@ function getTodayDateInputValue() {
 }
 
 interface AppointmentFormProps {
+  businessHours: BusinessHoursSettings
   patients: Patient[]
   treatments: Treatment[]
   onCancel: () => void
@@ -42,6 +47,7 @@ interface AppointmentFormProps {
 }
 
 export function AppointmentForm({
+  businessHours,
   patients,
   treatments,
   onCancel,
@@ -55,11 +61,57 @@ export function AppointmentForm({
   const minAppointmentDate = getTodayDateInputValue()
   const filteredPatients = filterPatients(patients, patientSearch).slice(0, 5)
   const activeTreatments = getActiveTreatments(treatments)
+  const selectedDaySchedule = formValues.date
+    ? getBusinessDayScheduleForDate(businessHours, formValues.date)
+    : undefined
+  const selectedDateIsClosed =
+    Boolean(formValues.date) && selectedDaySchedule?.isOpen === false
+  const appointmentTimeOptions = useMemo(
+    () =>
+      formValues.date
+        ? generateBusinessTimeSlotsForDate(businessHours, formValues.date)
+        : [],
+    [businessHours, formValues.date],
+  )
+  const isTimeSelectDisabled =
+    !formValues.date || selectedDateIsClosed || appointmentTimeOptions.length === 0
 
   function updateField(field: keyof AppointmentFormValues, value: string) {
     setFormValues((currentValues) => ({
       ...currentValues,
       [field]: value,
+    }))
+  }
+
+  function updateAppointmentDate(value: string) {
+    const timeOptions = value
+      ? generateBusinessTimeSlotsForDate(businessHours, value)
+      : []
+    const daySchedule = value
+      ? getBusinessDayScheduleForDate(businessHours, value)
+      : undefined
+    const isClosed = Boolean(value) && daySchedule?.isOpen === false
+
+    setFormValues((currentValues) => ({
+      ...currentValues,
+      date: value,
+      time:
+        !isClosed && timeOptions.some((slot) => slot.value === currentValues.time)
+          ? currentValues.time
+          : '',
+    }))
+    setErrors((currentErrors) => ({
+      ...currentErrors,
+      date: isClosed ? 'El consultorio está cerrado ese día.' : undefined,
+      time: undefined,
+    }))
+  }
+
+  function updateAppointmentTime(value: string) {
+    updateField('time', value)
+    setErrors((currentErrors) => ({
+      ...currentErrors,
+      time: undefined,
     }))
   }
 
@@ -92,6 +144,7 @@ export function AppointmentForm({
       formValues,
       new Date(),
       activeTreatments,
+      businessHours,
     )
     setErrors(validationErrors)
 
@@ -202,7 +255,7 @@ export function AppointmentForm({
             type="date"
             min={minAppointmentDate}
             value={formValues.date}
-            onChange={(event) => updateField('date', event.target.value)}
+            onChange={(event) => updateAppointmentDate(event.target.value)}
           />
           <div className="appointment-message-slot">
             {errors.date && (
@@ -217,11 +270,18 @@ export function AppointmentForm({
           <label htmlFor="appointment-time">Hora</label>
           <select
             id="appointment-time"
+            disabled={isTimeSelectDisabled}
             value={formValues.time}
-            onChange={(event) => updateField('time', event.target.value)}
+            onChange={(event) => updateAppointmentTime(event.target.value)}
           >
-            <option value="">Seleccionar horario</option>
-            {appointmentTimeSlots.map((slot) => (
+            <option value="">
+              {selectedDateIsClosed
+                ? 'Día cerrado'
+                : formValues.date
+                  ? 'Seleccionar horario'
+                  : 'Selecciona una fecha'}
+            </option>
+            {appointmentTimeOptions.map((slot) => (
               <option key={slot.value} value={slot.value}>
                 {slot.label}
               </option>

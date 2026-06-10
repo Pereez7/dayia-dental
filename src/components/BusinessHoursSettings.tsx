@@ -16,11 +16,13 @@ import {
 import { Toast } from './Toast'
 
 interface BusinessHoursSettingsProps {
-  initialSettings: BusinessHoursSettingsType
+  settings: BusinessHoursSettingsType
+  onSettingsChange: (settings: BusinessHoursSettingsType) => void
 }
 
 export function BusinessHoursSettings({
-  initialSettings,
+  settings: initialSettings,
+  onSettingsChange,
 }: BusinessHoursSettingsProps) {
   const [settings, setSettings] =
     useState<BusinessHoursSettingsType>(initialSettings)
@@ -95,6 +97,7 @@ export function BusinessHoursSettings({
     }
 
     setSavedSettings(settings)
+    onSettingsChange(settings)
     setToastMessage('Horarios del consultorio actualizados.')
     setIsToastVisible(true)
   }

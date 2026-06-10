@@ -3,8 +3,10 @@ import type {
   AppointmentFormValues,
   AppointmentStatus,
 } from '../types/Appointment'
+import type { BusinessHoursSettings } from '../types/BusinessHours'
 import type { Treatment } from '../types/Treatment'
 import { appointmentTimeSlots } from './appointmentTimeSlots'
+import { validateAppointmentAgainstBusinessHours } from './businessHours'
 import { getActiveTreatments } from './treatmentUtils'
 
 export const appointmentInitialStatuses: AppointmentStatus[] = [
@@ -16,6 +18,7 @@ export function validateAppointmentForm(
   values: AppointmentFormValues,
   referenceDate = new Date(),
   treatments: Treatment[] = [],
+  businessHours?: BusinessHoursSettings,
 ): AppointmentFormErrors {
   const errors: AppointmentFormErrors = {}
 
@@ -29,9 +32,26 @@ export function validateAppointmentForm(
     errors.date = 'La fecha no puede ser anterior a hoy.'
   }
 
-  if (!values.time) {
+  const canValidateBusinessHours =
+    businessHours && values.date && !errors.date
+  const businessHoursError = canValidateBusinessHours
+    ? validateAppointmentAgainstBusinessHours(
+        businessHours,
+        values.date,
+        values.time,
+      )
+    : ''
+
+  if (businessHoursError === 'El consultorio está cerrado ese día.') {
+    errors.date = businessHoursError
+  } else if (!values.time) {
     errors.time = 'Selecciona una hora.'
-  } else if (!appointmentTimeSlots.some((slot) => slot.value === values.time)) {
+  } else if (businessHoursError) {
+    errors.time = businessHoursError
+  } else if (
+    !businessHours &&
+    !appointmentTimeSlots.some((slot) => slot.value === values.time)
+  ) {
     errors.time = 'Selecciona una hora valida.'
   }
 

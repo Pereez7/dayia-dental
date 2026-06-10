@@ -5,6 +5,10 @@ import type {
   BusinessHoursSettings,
   Weekday,
 } from '../types/BusinessHours'
+import {
+  createAppointmentTimeSlots,
+  type AppointmentTimeSlot,
+} from './appointmentTimeSlots'
 
 export const weekdayLabels: Record<Weekday, string> = {
   friday: 'Viernes',
@@ -91,6 +95,111 @@ export function areBusinessHoursSettingsEqual(
       firstDaySchedule.startTime === secondDaySchedule.startTime
     )
   })
+}
+
+export function getWeekdayFromDate(date: string): Weekday | null {
+  if (!date) {
+    return null
+  }
+
+  const parsedDate = new Date(`${date}T00:00:00`)
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return null
+  }
+
+  const weekdays: Weekday[] = [
+    'sunday',
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+  ]
+
+  return weekdays[parsedDate.getDay()]
+}
+
+export function getBusinessDayScheduleForDate(
+  settings: BusinessHoursSettings,
+  date: string,
+) {
+  const weekday = getWeekdayFromDate(date)
+
+  if (!weekday) {
+    return undefined
+  }
+
+  return settings.weeklySchedule.find((schedule) => schedule.day === weekday)
+}
+
+export function generateBusinessTimeSlotsForDate(
+  settings: BusinessHoursSettings,
+  date: string,
+): AppointmentTimeSlot[] {
+  const daySchedule = getBusinessDayScheduleForDate(settings, date)
+
+  if (!daySchedule?.isOpen || validateBusinessDaySchedule(daySchedule)) {
+    return []
+  }
+
+  return createAppointmentTimeSlots(
+    daySchedule.startTime,
+    daySchedule.endTime,
+    settings.appointmentInterval,
+  )
+}
+
+export function validateAppointmentAgainstBusinessHours(
+  settings: BusinessHoursSettings,
+  date: string,
+  time: string,
+) {
+  const daySchedule = getBusinessDayScheduleForDate(settings, date)
+
+  if (!daySchedule) {
+    return ''
+  }
+
+  if (!daySchedule.isOpen) {
+    return 'El consultorio está cerrado ese día.'
+  }
+
+  if (!time) {
+    return ''
+  }
+
+  if (
+    !isValidBusinessTimeFormat(time) ||
+    !isTimeInsideBusinessHours(daySchedule, time)
+  ) {
+    return 'La hora seleccionada está fuera del horario de atención.'
+  }
+
+  const validSlots = generateBusinessTimeSlotsForDate(settings, date)
+
+  if (!validSlots.some((slot) => slot.value === time)) {
+    return 'Selecciona una hora valida.'
+  }
+
+  return ''
+}
+
+export function isTimeInsideBusinessHours(
+  daySchedule: BusinessDaySchedule,
+  time: string,
+) {
+  if (!daySchedule.isOpen || !isValidBusinessTimeFormat(time)) {
+    return false
+  }
+
+  const timeMinutes = getTimeAsMinutes(time)
+
+  return (
+    timeMinutes >= getTimeAsMinutes(daySchedule.startTime) &&
+    timeMinutes < getTimeAsMinutes(daySchedule.endTime)
+  )
 }
 
 export function isEndTimeAfterStartTime(startTime: string, endTime: string) {
