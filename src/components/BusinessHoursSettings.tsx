@@ -8,6 +8,7 @@ import type {
 } from '../types/BusinessHours'
 import {
   appointmentIntervals,
+  areBusinessHoursSettingsEqual,
   hasBusinessHoursErrors,
   validateBusinessHours,
   weekdayLabels,
@@ -22,6 +23,8 @@ export function BusinessHoursSettings({
   initialSettings,
 }: BusinessHoursSettingsProps) {
   const [settings, setSettings] =
+    useState<BusinessHoursSettingsType>(initialSettings)
+  const [savedSettings, setSavedSettings] =
     useState<BusinessHoursSettingsType>(initialSettings)
   const [errors, setErrors] = useState<BusinessHoursErrors>({})
   const [toastMessage, setToastMessage] = useState('')
@@ -76,6 +79,7 @@ export function BusinessHoursSettings({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    blurActiveFormElement(event.currentTarget)
 
     const validationErrors = validateBusinessHours(settings)
     setErrors(validationErrors)
@@ -85,6 +89,12 @@ export function BusinessHoursSettings({
       return
     }
 
+    if (areBusinessHoursSettingsEqual(settings, savedSettings)) {
+      setIsToastVisible(false)
+      return
+    }
+
+    setSavedSettings(settings)
     setToastMessage('Horarios del consultorio actualizados.')
     setIsToastVisible(true)
   }
@@ -234,4 +244,15 @@ export function BusinessHoursSettings({
       />
     </section>
   )
+}
+
+function blurActiveFormElement(formElement: HTMLFormElement) {
+  const activeElement = formElement.ownerDocument.activeElement
+
+  if (
+    activeElement instanceof HTMLElement &&
+    formElement.contains(activeElement)
+  ) {
+    activeElement.blur()
+  }
 }

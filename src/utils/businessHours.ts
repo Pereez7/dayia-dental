@@ -67,6 +67,32 @@ export function hasBusinessHoursErrors(errors: BusinessHoursErrors) {
   return Object.values(errors).some(Boolean)
 }
 
+export function areBusinessHoursSettingsEqual(
+  firstSettings: BusinessHoursSettings,
+  secondSettings: BusinessHoursSettings,
+) {
+  if (firstSettings.appointmentInterval !== secondSettings.appointmentInterval) {
+    return false
+  }
+
+  if (
+    firstSettings.weeklySchedule.length !== secondSettings.weeklySchedule.length
+  ) {
+    return false
+  }
+
+  return firstSettings.weeklySchedule.every((firstDaySchedule, index) => {
+    const secondDaySchedule = secondSettings.weeklySchedule[index]
+
+    return (
+      firstDaySchedule.day === secondDaySchedule?.day &&
+      firstDaySchedule.endTime === secondDaySchedule.endTime &&
+      firstDaySchedule.isOpen === secondDaySchedule.isOpen &&
+      firstDaySchedule.startTime === secondDaySchedule.startTime
+    )
+  })
+}
+
 export function isEndTimeAfterStartTime(startTime: string, endTime: string) {
   return getTimeAsMinutes(endTime) > getTimeAsMinutes(startTime)
 }

@@ -17,13 +17,11 @@ export function TreatmentsSettings({
   onTreatmentsChange,
 }: TreatmentsSettingsProps) {
   const [treatmentName, setTreatmentName] = useState('')
-  const [error, setError] = useState('')
   const [searchText, setSearchText] = useState('')
   const [editingTreatmentId, setEditingTreatmentId] = useState<number | null>(
     null,
   )
   const [editingName, setEditingName] = useState('')
-  const [editingError, setEditingError] = useState('')
   const [toastMessage, setToastMessage] = useState('')
   const [toastTone, setToastTone] = useState<ToastTone>('success')
   const [isToastVisible, setIsToastVisible] = useState(false)
@@ -53,10 +51,12 @@ export function TreatmentsSettings({
     event.preventDefault()
 
     const validationError = validateTreatmentName(treatments, treatmentName)
-    setError(validationError)
     setIsToastVisible(false)
 
     if (validationError) {
+      setToastMessage(validationError)
+      setToastTone('warning')
+      setIsToastVisible(true)
       return
     }
 
@@ -96,21 +96,18 @@ export function TreatmentsSettings({
 
   function updateTreatmentName(value: string) {
     setTreatmentName(value)
-    setError('')
     setIsToastVisible(false)
   }
 
   function startEditing(treatment: Treatment) {
     setEditingTreatmentId(treatment.id)
     setEditingName(treatment.name)
-    setEditingError('')
     setIsToastVisible(false)
   }
 
   function cancelEditing() {
     setEditingTreatmentId(null)
     setEditingName('')
-    setEditingError('')
   }
 
   function saveEditing(treatmentId: number) {
@@ -119,10 +116,12 @@ export function TreatmentsSettings({
       editingName,
       treatmentId,
     )
-    setEditingError(validationError)
     setIsToastVisible(false)
 
     if (validationError) {
+      setToastMessage(validationError)
+      setToastTone('warning')
+      setIsToastVisible(true)
       return
     }
 
@@ -141,7 +140,6 @@ export function TreatmentsSettings({
 
   function updateEditingName(value: string) {
     setEditingName(value)
-    setEditingError('')
     setIsToastVisible(false)
   }
 
@@ -171,10 +169,6 @@ export function TreatmentsSettings({
         <button className="primary-action" type="submit">
           Agregar tratamiento
         </button>
-
-        <div className="appointment-message-slot treatment-form-message">
-          {error && <p className="field-message field-message--error">{error}</p>}
-        </div>
       </form>
 
       <label className="treatment-search">
@@ -203,13 +197,6 @@ export function TreatmentsSettings({
                       }
                     />
                   </label>
-                  <div className="appointment-message-slot">
-                    {editingError && (
-                      <p className="field-message field-message--error">
-                        {editingError}
-                      </p>
-                    )}
-                  </div>
                 </div>
 
                 <div className="treatment-row-actions">

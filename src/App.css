@@ -1684,10 +1684,6 @@
   outline-offset: 2px;
 }
 
-.treatment-form-message {
-  min-height: 18px;
-}
-
 .treatment-search {
   margin-bottom: 10px;
 }
@@ -1851,10 +1847,6 @@
 
   .treatment-form .primary-action {
     align-self: end;
-  }
-
-  .treatment-form-message {
-    grid-column: 1 / -1;
   }
 
   .treatment-row {

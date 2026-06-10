@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { BusinessHoursSettings } from '../types/BusinessHours'
 import {
+  areBusinessHoursSettingsEqual,
   hasBusinessHoursErrors,
   isEndTimeAfterStartTime,
   isValidBusinessTimeFormat,
@@ -123,5 +124,38 @@ describe('validateBusinessHours', () => {
       monday: 'La hora de fin debe ser mayor que la hora de inicio.',
     })
     expect(hasBusinessHoursErrors(errors)).toBe(true)
+  })
+})
+
+describe('areBusinessHoursSettingsEqual', () => {
+  it('returns true when settings have the same interval and schedule', () => {
+    expect(
+      areBusinessHoursSettingsEqual(validSettings, {
+        ...validSettings,
+        weeklySchedule: [...validSettings.weeklySchedule],
+      }),
+    ).toBe(true)
+  })
+
+  it('returns false when interval or schedule changed', () => {
+    expect(
+      areBusinessHoursSettingsEqual(validSettings, {
+        ...validSettings,
+        appointmentInterval: 15,
+      }),
+    ).toBe(false)
+
+    expect(
+      areBusinessHoursSettingsEqual(validSettings, {
+        ...validSettings,
+        weeklySchedule: [
+          {
+            ...validSettings.weeklySchedule[0],
+            endTime: '19:00',
+          },
+          validSettings.weeklySchedule[1],
+        ],
+      }),
+    ).toBe(false)
   })
 })
