@@ -37,93 +37,117 @@ export function RemindersList({
           <h3>{dateGroup.label}</h3>
 
           <div className="reminder-appointment-list">
-            {dateGroup.appointmentGroups.map((appointmentGroup) => (
-              <article
-                className="reminder-card"
-                key={appointmentGroup.appointmentId}
-              >
-                <div className="reminder-card-main">
-                  <div>
-                    <h4>{appointmentGroup.patientName}</h4>
-                    <p
-                      className={
-                        appointmentGroup.phone === 'Sin telefono registrado'
-                          ? 'reminder-phone reminder-phone--missing'
-                          : 'reminder-phone'
-                      }
-                    >
-                      {appointmentGroup.phone}
-                    </p>
-                  </div>
+            {dateGroup.appointmentGroups.map((appointmentGroup) => {
+              const hasPhone =
+                appointmentGroup.phone !== 'Sin telefono registrado'
 
-                  <div className="reminder-appointment-time">
-                    <strong>{appointmentGroup.appointmentTime}</strong>
-                    <span>{appointmentGroup.treatment}</span>
-                  </div>
-                </div>
-
-                <div className="reminder-row-list">
-                  {appointmentGroup.reminders.map((reminder) => {
-                    const isSelected = reminder.id === selectedReminderId
-                    const statusClassName = getReminderStatusClassName(
-                      reminder.status,
-                    )
-
-                    return (
-                      <div
-                        className={`reminder-row${
-                          isSelected ? ' reminder-row--selected' : ''
-                        }`}
-                        key={reminder.id}
-                      >
-                        <div className="reminder-row-meta">
-                          <div>
-                            <span>Recordatorio</span>
-                            <strong>
-                              {getReminderTypeLabel(reminder.reminderType)}
-                            </strong>
-                          </div>
-                          <div>
-                            <span>Programado para</span>
-                            <strong>
-                              {formatReminderDateTime(reminder.scheduledFor)}
-                            </strong>
-                          </div>
-                        </div>
-
-                        <span className={`reminder-status ${statusClassName}`}>
-                          {getReminderStatusLabel(reminder.status)}
-                        </span>
-
-                        <div className="reminder-actions">
-                          <button
-                            className="secondary-action"
-                            type="button"
-                            onClick={() => onSelectReminder(reminder.id)}
-                          >
-                            Ver mensaje
-                          </button>
-                          <button
-                            className="success-action"
-                            type="button"
-                            onClick={() => onMarkSent(reminder.id)}
-                          >
-                            Marcar enviado
-                          </button>
-                          <button
-                            className="danger-action"
-                            type="button"
-                            onClick={() => onMarkFailed(reminder.id)}
-                          >
-                            Marcar fallido
-                          </button>
-                        </div>
+              return (
+                <article
+                  className="reminder-card"
+                  key={appointmentGroup.appointmentId}
+                >
+                    <div className="reminder-card-main">
+                      <div className="reminder-card-patient">
+                        <h4>{appointmentGroup.patientName}</h4>
+                        <p
+                          className={
+                            hasPhone
+                              ? 'reminder-phone'
+                              : 'reminder-phone reminder-phone--missing'
+                          }
+                        >
+                          {appointmentGroup.phone}
+                        </p>
+                        {!hasPhone && (
+                          <p className="reminder-phone-note">
+                            Sin teléfono registrado. No se podrá enviar por WhatsApp.
+                          </p>
+                        )}
                       </div>
-                    )
-                  })}
-                </div>
-              </article>
-            ))}
+
+                      <div className="reminder-appointment-time">
+                        <strong>{appointmentGroup.appointmentTime}</strong>
+                        <span>{appointmentGroup.treatment}</span>
+                      </div>
+                    </div>
+
+                    {appointmentGroup.omittedReminderNotes.length > 0 && (
+                      <div className="reminder-omission-notes">
+                        {appointmentGroup.omittedReminderNotes.map((note) => (
+                          <p key={note}>{note}</p>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="reminder-row-list">
+                      {appointmentGroup.reminders.map((reminder) => {
+                        const isSelected = reminder.id === selectedReminderId
+                        const statusClassName = getReminderStatusClassName(
+                          reminder.status,
+                        )
+
+                        return (
+                          <div
+                            className={`reminder-row${
+                              isSelected ? ' reminder-row--selected' : ''
+                            }`}
+                            key={reminder.id}
+                          >
+                            <div className="reminder-row-meta">
+                              <div>
+                                <span>Tipo</span>
+                                <strong>
+                                  {getReminderTypeLabel(reminder.reminderType)}
+                                </strong>
+                              </div>
+                              <div>
+                                <span>Programado para</span>
+                                <strong>
+                                  {formatReminderDateTime(reminder.scheduledFor)}
+                                </strong>
+                              </div>
+                            </div>
+
+                            <span className={`reminder-status ${statusClassName}`}>
+                              {getReminderStatusLabel(reminder.status)}
+                            </span>
+
+                            <div className="reminder-actions">
+                              <button
+                                className="secondary-action"
+                                type="button"
+                                onClick={() => onSelectReminder(reminder.id)}
+                              >
+                                Ver mensaje
+                              </button>
+                              <button
+                                className="soft-action reminder-action-secondary"
+                                type="button"
+                                disabled={!hasPhone}
+                                title={
+                                  hasPhone
+                                    ? undefined
+                                    : 'Agrega un teléfono para simular el envío.'
+                                }
+                                onClick={() => onMarkSent(reminder.id)}
+                              >
+                                Marcar enviado
+                              </button>
+                              <button
+                                className="soft-action reminder-action-danger"
+                                type="button"
+                                onClick={() => onMarkFailed(reminder.id)}
+                              >
+                                Marcar fallido
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                </article>
+              )
+            })}
           </div>
         </section>
       ))}

@@ -4,16 +4,24 @@ import type {
   Reminder,
   ReminderAppointmentGroup,
   ReminderDateGroup,
+  ReminderDateOption,
   ReminderStatus,
   ReminderStatusFilter,
   ReminderSummary,
   ReminderType,
 } from '../types/Reminder'
 
-const reminderHoursBeforeAppointment: Record<ReminderType, number> = {
+type ScheduledReminderType = Exclude<ReminderType, 'immediate'>
+
+const reminderHoursBeforeAppointment: Record<ScheduledReminderType, number> = {
   '24h': 24,
   '2h': 2,
 }
+
+const late24HourReminderNote =
+  'Recordatorio de 24h omitido por registro con poca anticipación.'
+const nearAppointmentReminderNote =
+  'Recordatorios de 24h y 2h omitidos por cita cercana.'
 
 const initialReminderSummary: ReminderSummary = {
   failed: 0,
@@ -28,13 +36,11 @@ export function generateAppointmentReminders(
   referenceDate = new Date(),
 ) {
   return appointments
-    .filter((appointment) => isFutureAppointment(appointment, referenceDate))
+    .filter((appointment) => isFutureAppointmentDateTime(appointment, referenceDate))
     .flatMap((appointment) => {
       const patient = findAppointmentPatient(appointment, patients)
 
-      return createReminderTypes().map((reminderType) =>
-        createReminder(appointment, patient, reminderType),
-      )
+      return createAppointmentReminders(appointment, patient, referenceDate)
     })
 }
 
@@ -57,6 +63,35 @@ export function filterRemindersByStatus(
   }
 
   return reminders.filter((reminder) => reminder.status === statusFilter)
+}
+
+export function filterRemindersByAppointmentDate(
+  reminders: Reminder[],
+  appointmentDate: string | null,
+) {
+  if (!appointmentDate) {
+    return reminders
+  }
+
+  return reminders.filter(
+    (reminder) => reminder.appointmentDate === appointmentDate,
+  )
+}
+
+export function getReminderDateOptions(
+  reminders: Reminder[],
+  referenceDate = new Date(),
+): ReminderDateOption[] {
+  const appointmentDates = Array.from(
+    new Set(reminders.map((reminder) => reminder.appointmentDate)),
+  ).sort((firstDate, secondDate) => firstDate.localeCompare(secondDate))
+
+  return appointmentDates.map((appointmentDate) => ({
+    appointmentDate,
+    dateLabel: formatCompactReminderDate(appointmentDate),
+    fullLabel: getReminderDateGroupLabel(appointmentDate, referenceDate),
+    weekdayLabel: getReminderWeekdayLabel(appointmentDate, referenceDate),
+  }))
 }
 
 export function groupRemindersByAppointmentDate(
@@ -99,6 +134,7 @@ export function groupRemindersByAppointment(reminders: Reminder[]) {
       patientId: reminder.patientId,
       patientName: reminder.patientName,
       phone: reminder.phone,
+      omittedReminderNotes: reminder.omittedReminderNotes ?? [],
       reminders: [reminder],
       treatment: reminder.treatment,
     })
@@ -118,7 +154,13 @@ export function updateReminderStatus(
 }
 
 export function getReminderTypeLabel(reminderType: ReminderType) {
-  return reminderType === '24h' ? '24 horas antes' : '2 horas antes'
+  const labels: Record<ReminderType, string> = {
+    '24h': '24 horas antes',
+    '2h': '2 horas antes',
+    immediate: 'Confirmación inmediata',
+  }
+
+  return labels[reminderType]
 }
 
 export function getReminderStatusLabel(status: ReminderStatus) {
@@ -139,7 +181,7 @@ export function getReminderStatusClassName(status: ReminderStatus) {
 export function getScheduledFor(
   appointmentDate: string,
   appointmentTime: string,
-  reminderType: ReminderType,
+  reminderType: ScheduledReminderType,
 ) {
   const scheduledDate = getAppointmentDateTime(appointmentDate, appointmentTime)
   scheduledDate.setHours(
@@ -154,17 +196,20 @@ export function createWhatsAppReminderMessage(
   treatment: string,
   appointmentDate: string,
   appointmentTime: string,
+  reminderType: ReminderType = '24h',
+  referenceDate = new Date(),
 ) {
   const firstName = patientName.trim().split(/\s+/)[0] || patientName
-  const formattedDate = new Intl.DateTimeFormat('es-BO', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
-    .format(new Date(`${appointmentDate}T00:00:00`))
-    .replace(/\s/g, '-')
+  const formattedDate = formatReminderMessageDate(
+    appointmentDate,
+    referenceDate,
+  )
 
-  return `Hola ${firstName}, te recordamos tu cita odontologica para ${treatment} el ${formattedDate} a las ${appointmentTime}. Por favor confirma tu asistencia.`
+  if (reminderType === 'immediate') {
+    return `Hola ${firstName}, te recordamos que tienes una cita odontológica para ${treatment} ${formattedDate} a las ${appointmentTime}. Por favor confirma tu asistencia.`
+  }
+
+  return `Hola ${firstName}, te recordamos tu cita odontológica para ${treatment} ${formattedDate} a las ${appointmentTime}. Por favor confirma tu asistencia.`
 }
 
 export function getReminderDateGroupLabel(
@@ -179,13 +224,7 @@ export function getReminderDateGroupLabel(
   )
   const tomorrow = new Date(today)
   tomorrow.setDate(today.getDate() + 1)
-  const formattedDate = new Intl.DateTimeFormat('es-BO', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
-    .format(targetDate)
-    .replace(/\s/g, '-')
+  const formattedDate = formatNaturalReminderDate(appointmentDate)
 
   if (targetDate.getTime() === today.getTime()) {
     return `Hoy, ${formattedDate}`
@@ -195,13 +234,131 @@ export function getReminderDateGroupLabel(
     return `Mañana, ${formattedDate}`
   }
 
-  return formattedDate
+  const weekday = new Intl.DateTimeFormat('es-BO', {
+    weekday: 'long',
+  }).format(targetDate)
+
+  return `${capitalizeFirstLetter(weekday)}, ${formattedDate}`
+}
+
+function formatCompactReminderDate(appointmentDate: string) {
+  const dateParts = new Intl.DateTimeFormat('es-BO', {
+    day: '2-digit',
+    month: 'short',
+  })
+    .formatToParts(new Date(`${appointmentDate}T00:00:00`))
+  const day = dateParts.find((part) => part.type === 'day')?.value ?? ''
+  const month = dateParts.find((part) => part.type === 'month')?.value ?? ''
+
+  return `${day} ${month.replace('.', '')}`.trim()
+}
+
+function formatNaturalReminderDate(appointmentDate: string) {
+  const dateParts = new Intl.DateTimeFormat('es-BO', {
+    day: '2-digit',
+    month: 'long',
+  })
+    .formatToParts(new Date(`${appointmentDate}T00:00:00`))
+  const day = dateParts.find((part) => part.type === 'day')?.value ?? ''
+  const month = dateParts.find((part) => part.type === 'month')?.value ?? ''
+
+  return `${day} de ${month}`.trim()
+}
+
+function getReminderWeekdayLabel(
+  appointmentDate: string,
+  referenceDate: Date,
+) {
+  const targetDate = new Date(`${appointmentDate}T00:00:00`)
+  const today = new Date(
+    referenceDate.getFullYear(),
+    referenceDate.getMonth(),
+    referenceDate.getDate(),
+  )
+  const tomorrow = new Date(today)
+  tomorrow.setDate(today.getDate() + 1)
+
+  if (targetDate.getTime() === today.getTime()) {
+    return 'Hoy'
+  }
+
+  if (targetDate.getTime() === tomorrow.getTime()) {
+    return 'Mañana'
+  }
+
+  const weekday = new Intl.DateTimeFormat('es-BO', {
+    weekday: 'short',
+  })
+    .format(targetDate)
+    .replace('.', '')
+
+  return capitalizeFirstLetter(weekday)
+}
+
+function capitalizeFirstLetter(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1)
+}
+
+function createAppointmentReminders(
+  appointment: Appointment,
+  patient: Patient | undefined,
+  referenceDate: Date,
+) {
+  const scheduledReminders = createReminderTypes()
+    .map((reminderType) => ({
+      reminderType,
+      scheduledFor: getScheduledFor(
+        appointment.date,
+        appointment.time,
+        reminderType,
+      ),
+    }))
+    .filter(({ scheduledFor }) => new Date(scheduledFor) > referenceDate)
+
+  if (scheduledReminders.length > 0) {
+    const omittedReminderNotes = getOmittedReminderNotes(
+      scheduledReminders.map(({ reminderType }) => reminderType),
+    )
+
+    return scheduledReminders.map(({ reminderType, scheduledFor }) =>
+      createReminder(
+        appointment,
+        patient,
+        reminderType,
+        scheduledFor,
+        referenceDate,
+        omittedReminderNotes,
+      ),
+    )
+  }
+
+  return [
+    createReminder(
+      appointment,
+      patient,
+      'immediate',
+      formatDateTimeValue(referenceDate),
+      referenceDate,
+      [nearAppointmentReminderNote],
+    ),
+  ]
+}
+
+function getOmittedReminderNotes(
+  generatedReminderTypes: ScheduledReminderType[],
+) {
+  const has24HourReminder = generatedReminderTypes.includes('24h')
+
+  return has24HourReminder ? [] : [late24HourReminderNote]
 }
 
 function createReminder(
   appointment: Appointment,
   patient: Patient | undefined,
   reminderType: ReminderType,
+  scheduledFor: string,
+  referenceDate: Date,
+  omittedReminderNotes: string[],
 ): Reminder {
   const patientName = appointment.patient.trim() || 'Paciente sin nombre'
 
@@ -215,22 +372,21 @@ function createReminder(
       appointment.treatment,
       appointment.date,
       appointment.time,
+      reminderType,
+      referenceDate,
     ),
+    omittedReminderNotes,
     patientId: patient?.id ?? appointment.patientId ?? null,
     patientName,
     phone: patient?.phone ?? 'Sin telefono registrado',
     reminderType,
-    scheduledFor: getScheduledFor(
-      appointment.date,
-      appointment.time,
-      reminderType,
-    ),
+    scheduledFor,
     status: reminderType === '24h' ? 'scheduled' : 'pending',
     treatment: appointment.treatment,
   }
 }
 
-function createReminderTypes(): ReminderType[] {
+function createReminderTypes(): ScheduledReminderType[] {
   return ['24h', '2h']
 }
 
@@ -258,18 +414,11 @@ function findAppointmentPatient(
   return patients.find((patient) => patient.fullName === appointment.patient)
 }
 
-function isFutureAppointment(
+function isFutureAppointmentDateTime(
   appointment: Appointment,
   referenceDate: Date,
 ) {
-  const referenceDay = new Date(
-    referenceDate.getFullYear(),
-    referenceDate.getMonth(),
-    referenceDate.getDate(),
-  )
-  const appointmentDay = new Date(`${appointment.date}T00:00:00`)
-
-  return appointmentDay >= referenceDay
+  return getAppointmentDateTime(appointment.date, appointment.time) > referenceDate
 }
 
 function getAppointmentDateTime(date: string, time: string) {
@@ -284,4 +433,28 @@ function formatDateTimeValue(date: Date) {
   const minutes = String(date.getMinutes()).padStart(2, '0')
 
   return `${year}-${month}-${day}T${hours}:${minutes}`
+}
+
+function formatReminderMessageDate(
+  appointmentDate: string,
+  referenceDate: Date,
+) {
+  const targetDate = new Date(`${appointmentDate}T00:00:00`)
+  const today = new Date(
+    referenceDate.getFullYear(),
+    referenceDate.getMonth(),
+    referenceDate.getDate(),
+  )
+  const tomorrow = new Date(today)
+  tomorrow.setDate(today.getDate() + 1)
+
+  if (targetDate.getTime() === today.getTime()) {
+    return 'hoy'
+  }
+
+  if (targetDate.getTime() === tomorrow.getTime()) {
+    return 'mañana'
+  }
+
+  return `el ${formatNaturalReminderDate(appointmentDate)}`
 }

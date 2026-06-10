@@ -15,7 +15,7 @@ export function AppLayout({
   onSectionChange,
 }: AppLayoutProps) {
   return (
-    <div className="app-layout">
+    <div className="app-layout" data-section={activeSection}>
       <Sidebar
         activeSection={activeSection}
         onSectionChange={onSectionChange}

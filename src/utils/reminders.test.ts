@@ -3,10 +3,12 @@ import type { Appointment } from '../types/Appointment'
 import type { Patient } from '../types/Patient'
 import {
   createWhatsAppReminderMessage,
+  filterRemindersByAppointmentDate,
   filterRemindersByStatus,
   generateAppointmentReminders,
   groupRemindersByAppointment,
   groupRemindersByAppointmentDate,
+  getReminderDateOptions,
   getScheduledFor,
   summarizeRemindersByStatus,
   updateReminderStatus,
@@ -135,6 +137,113 @@ describe('generateAppointmentReminders', () => {
       phone: 'Sin telefono registrado',
     })
   })
+
+  it('generates only the 2h reminder when the 24h reminder is already in the past', () => {
+    const reminders = generateAppointmentReminders(
+      [
+        {
+          date: '2026-06-10',
+          id: 5,
+          patient: 'Mariana Rojas',
+          patientId: 1,
+          status: 'confirmed',
+          time: '09:00',
+          treatment: 'Extracción simple',
+        },
+      ],
+      patients,
+      new Date('2026-06-09T18:00:00'),
+    )
+
+    expect(reminders).toHaveLength(1)
+    expect(reminders[0]).toMatchObject({
+      id: '5-2h',
+      omittedReminderNotes: [
+        'Recordatorio de 24h omitido por registro con poca anticipación.',
+      ],
+      reminderType: '2h',
+      scheduledFor: '2026-06-10T07:00',
+      status: 'pending',
+    })
+  })
+
+  it('creates an immediate confirmation when the appointment is less than 2h away', () => {
+    const reminders = generateAppointmentReminders(
+      [
+        {
+          date: '2026-06-09',
+          id: 6,
+          patient: 'Mariana Rojas',
+          patientId: 1,
+          status: 'confirmed',
+          time: '09:00',
+          treatment: 'Extracción simple',
+        },
+      ],
+      patients,
+      new Date('2026-06-09T08:00:00'),
+    )
+
+    expect(reminders).toHaveLength(1)
+    expect(reminders[0]).toMatchObject({
+      id: '6-immediate',
+      message:
+        'Hola Mariana, te recordamos que tienes una cita odontológica para Extracción simple hoy a las 09:00. Por favor confirma tu asistencia.',
+      omittedReminderNotes: [
+        'Recordatorios de 24h y 2h omitidos por cita cercana.',
+      ],
+      reminderType: 'immediate',
+      scheduledFor: '2026-06-09T08:00',
+      status: 'pending',
+    })
+  })
+
+  it('does not create reminders for past appointments', () => {
+    const reminders = generateAppointmentReminders(
+      [
+        {
+          date: '2026-06-09',
+          id: 7,
+          patient: 'Mariana Rojas',
+          patientId: 1,
+          status: 'confirmed',
+          time: '07:00',
+          treatment: 'Extracción simple',
+        },
+      ],
+      patients,
+      new Date('2026-06-09T08:00:00'),
+    )
+
+    expect(reminders).toHaveLength(0)
+  })
+
+  it('never generates scheduled reminders in the past', () => {
+    const referenceDate = new Date('2026-06-09T18:00:00')
+    const reminders = generateAppointmentReminders(
+      [
+        {
+          date: '2026-06-10',
+          id: 8,
+          patient: 'Mariana Rojas',
+          patientId: 1,
+          status: 'confirmed',
+          time: '09:00',
+          treatment: 'Extracción simple',
+        },
+      ],
+      patients,
+      referenceDate,
+    )
+
+    expect(
+      reminders.every(
+        (reminder) =>
+          reminder.reminderType === 'immediate' ||
+          new Date(reminder.scheduledFor) > referenceDate,
+      ),
+    ).toBe(true)
+  })
 })
 
 describe('getScheduledFor', () => {
@@ -156,9 +265,11 @@ describe('createWhatsAppReminderMessage', () => {
         'Limpieza dental',
         '2026-06-10',
         '09:00',
+        '24h',
+        new Date('2026-06-01T08:00:00'),
       ),
     ).toBe(
-      'Hola Mariana, te recordamos tu cita odontologica para Limpieza dental el 10-jun-2026 a las 09:00. Por favor confirma tu asistencia.',
+      'Hola Mariana, te recordamos tu cita odontológica para Limpieza dental el 10 de junio a las 09:00. Por favor confirma tu asistencia.',
     )
   })
 })
@@ -195,6 +306,75 @@ describe('filterRemindersByStatus', () => {
     expect(filterRemindersByStatus(reminders, 'all')).toHaveLength(4)
     expect(filterRemindersByStatus(reminders, 'sent')).toHaveLength(1)
     expect(filterRemindersByStatus(reminders, 'pending')).toHaveLength(1)
+  })
+})
+
+describe('filterRemindersByAppointmentDate', () => {
+  it('filters reminders by appointment date', () => {
+    const reminders = generateAppointmentReminders(
+      appointments,
+      patients,
+      new Date('2026-06-09T08:00:00'),
+    )
+
+    expect(filterRemindersByAppointmentDate(reminders, '2026-06-10')).toEqual([
+      expect.objectContaining({ id: '1-24h' }),
+      expect.objectContaining({ id: '1-2h' }),
+    ])
+  })
+
+  it('returns all reminders when no date is selected', () => {
+    const reminders = generateAppointmentReminders(
+      appointments,
+      patients,
+      new Date('2026-06-09T08:00:00'),
+    )
+
+    expect(filterRemindersByAppointmentDate(reminders, null)).toHaveLength(4)
+  })
+})
+
+describe('getReminderDateOptions', () => {
+  it('creates sorted compact date options from future reminders', () => {
+    const reminders = generateAppointmentReminders(
+      [
+        ...appointments,
+        {
+          date: '2026-06-12',
+          id: 4,
+          patient: 'Mariana Rojas',
+          patientId: 1,
+          status: 'confirmed',
+          time: '12:00',
+          treatment: 'Control odontologico',
+        },
+      ],
+      patients,
+      new Date('2026-06-09T08:00:00'),
+    )
+
+    expect(
+      getReminderDateOptions(reminders, new Date('2026-06-10T08:00:00')),
+    ).toEqual([
+      {
+        appointmentDate: '2026-06-10',
+        dateLabel: '10 jun',
+        fullLabel: 'Hoy, 10 de junio',
+        weekdayLabel: 'Hoy',
+      },
+      {
+        appointmentDate: '2026-06-11',
+        dateLabel: '11 jun',
+        fullLabel: 'Mañana, 11 de junio',
+        weekdayLabel: 'Mañana',
+      },
+      {
+        appointmentDate: '2026-06-12',
+        dateLabel: '12 jun',
+        fullLabel: 'Viernes, 12 de junio',
+        weekdayLabel: 'Vie',
+      },
+    ])
   })
 })
 
@@ -258,12 +438,12 @@ describe('groupRemindersByAppointmentDate', () => {
       expect.objectContaining({
         appointmentDate: '2026-06-10',
         appointmentGroups: [expect.objectContaining({ appointmentId: 1 })],
-        label: 'Hoy, 10-jun-2026',
+        label: 'Hoy, 10 de junio',
       }),
       expect.objectContaining({
         appointmentDate: '2026-06-11',
         appointmentGroups: [expect.objectContaining({ appointmentId: 3 })],
-        label: 'Mañana, 11-jun-2026',
+        label: 'Mañana, 11 de junio',
       }),
     ])
   })
