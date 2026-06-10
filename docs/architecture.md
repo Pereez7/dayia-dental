@@ -96,31 +96,35 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
 10. `AppointmentsView` alterna entre la agenda y el formulario de nueva cita.
 11. `DashboardView` recibe citas y pacientes desde `App.tsx`, calcula metricas
    con `src/utils/dashboardMetrics.ts` y compone las secciones del Dashboard.
-12. `SettingsView` recibe tratamientos desde `App.tsx` y compone la gestion de
-   tratamientos del consultorio.
-13. `TreatmentsSettings` agrega, busca, edita, activa y desactiva tratamientos
-   usando utilidades puras de `src/utils/treatmentUtils.ts`.
-14. `AppointmentForm` busca pacientes mock, guarda el paciente seleccionado por
+12. `SettingsView` recibe tratamientos desde `App.tsx`, carga horarios mock y
+   compone la configuracion del consultorio.
+13. `BusinessHoursSettings` permite ajustar horario semanal, intervalo de
+   atencion y estado abierto/cerrado por dia usando utilidades puras de
+   `src/utils/businessHours.ts`.
+14. `TreatmentsSettings` agrega, busca, edita, activa y desactiva tratamientos
+   usando utilidades puras de `src/utils/treatmentUtils.ts` y feedback mediante
+   `Toast`.
+15. `AppointmentForm` busca pacientes mock, guarda el paciente seleccionado por
    identificador, valida campos con funciones de `src/utils` y avisa a
    `App.tsx` cuando hay una nueva cita.
-15. `AppointmentForm` recibe tratamientos desde `App.tsx` y muestra solo los
+16. `AppointmentForm` recibe tratamientos desde `App.tsx` y muestra solo los
    tratamientos activos.
-16. `App.tsx` agrega la nueva cita al estado local y vuelve a la agenda.
-17. `AppointmentCard` usa funciones de `src/utils` para mostrar fecha, hora y
+17. `App.tsx` agrega la nueva cita al estado local y vuelve a la agenda.
+18. `AppointmentCard` usa funciones de `src/utils` para mostrar fecha, hora y
    estado en formato legible.
-18. `PatientForm` maneja los campos del formulario con estado local, valida con
+19. `PatientForm` maneja los campos del formulario con estado local, valida con
    funciones de `src/utils` y avisa a `PatientsView` cuando hay un nuevo
    paciente.
-19. `PatientsList` recibe pacientes, maneja el texto de busqueda local y usa
+20. `PatientsList` recibe pacientes, maneja el texto de busqueda local y usa
    `filterPatients` para decidir que registros mostrar.
-20. `PatientCard` muestra cada paciente filtrado.
-21. `ClinicalRecordForm` registra una evolucion clinica basica y normaliza los
+21. `PatientCard` muestra cada paciente filtrado.
+22. `ClinicalRecordForm` registra una evolucion clinica basica y normaliza los
    textos antes de avisar a `App.tsx`.
-22. `ClinicalRecordsList` muestra los registros clinicos filtrados del paciente,
+23. `ClinicalRecordsList` muestra los registros clinicos filtrados del paciente,
    con fechas compactas con año y resumen temporal.
-23. `PatientOdontogram` muestra piezas permanentes adultas, resumen por estado y
+24. `PatientOdontogram` muestra piezas permanentes adultas, resumen por estado y
    permite actualizar una pieza dental.
-24. `WhatsAppRemindersView` genera recordatorios locales desde citas y
+25. `WhatsAppRemindersView` genera recordatorios locales desde citas y
    pacientes, aplica filtros por fecha y estado, y muestra feedback mediante
    `Toast`.
 
@@ -218,17 +222,30 @@ La edicion, eliminacion, cancelacion real y persistencia siguen pendientes.
 
 `Configuracion`
 
-Incluye gestion local de tratamientos del consultorio. Participan:
+Incluye horarios del consultorio y gestion local de tratamientos. Participan:
 
+- `src/types/BusinessHours.ts`: define dias, horarios e intervalos de
+  atencion.
+- `src/data/businessHours.ts`: contiene la configuracion mock inicial de
+  horarios.
 - `src/types/Treatment.ts`: define `Treatment`.
 - `src/views/SettingsView.tsx`: compone la vista de configuracion.
+- `src/components/BusinessHoursSettings.tsx`: muestra horario semanal,
+  intervalo de atencion, validaciones y Toast al guardar.
 - `src/components/TreatmentsSettings.tsx`: muestra formulario, busqueda,
-  edicion, activacion y desactivacion.
+  edicion, activacion, desactivacion y Toast de feedback.
+- `src/components/Toast.tsx`: muestra confirmaciones flotantes sin mover el
+  layout.
+- `src/utils/businessHours.ts`: valida horarios, estados de dia e intervalos.
 - `src/utils/treatmentUtils.ts`: normaliza nombres, valida duplicados, filtra
   activos y aplica busqueda.
 
 Los tratamientos se mantienen en estado local dentro de `App.tsx`; Nueva Cita
 recibe esa misma lista y muestra solo tratamientos activos.
+
+Los horarios se validan de forma local y no tienen persistencia todavia. El
+bloque `Excepciones del calendario` es informativo y prepara una futura
+evolucion hacia feriados, cierres especiales o dias con horario distinto.
 
 `Historial clinico`
 
@@ -291,6 +308,8 @@ Tambien centraliza el pulido visual actual de:
 - Cabecera clinica del detalle de paciente.
 - Grilla, resumen y editor visual del odontograma.
 - Inputs, selects, textareas, mensajes y estados vacios.
+- Botones compactos de Configuracion alineados con Recordatorios, con acciones
+  neutras y color semantico en el texto.
 
 Estos ajustes son visuales; la logica sigue viviendo en componentes y
 utilidades separadas.

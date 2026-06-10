@@ -22,8 +22,9 @@ historiales y otros modulos clinicos.
   adultas, estados por pieza y resumen por estado.
 - Recordatorios WhatsApp iniciado con generacion local, filtros, vista previa y
   estados simulados.
-- Configuracion de tratamientos con alta, busqueda, edicion, activacion y
-  desactivacion local.
+- Configuracion con horarios del consultorio y tratamientos locales.
+- Tratamientos con alta, busqueda, edicion, activacion, desactivacion y Toast
+  flotante de feedback.
 - Datos mock separados en `src/data`.
 - Tipos compartidos en `src/types`.
 - Componentes pequenos y reutilizables en `src/components`.
@@ -45,7 +46,9 @@ historiales y otros modulos clinicos.
 - **Recordatorios WhatsApp:** generacion local de recordatorios `24h`, `2h` y
   confirmacion inmediata, con selector por fecha, filtros por estado, vista
   previa y Toast de feedback.
-- **Configuracion:** gestion local de tratamientos disponibles para Nueva Cita.
+- **Configuracion:** horarios semanales del consultorio, intervalo de atencion,
+  bloque informativo de futuras excepciones del calendario y gestion local de
+  tratamientos disponibles para Nueva Cita.
 
 La aplicacion todavia no tiene backend, base de datos, autenticacion,
 persistencia ni integracion real con WhatsApp.
@@ -99,3 +102,4 @@ archivos:
 - [Decisiones tecnicas](docs/decisions.md)
 - [Roadmap](docs/roadmap.md)
 - [Changelog](CHANGELOG.md)
+- [Producto](PRODUCT.md)

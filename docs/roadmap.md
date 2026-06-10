@@ -190,6 +190,13 @@ Estado: iniciado.
 
 Implementado:
 
+- Horarios del consultorio.
+- Horario semanal base.
+- Estado abierto/cerrado por dia.
+- Intervalo de atencion configurable.
+- Validacion local de horarios.
+- Toast flotante al guardar horarios.
+- Bloque informativo de futuras excepciones del calendario.
 - Tratamientos del consultorio.
 - Alta local de tratamientos.
 - Normalizacion y capitalizacion de nombres.
@@ -198,17 +205,19 @@ Implementado:
 - Busqueda de tratamientos.
 - Edicion simple sin cambiar `id`.
 - Activacion y desactivacion sin eliminacion fisica.
-- Feedback visual por agregar, editar, activar y desactivar.
+- Toast flotante por agregar, editar, activar y desactivar sin mover el layout.
+- Botones compactos y coherentes con Recordatorios.
 - Conexion con Nueva Cita para mostrar solo tratamientos activos.
-- Pruebas unitarias para utilidades de tratamientos.
+- Pruebas unitarias para utilidades de tratamientos y horarios.
 
 Pendiente:
 
 - Datos del consultorio.
-- Horarios.
 - Usuarios.
 - Preferencias y ajustes de notificaciones.
 - Persistencia de tratamientos.
+- Persistencia de horarios.
+- Excepciones reales de calendario.
 
 ## Pendientes generales
 

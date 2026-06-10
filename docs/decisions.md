@@ -273,12 +273,44 @@ revisar el mensaje y confirmar manualmente.
 
 ## Toast para feedback no bloqueante
 
-El feedback de Recordatorios usa un componente `Toast` flotante en lugar de una
-alerta dentro del flujo del layout. La decision evita saltos visuales cuando se
-marca un recordatorio como enviado o fallido. El Toast no roba foco, usa
-`aria-live`, tiene colores suaves por tipo y queda preparado para reutilizarse
-mas adelante en Pacientes, Citas, Historial clinico, Odontograma y
-Configuracion.
+El feedback de Recordatorios y Configuracion usa un componente `Toast` flotante
+en lugar de alertas dentro del flujo del layout. La decision evita saltos
+visuales cuando se marca un recordatorio como enviado o fallido, cuando se
+guardan horarios o cuando se agrega, edita, activa o desactiva un tratamiento.
+El Toast no roba foco, usa `aria-live`, tiene colores suaves por tipo y queda
+preparado para reutilizarse mas adelante en Pacientes, Citas, Historial clinico
+y Odontograma.
+
+Desactivar un tratamiento no se trata como error. Es una accion administrativa
+valida, por eso usa tono de aviso.
+
+## Horarios semanales antes que calendario completo
+
+Configuracion incluye primero un panel semanal de horarios del consultorio con
+intervalo de atencion y dias abiertos o cerrados. Esta version permite validar
+la estructura basica sin construir todavia calendario mensual, feriados,
+excepciones reales ni persistencia.
+
+El bloque `Excepciones del calendario` se deja como comunicacion de producto:
+prepara la evolucion futura hacia feriados, cierres especiales o dias con
+horario distinto, pero no agrega logica nueva.
+
+## Botones de Configuracion alineados con Recordatorios
+
+Las acciones de Configuracion usan el mismo criterio visual compacto de
+Recordatorios. Los botones de fila son neutros y comunican el tipo de accion con
+el color del texto: ambar para editar o guardar cambios, verde para activar y
+rojo suave para desactivar.
+
+Esto reduce ruido visual y evita que acciones secundarias compitan con acciones
+primarias como guardar horarios o agregar tratamiento.
+
+## Documentacion ampliada con PRODUCT.md
+
+Cuando se pida actualizar la documentacion, `PRODUCT.md` forma parte del mismo
+paquete que README, CHANGELOG y los documentos de `docs/`. Esto mantiene
+alineados criterios de producto, accesibilidad, arquitectura, decisiones,
+roadmap y estado funcional.
 
 ## Sin iconos por ahora
 

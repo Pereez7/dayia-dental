@@ -6,6 +6,30 @@ Registro breve de cambios relevantes en DayIA Dental.
 
 ### Cambios realizados
 
+- Se refino la vista Configuracion para alinear visualmente Horarios y
+  Tratamientos con el lenguaje del modulo Recordatorios.
+- Se agrego el panel `Horarios del consultorio` con horario semanal base,
+  intervalo de atencion, dias abiertos/cerrados, validacion de horarios y Toast
+  flotante al guardar.
+- Se agrego el bloque informativo `Excepciones del calendario` como preparacion
+  visual para feriados, cierres especiales o dias con horario distinto, sin
+  implementar la logica todavia.
+- Se reemplazaron las alertas internas de Tratamientos por el `Toast` flotante
+  reutilizable para evitar saltos visuales en el layout.
+- Se ajustaron los mensajes de Tratamientos a textos compactos:
+  `Tratamiento agregado.`, `Tratamiento actualizado.`,
+  `Tratamiento desactivado.` y `Tratamiento activado.`.
+- Se corrigio el tono del Toast al desactivar tratamientos para tratarlo como
+  aviso, no como error.
+- Se alineo el boton `Agregar tratamiento` con la altura del input del
+  formulario.
+- Se compactaron espacios entre nuevo tratamiento, busqueda y lista de
+  tratamientos.
+- Se unificaron los botones de Configuracion con el estilo compacto de
+  Recordatorios: acciones neutras con color semantico en el texto, primarios
+  sobrios, activar en verde, desactivar en rojo suave y editar/guardar en ambar.
+- Se actualizo la documentacion para incluir `PRODUCT.md` dentro del conjunto
+  de documentos que se mantienen al actualizar la documentacion.
 - Se implemento una primera version funcional de Recordatorios WhatsApp en
   frontend.
 - Se agregaron tipos de recordatorio para `24h`, `2h` y confirmacion inmediata.
@@ -40,6 +64,10 @@ Avanzar Recordatorios WhatsApp como simulacion local antes de integrar envio
 real. La prioridad fue validar reglas de programacion, evitar recordatorios en
 el pasado, manejar citas registradas con poca anticipacion y ofrecer feedback
 visual estable sin mover el contenido de la pantalla.
+
+Tambien consolidar Configuracion como una pantalla operativa coherente con el
+sistema visual actual, evitando alertas que empujen contenido, botones
+demasiado pesados y documentacion incompleta sobre criterios de producto.
 
 ## 2026-06-09
 

@@ -13,7 +13,8 @@ especialmente pensando en una futura integracion con WhatsApp.
 - Sidebar visualmente estructurado con marca, acciones rapidas y modulos.
 - Dashboard operativo con KPIs, proximas atenciones, pacientes recientes y
   resumen operativo, con composicion visual refinada.
-- Configuracion de tratamientos del consultorio conectada con Nueva Cita.
+- Configuracion de horarios y tratamientos del consultorio, conectada con
+  Nueva Cita para tratamientos activos.
 - Primera version de historial clinico dentro del detalle de paciente.
 - Primera version de odontograma dentro del detalle de paciente.
 - Primera version del modulo Recordatorios WhatsApp con simulacion local.
@@ -176,8 +177,18 @@ estados fuera de la sesion actual.
 
 ## Configuracion
 
-Actualmente existe una primera version de tratamientos del consultorio:
+Actualmente existe una primera version de horarios y tratamientos del
+consultorio:
 
+- Horarios del consultorio con horario semanal base.
+- Estado abierto/cerrado por dia.
+- Horarios en formato 24 horas.
+- Intervalo de atencion configurable.
+- Validacion local de horarios del consultorio.
+- Toast flotante al guardar horarios, sin mover el layout.
+- Bloque informativo `Excepciones del calendario` para preparar feriados,
+  cierres especiales o dias con horario distinto, sin implementar la logica
+  todavia.
 - Usa el tipo `Treatment` con `id`, `name` e `isActive`.
 - Permite agregar tratamientos.
 - Normaliza nombres antes de guardarlos, por ejemplo `LIMPIEZA DentaL` pasa a
@@ -188,7 +199,11 @@ Actualmente existe una primera version de tratamientos del consultorio:
 - Permite activar y desactivar tratamientos.
 - No permite eliminar tratamientos fisicamente para evitar problemas con citas
   relacionadas.
-- Muestra feedback visual por agregar, editar, activar y desactivar.
+- Muestra feedback por agregar, editar, activar y desactivar mediante el Toast
+  flotante reutilizable.
+- El Toast de desactivar tratamiento se trata como aviso, no como error.
+- Los botones de tratamientos usan estilo compacto coherente con Recordatorios:
+  acciones neutras con color semantico en el texto.
 - Nueva Cita consume solo tratamientos activos desde el estado local compartido.
 
 ## Navegacion

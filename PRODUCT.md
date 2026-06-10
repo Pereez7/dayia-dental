@@ -47,6 +47,11 @@ de backend antes de validar la experiencia local.
   actuar sin ruido.
 - Mantener continuidad operativa: los modulos deben sentirse parte de la misma
   app y conservar navegacion, espaciado y estados consistentes.
+- Reutilizar feedback no bloqueante cuando una accion no necesita interrumpir
+  el flujo, por ejemplo Toast flotante para confirmaciones de Configuracion y
+  Recordatorios.
+- Mantener botones compactos y consistentes: la jerarquia debe venir del rol de
+  la accion, no de exceso de tamaño, negrita o fondos saturados.
 - Validar primero en frontend: construir flujos locales, tipados y testeables
   antes de agregar persistencia o integraciones externas.
 - Hacer visible solo lo confiable: no mostrar indicadores incompletos ni datos
@@ -71,3 +76,16 @@ producto.
 - Lenguaje claro y profesional.
 - Evitar interfaces saturadas o dificiles de escanear.
 - Formularios estables, sin saltos visuales innecesarios.
+
+## Alcance de documentacion
+
+Cuando el usuario pida actualizar la documentacion de DayIA Dental, se deben
+mantener sincronizados estos 7 archivos:
+
+- `README.md`
+- `CHANGELOG.md`
+- `docs/project-context.md`
+- `docs/architecture.md`
+- `docs/decisions.md`
+- `docs/roadmap.md`
+- `PRODUCT.md`
