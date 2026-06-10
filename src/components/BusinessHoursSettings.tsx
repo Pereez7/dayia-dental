@@ -214,6 +214,17 @@ export function BusinessHoursSettings({
             Guardar horarios
           </button>
         </div>
+
+        <aside
+          className="business-calendar-note"
+          aria-labelledby="calendar-exceptions-title"
+        >
+          <h3 id="calendar-exceptions-title">Excepciones del calendario</h3>
+          <p>
+            Más adelante podrás definir feriados, cierres especiales o días con
+            horario distinto.
+          </p>
+        </aside>
       </form>
 
       <Toast

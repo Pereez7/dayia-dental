@@ -1,12 +1,11 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import type { Treatment } from '../types/Treatment'
 import {
   filterTreatmentsBySearch,
   formatTreatmentName,
   validateTreatmentName,
 } from '../utils/treatmentUtils'
-
-type FeedbackTone = 'success' | 'warning' | 'danger'
+import { Toast, type ToastTone } from './Toast'
 
 interface TreatmentsSettingsProps {
   treatments: Treatment[]
@@ -25,16 +24,37 @@ export function TreatmentsSettings({
   )
   const [editingName, setEditingName] = useState('')
   const [editingError, setEditingError] = useState('')
-  const [successMessage, setSuccessMessage] = useState('')
-  const [feedbackTone, setFeedbackTone] = useState<FeedbackTone>('success')
+  const [toastMessage, setToastMessage] = useState('')
+  const [toastTone, setToastTone] = useState<ToastTone>('success')
+  const [isToastVisible, setIsToastVisible] = useState(false)
   const filteredTreatments = filterTreatmentsBySearch(treatments, searchText)
+
+  useEffect(() => {
+    if (!isToastVisible) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => setIsToastVisible(false), 3200)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [isToastVisible, toastMessage])
+
+  useEffect(() => {
+    if (isToastVisible || !toastMessage) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => setToastMessage(''), 220)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [isToastVisible, toastMessage])
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const validationError = validateTreatmentName(treatments, treatmentName)
     setError(validationError)
-    setSuccessMessage('')
+    setIsToastVisible(false)
 
     if (validationError) {
       return
@@ -48,8 +68,9 @@ export function TreatmentsSettings({
 
     onTreatmentsChange([...treatments, newTreatment])
     setTreatmentName('')
-    setSuccessMessage('Tratamiento agregado correctamente.')
-    setFeedbackTone('success')
+    setToastMessage('Tratamiento agregado.')
+    setToastTone('success')
+    setIsToastVisible(true)
   }
 
   function toggleTreatment(treatmentId: number) {
@@ -64,25 +85,26 @@ export function TreatmentsSettings({
           : treatment,
       ),
     )
-    setSuccessMessage(
+    setToastMessage(
       targetTreatment?.isActive
         ? 'Tratamiento desactivado.'
         : 'Tratamiento activado.',
     )
-    setFeedbackTone(targetTreatment?.isActive ? 'danger' : 'success')
+    setToastTone(targetTreatment?.isActive ? 'warning' : 'success')
+    setIsToastVisible(true)
   }
 
   function updateTreatmentName(value: string) {
     setTreatmentName(value)
     setError('')
-    setSuccessMessage('')
+    setIsToastVisible(false)
   }
 
   function startEditing(treatment: Treatment) {
     setEditingTreatmentId(treatment.id)
     setEditingName(treatment.name)
     setEditingError('')
-    setSuccessMessage('')
+    setIsToastVisible(false)
   }
 
   function cancelEditing() {
@@ -98,7 +120,7 @@ export function TreatmentsSettings({
       treatmentId,
     )
     setEditingError(validationError)
-    setSuccessMessage('')
+    setIsToastVisible(false)
 
     if (validationError) {
       return
@@ -112,19 +134,20 @@ export function TreatmentsSettings({
       ),
     )
     cancelEditing()
-    setSuccessMessage('Tratamiento actualizado correctamente.')
-    setFeedbackTone('warning')
+    setToastMessage('Tratamiento actualizado.')
+    setToastTone('warning')
+    setIsToastVisible(true)
   }
 
   function updateEditingName(value: string) {
     setEditingName(value)
     setEditingError('')
-    setSuccessMessage('')
+    setIsToastVisible(false)
   }
 
   return (
     <section
-      className="settings-panel"
+      className="settings-panel treatments-panel"
       aria-labelledby="treatments-settings-title"
     >
       <div className="section-heading">
@@ -153,17 +176,6 @@ export function TreatmentsSettings({
           {error && <p className="field-message field-message--error">{error}</p>}
         </div>
       </form>
-
-      <div className="settings-feedback-slot">
-        {successMessage && (
-          <p
-            className={`settings-feedback settings-feedback--${feedbackTone}`}
-            role="status"
-          >
-            {successMessage}
-          </p>
-        )}
-      </div>
 
       <label className="treatment-search">
         <span>Buscar tratamiento</span>
@@ -264,6 +276,12 @@ export function TreatmentsSettings({
         Desactivar tratamientos conserva las citas relacionadas y evita perder
         referencias historicas.
       </p>
+
+      <Toast
+        message={toastMessage}
+        tone={toastTone}
+        visible={isToastVisible}
+      />
     </section>
   )
 }
