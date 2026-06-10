@@ -152,10 +152,37 @@ Pendiente:
 
 ### Recordatorios WhatsApp
 
-Estado: placeholder.
+Estado: iniciado.
 
-Pendiente definir plantillas, programacion, estados de envio e integracion con
-WhatsApp API.
+Implementado:
+
+- Vista inicial de Recordatorios WhatsApp con datos locales.
+- Generacion de recordatorios desde citas futuras.
+- Recordatorios de `24h` y `2h` cuando su horario programado queda en el
+  futuro.
+- Omision de recordatorios que ya quedaron en el pasado por registro tardio.
+- Confirmacion inmediata para citas muy cercanas, cuando ya no aplica `24h` ni
+  `2h`.
+- Agrupacion por fecha y cita.
+- Selector horizontal por fecha.
+- Filtros compactos por estado.
+- KPIs de todos, pendientes, programados, enviados simulados y fallidos.
+- Vista previa del mensaje sugerido.
+- Marcado local como enviado o fallido.
+- Manejo visual de pacientes sin telefono.
+- Toast flotante reutilizable para feedback sin mover el layout.
+- Pruebas unitarias para generacion, omisiones, confirmacion inmediata,
+  agrupacion, filtros y estados.
+
+Pendiente:
+
+- Envio real por WhatsApp API.
+- Persistencia de estados de recordatorio.
+- Plantillas configurables.
+- Programacion real de jobs o tareas.
+- Historial de intentos de envio.
+- Edicion de telefono desde el flujo de recordatorios.
+- Preferencias de notificacion por paciente o consultorio.
 
 ### Configuracion
 

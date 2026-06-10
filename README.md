@@ -20,6 +20,8 @@ historiales y otros modulos clinicos.
   asociados por paciente, normalizacion de textos y fechas con año.
 - Odontograma inicial dentro del detalle de paciente, con piezas permanentes
   adultas, estados por pieza y resumen por estado.
+- Recordatorios WhatsApp iniciado con generacion local, filtros, vista previa y
+  estados simulados.
 - Configuracion de tratamientos con alta, busqueda, edicion, activacion y
   desactivacion local.
 - Datos mock separados en `src/data`.
@@ -40,8 +42,10 @@ historiales y otros modulos clinicos.
   ordenados por fecha, con resumen temporal y formulario de evolucion basica.
 - **Odontograma:** grilla inicial de piezas permanentes adultas dentro del
   detalle de paciente, con actualizacion simple por pieza.
+- **Recordatorios WhatsApp:** generacion local de recordatorios `24h`, `2h` y
+  confirmacion inmediata, con selector por fecha, filtros por estado, vista
+  previa y Toast de feedback.
 - **Configuracion:** gestion local de tratamientos disponibles para Nueva Cita.
-- **Recordatorios:** vista inicial o placeholder para el crecimiento futuro.
 
 La aplicacion todavia no tiene backend, base de datos, autenticacion,
 persistencia ni integracion real con WhatsApp.

@@ -2,6 +2,45 @@
 
 Registro breve de cambios relevantes en DayIA Dental.
 
+## 2026-06-10
+
+### Cambios realizados
+
+- Se implemento una primera version funcional de Recordatorios WhatsApp en
+  frontend.
+- Se agregaron tipos de recordatorio para `24h`, `2h` y confirmacion inmediata.
+- Se generan recordatorios desde citas futuras usando datos locales de citas y
+  pacientes.
+- Se evita generar recordatorios con horario programado en el pasado.
+- Se omite el recordatorio de `24h` cuando una cita fue registrada con poca
+  anticipacion y todavia aplica el recordatorio de `2h`.
+- Se genera confirmacion inmediata cuando la cita esta demasiado cerca y ya no
+  aplican `24h` ni `2h`.
+- Se dejan notas visuales suaves cuando un recordatorio fue omitido.
+- Se agrupan recordatorios por fecha y por cita.
+- Se agrego selector horizontal por fecha y filtros compactos por estado.
+- Se agregaron KPIs de todos, pendientes, programados, enviados simulados y
+  fallidos.
+- Se agrego vista previa del mensaje sugerido.
+- Se permite marcar recordatorios como enviados o fallidos de forma local y
+  simulada.
+- Se maneja el caso de pacientes sin telefono deshabilitando `Marcar enviado`.
+- Se agrego un componente `Toast` reutilizable para feedback flotante.
+- Se reemplazo la alerta inline de Recordatorios por Toast para evitar saltos
+  visuales en el layout.
+- Se pulio el Toast con tamaño adaptable al contenido, colores suaves y
+  transicion de entrada y salida.
+- Se agregaron pruebas unitarias para generacion de recordatorios, omisiones,
+  confirmacion inmediata, filtros y agrupacion.
+- Se actualizo la documentacion para reflejar el estado actual del modulo.
+
+### Motivo del cambio
+
+Avanzar Recordatorios WhatsApp como simulacion local antes de integrar envio
+real. La prioridad fue validar reglas de programacion, evitar recordatorios en
+el pasado, manejar citas registradas con poca anticipacion y ofrecer feedback
+visual estable sin mover el contenido de la pantalla.
+
 ## 2026-06-09
 
 ### Cambios realizados

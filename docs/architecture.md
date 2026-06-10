@@ -120,6 +120,9 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
    con fechas compactas con año y resumen temporal.
 23. `PatientOdontogram` muestra piezas permanentes adultas, resumen por estado y
    permite actualizar una pieza dental.
+24. `WhatsAppRemindersView` genera recordatorios locales desde citas y
+   pacientes, aplica filtros por fecha y estado, y muestra feedback mediante
+   `Toast`.
 
 ## Modulos actuales
 
@@ -292,7 +295,31 @@ Tambien centraliza el pulido visual actual de:
 Estos ajustes son visuales; la logica sigue viviendo en componentes y
 utilidades separadas.
 
-`Recordatorios`
+`Recordatorios WhatsApp`
 
-Existe como vista inicial o placeholder para sostener la navegacion y el mapa
-futuro de la aplicacion.
+Existe como primera version funcional en frontend. Genera recordatorios locales
+desde citas futuras y pacientes mock, sin enviar mensajes reales.
+
+Participan:
+
+- `src/types/Reminder.ts`: define `Reminder`, `ReminderType`,
+  `ReminderStatus`, agrupaciones por cita y opciones de fecha.
+- `src/views/WhatsAppRemindersView.tsx`: compone KPIs, selector de fecha,
+  filtros por estado, listado, vista previa y Toast de feedback.
+- `src/components/ReminderKpiCard.tsx`: muestra indicadores del modulo.
+- `src/components/RemindersList.tsx`: renderiza citas agrupadas,
+  recordatorios, notas de omision y acciones.
+- `src/components/ReminderMessagePreview.tsx`: muestra el mensaje sugerido.
+- `src/components/Toast.tsx`: muestra feedback flotante sin mover el layout.
+- `src/utils/reminders.ts`: genera recordatorios, filtra por fecha y estado,
+  agrupa por cita y fecha, calcula resumen y crea mensajes sugeridos.
+
+La generacion de recordatorios evita crear horarios en el pasado. Para cada cita
+futura, `24h` y `2h` solo se generan si su horario programado queda despues de
+la fecha/hora de referencia. Si una cita esta demasiado cerca, se registra una
+nota de omision y, cuando ya no aplica `24h` ni `2h`, se genera una
+confirmacion inmediata con estado pendiente.
+
+El estado de envio es local y simulado. Marcar como enviado o fallido solo
+actualiza la vista durante la sesion actual. El Toast se posiciona como
+elemento flotante para evitar saltos visuales en el layout.

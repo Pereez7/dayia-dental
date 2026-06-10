@@ -16,6 +16,7 @@ especialmente pensando en una futura integracion con WhatsApp.
 - Configuracion de tratamientos del consultorio conectada con Nueva Cita.
 - Primera version de historial clinico dentro del detalle de paciente.
 - Primera version de odontograma dentro del detalle de paciente.
+- Primera version del modulo Recordatorios WhatsApp con simulacion local.
 - Componentes separados en `src/components`.
 - Vistas completas en `src/views`.
 - Datos mock separados en `src/data`.
@@ -145,6 +146,33 @@ Actualmente existe una primera version funcional en frontend:
 
 Todavia no existe edicion, eliminacion, cancelacion real ni persistencia de
 citas. Las citas nuevas solo viven en memoria durante la sesion actual.
+
+## Recordatorios WhatsApp
+
+Actualmente existe una primera version funcional en frontend:
+
+- Genera recordatorios desde citas futuras usando datos locales de citas y
+  pacientes.
+- Agrupa recordatorios por cita y fecha de cita.
+- Muestra KPIs de todos, pendientes, programados, enviados simulados y fallidos.
+- Tiene selector horizontal por fecha y filtros compactos por estado.
+- Genera recordatorios de `24h` y `2h` solo si su horario programado queda en
+  el futuro.
+- Omite recordatorios que ya quedaron en el pasado por registro tardio.
+- Para citas con menos de 24 horas, puede omitir el recordatorio de `24h` y
+  mantener el de `2h` si todavia aplica.
+- Para citas con menos de 2 horas, genera una confirmacion inmediata con estado
+  pendiente.
+- No muestra citas pasadas en Recordatorios.
+- Muestra notas suaves cuando un recordatorio fue omitido por poca anticipacion.
+- Permite ver una vista previa del mensaje.
+- Permite marcar recordatorios como enviados o fallidos de forma simulada.
+- Si el paciente no tiene telefono, mantiene `Ver mensaje`, deshabilita
+  `Marcar enviado` y permite marcar fallido si corresponde a la simulacion.
+- Usa un Toast flotante reutilizable para feedback sin mover el layout.
+
+El modulo no envia mensajes reales, no se conecta a WhatsApp API y no persiste
+estados fuera de la sesion actual.
 
 ## Configuracion
 

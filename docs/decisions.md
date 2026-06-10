@@ -250,7 +250,35 @@ componentes visuales.
 
 Los estados de cita usan badges con colores suaves para facilitar lectura rapida
 sin saturar la interfaz. `Recordatorio` no se usa como estado de cita; los
-recordatorios pertenecen al modulo futuro de WhatsApp.
+recordatorios pertenecen al modulo Recordatorios WhatsApp.
+
+## Recordatorios WhatsApp como simulacion local
+
+El modulo Recordatorios WhatsApp se implementa primero como simulacion local en
+frontend. No envia mensajes reales, no programa jobs y no persiste estados.
+Esto permite validar generacion, agrupacion, mensajes sugeridos y acciones de
+seguimiento antes de integrar WhatsApp API.
+
+## No generar recordatorios en el pasado
+
+Los recordatorios de `24h` y `2h` solo se crean si su `scheduledFor` queda
+despues de la fecha/hora actual de referencia. Si una cita se registra con poca
+anticipacion, el sistema omite los recordatorios que ya no aplican y muestra una
+nota discreta en la card.
+
+Cuando una cita esta demasiado cerca y ya no aplican `24h` ni `2h`, se genera
+una `Confirmacion inmediata` con estado pendiente. Esto evita mostrar horarios
+irreales en el pasado y mantiene una accion clara para recepcion o el doctor:
+revisar el mensaje y confirmar manualmente.
+
+## Toast para feedback no bloqueante
+
+El feedback de Recordatorios usa un componente `Toast` flotante en lugar de una
+alerta dentro del flujo del layout. La decision evita saltos visuales cuando se
+marca un recordatorio como enviado o fallido. El Toast no roba foco, usa
+`aria-live`, tiene colores suaves por tipo y queda preparado para reutilizarse
+mas adelante en Pacientes, Citas, Historial clinico, Odontograma y
+Configuracion.
 
 ## Sin iconos por ahora
 
