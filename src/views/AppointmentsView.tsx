@@ -31,6 +31,7 @@ export function AppointmentsView({
   if (mode === 'new') {
     return (
       <AppointmentForm
+        appointments={appointments}
         businessHours={businessHours}
         patients={patients}
         treatments={treatments}

@@ -1,5 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import type {
+  Appointment,
   AppointmentFormErrors,
   AppointmentFormValues,
   AppointmentStatus,
@@ -9,7 +10,10 @@ import type { Patient } from '../types/Patient'
 import type { Treatment } from '../types/Treatment'
 import { getAppointmentStatusLabel } from '../utils/appointmentFormatters'
 import {
-  generateBusinessTimeSlotsForDate,
+  getAvailableTimeOptions,
+  hasPatientAppointmentOnDate,
+} from '../utils/appointmentConflicts'
+import {
   getBusinessDayScheduleForDate,
 } from '../utils/businessHours'
 import { filterPatients } from '../utils/patientFilters'
@@ -39,6 +43,7 @@ function getTodayDateInputValue() {
 }
 
 interface AppointmentFormProps {
+  appointments: Appointment[]
   businessHours: BusinessHoursSettings
   patients: Patient[]
   treatments: Treatment[]
@@ -47,6 +52,7 @@ interface AppointmentFormProps {
 }
 
 export function AppointmentForm({
+  appointments,
   businessHours,
   patients,
   treatments,
@@ -69,9 +75,9 @@ export function AppointmentForm({
   const appointmentTimeOptions = useMemo(
     () =>
       formValues.date
-        ? generateBusinessTimeSlotsForDate(businessHours, formValues.date)
+        ? getAvailableTimeOptions(businessHours, appointments, formValues.date)
         : [],
-    [businessHours, formValues.date],
+    [appointments, businessHours, formValues.date],
   )
   const isTimeSelectDisabled =
     !formValues.date || selectedDateIsClosed || appointmentTimeOptions.length === 0
@@ -85,12 +91,17 @@ export function AppointmentForm({
 
   function updateAppointmentDate(value: string) {
     const timeOptions = value
-      ? generateBusinessTimeSlotsForDate(businessHours, value)
+      ? getAvailableTimeOptions(businessHours, appointments, value)
       : []
     const daySchedule = value
       ? getBusinessDayScheduleForDate(businessHours, value)
       : undefined
     const isClosed = Boolean(value) && daySchedule?.isOpen === false
+    const hasPatientConflict = hasPatientAppointmentOnDate(
+      appointments,
+      formValues.patientId,
+      value,
+    )
 
     setFormValues((currentValues) => ({
       ...currentValues,
@@ -103,6 +114,9 @@ export function AppointmentForm({
     setErrors((currentErrors) => ({
       ...currentErrors,
       date: isClosed ? 'El consultorio está cerrado ese día.' : undefined,
+      patient: hasPatientConflict
+        ? 'Este paciente ya tiene una cita activa ese día.'
+        : undefined,
       time: undefined,
     }))
   }
@@ -122,9 +136,19 @@ export function AppointmentForm({
       patientId: null,
       patient: '',
     }))
+    setErrors((currentErrors) => ({
+      ...currentErrors,
+      patient: undefined,
+    }))
   }
 
   function selectPatient(patient: Patient) {
+    const hasPatientConflict = hasPatientAppointmentOnDate(
+      appointments,
+      patient.id,
+      formValues.date,
+    )
+
     setPatientSearch(patient.fullName)
     setFormValues((currentValues) => ({
       ...currentValues,
@@ -133,7 +157,9 @@ export function AppointmentForm({
     }))
     setErrors((currentErrors) => ({
       ...currentErrors,
-      patient: undefined,
+      patient: hasPatientConflict
+        ? 'Este paciente ya tiene una cita activa ese día.'
+        : undefined,
     }))
   }
 
@@ -145,6 +171,7 @@ export function AppointmentForm({
       new Date(),
       activeTreatments,
       businessHours,
+      appointments,
     )
     setErrors(validationErrors)
 
@@ -181,7 +208,9 @@ export function AppointmentForm({
           <div className="appointment-control">
             <input
               id="appointment-patient"
+              name="dayia-appointment-patient-search"
               type="search"
+              autoComplete="off"
               placeholder="Buscar por nombre o telefono"
               value={patientSearch}
               onChange={(event) => handlePatientSearch(event.target.value)}
@@ -276,9 +305,11 @@ export function AppointmentForm({
           >
             <option value="">
               {selectedDateIsClosed
-                ? 'Día cerrado'
+                ? 'Consultorio cerrado ese día'
                 : formValues.date
-                  ? 'Seleccionar horario'
+                  ? appointmentTimeOptions.length > 0
+                    ? 'Seleccionar horario'
+                    : 'No hay horarios disponibles'
                   : 'Selecciona una fecha'}
             </option>
             {appointmentTimeOptions.map((slot) => (
@@ -292,6 +323,14 @@ export function AppointmentForm({
               <p className="field-message field-message--error">
                 {errors.time}
               </p>
+            )}
+            {!errors.time &&
+              formValues.date &&
+              !selectedDateIsClosed &&
+              appointmentTimeOptions.length === 0 && (
+                <p className="field-message field-message--help">
+                  No hay horarios disponibles para esta fecha.
+                </p>
             )}
           </div>
         </div>

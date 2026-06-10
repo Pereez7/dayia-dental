@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { AppointmentFormValues } from '../types/Appointment'
+import type { Appointment, AppointmentFormValues } from '../types/Appointment'
 import type { BusinessHoursSettings } from '../types/BusinessHours'
 import type { Treatment } from '../types/Treatment'
 import {
@@ -10,6 +10,18 @@ import {
 const activeTreatments: Treatment[] = [
   { id: 1, name: 'Limpieza dental', isActive: true },
   { id: 2, name: 'Endodoncia', isActive: false },
+]
+
+const existingAppointments: Appointment[] = [
+  {
+    date: '2026-06-12',
+    id: 1,
+    patient: 'Carlos Medina',
+    patientId: 2,
+    status: 'confirmed',
+    time: '10:00',
+    treatment: 'Evaluación inicial',
+  },
 ]
 
 const businessHours: BusinessHoursSettings = {
@@ -51,6 +63,7 @@ function validate(values: AppointmentFormValues) {
     new Date('2026-06-08T10:00:00'),
     activeTreatments,
     businessHours,
+    existingAppointments,
   )
 }
 
@@ -178,6 +191,32 @@ describe('validateAppointmentForm', () => {
     expect(errors.date).toBe('La fecha no puede ser anterior a hoy.')
   })
 
+  it('rejects an appointment when the date and time are already occupied', () => {
+    const errors = validate({
+      ...validAppointmentFormValues,
+      date: '2026-06-12',
+      time: '10:00',
+    })
+
+    expect(errors.time).toBe(
+      'Ya existe una cita programada para esa fecha y hora.',
+    )
+  })
+
+  it('rejects an appointment when the patient already has an active appointment that day', () => {
+    const errors = validate({
+      ...validAppointmentFormValues,
+      patientId: 2,
+      patient: 'Carlos Medina',
+      date: '2026-06-12',
+      time: '09:30',
+    })
+
+    expect(errors.patient).toBe(
+      'Este paciente ya tiene una cita activa ese día.',
+    )
+  })
+
   it('requires a treatment', () => {
     const errors = validate({
       ...validAppointmentFormValues,
@@ -226,6 +265,7 @@ describe('validateAppointmentForm', () => {
       new Date('2026-06-08T10:00:00'),
       [{ id: 1, name: 'Limpieza dental', isActive: false }],
       businessHours,
+      existingAppointments,
     )
 
     expect(errors.treatment).toBe(

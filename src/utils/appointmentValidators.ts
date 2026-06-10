@@ -1,10 +1,15 @@
 import type {
+  Appointment,
   AppointmentFormErrors,
   AppointmentFormValues,
   AppointmentStatus,
 } from '../types/Appointment'
 import type { BusinessHoursSettings } from '../types/BusinessHours'
 import type { Treatment } from '../types/Treatment'
+import {
+  hasAppointmentConflict,
+  hasPatientAppointmentOnDate,
+} from './appointmentConflicts'
 import { appointmentTimeSlots } from './appointmentTimeSlots'
 import { validateAppointmentAgainstBusinessHours } from './businessHours'
 import { getActiveTreatments } from './treatmentUtils'
@@ -19,11 +24,22 @@ export function validateAppointmentForm(
   referenceDate = new Date(),
   treatments: Treatment[] = [],
   businessHours?: BusinessHoursSettings,
+  appointments: Appointment[] = [],
+  appointmentIdToIgnore?: number,
 ): AppointmentFormErrors {
   const errors: AppointmentFormErrors = {}
 
   if (values.patientId === null) {
     errors.patient = 'Selecciona un paciente.'
+  } else if (
+    hasPatientAppointmentOnDate(
+      appointments,
+      values.patientId,
+      values.date,
+      appointmentIdToIgnore,
+    )
+  ) {
+    errors.patient = 'Este paciente ya tiene una cita activa ese día.'
   }
 
   if (!values.date) {
@@ -53,6 +69,15 @@ export function validateAppointmentForm(
     !appointmentTimeSlots.some((slot) => slot.value === values.time)
   ) {
     errors.time = 'Selecciona una hora valida.'
+  } else if (
+    hasAppointmentConflict(
+      appointments,
+      values.date,
+      values.time,
+      appointmentIdToIgnore,
+    )
+  ) {
+    errors.time = 'Ya existe una cita programada para esa fecha y hora.'
   }
 
   const activeTreatments = getActiveTreatments(treatments)
