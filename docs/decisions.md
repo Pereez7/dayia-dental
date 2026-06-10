@@ -206,6 +206,20 @@ creacion local de citas para validar el flujo de registro. La edicion,
 eliminacion y cancelacion real de citas quedan pendientes hasta que el modelo de
 agenda sea mas claro y estable.
 
+## Agenda diaria antes que calendario mensual
+
+La vista Citas se orienta primero como agenda diaria operativa. El consultorio
+necesita revisar que ocurre hoy, mañana o en proximos dias con citas antes de
+necesitar un calendario mensual completo.
+
+El selector horizontal de dias evita una tabla rigida en mobile y mantiene una
+experiencia cercana a Recordatorios. Los KPIs se calculan por dia seleccionado
+para que recepcion pueda entender rapidamente carga, pendientes, confirmadas,
+reprogramadas y canceladas.
+
+El calendario mensual, la reprogramacion visual, la cancelacion y acciones por
+estado quedan pendientes hasta que la agenda diaria este estable.
+
 ## Creacion local de citas antes de persistencia
 
 El formulario de nueva cita se implementa primero en frontend con estado local.

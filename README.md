@@ -13,7 +13,7 @@ historiales y otros modulos clinicos.
   de paciente.
 - Dashboard operativo con KPIs, proximas atenciones, pacientes recientes y
   resumen de actividad, con composicion visual refinada.
-- Modulo de citas con agenda agrupada y formulario de nueva cita.
+- Modulo de citas con agenda diaria operativa y formulario de nueva cita.
 - Nueva cita con seleccion real de paciente, horarios disponibles segun
   horarios del consultorio, bloqueo de horas ocupadas y validaciones de campos.
 - Historial clinico inicial dentro del detalle de paciente, con registros
@@ -37,10 +37,11 @@ historiales y otros modulos clinicos.
   resumen operativo con jerarquia visual mejorada.
 - **Pacientes:** listado, busqueda, alta local, validaciones, detalle de
   paciente, fichas escaneables, citas asociadas e historial clinico inicial.
-- **Citas:** agenda mobile-first, KPIs por estado, creacion local de citas,
-  seleccion de paciente, horarios disponibles segun configuracion del
-  consultorio, bloqueo de choques de horario y bloqueo de doble cita activa del
-  mismo paciente en el dia.
+- **Citas:** agenda diaria mobile-first con selector horizontal de dias, KPIs
+  del dia, listado ordenado por hora, creacion local de citas, seleccion de
+  paciente, horarios disponibles segun configuracion del consultorio, bloqueo
+  de choques de horario y bloqueo de doble cita activa del mismo paciente en el
+  dia.
 - **Historial clinico:** registros clinicos dentro del detalle de paciente,
   ordenados por fecha, con resumen temporal y formulario de evolucion basica.
 - **Odontograma:** grilla inicial de piezas permanentes adultas dentro del

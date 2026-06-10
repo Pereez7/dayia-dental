@@ -6,6 +6,20 @@ Registro breve de cambios relevantes en DayIA Dental.
 
 ### Cambios realizados
 
+- Se convirtio la vista Citas en una agenda diaria operativa enfocada en el
+  dia seleccionado.
+- Se agrego selector horizontal de dias con etiquetas compactas para hoy,
+  mañana y proximos dias con citas.
+- Se agregaron KPIs diarios de total, pendientes, confirmadas, reprogramadas y
+  canceladas.
+- Se cambio la lista de Citas para mostrar solo las citas del dia seleccionado,
+  ordenadas por hora ascendente.
+- Las cards de agenda muestran hora, paciente, telefono cuando existe,
+  tratamiento y badge de estado.
+- Se agrego estado vacio profesional cuando el dia seleccionado no tiene citas.
+- Se agregaron utilidades puras para generar dias visibles, filtrar citas por
+  dia, ordenar por hora y etiquetar dias del selector.
+- Se agregaron pruebas unitarias para la agenda diaria y sus etiquetas.
 - Se conecto Nueva Cita con los horarios del consultorio configurados en
   Configuracion.
 - Se agrego validacion para impedir choques exactos de fecha y hora entre citas
@@ -88,6 +102,9 @@ demasiado pesados y documentacion incompleta sobre criterios de producto.
 Nueva Cita queda mas protegida contra sobreagendamiento: el usuario ve solo
 horas disponibles, pero la validacion final sigue bloqueando choques si el
 estado cambia antes de guardar.
+
+La vista Citas deja de ser solo un listado agrupado y empieza a comportarse
+como agenda diaria para recepcion, con foco operativo en el dia seleccionado.
 
 ## 2026-06-09
 

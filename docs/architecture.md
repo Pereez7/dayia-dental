@@ -191,8 +191,8 @@ no en la vista global del menu lateral.
 
 `Citas`
 
-Incluye datos mock, resumen visual de proximas atenciones, una agenda
-mobile-first y creacion local de citas en memoria.
+Incluye datos mock, agenda diaria mobile-first, resumen visual del dia
+seleccionado y creacion local de citas en memoria.
 
 Participan:
 
@@ -202,13 +202,14 @@ Participan:
 - `src/data/treatments.ts`: contiene el catalogo inicial tipado de tratamientos.
 - `src/views/AppointmentsView.tsx`: compone la vista de agenda o el formulario
   de nueva cita.
-- `src/components/AppointmentsAgenda.tsx`: muestra la agenda agrupada por fecha
-  y el resumen superior.
+- `src/components/AppointmentsAgenda.tsx`: muestra la agenda diaria, selector
+  horizontal de dias, resumen del dia y lista de citas del dia seleccionado.
 - `src/components/AppointmentAgendaCard.tsx`: muestra cada cita.
 - `src/components/AppointmentForm.tsx`: registra una cita nueva en el estado
   local de la aplicacion.
 - `src/utils/appointmentSorters.ts`: ordena citas por fecha y hora.
-- `src/utils/appointmentGroups.ts`: agrupa citas por fecha y calcula resumen por
+- `src/utils/appointmentGroups.ts`: agrupa citas por fecha, filtra citas del
+  dia seleccionado, genera dias visibles para el selector y calcula resumen por
   estado.
 - `src/utils/appointmentFormatters.ts`: formatea fecha, hora y estados.
 - `src/utils/appointmentValidators.ts`: valida los campos del formulario de
@@ -219,6 +220,10 @@ Participan:
   semanal e intervalo configurado.
 - `src/utils/appointmentConflicts.ts`: detecta choques de fecha/hora, doble
   cita activa de paciente en el dia y calcula horas disponibles.
+
+La agenda diaria inicia en hoy y permite saltar a mañana o a proximos dias con
+citas. Las citas del dia se ordenan por hora ascendente y los KPIs se calculan
+solo con el dia seleccionado.
 
 Nueva Cita recibe las citas existentes para ocultar horas ocupadas por citas
 pendientes, confirmadas o reprogramadas. Las citas canceladas no bloquean

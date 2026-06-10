@@ -62,10 +62,14 @@ Estado: parcialmente implementado.
 
 Implementado:
 
-- Agenda visual de proximas citas.
+- Agenda diaria operativa enfocada en el dia seleccionado.
+- Selector horizontal de dias con hoy, mañana y proximos dias con citas.
 - Citas mock ordenadas por fecha y hora.
-- Agrupacion por fecha.
-- Resumen superior con KPIs.
+- Filtrado de citas por dia seleccionado.
+- Ordenamiento de citas del dia por hora ascendente.
+- Resumen diario con KPIs de total, pendientes, confirmadas, reprogramadas y
+  canceladas.
+- Estado vacio para dias sin citas.
 - Estados visuales con badges semanticos.
 - Formulario de nueva cita.
 - Busqueda y seleccion de pacientes mock para agendar.
@@ -91,6 +95,7 @@ Pendiente:
 - Edicion de cita.
 - Eliminacion o cancelacion real.
 - Estados funcionales conectados a acciones.
+- Calendario mensual.
 - Duracion real por tratamiento.
 - Multiples doctores o sillones.
 - Excepciones de calendario, feriados y cierres especiales.

@@ -128,11 +128,17 @@ Actualmente existe una primera version funcional en frontend:
 
 - Usa citas mock desde `src/data/appointments.ts`.
 - Mantiene las citas en estado local dentro de `src/App.tsx`.
-- Muestra proximas citas agrupadas por fecha.
-- Ordena las citas por fecha y hora.
-- Muestra resumen superior con total de proximas citas, confirmadas, pendientes
-  y reprogramadas.
-- Cada cita muestra hora, paciente, tratamiento o motivo y estado.
+- Muestra una agenda diaria enfocada en el dia seleccionado.
+- El valor inicial de la agenda diaria es hoy.
+- Tiene selector horizontal de dias con etiquetas compactas para hoy, mañana y
+  proximos dias con citas.
+- Ordena las citas del dia seleccionado por hora ascendente.
+- Muestra resumen del dia con total, pendientes, confirmadas, reprogramadas y
+  canceladas.
+- Cada cita muestra hora, paciente, telefono cuando existe, tratamiento o motivo
+  y estado.
+- Si no hay citas para el dia seleccionado, muestra un estado vacio profesional
+  que sugiere usar la accion global `+ Cita`.
 - Los estados usan badges con colores semanticos suaves.
 - Permite registrar una nueva cita desde la accion rapida `+ Cita`.
 - El formulario de nueva cita permite buscar y seleccionar pacientes mock.

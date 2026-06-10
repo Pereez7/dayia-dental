@@ -45,6 +45,8 @@ de backend antes de validar la experiencia local.
 
 - Priorizar claridad clinica: cada pantalla debe ayudar a escanear, decidir y
   actuar sin ruido.
+- Priorizar foco diario en agenda: Citas debe ayudar a operar el dia
+  seleccionado antes de incorporar vistas mensuales o flujos avanzados.
 - Mantener continuidad operativa: los modulos deben sentirse parte de la misma
   app y conservar navegacion, espaciado y estados consistentes.
 - Reutilizar feedback no bloqueante cuando una accion no necesita interrumpir
