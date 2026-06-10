@@ -1,4 +1,5 @@
 import type { Appointment } from '../types/Appointment'
+import type { Patient } from '../types/Patient'
 import {
   formatAppointmentTime,
   getAppointmentStatusClassName,
@@ -7,10 +8,12 @@ import {
 
 interface AppointmentAgendaCardProps {
   appointment: Appointment
+  patient?: Patient
 }
 
 export function AppointmentAgendaCard({
   appointment,
+  patient,
 }: AppointmentAgendaCardProps) {
   const appointmentTime = formatAppointmentTime(appointment.time)
   const statusClassName = getAppointmentStatusClassName(appointment.status)
@@ -28,8 +31,9 @@ export function AppointmentAgendaCard({
       <div className="agenda-card-body">
         <div>
           <h3>{appointment.patient}</h3>
-          <p>{appointment.treatment}</p>
+          <p>{patient?.phone ?? 'Telefono sin registro'}</p>
         </div>
+        <p className="agenda-card-treatment">{appointment.treatment}</p>
         <span className={`agenda-status ${statusClassName}`}>
           {statusLabel}
         </span>

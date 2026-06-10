@@ -41,5 +41,5 @@ export function AppointmentsView({
     )
   }
 
-  return <AppointmentsAgenda appointments={appointments} />
+  return <AppointmentsAgenda appointments={appointments} patients={patients} />
 }
