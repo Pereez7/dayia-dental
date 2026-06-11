@@ -112,6 +112,7 @@ Pendiente:
 - Eliminacion real.
 - Motivo de cancelacion.
 - Motivo de reprogramacion.
+- Reemplazar `window.confirm` por un `ConfirmDialog` reutilizable.
 - Historial de cambios por cita.
 - Mas estados funcionales conectados a acciones.
 - Estados intermedios como `Solicitud de cancelacion` cuando exista integracion
