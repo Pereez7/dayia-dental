@@ -234,6 +234,11 @@ cita pendiente, confirmada o reprogramada. La cancelacion no elimina la cita:
 solo cambia su estado a `cancelled`, mantiene la card visible y libera el
 horario para Nueva Cita.
 
+Las citas canceladas no se reprograman directamente. Si el paciente desea
+asistir nuevamente, se crea una nueva cita. Mas adelante, cuando exista
+integracion real con WhatsApp, se evaluaran estados intermedios como
+`Solicitud de cancelacion` para evitar cancelaciones accidentales.
+
 Nueva Cita recibe las citas existentes para ocultar horas ocupadas por citas
 pendientes, confirmadas o reprogramadas. Las citas canceladas no bloquean
 horario. Aunque el selector solo muestra horas disponibles, la validacion final

@@ -49,6 +49,9 @@ de backend antes de validar la experiencia local.
   seleccionado antes de incorporar vistas mensuales o flujos avanzados.
 - Mantener trazabilidad operativa: cancelar una cita debe cambiar su estado y
   conservarla visible, no eliminarla del flujo.
+- No reprogramar citas canceladas directamente: si el paciente desea asistir
+  nuevamente, se crea una nueva cita para conservar trazabilidad y evitar
+  ambiguedad operativa.
 - Mantener continuidad operativa: los modulos deben sentirse parte de la misma
   app y conservar navegacion, espaciado y estados consistentes.
 - Reutilizar feedback no bloqueante cuando una accion no necesita interrumpir
@@ -67,6 +70,10 @@ de backend antes de validar la experiencia local.
   inventados para cubrir vacios del modelo mock.
 - Disenar mobile-first: cada flujo importante debe ser usable en pantallas
   pequenas sin perder legibilidad ni area tactil.
+
+Cuando exista integracion real con WhatsApp, se evaluaran estados intermedios
+como `Solicitud de cancelacion` para evitar cancelaciones accidentales antes de
+cancelar una cita definitivamente.
 
 ## Accessibility & Inclusion
 

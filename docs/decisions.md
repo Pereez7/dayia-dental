@@ -235,6 +235,20 @@ cambios, motivo de cancelacion, edicion ni reprogramacion todavia.
 El feedback usa Toast flotante: confirmar usa tono de exito y cancelar usa tono
 de aviso, porque cancelar es una accion administrativa valida, no un error.
 
+## Citas canceladas no se reprograman directamente
+
+Las citas canceladas no se reprograman directamente. Si el paciente desea
+asistir nuevamente, se crea una nueva cita.
+
+Esta decision evita mezclar dos intenciones operativas distintas: cancelar una
+cita ya cerrada y agendar una nueva atencion. La cita cancelada conserva su
+trazabilidad en la agenda, libera el horario y no genera recordatorios, pero no
+se reactiva mediante reprogramacion directa.
+
+Mas adelante, cuando exista integracion real con WhatsApp, se evaluaran estados
+intermedios como `Solicitud de cancelacion` para evitar cancelaciones
+accidentales antes de aplicar una cancelacion definitiva.
+
 ## Creacion local de citas antes de persistencia
 
 El formulario de nueva cita se implementa primero en frontend con estado local.

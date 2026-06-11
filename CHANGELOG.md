@@ -26,6 +26,9 @@ Registro breve de cambios relevantes en DayIA Dental.
   reprogramadas sin eliminarlas.
 - Se agrego Toast flotante de confirmacion para citas confirmadas y Toast de
   aviso para citas canceladas.
+- Se documento la decision de producto: las citas canceladas no se reprograman
+  directamente; si el paciente desea asistir nuevamente, se crea una nueva
+  cita.
 - Se agrego utilidad pura para definir acciones disponibles segun estado de
   cita.
 - Se ajusto Recordatorios para no generar recordatorios de citas canceladas.
@@ -121,6 +124,11 @@ Las acciones de confirmar y cancelar avanzan la operacion diaria sin introducir
 edicion, reprogramacion, eliminacion fisica ni persistencia. Cancelar una cita
 es una accion administrativa valida, por eso usa Toast de aviso y la cita queda
 visible como cancelada.
+
+Las citas canceladas no se reprograman directamente. Si el paciente desea
+asistir nuevamente, se crea una nueva cita. Mas adelante, cuando exista
+integracion real con WhatsApp, se evaluaran estados intermedios como
+`Solicitud de cancelacion` para evitar cancelaciones accidentales.
 
 ## 2026-06-09
 

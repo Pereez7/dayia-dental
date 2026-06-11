@@ -141,6 +141,8 @@ Actualmente existe una primera version funcional en frontend:
 - La agenda permite cancelar citas pendientes, confirmadas o reprogramadas sin
   eliminarlas.
 - Las citas canceladas quedan visibles con badge `Cancelada`.
+- Las citas canceladas no se reprograman directamente; si el paciente desea
+  asistir nuevamente, se crea una nueva cita.
 - Confirmar muestra Toast de confirmacion; cancelar muestra Toast de aviso.
 - Si no hay citas para el dia seleccionado, muestra un estado vacio profesional
   que sugiere usar la accion global `+ Cita`.
@@ -170,6 +172,10 @@ Actualmente existe una primera version funcional en frontend:
 
 Todavia no existe edicion, eliminacion, cancelacion real ni persistencia de
 citas. Las citas nuevas solo viven en memoria durante la sesion actual.
+
+Mas adelante, cuando exista integracion real con WhatsApp, se evaluaran estados
+intermedios como `Solicitud de cancelacion` para evitar cancelaciones
+accidentales antes de convertir una cita en cancelada.
 
 ## Recordatorios WhatsApp
 

@@ -76,6 +76,8 @@ Implementado:
   eliminacion fisica.
 - Toast flotante de exito al confirmar y de aviso al cancelar.
 - Citas canceladas visibles en agenda y sin bloqueo de horarios en Nueva Cita.
+- Citas canceladas no reprogramables directamente; si el paciente desea volver,
+  se crea una nueva cita.
 - Recordatorios no generados para citas canceladas.
 - Formulario de nueva cita.
 - Busqueda y seleccion de pacientes mock para agendar.
@@ -104,6 +106,8 @@ Pendiente:
 - Motivo de cancelacion.
 - Historial de cambios por cita.
 - Mas estados funcionales conectados a acciones.
+- Estados intermedios como `Solicitud de cancelacion` cuando exista integracion
+  real con WhatsApp.
 - Calendario mensual.
 - Duracion real por tratamiento.
 - Multiples doctores o sillones.
