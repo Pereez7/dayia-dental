@@ -142,7 +142,7 @@ Actualmente existe una primera version funcional en frontend:
   Configuracion.
 - La agenda permite confirmar citas pendientes.
 - La agenda permite cancelar citas pendientes, confirmadas o reprogramadas sin
-  eliminarlas, despues de pedir confirmacion al usuario.
+  eliminarlas, despues de pedir confirmacion con `ConfirmDialog`.
 - La agenda permite reprogramar citas pendientes, confirmadas o reprogramadas
   desde un panel inline contextual.
 - Las citas canceladas quedan visibles con badge `Cancelada`.
@@ -153,6 +153,8 @@ Actualmente existe una primera version funcional en frontend:
 - El panel de reprogramacion se cierra al cambiar de dia, al volver a pulsar
   `Reprogramar`, al cancelar el formulario o al cancelar la cita.
 - Confirmar muestra Toast de confirmacion; cancelar muestra Toast de aviso.
+- `ConfirmDialog` reemplaza la confirmacion nativa del navegador al cancelar
+  citas y queda reutilizable para futuras acciones sensibles.
 - Si no hay citas para el dia seleccionado, muestra un estado vacio profesional
   que sugiere usar la accion global `+ Cita`.
 - Los estados usan badges con colores semanticos suaves.

@@ -55,6 +55,9 @@ de backend antes de validar la experiencia local.
 - Mantener la reprogramacion como accion contextual: el panel debe cerrarse al
   cambiar de dia, al repetir la accion, al cancelar el formulario o al cancelar
   la cita.
+- Usar confirmaciones propias y consistentes para acciones sensibles; evitar
+  alertas nativas del navegador cuando rompan la experiencia visual del
+  producto.
 - Mantener continuidad operativa: los modulos deben sentirse parte de la misma
   app y conservar navegacion, espaciado y estados consistentes.
 - Reutilizar feedback no bloqueante cuando una accion no necesita interrumpir

@@ -25,6 +25,8 @@ historiales y otros modulos clinicos.
 - Configuracion con horarios del consultorio y tratamientos locales.
 - Tratamientos con alta, busqueda, edicion, activacion, desactivacion y Toast
   flotante de feedback.
+- `ConfirmDialog` reutilizable para confirmaciones sensibles, usado al cancelar
+  citas desde Agenda.
 - Datos mock separados en `src/data`.
 - Tipos compartidos en `src/types`.
 - Componentes pequenos y reutilizables en `src/components`.
@@ -39,11 +41,11 @@ historiales y otros modulos clinicos.
   paciente, fichas escaneables, citas asociadas e historial clinico inicial.
 - **Citas:** agenda diaria mobile-first con selector horizontal de dias, KPIs
   compactos, listado ordenado por hora, confirmacion, cancelacion con
-  confirmacion previa, reprogramacion inline, creacion local de citas,
-  seleccion de paciente, horarios disponibles segun configuracion del
-  consultorio, bloqueo de choques de horario y bloqueo de doble cita activa del
-  mismo paciente en el dia. Las citas canceladas no se reprograman
-  directamente; si el paciente desea asistir nuevamente, se crea una nueva cita.
+  `ConfirmDialog`, reprogramacion inline, creacion local de citas, seleccion de
+  paciente, horarios disponibles segun configuracion del consultorio, bloqueo
+  de choques de horario y bloqueo de doble cita activa del mismo paciente en el
+  dia. Las citas canceladas no se reprograman directamente; si el paciente desea
+  asistir nuevamente, se crea una nueva cita.
 - **Historial clinico:** registros clinicos dentro del detalle de paciente,
   ordenados por fecha, con resumen temporal y formulario de evolucion basica.
 - **Odontograma:** grilla inicial de piezas permanentes adultas dentro del

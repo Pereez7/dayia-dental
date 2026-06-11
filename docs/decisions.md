@@ -265,9 +265,14 @@ de dia, al volver a pulsar `Reprogramar`, al cancelar el formulario o al
 cancelar la cita. Esta decision evita estados pegajosos donde un formulario
 queda abierto al volver a un dia anterior.
 
-Antes de cancelar se usa `window.confirm` como confirmacion simple y temporal.
-No se implementa un modal propio todavia para no sobreconstruir antes de tener
-motivo de cancelacion o integracion real con WhatsApp.
+Antes de cancelar se usa `ConfirmDialog` en lugar de `window.confirm`. El
+dialogo evita la alerta nativa del navegador, mantiene la identidad visual de
+DayIA Dental y queda listo para futuras acciones sensibles sin introducir una
+arquitectura global de modales todavia.
+
+`ConfirmDialog` no cierra por clic fuera. La decision reduce acciones
+accidentales y obliga a elegir explicitamente entre volver o confirmar. Escape
+equivale a cancelar.
 
 ## Creacion local de citas antes de persistencia
 

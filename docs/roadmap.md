@@ -82,6 +82,8 @@ Implementado:
   `Reprogramar`, al cancelar el formulario o al cancelar la cita.
 - Bloqueo de reprogramacion para citas canceladas desde UI, validacion y estado
   principal.
+- `ConfirmDialog` reutilizable para confirmar cancelacion de citas sin usar la
+  confirmacion nativa del navegador.
 - Toast flotante de exito al confirmar y de aviso al cancelar.
 - Citas canceladas visibles en agenda y sin bloqueo de horarios en Nueva Cita.
 - Citas canceladas no reprogramables directamente; si el paciente desea volver,
@@ -112,7 +114,6 @@ Pendiente:
 - Eliminacion real.
 - Motivo de cancelacion.
 - Motivo de reprogramacion.
-- Reemplazar `window.confirm` por un `ConfirmDialog` reutilizable.
 - Historial de cambios por cita.
 - Mas estados funcionales conectados a acciones.
 - Estados intermedios como `Solicitud de cancelacion` cuando exista integracion

@@ -34,7 +34,11 @@ Registro breve de cambios relevantes en DayIA Dental.
   Recordatorios y Configuracion.
 - Se agrego reprogramacion inline de citas con validacion de fecha, hora,
   horarios disponibles, choques de horario y doble cita activa del paciente.
-- Se agrego confirmacion con `window.confirm` antes de cancelar una cita.
+- Se creo `ConfirmDialog` reutilizable con variantes `danger`, `warning` e
+  `info`, overlay centrado, cierre con Escape y atributos basicos de
+  accesibilidad.
+- Se reemplazo `window.confirm` por `ConfirmDialog` al cancelar una cita desde
+  Agenda.
 - Se bloqueo la reprogramacion de citas canceladas desde validaciones,
   acciones visibles y handler principal de estado.
 - Se hizo que cancelar una cita cierre y limpie el panel de reprogramacion si
@@ -149,6 +153,10 @@ La reprogramacion queda como panel inline contextual de la cita y del dia
 seleccionado: se cierra al cambiar de dia, al volver a pulsar `Reprogramar`, al
 cancelar el formulario o al cancelar la cita. Ademas, la validacion y el estado
 principal bloquean cualquier intento de reprogramar una cita cancelada.
+
+La cancelacion de citas ya no usa la confirmacion nativa del navegador. Ahora
+usa `ConfirmDialog`, un dialogo reutilizable y coherente con el diseño de
+DayIA Dental, preparado para futuras acciones sensibles.
 
 ## 2026-06-09
 

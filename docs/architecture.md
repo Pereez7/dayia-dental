@@ -209,11 +209,14 @@ Participan:
   acciones locales, Toast y estado temporal de reprogramacion.
 - `src/components/AppointmentAgendaCard.tsx`: muestra cada cita y el panel
   inline de reprogramacion cuando corresponde.
+- `src/components/ConfirmDialog.tsx`: muestra confirmaciones reutilizables para
+  acciones sensibles, con variantes visuales, Escape para cancelar y atributos
+  basicos de accesibilidad.
 - `src/components/AppointmentForm.tsx`: registra una cita nueva en el estado
   local de la aplicacion.
 - `src/utils/appointmentActions.ts`: define que acciones estan disponibles para
-  una cita segun su estado actual, confirmacion de cancelacion y reglas puras
-  para cerrar el panel de reprogramacion.
+  una cita segun su estado actual y reglas puras para cerrar el panel de
+  reprogramacion.
 - `src/utils/appointmentReschedule.ts`: valida y aplica la reprogramacion local
   de citas.
 - `src/utils/appointmentSorters.ts`: ordena citas por fecha y hora.
@@ -236,8 +239,8 @@ solo con el dia seleccionado.
 
 Desde la agenda diaria se puede confirmar una cita pendiente o cancelar una
 cita pendiente, confirmada o reprogramada. La cancelacion no elimina la cita:
-antes pide confirmacion, solo cambia su estado a `cancelled`, mantiene la card
-visible y libera el horario para Nueva Cita.
+antes pide confirmacion mediante `ConfirmDialog`, solo cambia su estado a
+`cancelled`, mantiene la card visible y libera el horario para Nueva Cita.
 
 Las citas canceladas no se reprograman directamente. Si el paciente desea
 asistir nuevamente, se crea una nueva cita. Mas adelante, cuando exista
@@ -356,6 +359,8 @@ Tambien centraliza el pulido visual actual de:
 - Agenda diaria con KPIs compactos, selector de dias, cards de cita, botones de
   accion, estado vacio y panel de reprogramacion alineados con Recordatorios y
   Configuracion.
+- `ConfirmDialog` centrado con overlay suave, variantes semanticas y botones
+  coherentes con el sistema visual actual.
 
 Estos ajustes son visuales; la logica sigue viviendo en componentes y
 utilidades separadas.
