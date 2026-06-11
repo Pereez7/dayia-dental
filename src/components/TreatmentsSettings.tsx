@@ -5,6 +5,7 @@ import {
   formatTreatmentName,
   validateTreatmentName,
 } from '../utils/treatmentUtils'
+import { ConfirmDialog } from './ConfirmDialog'
 import { Toast, type ToastTone } from './Toast'
 
 interface TreatmentsSettingsProps {
@@ -25,6 +26,8 @@ export function TreatmentsSettings({
   const [toastMessage, setToastMessage] = useState('')
   const [toastTone, setToastTone] = useState<ToastTone>('success')
   const [isToastVisible, setIsToastVisible] = useState(false)
+  const [treatmentIdPendingDeactivation, setTreatmentIdPendingDeactivation] =
+    useState<number | null>(null)
   const filteredTreatments = filterTreatmentsBySearch(treatments, searchText)
 
   useEffect(() => {
@@ -94,6 +97,33 @@ export function TreatmentsSettings({
     setIsToastVisible(true)
   }
 
+  function requestTreatmentDeactivation(treatmentId: number) {
+    setTreatmentIdPendingDeactivation(treatmentId)
+    setIsToastVisible(false)
+  }
+
+  function cancelTreatmentDeactivation() {
+    setTreatmentIdPendingDeactivation(null)
+  }
+
+  function confirmTreatmentDeactivation() {
+    if (treatmentIdPendingDeactivation === null) {
+      return
+    }
+
+    const targetTreatment = treatments.find(
+      (treatment) => treatment.id === treatmentIdPendingDeactivation,
+    )
+
+    setTreatmentIdPendingDeactivation(null)
+
+    if (!targetTreatment || !targetTreatment.isActive) {
+      return
+    }
+
+    toggleTreatment(targetTreatment.id)
+  }
+
   function updateTreatmentName(value: string) {
     setTreatmentName(value)
     setIsToastVisible(false)
@@ -148,6 +178,17 @@ export function TreatmentsSettings({
       className="settings-panel treatments-panel"
       aria-labelledby="treatments-settings-title"
     >
+      <ConfirmDialog
+        cancelLabel="Volver"
+        confirmLabel="Sí, desactivar"
+        isOpen={treatmentIdPendingDeactivation !== null}
+        message="¿Seguro que deseas desactivar este tratamiento? No aparecerá al crear nuevas citas, pero las citas existentes conservarán este dato."
+        title="Desactivar tratamiento"
+        variant="danger"
+        onCancel={cancelTreatmentDeactivation}
+        onConfirm={confirmTreatmentDeactivation}
+      />
+
       <div className="section-heading">
         <h2 id="treatments-settings-title">Tratamientos del consultorio</h2>
         <p className="section-description">
@@ -242,7 +283,11 @@ export function TreatmentsSettings({
                       treatment.isActive ? 'danger-action' : 'success-action'
                     }
                     type="button"
-                    onClick={() => toggleTreatment(treatment.id)}
+                    onClick={() =>
+                      treatment.isActive
+                        ? requestTreatmentDeactivation(treatment.id)
+                        : toggleTreatment(treatment.id)
+                    }
                   >
                     {treatment.isActive ? 'Desactivar' : 'Activar'}
                   </button>
