@@ -4,6 +4,12 @@ import type { BusinessHoursSettings } from '../types/BusinessHours'
 import type { Patient } from '../types/Patient'
 import { getAvailableTimeOptions } from '../utils/appointmentConflicts'
 import {
+  canRescheduleAppointment,
+  shouldCancelAppointment,
+  shouldCloseReschedulePanelAfterStatusChange,
+  shouldCloseReschedulePanelOnToggle,
+} from '../utils/appointmentActions'
+import {
   getAppointmentsForDate,
   getDateInputValue,
   getVisibleAgendaDays,
@@ -94,7 +100,23 @@ export function AppointmentsAgenda({
     appointmentId: number,
     status: AppointmentStatus,
   ) {
+    if (
+      status === 'cancelled' &&
+      !shouldCancelAppointment((message) => window.confirm(message))
+    ) {
+      return
+    }
+
     onUpdateAppointmentStatus?.(appointmentId, status)
+    if (
+      shouldCloseReschedulePanelAfterStatusChange(
+        rescheduleAppointmentId,
+        appointmentId,
+        status,
+      )
+    ) {
+      cancelReschedule()
+    }
     setToastMessage(
       status === 'confirmed' ? 'Cita confirmada.' : 'Cita cancelada.',
     )
@@ -103,6 +125,26 @@ export function AppointmentsAgenda({
   }
 
   function startReschedule(appointment: Appointment) {
+    if (
+      shouldCloseReschedulePanelOnToggle(
+        rescheduleAppointmentId,
+        appointment.id,
+      )
+    ) {
+      cancelReschedule()
+      return
+    }
+
+    if (!canRescheduleAppointment(appointment.status)) {
+      setRescheduleErrors({
+        appointment: 'No puedes reprogramar una cita cancelada.',
+      })
+      setToastMessage('No puedes reprogramar una cita cancelada.')
+      setToastTone('error')
+      setIsToastVisible(true)
+      return
+    }
+
     setRescheduleAppointmentId(appointment.id)
     setRescheduleValues({
       date: appointment.date,
@@ -110,6 +152,14 @@ export function AppointmentsAgenda({
     })
     setRescheduleErrors({})
     setIsToastVisible(false)
+  }
+
+  function selectAgendaDate(date: string) {
+    if (date !== selectedDate) {
+      cancelReschedule()
+    }
+
+    setSelectedDate(date)
   }
 
   function cancelReschedule() {
@@ -157,8 +207,10 @@ export function AppointmentsAgenda({
   }
 
   function submitReschedule(appointment: Appointment) {
+    const currentAppointment =
+      appointments.find((item) => item.id === appointment.id) ?? appointment
     const errors = validateAppointmentReschedule(
-      appointment,
+      currentAppointment,
       rescheduleValues,
       appointments,
       businessHours,
@@ -167,6 +219,12 @@ export function AppointmentsAgenda({
     setRescheduleErrors(errors)
 
     if (hasAppointmentRescheduleErrors(errors)) {
+      if (errors.appointment) {
+        setToastMessage(errors.appointment)
+        setToastTone('error')
+        setIsToastVisible(true)
+      }
+
       return
     }
 
@@ -224,7 +282,7 @@ export function AppointmentsAgenda({
             type="button"
             className="agenda-date-tab"
             aria-pressed={day.date === selectedDate}
-            onClick={() => setSelectedDate(day.date)}
+            onClick={() => selectAgendaDate(day.date)}
           >
             <span>{day.primaryLabel}</span>
             <strong>{day.secondaryLabel}</strong>
@@ -276,14 +334,17 @@ export function AppointmentsAgenda({
               rescheduleMinDate={getDateInputValue()}
               rescheduleTimeOptions={getRescheduleTimeOptions(appointment)}
               rescheduleValues={rescheduleValues}
-              showRescheduleForm={rescheduleAppointmentId === appointment.id}
+              showRescheduleForm={
+                rescheduleAppointmentId === appointment.id &&
+                canRescheduleAppointment(appointment.status)
+              }
             />
           ))}
         </div>
       ) : (
         <div className="agenda-empty-state">
           <h3>No hay citas programadas para este dia.</h3>
-          <p>Puedes registrar una nueva cita desde el boton + Cita.</p>
+          <p>Registra una nueva cita desde el acceso de Nueva cita.</p>
         </div>
       )}
     </section>

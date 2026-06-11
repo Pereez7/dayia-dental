@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
+  appointmentCancellationConfirmationMessage,
   canRescheduleAppointment,
   getAppointmentStatusActions,
+  shouldCancelAppointment,
+  shouldCloseReschedulePanelAfterStatusChange,
+  shouldCloseReschedulePanelOnToggle,
 } from './appointmentActions'
 
 describe('getAppointmentStatusActions', () => {
@@ -36,5 +40,50 @@ describe('getAppointmentStatusActions', () => {
     expect(canRescheduleAppointment('confirmed')).toBe(true)
     expect(canRescheduleAppointment('rescheduled')).toBe(true)
     expect(canRescheduleAppointment('cancelled')).toBe(false)
+  })
+
+  it('closes the reschedule panel when the active appointment is cancelled', () => {
+    expect(
+      shouldCloseReschedulePanelAfterStatusChange(1, 1, 'cancelled'),
+    ).toBe(true)
+  })
+
+  it('keeps the reschedule panel when another appointment changes status', () => {
+    expect(
+      shouldCloseReschedulePanelAfterStatusChange(1, 2, 'cancelled'),
+    ).toBe(false)
+  })
+
+  it('keeps the reschedule panel when the active appointment is not cancelled', () => {
+    expect(
+      shouldCloseReschedulePanelAfterStatusChange(1, 1, 'confirmed'),
+    ).toBe(false)
+  })
+
+  it('closes the reschedule panel when toggling the active appointment', () => {
+    expect(shouldCloseReschedulePanelOnToggle(1, 1)).toBe(true)
+  })
+
+  it('opens another reschedule panel when toggling a different appointment', () => {
+    expect(shouldCloseReschedulePanelOnToggle(1, 2)).toBe(false)
+  })
+
+  it('continues cancellation when the user confirms it', () => {
+    expect(shouldCancelAppointment(() => true)).toBe(true)
+  })
+
+  it('stops cancellation when the user rejects it', () => {
+    expect(shouldCancelAppointment(() => false)).toBe(false)
+  })
+
+  it('uses the cancellation confirmation message', () => {
+    let receivedMessage = ''
+
+    shouldCancelAppointment((message) => {
+      receivedMessage = message
+      return true
+    })
+
+    expect(receivedMessage).toBe(appointmentCancellationConfirmationMessage)
   })
 })

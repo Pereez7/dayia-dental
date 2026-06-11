@@ -1,5 +1,6 @@
 import type { Appointment } from '../types/Appointment'
 import type { BusinessHoursSettings } from '../types/BusinessHours'
+import { canRescheduleAppointment } from './appointmentActions'
 import {
   hasAppointmentConflict,
   hasPatientAppointmentOnDate,
@@ -13,7 +14,7 @@ export interface AppointmentRescheduleValues {
 }
 
 export type AppointmentRescheduleErrors = Partial<
-  Record<keyof AppointmentRescheduleValues | 'patient', string>
+  Record<keyof AppointmentRescheduleValues | 'appointment' | 'patient', string>
 >
 
 export function rescheduleAppointment(
@@ -36,6 +37,10 @@ export function validateAppointmentReschedule(
   referenceDate = new Date(),
 ) {
   const errors: AppointmentRescheduleErrors = {}
+
+  if (!canRescheduleAppointment(appointment.status)) {
+    errors.appointment = 'No puedes reprogramar una cita cancelada.'
+  }
 
   if (!values.date) {
     errors.date = 'Selecciona una fecha.'

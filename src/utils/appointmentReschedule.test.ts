@@ -149,4 +149,18 @@ describe('validateAppointmentReschedule', () => {
 
     expect(errors.time).toBe('No puedes seleccionar una hora que ya pasó.')
   })
+
+  it('rejects rescheduling a cancelled appointment', () => {
+    const errors = validateAppointmentReschedule(
+      { ...appointment, status: 'cancelled' },
+      { date: '2026-06-12', time: '09:00' },
+      appointments,
+      businessHours,
+      new Date('2026-06-08T10:00:00'),
+    )
+
+    expect(errors.appointment).toBe(
+      'No puedes reprogramar una cita cancelada.',
+    )
+  })
 })
