@@ -378,6 +378,11 @@ y Odontograma.
 Desactivar un tratamiento no se trata como error. Es una accion administrativa
 valida, por eso usa tono de aviso.
 
+Antes de desactivar un tratamiento se pide confirmacion con `ConfirmDialog`.
+Esto evita cambios accidentales en el catalogo sin convertir la accion en un
+error. El boton de confirmacion usa rojo suave para ser coherente con el boton
+`Desactivar`, mientras el Toast posterior conserva tono de aviso.
+
 ## Horarios semanales antes que calendario completo
 
 Configuracion incluye primero un panel semanal de horarios del consultorio con

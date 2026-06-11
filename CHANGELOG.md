@@ -84,6 +84,11 @@ Registro breve de cambios relevantes en DayIA Dental.
   `Tratamiento desactivado.` y `Tratamiento activado.`.
 - Se corrigio el tono del Toast al desactivar tratamientos para tratarlo como
   aviso, no como error.
+- Se agrego confirmacion con `ConfirmDialog` antes de desactivar un
+  tratamiento.
+- Se alineo el color de la accion `Sí, desactivar` con el boton
+  `Desactivar`, usando rojo suave para acciones sensibles sin tratarlas como
+  errores.
 - Se alineo el boton `Agregar tratamiento` con la altura del input del
   formulario.
 - Se compactaron espacios entre nuevo tratamiento, busqueda y lista de
@@ -157,6 +162,11 @@ principal bloquean cualquier intento de reprogramar una cita cancelada.
 La cancelacion de citas ya no usa la confirmacion nativa del navegador. Ahora
 usa `ConfirmDialog`, un dialogo reutilizable y coherente con el diseño de
 DayIA Dental, preparado para futuras acciones sensibles.
+
+La desactivacion de tratamientos tambien usa `ConfirmDialog` para evitar
+acciones accidentales. La accion principal usa color rojo suave por tratarse de
+una accion sensible, pero el feedback posterior sigue siendo un aviso
+administrativo y no un error.
 
 ## 2026-06-09
 

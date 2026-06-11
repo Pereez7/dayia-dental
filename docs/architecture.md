@@ -102,8 +102,8 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
    atencion y estado abierto/cerrado por dia usando utilidades puras de
    `src/utils/businessHours.ts`.
 14. `TreatmentsSettings` agrega, busca, edita, activa y desactiva tratamientos
-   usando utilidades puras de `src/utils/treatmentUtils.ts` y feedback mediante
-   `Toast`.
+   usando utilidades puras de `src/utils/treatmentUtils.ts`, confirma la
+   desactivacion con `ConfirmDialog` y muestra feedback mediante `Toast`.
 15. `AppointmentForm` busca pacientes mock, guarda el paciente seleccionado por
    identificador, calcula horas disponibles con horarios del consultorio y citas
    existentes, valida campos con funciones de `src/utils` y avisa a `App.tsx`
@@ -279,9 +279,11 @@ Incluye horarios del consultorio y gestion local de tratamientos. Participan:
 - `src/components/BusinessHoursSettings.tsx`: muestra horario semanal,
   intervalo de atencion, validaciones y Toast al guardar.
 - `src/components/TreatmentsSettings.tsx`: muestra formulario, busqueda,
-  edicion, activacion, desactivacion y Toast de feedback.
+  edicion, activacion, confirmacion de desactivacion y Toast de feedback.
 - `src/components/Toast.tsx`: muestra confirmaciones flotantes sin mover el
   layout.
+- `src/components/ConfirmDialog.tsx`: confirma acciones sensibles como cancelar
+  citas o desactivar tratamientos.
 - `src/utils/businessHours.ts`: valida horarios, estados de dia e intervalos.
 - `src/utils/treatmentUtils.ts`: normaliza nombres, valida duplicados, filtra
   activos y aplica busqueda.

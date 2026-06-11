@@ -238,11 +238,14 @@ consultorio:
 - Permite buscar tratamientos ignorando acentos y mayusculas.
 - Permite editar el nombre sin cambiar el `id`.
 - Permite activar y desactivar tratamientos.
+- Pide confirmacion con `ConfirmDialog` antes de desactivar un tratamiento.
 - No permite eliminar tratamientos fisicamente para evitar problemas con citas
   relacionadas.
 - Muestra feedback por agregar, editar, activar y desactivar mediante el Toast
   flotante reutilizable.
 - El Toast de desactivar tratamiento se trata como aviso, no como error.
+- El boton `Desactivar` y la accion confirmada `Sí, desactivar` usan rojo suave
+  para mantener coherencia visual de acciones sensibles.
 - Los botones de tratamientos usan estilo compacto coherente con Recordatorios:
   acciones neutras con color semantico en el texto.
 - Nueva Cita consume solo tratamientos activos desde el estado local compartido.

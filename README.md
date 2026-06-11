@@ -26,7 +26,7 @@ historiales y otros modulos clinicos.
 - Tratamientos con alta, busqueda, edicion, activacion, desactivacion y Toast
   flotante de feedback.
 - `ConfirmDialog` reutilizable para confirmaciones sensibles, usado al cancelar
-  citas desde Agenda.
+  citas desde Agenda y al desactivar tratamientos desde Configuracion.
 - Datos mock separados en `src/data`.
 - Tipos compartidos en `src/types`.
 - Componentes pequenos y reutilizables en `src/components`.

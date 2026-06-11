@@ -245,6 +245,7 @@ Implementado:
 - Busqueda de tratamientos.
 - Edicion simple sin cambiar `id`.
 - Activacion y desactivacion sin eliminacion fisica.
+- Confirmacion previa con `ConfirmDialog` antes de desactivar tratamientos.
 - Toast flotante por agregar, editar, activar y desactivar sin mover el layout.
 - Botones compactos y coherentes con Recordatorios.
 - Conexion con Nueva Cita para mostrar solo tratamientos activos.

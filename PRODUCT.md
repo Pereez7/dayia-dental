@@ -64,7 +64,11 @@ de backend antes de validar la experiencia local.
   el flujo, por ejemplo Toast flotante para confirmaciones de Configuracion y
   Recordatorios.
 - Usar tonos semanticos coherentes: confirmar es exito; cancelar o desactivar
-  son avisos administrativos, no errores.
+  son avisos administrativos, no errores. Las acciones sensibles pueden usar
+  rojo suave en botones o dialogos para comunicar cautela sin etiquetarlas como
+  fallos.
+- Confirmar acciones sensibles antes de aplicarlas cuando puedan afectar el
+  flujo operativo, como cancelar una cita o desactivar un tratamiento.
 - Mantener botones compactos y consistentes: la jerarquia debe venir del rol de
   la accion, no de exceso de tamaño, negrita o fondos saturados.
 - Validar primero en frontend: construir flujos locales, tipados y testeables
