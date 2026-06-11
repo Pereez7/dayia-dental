@@ -17,6 +17,11 @@ interface AppointmentsViewProps {
   mode?: 'agenda' | 'new'
   onCreateAppointment?: (values: AppointmentFormValues) => void
   onNavigateToAgenda?: () => void
+  onRescheduleAppointment?: (
+    appointmentId: number,
+    date: string,
+    time: string,
+  ) => void
   onUpdateAppointmentStatus?: (
     appointmentId: number,
     status: AppointmentStatus,
@@ -31,6 +36,7 @@ export function AppointmentsView({
   mode = 'agenda',
   onCreateAppointment,
   onNavigateToAgenda,
+  onRescheduleAppointment,
   onUpdateAppointmentStatus,
 }: AppointmentsViewProps) {
   function handleCreateAppointment(values: AppointmentFormValues) {
@@ -53,6 +59,8 @@ export function AppointmentsView({
   return (
     <AppointmentsAgenda
       appointments={appointments}
+      businessHours={businessHours}
+      onRescheduleAppointment={onRescheduleAppointment}
       patients={patients}
       onUpdateAppointmentStatus={onUpdateAppointmentStatus}
     />

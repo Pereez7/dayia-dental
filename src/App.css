@@ -1194,8 +1194,71 @@
   color: var(--color-success);
 }
 
+.agenda-card-action--reschedule {
+  color: var(--color-warning);
+}
+
 .agenda-card-action--cancel {
   color: #9f1239;
+}
+
+.agenda-reschedule-panel {
+  display: grid;
+  gap: 8px;
+  grid-column: 1 / -1;
+  border: 1px solid #f0d487;
+  border-radius: var(--radius-md);
+  background: rgba(255, 247, 223, 0.42);
+  padding: 10px;
+}
+
+.agenda-reschedule-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.agenda-reschedule-grid label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.agenda-reschedule-grid span {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.agenda-reschedule-grid input,
+.agenda-reschedule-grid select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--color-heading);
+  font: inherit;
+  font-size: var(--text-sm);
+  padding: 8px 10px;
+}
+
+.agenda-reschedule-grid input:focus,
+.agenda-reschedule-grid select:focus {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.agenda-reschedule-messages {
+  display: grid;
+  gap: 4px;
+  min-height: 18px;
+}
+
+.agenda-reschedule-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .agenda-empty-state {
@@ -1274,6 +1337,10 @@
 
   .agenda-card-actions {
     justify-self: end;
+  }
+
+  .agenda-reschedule-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

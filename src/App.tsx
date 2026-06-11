@@ -25,6 +25,7 @@ import type {
 import type { Patient, PatientFormValues } from './types/Patient'
 import type { Treatment } from './types/Treatment'
 import { upsertOdontogramEntry } from './utils/odontogram'
+import { rescheduleAppointment } from './utils/appointmentReschedule'
 import { AppointmentsView } from './views/AppointmentsView'
 import { ClinicalHistoryView } from './views/ClinicalHistoryView'
 import { DashboardView } from './views/DashboardView'
@@ -89,6 +90,20 @@ function App() {
       currentAppointments.map((appointment) =>
         appointment.id === appointmentId
           ? { ...appointment, status }
+          : appointment,
+      ),
+    )
+  }
+
+  function handleRescheduleAppointment(
+    appointmentId: number,
+    date: string,
+    time: string,
+  ) {
+    setAppointments((currentAppointments) =>
+      currentAppointments.map((appointment) =>
+        appointment.id === appointmentId
+          ? rescheduleAppointment(appointment, { date, time })
           : appointment,
       ),
     )
@@ -208,6 +223,7 @@ function App() {
           mode="agenda"
           patients={patients}
           treatments={treatments}
+          onRescheduleAppointment={handleRescheduleAppointment}
           onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
         />
       )

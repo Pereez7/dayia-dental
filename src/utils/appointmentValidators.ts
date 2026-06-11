@@ -9,6 +9,7 @@ import type { Treatment } from '../types/Treatment'
 import {
   hasAppointmentConflict,
   hasPatientAppointmentOnDate,
+  isPastTimeForDate,
 } from './appointmentConflicts'
 import { appointmentTimeSlots } from './appointmentTimeSlots'
 import { validateAppointmentAgainstBusinessHours } from './businessHours'
@@ -64,6 +65,8 @@ export function validateAppointmentForm(
     errors.time = 'Selecciona una hora.'
   } else if (businessHoursError) {
     errors.time = businessHoursError
+  } else if (isPastTimeForDate(values.date, values.time, referenceDate)) {
+    errors.time = 'No puedes seleccionar una hora que ya pasó.'
   } else if (
     !businessHours &&
     !appointmentTimeSlots.some((slot) => slot.value === values.time)

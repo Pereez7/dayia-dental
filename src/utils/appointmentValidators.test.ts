@@ -171,6 +171,22 @@ describe('validateAppointmentForm', () => {
     )
   })
 
+  it('rejects a past time when the appointment is for today', () => {
+    const errors = validateAppointmentForm(
+      {
+        ...validAppointmentFormValues,
+        date: '2026-06-12',
+        time: '09:00',
+      },
+      new Date('2026-06-12T09:30:00'),
+      activeTreatments,
+      businessHours,
+      existingAppointments,
+    )
+
+    expect(errors.time).toBe('No puedes seleccionar una hora que ya pasó.')
+  })
+
   it('allows a different saturday schedule', () => {
     const errors = validate({
       ...validAppointmentFormValues,

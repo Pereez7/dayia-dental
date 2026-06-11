@@ -75,7 +75,9 @@ export function AppointmentForm({
   const appointmentTimeOptions = useMemo(
     () =>
       formValues.date
-        ? getAvailableTimeOptions(businessHours, appointments, formValues.date)
+        ? getAvailableTimeOptions(businessHours, appointments, formValues.date, {
+            excludePastTimes: true,
+          })
         : [],
     [appointments, businessHours, formValues.date],
   )
@@ -91,7 +93,9 @@ export function AppointmentForm({
 
   function updateAppointmentDate(value: string) {
     const timeOptions = value
-      ? getAvailableTimeOptions(businessHours, appointments, value)
+      ? getAvailableTimeOptions(businessHours, appointments, value, {
+          excludePastTimes: true,
+        })
       : []
     const daySchedule = value
       ? getBusinessDayScheduleForDate(businessHours, value)

@@ -184,4 +184,43 @@ describe('getAvailableTimeOptions', () => {
   it('returns an empty list when the clinic is closed', () => {
     expect(getAvailableTimeOptions(businessHours, [], '2026-06-11')).toEqual([])
   })
+
+  it('does not show past times when the selected date is today', () => {
+    const options = getAvailableTimeOptions(businessHours, [], '2026-06-10', {
+      excludePastTimes: true,
+      referenceDate: new Date('2026-06-10T09:30:00'),
+    }).map((slot) => slot.value)
+
+    expect(options).not.toContain('09:00')
+    expect(options).not.toContain('09:30')
+    expect(options).toContain('10:30')
+  })
+
+  it('keeps future dates unchanged when excluding past times', () => {
+    expect(
+      getAvailableTimeOptions(businessHours, [], '2026-06-10', {
+        excludePastTimes: true,
+        referenceDate: new Date('2026-06-09T15:30:00'),
+      }).map((slot) => slot.value),
+    ).toEqual(['09:00', '09:30', '10:00', '10:30'])
+  })
+
+  it('keeps the next 15 minute option after the current time', () => {
+    const fifteenMinuteBusinessHours: BusinessHoursSettings = {
+      ...businessHours,
+      appointmentInterval: 15,
+    }
+
+    expect(
+      getAvailableTimeOptions(
+        fifteenMinuteBusinessHours,
+        [],
+        '2026-06-10',
+        {
+          excludePastTimes: true,
+          referenceDate: new Date('2026-06-10T09:30:00'),
+        },
+      ).map((slot) => slot.value),
+    ).toContain('09:45')
+  })
 })

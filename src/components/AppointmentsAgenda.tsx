@@ -1,18 +1,33 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Appointment, AppointmentStatus } from '../types/Appointment'
+import type { BusinessHoursSettings } from '../types/BusinessHours'
 import type { Patient } from '../types/Patient'
+import { getAvailableTimeOptions } from '../utils/appointmentConflicts'
 import {
   getAppointmentsForDate,
   getDateInputValue,
   getVisibleAgendaDays,
   summarizeAppointmentsByStatus,
 } from '../utils/appointmentGroups'
+import {
+  type AppointmentRescheduleErrors,
+  type AppointmentRescheduleValues,
+  hasAppointmentRescheduleErrors,
+  validateAppointmentReschedule,
+} from '../utils/appointmentReschedule'
+import { getBusinessDayScheduleForDate } from '../utils/businessHours'
 import { AppointmentAgendaCard } from './AppointmentAgendaCard'
 import { Toast, type ToastTone } from './Toast'
 
 interface AppointmentsAgendaProps {
   appointments: Appointment[]
+  businessHours: BusinessHoursSettings
   patients: Patient[]
+  onRescheduleAppointment?: (
+    appointmentId: number,
+    date: string,
+    time: string,
+  ) => void
   onUpdateAppointmentStatus?: (
     appointmentId: number,
     status: AppointmentStatus,
@@ -21,10 +36,19 @@ interface AppointmentsAgendaProps {
 
 export function AppointmentsAgenda({
   appointments,
+  businessHours,
+  onRescheduleAppointment,
   onUpdateAppointmentStatus,
   patients,
 }: AppointmentsAgendaProps) {
   const [selectedDate, setSelectedDate] = useState(() => getDateInputValue())
+  const [rescheduleAppointmentId, setRescheduleAppointmentId] = useState<
+    number | null
+  >(null)
+  const [rescheduleValues, setRescheduleValues] =
+    useState<AppointmentRescheduleValues>({ date: '', time: '' })
+  const [rescheduleErrors, setRescheduleErrors] =
+    useState<AppointmentRescheduleErrors>({})
   const [toastMessage, setToastMessage] = useState('')
   const [toastTone, setToastTone] = useState<ToastTone>('success')
   const [isToastVisible, setIsToastVisible] = useState(false)
@@ -76,6 +100,107 @@ export function AppointmentsAgenda({
     )
     setToastTone(status === 'confirmed' ? 'success' : 'warning')
     setIsToastVisible(true)
+  }
+
+  function startReschedule(appointment: Appointment) {
+    setRescheduleAppointmentId(appointment.id)
+    setRescheduleValues({
+      date: appointment.date,
+      time: appointment.time,
+    })
+    setRescheduleErrors({})
+    setIsToastVisible(false)
+  }
+
+  function cancelReschedule() {
+    setRescheduleAppointmentId(null)
+    setRescheduleValues({ date: '', time: '' })
+    setRescheduleErrors({})
+  }
+
+  function updateRescheduleDate(appointment: Appointment, date: string) {
+    const timeOptions = date
+      ? getAvailableTimeOptions(businessHours, appointments, date, {
+          appointmentIdToIgnore: appointment.id,
+          excludePastTimes: true,
+        })
+      : []
+    const daySchedule = date
+      ? getBusinessDayScheduleForDate(businessHours, date)
+      : undefined
+    const isClosed = Boolean(date) && daySchedule?.isOpen === false
+
+    setRescheduleValues((currentValues) => ({
+      date,
+      time:
+        !isClosed && timeOptions.some((slot) => slot.value === currentValues.time)
+          ? currentValues.time
+          : '',
+    }))
+    setRescheduleErrors((currentErrors) => ({
+      ...currentErrors,
+      date: isClosed ? 'El consultorio está cerrado ese día.' : undefined,
+      patient: undefined,
+      time: undefined,
+    }))
+  }
+
+  function updateRescheduleTime(time: string) {
+    setRescheduleValues((currentValues) => ({
+      ...currentValues,
+      time,
+    }))
+    setRescheduleErrors((currentErrors) => ({
+      ...currentErrors,
+      time: undefined,
+    }))
+  }
+
+  function submitReschedule(appointment: Appointment) {
+    const errors = validateAppointmentReschedule(
+      appointment,
+      rescheduleValues,
+      appointments,
+      businessHours,
+    )
+
+    setRescheduleErrors(errors)
+
+    if (hasAppointmentRescheduleErrors(errors)) {
+      return
+    }
+
+    onRescheduleAppointment?.(
+      appointment.id,
+      rescheduleValues.date,
+      rescheduleValues.time,
+    )
+    cancelReschedule()
+    setToastMessage('Cita reprogramada.')
+    setToastTone('warning')
+    setIsToastVisible(true)
+  }
+
+  function getRescheduleTimeOptions(appointment: Appointment) {
+    return rescheduleValues.date
+        ? getAvailableTimeOptions(
+            businessHours,
+            appointments,
+            rescheduleValues.date,
+            {
+              appointmentIdToIgnore: appointment.id,
+              excludePastTimes: true,
+            },
+          )
+      : []
+  }
+
+  function isRescheduleDateClosed() {
+    const daySchedule = rescheduleValues.date
+      ? getBusinessDayScheduleForDate(businessHours, rescheduleValues.date)
+      : undefined
+
+    return Boolean(rescheduleValues.date) && daySchedule?.isOpen === false
   }
 
   return (
@@ -138,7 +263,20 @@ export function AppointmentsAgenda({
               key={appointment.id}
               onCancel={() => updateAppointmentStatus(appointment.id, 'cancelled')}
               onConfirm={() => updateAppointmentStatus(appointment.id, 'confirmed')}
+              onCancelReschedule={cancelReschedule}
+              onReschedule={() => startReschedule(appointment)}
+              onRescheduleDateChange={(date) =>
+                updateRescheduleDate(appointment, date)
+              }
+              onRescheduleSubmit={() => submitReschedule(appointment)}
+              onRescheduleTimeChange={updateRescheduleTime}
               patient={getAppointmentPatient(appointment)}
+              rescheduleDateIsClosed={isRescheduleDateClosed()}
+              rescheduleErrors={rescheduleErrors}
+              rescheduleMinDate={getDateInputValue()}
+              rescheduleTimeOptions={getRescheduleTimeOptions(appointment)}
+              rescheduleValues={rescheduleValues}
+              showRescheduleForm={rescheduleAppointmentId === appointment.id}
             />
           ))}
         </div>
