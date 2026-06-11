@@ -71,9 +71,17 @@ Implementado:
   canceladas.
 - Estado vacio para dias sin citas.
 - Estados visuales con badges semanticos.
+- Pulido visual de Agenda diaria alineado con Recordatorios y Configuracion:
+  KPIs compactos, selector de dias, cards, botones, estado vacio y panel de
+  reprogramacion.
 - Confirmacion local de citas pendientes.
 - Cancelacion local de citas pendientes, confirmadas o reprogramadas, sin
-  eliminacion fisica.
+  eliminacion fisica y con confirmacion previa.
+- Reprogramacion local inline de citas pendientes, confirmadas o reprogramadas.
+- Cierre del panel de reprogramacion al cambiar de dia, al repetir la accion
+  `Reprogramar`, al cancelar el formulario o al cancelar la cita.
+- Bloqueo de reprogramacion para citas canceladas desde UI, validacion y estado
+  principal.
 - Toast flotante de exito al confirmar y de aviso al cancelar.
 - Citas canceladas visibles en agenda y sin bloqueo de horarios en Nueva Cita.
 - Citas canceladas no reprogramables directamente; si el paciente desea volver,
@@ -102,8 +110,8 @@ Pendiente:
 
 - Edicion de cita.
 - Eliminacion real.
-- Reprogramacion de citas.
 - Motivo de cancelacion.
+- Motivo de reprogramacion.
 - Historial de cambios por cita.
 - Mas estados funcionales conectados a acciones.
 - Estados intermedios como `Solicitud de cancelacion` cuando exista integracion

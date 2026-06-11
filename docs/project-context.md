@@ -137,12 +137,21 @@ Actualmente existe una primera version funcional en frontend:
   canceladas.
 - Cada cita muestra hora, paciente, telefono cuando existe, tratamiento o motivo
   y estado.
+- La Agenda tiene pulido visual para KPIs, selector de dias, cards, botones,
+  estado vacio y panel de reprogramacion, alineado con Recordatorios y
+  Configuracion.
 - La agenda permite confirmar citas pendientes.
 - La agenda permite cancelar citas pendientes, confirmadas o reprogramadas sin
-  eliminarlas.
+  eliminarlas, despues de pedir confirmacion al usuario.
+- La agenda permite reprogramar citas pendientes, confirmadas o reprogramadas
+  desde un panel inline contextual.
 - Las citas canceladas quedan visibles con badge `Cancelada`.
 - Las citas canceladas no se reprograman directamente; si el paciente desea
   asistir nuevamente, se crea una nueva cita.
+- Una cita cancelada no muestra acciones y no puede guardar reprogramaciones,
+  aunque quedara un intento de formulario activo.
+- El panel de reprogramacion se cierra al cambiar de dia, al volver a pulsar
+  `Reprogramar`, al cancelar el formulario o al cancelar la cita.
 - Confirmar muestra Toast de confirmacion; cancelar muestra Toast de aviso.
 - Si no hay citas para el dia seleccionado, muestra un estado vacio profesional
   que sugiere usar la accion global `+ Cita`.
@@ -170,8 +179,9 @@ Actualmente existe una primera version funcional en frontend:
   consistentes para no desalinear la grilla.
 - El formulario muestra solo tratamientos activos configurados localmente.
 
-Todavia no existe edicion, eliminacion, cancelacion real ni persistencia de
-citas. Las citas nuevas solo viven en memoria durante la sesion actual.
+Todavia no existe edicion general, eliminacion, motivo de cancelacion, historial
+de cambios ni persistencia de citas. Las citas nuevas y reprogramadas solo viven
+en memoria durante la sesion actual.
 
 Mas adelante, cuando exista integracion real con WhatsApp, se evaluaran estados
 intermedios como `Solicitud de cancelacion` para evitar cancelaciones

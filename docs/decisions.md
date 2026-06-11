@@ -249,6 +249,26 @@ Mas adelante, cuando exista integracion real con WhatsApp, se evaluaran estados
 intermedios como `Solicitud de cancelacion` para evitar cancelaciones
 accidentales antes de aplicar una cancelacion definitiva.
 
+La UI y las utilidades refuerzan esta regla: una cita cancelada no expone
+acciones, no permite guardar una reprogramacion y el handler principal de
+`App.tsx` tampoco aplica reprogramaciones si el estado actual ya no lo permite.
+
+## Reprogramacion inline contextual
+
+La reprogramacion se implementa como panel inline dentro de la card de la cita,
+no como modal. Esto mantiene el flujo de recepcion en la agenda diaria y evita
+introducir una superficie nueva antes de tener historial de cambios, motivos o
+persistencia.
+
+El panel es contextual al dia y a la cita visible. Por eso se cierra al cambiar
+de dia, al volver a pulsar `Reprogramar`, al cancelar el formulario o al
+cancelar la cita. Esta decision evita estados pegajosos donde un formulario
+queda abierto al volver a un dia anterior.
+
+Antes de cancelar se usa `window.confirm` como confirmacion simple y temporal.
+No se implementa un modal propio todavia para no sobreconstruir antes de tener
+motivo de cancelacion o integracion real con WhatsApp.
+
 ## Creacion local de citas antes de persistencia
 
 El formulario de nueva cita se implementa primero en frontend con estado local.

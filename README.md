@@ -38,12 +38,12 @@ historiales y otros modulos clinicos.
 - **Pacientes:** listado, busqueda, alta local, validaciones, detalle de
   paciente, fichas escaneables, citas asociadas e historial clinico inicial.
 - **Citas:** agenda diaria mobile-first con selector horizontal de dias, KPIs
-  del dia, listado ordenado por hora, confirmacion y cancelacion local de citas,
-  creacion local de citas, seleccion de paciente, horarios disponibles segun
-  configuracion del consultorio, bloqueo de choques de horario y bloqueo de
-  doble cita activa del mismo paciente en el dia. Las citas canceladas no se
-  reprograman directamente; si el paciente desea asistir nuevamente, se crea
-  una nueva cita.
+  compactos, listado ordenado por hora, confirmacion, cancelacion con
+  confirmacion previa, reprogramacion inline, creacion local de citas,
+  seleccion de paciente, horarios disponibles segun configuracion del
+  consultorio, bloqueo de choques de horario y bloqueo de doble cita activa del
+  mismo paciente en el dia. Las citas canceladas no se reprograman
+  directamente; si el paciente desea asistir nuevamente, se crea una nueva cita.
 - **Historial clinico:** registros clinicos dentro del detalle de paciente,
   ordenados por fecha, con resumen temporal y formulario de evolucion basica.
 - **Odontograma:** grilla inicial de piezas permanentes adultas dentro del

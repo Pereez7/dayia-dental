@@ -205,12 +205,17 @@ Participan:
 - `src/views/AppointmentsView.tsx`: compone la vista de agenda o el formulario
   de nueva cita.
 - `src/components/AppointmentsAgenda.tsx`: muestra la agenda diaria, selector
-  horizontal de dias, resumen del dia y lista de citas del dia seleccionado.
-- `src/components/AppointmentAgendaCard.tsx`: muestra cada cita.
+  horizontal de dias, resumen del dia, lista de citas del dia seleccionado,
+  acciones locales, Toast y estado temporal de reprogramacion.
+- `src/components/AppointmentAgendaCard.tsx`: muestra cada cita y el panel
+  inline de reprogramacion cuando corresponde.
 - `src/components/AppointmentForm.tsx`: registra una cita nueva en el estado
   local de la aplicacion.
 - `src/utils/appointmentActions.ts`: define que acciones estan disponibles para
-  una cita segun su estado actual.
+  una cita segun su estado actual, confirmacion de cancelacion y reglas puras
+  para cerrar el panel de reprogramacion.
+- `src/utils/appointmentReschedule.ts`: valida y aplica la reprogramacion local
+  de citas.
 - `src/utils/appointmentSorters.ts`: ordena citas por fecha y hora.
 - `src/utils/appointmentGroups.ts`: agrupa citas por fecha, filtra citas del
   dia seleccionado, genera dias visibles para el selector y calcula resumen por
@@ -231,13 +236,20 @@ solo con el dia seleccionado.
 
 Desde la agenda diaria se puede confirmar una cita pendiente o cancelar una
 cita pendiente, confirmada o reprogramada. La cancelacion no elimina la cita:
-solo cambia su estado a `cancelled`, mantiene la card visible y libera el
-horario para Nueva Cita.
+antes pide confirmacion, solo cambia su estado a `cancelled`, mantiene la card
+visible y libera el horario para Nueva Cita.
 
 Las citas canceladas no se reprograman directamente. Si el paciente desea
 asistir nuevamente, se crea una nueva cita. Mas adelante, cuando exista
 integracion real con WhatsApp, se evaluaran estados intermedios como
 `Solicitud de cancelacion` para evitar cancelaciones accidentales.
+
+La reprogramacion local vive como panel inline dentro de la card. El panel es
+contextual: se cierra al cambiar el dia seleccionado, al volver a pulsar
+`Reprogramar`, al cancelar el formulario o al cancelar la cita. Antes de guardar,
+la agenda vuelve a consultar el estado actual de la cita y bloquea cualquier
+reprogramacion de citas canceladas. `App.tsx` tambien evita aplicar una
+reprogramacion si el estado actual ya no lo permite.
 
 Nueva Cita recibe las citas existentes para ocultar horas ocupadas por citas
 pendientes, confirmadas o reprogramadas. Las citas canceladas no bloquean
@@ -248,7 +260,8 @@ La logica de ordenamiento, agrupacion, resumen, horarios, conflictos y
 validacion debe mantenerse fuera de los componentes para poder probarse con
 Vitest.
 
-La edicion, eliminacion, cancelacion real y persistencia siguen pendientes.
+La edicion general, eliminacion, motivo de cancelacion, historial de cambios y
+persistencia siguen pendientes.
 
 `Configuracion`
 
@@ -340,6 +353,9 @@ Tambien centraliza el pulido visual actual de:
 - Inputs, selects, textareas, mensajes y estados vacios.
 - Botones compactos de Configuracion alineados con Recordatorios, con acciones
   neutras y color semantico en el texto.
+- Agenda diaria con KPIs compactos, selector de dias, cards de cita, botones de
+  accion, estado vacio y panel de reprogramacion alineados con Recordatorios y
+  Configuracion.
 
 Estos ajustes son visuales; la logica sigue viviendo en componentes y
 utilidades separadas.

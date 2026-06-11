@@ -29,6 +29,21 @@ Registro breve de cambios relevantes en DayIA Dental.
 - Se documento la decision de producto: las citas canceladas no se reprograman
   directamente; si el paciente desea asistir nuevamente, se crea una nueva
   cita.
+- Se pulio visualmente la Agenda diaria para alinear KPIs, selector de dias,
+  cards, botones, estado vacio y panel de reprogramacion con el lenguaje de
+  Recordatorios y Configuracion.
+- Se agrego reprogramacion inline de citas con validacion de fecha, hora,
+  horarios disponibles, choques de horario y doble cita activa del paciente.
+- Se agrego confirmacion con `window.confirm` antes de cancelar una cita.
+- Se bloqueo la reprogramacion de citas canceladas desde validaciones,
+  acciones visibles y handler principal de estado.
+- Se hizo que cancelar una cita cierre y limpie el panel de reprogramacion si
+  estaba abierto.
+- Se hizo que el panel de reprogramacion se cierre al cambiar de dia y que el
+  boton `Reprogramar` funcione como toggle sobre la misma cita.
+- Se agregaron pruebas unitarias para confirmacion de cancelacion, cierre del
+  panel de reprogramacion, toggle del panel y bloqueo de reprogramacion en
+  citas canceladas.
 - Se agrego utilidad pura para definir acciones disponibles segun estado de
   cita.
 - Se ajusto Recordatorios para no generar recordatorios de citas canceladas.
@@ -129,6 +144,11 @@ Las citas canceladas no se reprograman directamente. Si el paciente desea
 asistir nuevamente, se crea una nueva cita. Mas adelante, cuando exista
 integracion real con WhatsApp, se evaluaran estados intermedios como
 `Solicitud de cancelacion` para evitar cancelaciones accidentales.
+
+La reprogramacion queda como panel inline contextual de la cita y del dia
+seleccionado: se cierra al cambiar de dia, al volver a pulsar `Reprogramar`, al
+cancelar el formulario o al cancelar la cita. Ademas, la validacion y el estado
+principal bloquean cualquier intento de reprogramar una cita cancelada.
 
 ## 2026-06-09
 
