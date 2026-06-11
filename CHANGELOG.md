@@ -20,6 +20,17 @@ Registro breve de cambios relevantes en DayIA Dental.
 - Se agregaron utilidades puras para generar dias visibles, filtrar citas por
   dia, ordenar por hora y etiquetar dias del selector.
 - Se agregaron pruebas unitarias para la agenda diaria y sus etiquetas.
+- Se agregaron acciones locales en Agenda diaria para confirmar citas
+  pendientes.
+- Se agregaron acciones locales para cancelar citas pendientes, confirmadas o
+  reprogramadas sin eliminarlas.
+- Se agrego Toast flotante de confirmacion para citas confirmadas y Toast de
+  aviso para citas canceladas.
+- Se agrego utilidad pura para definir acciones disponibles segun estado de
+  cita.
+- Se ajusto Recordatorios para no generar recordatorios de citas canceladas.
+- Se agregaron pruebas unitarias para acciones disponibles por estado y para
+  evitar recordatorios en citas canceladas.
 - Se conecto Nueva Cita con los horarios del consultorio configurados en
   Configuracion.
 - Se agrego validacion para impedir choques exactos de fecha y hora entre citas
@@ -105,6 +116,11 @@ estado cambia antes de guardar.
 
 La vista Citas deja de ser solo un listado agrupado y empieza a comportarse
 como agenda diaria para recepcion, con foco operativo en el dia seleccionado.
+
+Las acciones de confirmar y cancelar avanzan la operacion diaria sin introducir
+edicion, reprogramacion, eliminacion fisica ni persistencia. Cancelar una cita
+es una accion administrativa valida, por eso usa Toast de aviso y la cita queda
+visible como cancelada.
 
 ## 2026-06-09
 

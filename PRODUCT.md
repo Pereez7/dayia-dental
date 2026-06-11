@@ -47,11 +47,15 @@ de backend antes de validar la experiencia local.
   actuar sin ruido.
 - Priorizar foco diario en agenda: Citas debe ayudar a operar el dia
   seleccionado antes de incorporar vistas mensuales o flujos avanzados.
+- Mantener trazabilidad operativa: cancelar una cita debe cambiar su estado y
+  conservarla visible, no eliminarla del flujo.
 - Mantener continuidad operativa: los modulos deben sentirse parte de la misma
   app y conservar navegacion, espaciado y estados consistentes.
 - Reutilizar feedback no bloqueante cuando una accion no necesita interrumpir
   el flujo, por ejemplo Toast flotante para confirmaciones de Configuracion y
   Recordatorios.
+- Usar tonos semanticos coherentes: confirmar es exito; cancelar o desactivar
+  son avisos administrativos, no errores.
 - Mantener botones compactos y consistentes: la jerarquia debe venir del rol de
   la accion, no de exceso de tamaño, negrita o fondos saturados.
 - Validar primero en frontend: construir flujos locales, tipados y testeables

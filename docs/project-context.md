@@ -137,6 +137,11 @@ Actualmente existe una primera version funcional en frontend:
   canceladas.
 - Cada cita muestra hora, paciente, telefono cuando existe, tratamiento o motivo
   y estado.
+- La agenda permite confirmar citas pendientes.
+- La agenda permite cancelar citas pendientes, confirmadas o reprogramadas sin
+  eliminarlas.
+- Las citas canceladas quedan visibles con badge `Cancelada`.
+- Confirmar muestra Toast de confirmacion; cancelar muestra Toast de aviso.
 - Si no hay citas para el dia seleccionado, muestra un estado vacio profesional
   que sugiere usar la accion global `+ Cita`.
 - Los estados usan badges con colores semanticos suaves.
@@ -170,8 +175,8 @@ citas. Las citas nuevas solo viven en memoria durante la sesion actual.
 
 Actualmente existe una primera version funcional en frontend:
 
-- Genera recordatorios desde citas futuras usando datos locales de citas y
-  pacientes.
+- Genera recordatorios desde citas futuras no canceladas usando datos locales de
+  citas y pacientes.
 - Agrupa recordatorios por cita y fecha de cita.
 - Muestra KPIs de todos, pendientes, programados, enviados simulados y fallidos.
 - Tiene selector horizontal por fecha y filtros compactos por estado.

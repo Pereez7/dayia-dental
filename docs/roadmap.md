@@ -71,6 +71,12 @@ Implementado:
   canceladas.
 - Estado vacio para dias sin citas.
 - Estados visuales con badges semanticos.
+- Confirmacion local de citas pendientes.
+- Cancelacion local de citas pendientes, confirmadas o reprogramadas, sin
+  eliminacion fisica.
+- Toast flotante de exito al confirmar y de aviso al cancelar.
+- Citas canceladas visibles en agenda y sin bloqueo de horarios en Nueva Cita.
+- Recordatorios no generados para citas canceladas.
 - Formulario de nueva cita.
 - Busqueda y seleccion de pacientes mock para agendar.
 - Seleccion real de paciente separada del texto del buscador.
@@ -93,8 +99,11 @@ Implementado:
 Pendiente:
 
 - Edicion de cita.
-- Eliminacion o cancelacion real.
-- Estados funcionales conectados a acciones.
+- Eliminacion real.
+- Reprogramacion de citas.
+- Motivo de cancelacion.
+- Historial de cambios por cita.
+- Mas estados funcionales conectados a acciones.
 - Calendario mensual.
 - Duracion real por tratamiento.
 - Multiples doctores o sillones.

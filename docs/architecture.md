@@ -111,21 +111,23 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
 16. `AppointmentForm` recibe tratamientos desde `App.tsx` y muestra solo los
    tratamientos activos.
 17. `App.tsx` agrega la nueva cita al estado local y vuelve a la agenda.
-18. `AppointmentCard` usa funciones de `src/utils` para mostrar fecha, hora y
+18. `App.tsx` tambien actualiza el estado local de una cita cuando la agenda
+   solicita confirmar o cancelar.
+19. `AppointmentCard` usa funciones de `src/utils` para mostrar fecha, hora y
    estado en formato legible.
-19. `PatientForm` maneja los campos del formulario con estado local, valida con
+20. `PatientForm` maneja los campos del formulario con estado local, valida con
    funciones de `src/utils` y avisa a `PatientsView` cuando hay un nuevo
    paciente.
-20. `PatientsList` recibe pacientes, maneja el texto de busqueda local y usa
+21. `PatientsList` recibe pacientes, maneja el texto de busqueda local y usa
    `filterPatients` para decidir que registros mostrar.
-21. `PatientCard` muestra cada paciente filtrado.
-22. `ClinicalRecordForm` registra una evolucion clinica basica y normaliza los
+22. `PatientCard` muestra cada paciente filtrado.
+23. `ClinicalRecordForm` registra una evolucion clinica basica y normaliza los
    textos antes de avisar a `App.tsx`.
-23. `ClinicalRecordsList` muestra los registros clinicos filtrados del paciente,
+24. `ClinicalRecordsList` muestra los registros clinicos filtrados del paciente,
    con fechas compactas con año y resumen temporal.
-24. `PatientOdontogram` muestra piezas permanentes adultas, resumen por estado y
+25. `PatientOdontogram` muestra piezas permanentes adultas, resumen por estado y
    permite actualizar una pieza dental.
-25. `WhatsAppRemindersView` genera recordatorios locales desde citas y
+26. `WhatsAppRemindersView` genera recordatorios locales desde citas y
    pacientes, aplica filtros por fecha y estado, y muestra feedback mediante
    `Toast`.
 
@@ -207,6 +209,8 @@ Participan:
 - `src/components/AppointmentAgendaCard.tsx`: muestra cada cita.
 - `src/components/AppointmentForm.tsx`: registra una cita nueva en el estado
   local de la aplicacion.
+- `src/utils/appointmentActions.ts`: define que acciones estan disponibles para
+  una cita segun su estado actual.
 - `src/utils/appointmentSorters.ts`: ordena citas por fecha y hora.
 - `src/utils/appointmentGroups.ts`: agrupa citas por fecha, filtra citas del
   dia seleccionado, genera dias visibles para el selector y calcula resumen por
@@ -224,6 +228,11 @@ Participan:
 La agenda diaria inicia en hoy y permite saltar a mañana o a proximos dias con
 citas. Las citas del dia se ordenan por hora ascendente y los KPIs se calculan
 solo con el dia seleccionado.
+
+Desde la agenda diaria se puede confirmar una cita pendiente o cancelar una
+cita pendiente, confirmada o reprogramada. La cancelacion no elimina la cita:
+solo cambia su estado a `cancelled`, mantiene la card visible y libera el
+horario para Nueva Cita.
 
 Nueva Cita recibe las citas existentes para ocultar horas ocupadas por citas
 pendientes, confirmadas o reprogramadas. Las citas canceladas no bloquean
@@ -350,10 +359,10 @@ Participan:
   agrupa por cita y fecha, calcula resumen y crea mensajes sugeridos.
 
 La generacion de recordatorios evita crear horarios en el pasado. Para cada cita
-futura, `24h` y `2h` solo se generan si su horario programado queda despues de
-la fecha/hora de referencia. Si una cita esta demasiado cerca, se registra una
-nota de omision y, cuando ya no aplica `24h` ni `2h`, se genera una
-confirmacion inmediata con estado pendiente.
+futura no cancelada, `24h` y `2h` solo se generan si su horario programado queda
+despues de la fecha/hora de referencia. Si una cita esta demasiado cerca, se
+registra una nota de omision y, cuando ya no aplica `24h` ni `2h`, se genera
+una confirmacion inmediata con estado pendiente.
 
 El estado de envio es local y simulado. Marcar como enviado o fallido solo
 actualiza la vista durante la sesion actual. El Toast se posiciona como

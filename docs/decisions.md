@@ -217,8 +217,23 @@ experiencia cercana a Recordatorios. Los KPIs se calculan por dia seleccionado
 para que recepcion pueda entender rapidamente carga, pendientes, confirmadas,
 reprogramadas y canceladas.
 
-El calendario mensual, la reprogramacion visual, la cancelacion y acciones por
+El calendario mensual, la reprogramacion visual y acciones mas avanzadas por
 estado quedan pendientes hasta que la agenda diaria este estable.
+
+## Confirmar y cancelar antes que editar citas
+
+La agenda diaria permite primero dos acciones operativas simples: confirmar una
+cita pendiente y cancelar una cita pendiente, confirmada o reprogramada. Estas
+acciones solo cambian el estado de la cita en memoria y no modifican fecha,
+hora, paciente ni tratamiento.
+
+Cancelar una cita no elimina el registro. La cita sigue visible como
+`Cancelada`, deja de bloquear horarios en Nueva Cita y no genera recordatorios
+WhatsApp. Esta decision conserva contexto operativo sin introducir historial de
+cambios, motivo de cancelacion, edicion ni reprogramacion todavia.
+
+El feedback usa Toast flotante: confirmar usa tono de exito y cancelar usa tono
+de aviso, porque cancelar es una accion administrativa valida, no un error.
 
 ## Creacion local de citas antes de persistencia
 
