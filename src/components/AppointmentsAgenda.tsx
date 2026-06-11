@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import type { Appointment } from '../types/Appointment'
+import { useEffect, useMemo, useState } from 'react'
+import type { Appointment, AppointmentStatus } from '../types/Appointment'
 import type { Patient } from '../types/Patient'
 import {
   getAppointmentsForDate,
@@ -8,17 +8,26 @@ import {
   summarizeAppointmentsByStatus,
 } from '../utils/appointmentGroups'
 import { AppointmentAgendaCard } from './AppointmentAgendaCard'
+import { Toast, type ToastTone } from './Toast'
 
 interface AppointmentsAgendaProps {
   appointments: Appointment[]
   patients: Patient[]
+  onUpdateAppointmentStatus?: (
+    appointmentId: number,
+    status: AppointmentStatus,
+  ) => void
 }
 
 export function AppointmentsAgenda({
   appointments,
+  onUpdateAppointmentStatus,
   patients,
 }: AppointmentsAgendaProps) {
   const [selectedDate, setSelectedDate] = useState(() => getDateInputValue())
+  const [toastMessage, setToastMessage] = useState('')
+  const [toastTone, setToastTone] = useState<ToastTone>('success')
+  const [isToastVisible, setIsToastVisible] = useState(false)
   const visibleDays = useMemo(
     () => getVisibleAgendaDays(appointments),
     [appointments],
@@ -37,8 +46,42 @@ export function AppointmentsAgenda({
     return patients.find((patient) => patient.fullName === appointment.patient)
   }
 
+  useEffect(() => {
+    if (!isToastVisible) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => setIsToastVisible(false), 3200)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [isToastVisible, toastMessage])
+
+  useEffect(() => {
+    if (isToastVisible || !toastMessage) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => setToastMessage(''), 220)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [isToastVisible, toastMessage])
+
+  function updateAppointmentStatus(
+    appointmentId: number,
+    status: AppointmentStatus,
+  ) {
+    onUpdateAppointmentStatus?.(appointmentId, status)
+    setToastMessage(
+      status === 'confirmed' ? 'Cita confirmada.' : 'Cita cancelada.',
+    )
+    setToastTone(status === 'confirmed' ? 'success' : 'warning')
+    setIsToastVisible(true)
+  }
+
   return (
     <section className="agenda-section" aria-label="Agenda de citas">
+      <Toast message={toastMessage} tone={toastTone} visible={isToastVisible} />
+
       <div className="agenda-header">
         <div className="section-heading">
           <p className="eyebrow">Agenda diaria</p>
@@ -93,6 +136,8 @@ export function AppointmentsAgenda({
             <AppointmentAgendaCard
               appointment={appointment}
               key={appointment.id}
+              onCancel={() => updateAppointmentStatus(appointment.id, 'cancelled')}
+              onConfirm={() => updateAppointmentStatus(appointment.id, 'confirmed')}
               patient={getAppointmentPatient(appointment)}
             />
           ))}

@@ -1,6 +1,10 @@
 import { AppointmentForm } from '../components/AppointmentForm'
 import { AppointmentsAgenda } from '../components/AppointmentsAgenda'
-import type { Appointment, AppointmentFormValues } from '../types/Appointment'
+import type {
+  Appointment,
+  AppointmentFormValues,
+  AppointmentStatus,
+} from '../types/Appointment'
 import type { BusinessHoursSettings } from '../types/BusinessHours'
 import type { Patient } from '../types/Patient'
 import type { Treatment } from '../types/Treatment'
@@ -13,6 +17,10 @@ interface AppointmentsViewProps {
   mode?: 'agenda' | 'new'
   onCreateAppointment?: (values: AppointmentFormValues) => void
   onNavigateToAgenda?: () => void
+  onUpdateAppointmentStatus?: (
+    appointmentId: number,
+    status: AppointmentStatus,
+  ) => void
 }
 
 export function AppointmentsView({
@@ -23,6 +31,7 @@ export function AppointmentsView({
   mode = 'agenda',
   onCreateAppointment,
   onNavigateToAgenda,
+  onUpdateAppointmentStatus,
 }: AppointmentsViewProps) {
   function handleCreateAppointment(values: AppointmentFormValues) {
     onCreateAppointment?.(values)
@@ -41,5 +50,11 @@ export function AppointmentsView({
     )
   }
 
-  return <AppointmentsAgenda appointments={appointments} patients={patients} />
+  return (
+    <AppointmentsAgenda
+      appointments={appointments}
+      patients={patients}
+      onUpdateAppointmentStatus={onUpdateAppointmentStatus}
+    />
+  )
 }

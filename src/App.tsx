@@ -8,7 +8,11 @@ import { patients as initialPatients } from './data/patients'
 import { treatments as initialTreatments } from './data/treatments'
 import { AppLayout } from './layout/AppLayout'
 import type { AppSection } from './layout/navigation'
-import type { Appointment, AppointmentFormValues } from './types/Appointment'
+import type {
+  Appointment,
+  AppointmentFormValues,
+  AppointmentStatus,
+} from './types/Appointment'
 import type { BusinessHoursSettings } from './types/BusinessHours'
 import type {
   ClinicalRecord,
@@ -75,6 +79,19 @@ function App() {
       },
     ])
     setActiveSection('appointments-agenda')
+  }
+
+  function handleUpdateAppointmentStatus(
+    appointmentId: number,
+    status: AppointmentStatus,
+  ) {
+    setAppointments((currentAppointments) =>
+      currentAppointments.map((appointment) =>
+        appointment.id === appointmentId
+          ? { ...appointment, status }
+          : appointment,
+      ),
+    )
   }
 
   function handleViewPatient(patientId: number) {
@@ -191,6 +208,7 @@ function App() {
           mode="agenda"
           patients={patients}
           treatments={treatments}
+          onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
         />
       )
     }

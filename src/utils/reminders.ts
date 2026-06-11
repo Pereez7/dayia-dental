@@ -36,7 +36,11 @@ export function generateAppointmentReminders(
   referenceDate = new Date(),
 ) {
   return appointments
-    .filter((appointment) => isFutureAppointmentDateTime(appointment, referenceDate))
+    .filter(
+      (appointment) =>
+        appointment.status !== 'cancelled' &&
+        isFutureAppointmentDateTime(appointment, referenceDate),
+    )
     .flatMap((appointment) => {
       const patient = findAppointmentPatient(appointment, patients)
 

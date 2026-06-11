@@ -218,6 +218,26 @@ describe('generateAppointmentReminders', () => {
     expect(reminders).toHaveLength(0)
   })
 
+  it('does not create reminders for cancelled appointments', () => {
+    const reminders = generateAppointmentReminders(
+      [
+        {
+          date: '2026-06-12',
+          id: 9,
+          patient: 'Mariana Rojas',
+          patientId: 1,
+          status: 'cancelled',
+          time: '09:00',
+          treatment: 'Limpieza dental',
+        },
+      ],
+      patients,
+      new Date('2026-06-09T08:00:00'),
+    )
+
+    expect(reminders).toHaveLength(0)
+  })
+
   it('never generates scheduled reminders in the past', () => {
     const referenceDate = new Date('2026-06-09T18:00:00')
     const reminders = generateAppointmentReminders(
