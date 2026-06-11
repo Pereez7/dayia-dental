@@ -2,9 +2,6 @@ import type { AppointmentStatus } from '../types/Appointment'
 
 export type AppointmentStatusAction = 'cancel' | 'confirm' | 'reschedule'
 
-export const appointmentCancellationConfirmationMessage =
-  '¿Seguro que deseas cancelar esta cita? Esta acción liberará el horario.'
-
 export function canRescheduleAppointment(status: AppointmentStatus) {
   return (
     status === 'pending' ||
@@ -41,10 +38,4 @@ export function shouldCloseReschedulePanelOnToggle(
   appointmentId: number,
 ) {
   return activeRescheduleAppointmentId === appointmentId
-}
-
-export function shouldCancelAppointment(
-  confirmCancellation: (message: string) => boolean,
-) {
-  return confirmCancellation(appointmentCancellationConfirmationMessage)
 }

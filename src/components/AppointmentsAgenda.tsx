@@ -5,7 +5,6 @@ import type { Patient } from '../types/Patient'
 import { getAvailableTimeOptions } from '../utils/appointmentConflicts'
 import {
   canRescheduleAppointment,
-  shouldCancelAppointment,
   shouldCloseReschedulePanelAfterStatusChange,
   shouldCloseReschedulePanelOnToggle,
 } from '../utils/appointmentActions'
@@ -23,6 +22,7 @@ import {
 } from '../utils/appointmentReschedule'
 import { getBusinessDayScheduleForDate } from '../utils/businessHours'
 import { AppointmentAgendaCard } from './AppointmentAgendaCard'
+import { ConfirmDialog } from './ConfirmDialog'
 import { Toast, type ToastTone } from './Toast'
 
 interface AppointmentsAgendaProps {
@@ -58,6 +58,8 @@ export function AppointmentsAgenda({
   const [toastMessage, setToastMessage] = useState('')
   const [toastTone, setToastTone] = useState<ToastTone>('success')
   const [isToastVisible, setIsToastVisible] = useState(false)
+  const [appointmentIdPendingCancellation, setAppointmentIdPendingCancellation] =
+    useState<number | null>(null)
   const visibleDays = useMemo(
     () => getVisibleAgendaDays(appointments),
     [appointments],
@@ -100,13 +102,6 @@ export function AppointmentsAgenda({
     appointmentId: number,
     status: AppointmentStatus,
   ) {
-    if (
-      status === 'cancelled' &&
-      !shouldCancelAppointment((message) => window.confirm(message))
-    ) {
-      return
-    }
-
     onUpdateAppointmentStatus?.(appointmentId, status)
     if (
       shouldCloseReschedulePanelAfterStatusChange(
@@ -122,6 +117,23 @@ export function AppointmentsAgenda({
     )
     setToastTone(status === 'confirmed' ? 'success' : 'warning')
     setIsToastVisible(true)
+  }
+
+  function requestAppointmentCancellation(appointmentId: number) {
+    setAppointmentIdPendingCancellation(appointmentId)
+  }
+
+  function cancelAppointmentCancellation() {
+    setAppointmentIdPendingCancellation(null)
+  }
+
+  function confirmAppointmentCancellation() {
+    if (appointmentIdPendingCancellation === null) {
+      return
+    }
+
+    updateAppointmentStatus(appointmentIdPendingCancellation, 'cancelled')
+    setAppointmentIdPendingCancellation(null)
   }
 
   function startReschedule(appointment: Appointment) {
@@ -264,6 +276,16 @@ export function AppointmentsAgenda({
   return (
     <section className="agenda-section" aria-label="Agenda de citas">
       <Toast message={toastMessage} tone={toastTone} visible={isToastVisible} />
+      <ConfirmDialog
+        cancelLabel="Volver"
+        confirmLabel="Sí, cancelar cita"
+        isOpen={appointmentIdPendingCancellation !== null}
+        message="¿Seguro que deseas cancelar esta cita? Esta acción liberará el horario y la cita quedará registrada como cancelada."
+        title="Cancelar cita"
+        variant="danger"
+        onCancel={cancelAppointmentCancellation}
+        onConfirm={confirmAppointmentCancellation}
+      />
 
       <div className="agenda-header">
         <div className="section-heading">
@@ -319,7 +341,7 @@ export function AppointmentsAgenda({
             <AppointmentAgendaCard
               appointment={appointment}
               key={appointment.id}
-              onCancel={() => updateAppointmentStatus(appointment.id, 'cancelled')}
+              onCancel={() => requestAppointmentCancellation(appointment.id)}
               onConfirm={() => updateAppointmentStatus(appointment.id, 'confirmed')}
               onCancelReschedule={cancelReschedule}
               onReschedule={() => startReschedule(appointment)}

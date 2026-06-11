@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
-  appointmentCancellationConfirmationMessage,
   canRescheduleAppointment,
   getAppointmentStatusActions,
-  shouldCancelAppointment,
   shouldCloseReschedulePanelAfterStatusChange,
   shouldCloseReschedulePanelOnToggle,
 } from './appointmentActions'
@@ -66,24 +64,5 @@ describe('getAppointmentStatusActions', () => {
 
   it('opens another reschedule panel when toggling a different appointment', () => {
     expect(shouldCloseReschedulePanelOnToggle(1, 2)).toBe(false)
-  })
-
-  it('continues cancellation when the user confirms it', () => {
-    expect(shouldCancelAppointment(() => true)).toBe(true)
-  })
-
-  it('stops cancellation when the user rejects it', () => {
-    expect(shouldCancelAppointment(() => false)).toBe(false)
-  })
-
-  it('uses the cancellation confirmation message', () => {
-    let receivedMessage = ''
-
-    shouldCancelAppointment((message) => {
-      receivedMessage = message
-      return true
-    })
-
-    expect(receivedMessage).toBe(appointmentCancellationConfirmationMessage)
   })
 })
