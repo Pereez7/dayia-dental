@@ -15,6 +15,18 @@ Registro breve de cambios relevantes en DayIA Dental.
   reprogramacion activo antes de mostrar `ConfirmDialog`.
 - Mientras una card esta en modo reprogramacion, se ocultan las acciones
   externas de la cita para dejar solo `Guardar` y `Cancelar` del panel.
+- Se agrego `changeLog` opcional a las citas para registrar historial simple de
+  creacion, confirmacion, cancelacion y reprogramacion.
+- Se creo `src/utils/appointmentChangeLog.ts` para crear eventos, agregarlos de
+  forma inmutable y formatear el ultimo cambio visible.
+- Se agregan eventos de historial al crear, confirmar, cancelar y reprogramar
+  una cita sin permitir edicion ni borrado desde la UI.
+- La card de agenda muestra solo el ultimo cambio relevante cuando el evento es
+  `confirmed`, `cancelled` o `rescheduled`; el evento interno `created` se
+  conserva pero no se muestra como ultimo cambio.
+- Se pulio la card de cita para que tratamiento, motivo, ultimo cambio, estado
+  y acciones se vean mas ordenados y menos ambiguos.
+- Se agregaron pruebas unitarias para el historial simple de cambios de cita.
 - Se verifico el cambio con `npm run lint`, `npm run test` y `npm run build`.
 
 ### Motivo del cambio
@@ -22,6 +34,10 @@ Registro breve de cambios relevantes en DayIA Dental.
 Evitar ambiguedad entre cancelar una edicion de reprogramacion y cancelar la
 cita completa. La card queda enfocada en una sola decision operativa a la vez,
 sin cambiar reglas de negocio ni introducir nuevas funcionalidades.
+
+El historial simple agrega trazabilidad basica sin backend, usuario responsable
+ni auditoria avanzada. La UI muestra solo un resumen discreto para no saturar la
+agenda, mientras conserva internamente el evento de creacion.
 
 ## 2026-06-11
 

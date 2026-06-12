@@ -99,6 +99,10 @@ Implementado:
 - Toast flotante de exito al confirmar y de aviso al cancelar.
 - Motivos de cancelacion y reprogramacion guardados en la cita y mostrados como
   texto secundario compacto en la card cuando corresponde.
+- Historial simple de cambios de cita con eventos de creacion, confirmacion,
+  cancelacion y reprogramacion.
+- Ultimo cambio visible en la card solo para confirmacion, cancelacion o
+  reprogramacion; el evento `created` se conserva internamente.
 - Citas canceladas visibles en agenda y sin bloqueo de horarios en Nueva Cita.
 - Citas canceladas no reprogramables directamente; si el paciente desea volver,
   se crea una nueva cita.
@@ -126,8 +130,8 @@ Pendiente:
 
 - Edicion de cita.
 - Eliminacion real.
-- Historial de cambios por cita.
 - Auditoria completa de cambios por cita, con usuario, fecha y hora del cambio.
+- Vista dedicada para historial avanzado de cambios por cita.
 - Mas estados funcionales conectados a acciones.
 - Estados intermedios como `Solicitud de cancelacion` cuando exista integracion
   real con WhatsApp.

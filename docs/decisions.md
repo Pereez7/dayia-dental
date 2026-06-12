@@ -264,6 +264,23 @@ debe modificar fecha u hora; si ambos valores son iguales a los actuales, se
 muestra error inline y no se cambia el estado. Editar solamente el motivo queda
 como una accion futura separada.
 
+## Historial simple de cambios de cita
+
+Las citas tienen un `changeLog` opcional para registrar eventos basicos:
+creacion, confirmacion, cancelacion y reprogramacion. Es una trazabilidad simple
+en memoria, sin backend, usuario responsable, auditoria avanzada ni pantalla de
+historial.
+
+Los eventos se agregan de forma inmutable y no se pueden editar ni borrar desde
+la UI. El evento de creacion se guarda internamente, pero no se muestra como
+`Ultimo cambio` para evitar ruido visual en citas recien creadas. La card solo
+muestra ultimo cambio cuando el evento relevante es confirmacion, cancelacion o
+reprogramacion.
+
+El historial no debe duplicar datos sensibles ni informacion clinica. Las
+descripciones se mantienen operativas y se renderizan como texto normal de
+React.
+
 ## Citas canceladas no se reprograman directamente
 
 Las citas canceladas no se reprograman directamente. Si el paciente desea

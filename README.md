@@ -17,6 +17,8 @@ historiales y otros modulos clinicos.
 - Citas con confirmacion, cancelacion y reprogramacion local, incluyendo
   motivos simples de cancelacion y reprogramacion, con validacion para exigir
   cambio real de fecha u hora al reprogramar.
+- Historial simple de cambios de cita en memoria para creacion, confirmacion,
+  cancelacion y reprogramacion.
 - Nueva cita con seleccion real de paciente, horarios disponibles segun
   horarios del consultorio, bloqueo de horas ocupadas y validaciones de campos.
 - Historial clinico inicial dentro del detalle de paciente, con registros
@@ -50,8 +52,10 @@ historiales y otros modulos clinicos.
   mismo paciente en el dia. Reprogramar exige cambiar fecha u hora, no solo el
   motivo. Mientras el panel de reprogramacion esta abierto, la card se enfoca en
   guardar o cancelar esa edicion y oculta acciones externas de la cita. Las
-  citas canceladas no se reprograman directamente; si el paciente desea asistir
-  nuevamente, se crea una nueva cita.
+  cards muestran motivo y ultimo cambio como informacion secundaria; el evento
+  interno de creacion no se muestra como ultimo cambio. Las citas canceladas no
+  se reprograman directamente; si el paciente desea asistir nuevamente, se crea
+  una nueva cita.
 - **Historial clinico:** registros clinicos dentro del detalle de paciente,
   ordenados por fecha, con resumen temporal y formulario de evolucion basica.
 - **Odontograma:** grilla inicial de piezas permanentes adultas dentro del

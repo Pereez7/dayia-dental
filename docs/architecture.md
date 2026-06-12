@@ -198,8 +198,8 @@ seleccionado y creacion local de citas en memoria.
 
 Participan:
 
-- `src/types/Appointment.ts`: define `Appointment`, `AppointmentStatus` y los
-  valores del formulario de citas.
+- `src/types/Appointment.ts`: define `Appointment`, `AppointmentStatus`,
+  `AppointmentChangeLogEntry` y los valores del formulario de citas.
 - `src/data/appointments.ts`: contiene citas mock.
 - `src/data/treatments.ts`: contiene el catalogo inicial tipado de tratamientos.
 - `src/views/AppointmentsView.tsx`: compone la vista de agenda o el formulario
@@ -223,6 +223,9 @@ Participan:
   detalle `Otro`, normaliza detalles y arma el texto guardado en la cita.
 - `src/utils/appointmentReschedule.ts`: valida y aplica la reprogramacion local
   de citas, incluyendo cambio real de fecha u hora y motivo guardado.
+- `src/utils/appointmentChangeLog.ts`: crea eventos simples de historial,
+  agrega eventos de forma inmutable y formatea el ultimo cambio visible en la
+  card.
 - `src/utils/appointmentSorters.ts`: ordena citas por fecha y hora.
 - `src/utils/appointmentGroups.ts`: agrupa citas por fecha, filtra citas del
   dia seleccionado, genera dias visibles para el selector y calcula resumen por
@@ -282,6 +285,16 @@ El detalle `Otro` de motivos se limita a 120 caracteres, muestra contador visual
 y usa un textarea de altura fija para no afectar la composicion de la agenda. En
 las cards, el motivo se muestra como texto secundario truncado para conservar la
 lectura rapida de hora, paciente, tratamiento, estado y acciones.
+
+Las citas pueden incluir `changeLog` opcional. `App.tsx` agrega eventos al crear,
+confirmar y cancelar citas; `appointmentReschedule.ts` agrega eventos al
+reprogramar. Los eventos existentes se conservan con append inmutable y no se
+exponen acciones de edicion o borrado en la UI.
+
+La card de agenda muestra solo un resumen del ultimo cambio relevante. El evento
+`created` se conserva internamente para trazabilidad, pero no se muestra como
+`Ultimo cambio`; se muestran confirmaciones, cancelaciones y reprogramaciones en
+formato corto y legible.
 
 Nueva Cita recibe las citas existentes para ocultar horas ocupadas por citas
 pendientes, confirmadas o reprogramadas. Las citas canceladas no bloquean

@@ -63,6 +63,9 @@ de backend antes de validar la experiencia local.
   edicion de motivo.
 - Pedir motivo en acciones que cambian la operacion de agenda, como cancelar o
   reprogramar, sin convertirlo todavia en historial completo de auditoria.
+- Registrar trazabilidad simple de cambios de cita sin saturar la agenda: la
+  creacion puede conservarse internamente, pero la card solo debe mostrar
+  cambios operativos relevantes para el usuario.
 - Usar confirmaciones propias y consistentes para acciones sensibles; evitar
   alertas nativas del navegador cuando rompan la experiencia visual del
   producto.

@@ -145,6 +145,8 @@ Actualmente existe una primera version funcional en frontend:
   eliminarlas, despues de pedir confirmacion con `ConfirmDialog`.
 - Al cancelar una cita se solicita un motivo obligatorio y, si se elige `Otro`,
   un detalle breve obligatorio.
+- Las citas pueden tener `changeLog` opcional para registrar eventos simples de
+  creacion, confirmacion, cancelacion y reprogramacion.
 - La agenda permite reprogramar citas pendientes, confirmadas o reprogramadas
   desde un panel inline contextual.
 - Al reprogramar una cita se solicita un motivo obligatorio y, si se elige
@@ -168,9 +170,11 @@ Actualmente existe una primera version funcional en frontend:
 - `ConfirmDialog` reemplaza la confirmacion nativa del navegador al cancelar
   citas, acepta contenido adicional opcional y queda reutilizable para futuras
   acciones sensibles.
-- Las cards de agenda muestran el motivo de cancelacion o reprogramacion como
-  texto secundario truncado cuando corresponde, sin desordenar hora, paciente,
-  tratamiento, estado ni acciones.
+- Las cards de agenda muestran tratamiento, motivo y ultimo cambio como
+  informacion secundaria compacta, sin desordenar hora, paciente, estado ni
+  acciones.
+- El evento `created` se guarda internamente, pero no se muestra como
+  `Ultimo cambio`; solo se muestran confirmacion, cancelacion o reprogramacion.
 - Si no hay citas para el dia seleccionado, muestra un estado vacio profesional
   que sugiere usar la accion global `+ Cita`.
 - Los estados usan badges con colores semanticos suaves.
