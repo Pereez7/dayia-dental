@@ -147,7 +147,7 @@ export function AppointmentsAgenda({
         status,
       )
     ) {
-      cancelReschedule()
+      closeReschedulePanel()
     }
     setToastMessage(
       status === 'confirmed' ? 'Cita confirmada.' : 'Cita cancelada.',
@@ -157,6 +157,7 @@ export function AppointmentsAgenda({
   }
 
   function requestAppointmentCancellation(appointmentId: number) {
+    closeReschedulePanel()
     setAppointmentIdPendingCancellation(appointmentId)
     setCancellationReasonValues(emptyCancellationReasonValues)
     setCancellationReasonErrors({})
@@ -202,7 +203,7 @@ export function AppointmentsAgenda({
         appointment.id,
       )
     ) {
-      cancelReschedule()
+      closeReschedulePanel()
       return
     }
 
@@ -230,17 +231,21 @@ export function AppointmentsAgenda({
 
   function selectAgendaDate(date: string) {
     if (date !== selectedDate) {
-      cancelReschedule()
+      closeReschedulePanel()
     }
 
     setSelectedDate(date)
   }
 
-  function cancelReschedule() {
-    setRescheduleAppointmentId(null)
+  function resetRescheduleForm() {
     setRescheduleValues(emptyRescheduleValues)
     setRescheduleErrors({})
     setRescheduleReasonErrors({})
+  }
+
+  function closeReschedulePanel() {
+    setRescheduleAppointmentId(null)
+    resetRescheduleForm()
   }
 
   function updateRescheduleDate(appointment: Appointment, date: string) {
@@ -366,7 +371,7 @@ export function AppointmentsAgenda({
         appointmentRescheduleReasonOptions,
       ),
     )
-    cancelReschedule()
+    closeReschedulePanel()
     setToastMessage('Cita reprogramada.')
     setToastTone('warning')
     setIsToastVisible(true)
@@ -524,7 +529,7 @@ export function AppointmentsAgenda({
               key={appointment.id}
               onCancel={() => requestAppointmentCancellation(appointment.id)}
               onConfirm={() => updateAppointmentStatus(appointment.id, 'confirmed')}
-              onCancelReschedule={cancelReschedule}
+              onCloseReschedulePanel={closeReschedulePanel}
               onReschedule={() => startReschedule(appointment)}
               onRescheduleDateChange={(date) =>
                 updateRescheduleDate(appointment, date)

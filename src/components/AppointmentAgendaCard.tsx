@@ -22,7 +22,7 @@ import type {
 interface AppointmentAgendaCardProps {
   appointment: Appointment
   onCancel: () => void
-  onCancelReschedule: () => void
+  onCloseReschedulePanel: () => void
   onConfirm: () => void
   onReschedule: () => void
   onRescheduleDateChange: (date: string) => void
@@ -44,7 +44,7 @@ interface AppointmentAgendaCardProps {
 export function AppointmentAgendaCard({
   appointment,
   onCancel,
-  onCancelReschedule,
+  onCloseReschedulePanel,
   onConfirm,
   onReschedule,
   onRescheduleDateChange,
@@ -108,7 +108,7 @@ export function AppointmentAgendaCard({
           )}
         </div>
 
-        {availableActions.length > 0 && (
+        {availableActions.length > 0 && !showRescheduleForm && (
           <div className="agenda-card-actions" aria-label="Acciones de cita">
             {availableActions.includes('confirm') && (
               <button
@@ -289,7 +289,7 @@ export function AppointmentAgendaCard({
             <button
               className="agenda-card-action"
               type="button"
-              onClick={onCancelReschedule}
+              onClick={onCloseReschedulePanel}
             >
               Cancelar
             </button>
