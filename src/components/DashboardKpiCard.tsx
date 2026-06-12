@@ -1,6 +1,6 @@
 interface DashboardKpiCardProps {
   label: string
-  tone: 'blue' | 'green' | 'amber' | 'indigo' | 'slate'
+  tone: 'amber' | 'blue' | 'green' | 'indigo' | 'red' | 'slate'
   value: number | string
 }
 

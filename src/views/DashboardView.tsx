@@ -1,12 +1,16 @@
 import { DashboardActivityList } from '../components/DashboardActivityList'
 import { DashboardAppointmentList } from '../components/DashboardAppointmentList'
+import { DashboardAttentionList } from '../components/DashboardAttentionList'
 import { DashboardKpiCard } from '../components/DashboardKpiCard'
+import { DashboardMonthSummary } from '../components/DashboardMonthSummary'
 import { DashboardPatientsList } from '../components/DashboardPatientsList'
 import type { Appointment } from '../types/Appointment'
 import type { Patient } from '../types/Patient'
 import {
-  getDashboardActivityMessages,
+  getAppointmentsRequiringAttention,
   getDashboardSummary,
+  getMonthlyStatusSummary,
+  getRecentAppointmentActivity,
   getRecentPatients,
   getUpcomingAppointments,
 } from '../utils/dashboardMetrics'
@@ -20,7 +24,13 @@ export function DashboardView({ appointments, patients }: DashboardViewProps) {
   const summary = getDashboardSummary(appointments, patients)
   const upcomingAppointments = getUpcomingAppointments(appointments, 5)
   const recentPatients = getRecentPatients(patients, 4)
-  const activityMessages = getDashboardActivityMessages(appointments)
+  const attentionItems = getAppointmentsRequiringAttention(
+    appointments,
+    patients,
+    5,
+  )
+  const recentActivity = getRecentAppointmentActivity(appointments, 5)
+  const monthlySummary = getMonthlyStatusSummary(appointments)
 
   return (
     <section className="dashboard-view" aria-label="Dashboard principal">
@@ -32,29 +42,34 @@ export function DashboardView({ appointments, patients }: DashboardViewProps) {
 
         <div className="dashboard-kpi-grid">
           <DashboardKpiCard
-            label="Atenciones de hoy"
+            label="Citas de hoy"
             tone="blue"
             value={summary.todayAppointments}
           />
           <DashboardKpiCard
-            label="Atenciones del mes"
-            tone="slate"
-            value={summary.monthlyAppointments}
-          />
-          <DashboardKpiCard
-            label="Pendientes por confirmar"
+            label="Pendientes de hoy"
             tone="amber"
-            value={summary.pendingAppointments}
+            value={summary.todayPendingAppointments}
           />
           <DashboardKpiCard
-            label="Pacientes registrados"
+            label="Confirmadas de hoy"
             tone="green"
-            value={summary.registeredPatients}
+            value={summary.todayConfirmedAppointments}
           />
           <DashboardKpiCard
             label="Reprogramadas del mes"
             tone="indigo"
             value={summary.monthlyRescheduledAppointments}
+          />
+          <DashboardKpiCard
+            label="Canceladas del mes"
+            tone="red"
+            value={summary.monthlyCancelledAppointments}
+          />
+          <DashboardKpiCard
+            label="Pacientes registrados"
+            tone="slate"
+            value={summary.registeredPatients}
           />
         </div>
       </section>
@@ -63,9 +78,9 @@ export function DashboardView({ appointments, patients }: DashboardViewProps) {
         <article className="dashboard-panel dashboard-panel--appointments">
           <div className="section-heading">
             <p className="eyebrow">Agenda</p>
-            <h2>Proximas atenciones</h2>
+            <h2>Proximas citas</h2>
             <p className="section-description">
-              Las siguientes citas programadas, sin entrar a la agenda completa.
+              Las siguientes citas activas ordenadas por fecha y hora.
             </p>
           </div>
 
@@ -75,20 +90,38 @@ export function DashboardView({ appointments, patients }: DashboardViewProps) {
         <div className="dashboard-side-stack">
           <article className="dashboard-panel">
             <div className="section-heading">
+              <p className="eyebrow">Seguimiento</p>
+              <h2>Requieren atencion</h2>
+            </div>
+
+            <DashboardAttentionList items={attentionItems} />
+          </article>
+
+          <article className="dashboard-panel">
+            <div className="section-heading">
+              <p className="eyebrow">Actividad</p>
+              <h2>Actividad reciente</h2>
+            </div>
+
+            <DashboardActivityList activities={recentActivity} />
+          </article>
+
+          <article className="dashboard-panel">
+            <div className="section-heading">
+              <p className="eyebrow">Mes actual</p>
+              <h2>Resumen del mes</h2>
+            </div>
+
+            <DashboardMonthSummary summary={monthlySummary} />
+          </article>
+
+          <article className="dashboard-panel">
+            <div className="section-heading">
               <p className="eyebrow">Pacientes</p>
               <h2>Pacientes recientes</h2>
             </div>
 
             <DashboardPatientsList patients={recentPatients} />
-          </article>
-
-          <article className="dashboard-panel">
-            <div className="section-heading">
-              <p className="eyebrow">Operacion</p>
-              <h2>Resumen operativo</h2>
-            </div>
-
-            <DashboardActivityList messages={activityMessages} />
           </article>
         </div>
       </section>

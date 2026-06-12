@@ -18,7 +18,11 @@ export function DashboardPatientsList({ patients }: DashboardPatientsListProps) 
             <p>{patient.phone}</p>
           </div>
 
-          <span>{patient.lastVisit}</span>
+          <span>
+            {patient.nextAppointment
+              ? `Proxima ${patient.nextAppointment}`
+              : `Ultima ${patient.lastVisit}`}
+          </span>
         </article>
       ))}
     </div>
