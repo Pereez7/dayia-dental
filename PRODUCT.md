@@ -45,6 +45,9 @@ de backend antes de validar la experiencia local.
 
 - Priorizar claridad clinica: cada pantalla debe ayudar a escanear, decidir y
   actuar sin ruido.
+- Orientar el Dashboard a operacion real del consultorio: carga del dia,
+  estados relevantes del mes, proximas citas activas, atenciones que requieren
+  seguimiento y cambios recientes.
 - Priorizar foco diario en agenda: Citas debe ayudar a operar el dia
   seleccionado antes de incorporar vistas mensuales o flujos avanzados.
 - Mantener trazabilidad operativa: cancelar una cita debe cambiar su estado y
@@ -89,6 +92,8 @@ de backend antes de validar la experiencia local.
   guardar.
 - Hacer visible solo lo confiable: no mostrar indicadores incompletos ni datos
   inventados para cubrir vacios del modelo mock.
+- No tratar citas canceladas como proximas atenciones activas en el Dashboard,
+  aunque sigan visibles y trazables en Agenda.
 - Disenar mobile-first: cada flujo importante debe ser usable en pantallas
   pequenas sin perder legibilidad ni area tactil.
 

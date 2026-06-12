@@ -11,8 +11,9 @@ especialmente pensando en una futura integracion con WhatsApp.
 - Git inicializado y remoto GitHub configurado.
 - Layout base con sidebar, header superior y navegacion por estado local.
 - Sidebar visualmente estructurado con marca, acciones rapidas y modulos.
-- Dashboard operativo con KPIs, proximas atenciones, pacientes recientes y
-  resumen operativo, con composicion visual refinada.
+- Dashboard operativo con KPIs diarios y mensuales, proximas citas activas,
+  citas que requieren atencion, actividad reciente, resumen mensual y pacientes
+  recientes.
 - Configuracion de horarios y tratamientos del consultorio, conectada con
   Nueva Cita para tratamientos activos y disponibilidad de horarios.
 - Primera version de historial clinico dentro del detalle de paciente.
@@ -29,12 +30,18 @@ especialmente pensando en una futura integracion con WhatsApp.
 
 Actualmente existe una pantalla principal operativa:
 
-- Muestra KPIs de atenciones de hoy, atenciones del mes, pendientes por
-  confirmar, pacientes registrados y reprogramadas del mes.
-- Muestra maximo 5 proximas atenciones con fecha, hora, paciente, tratamiento y
-  estado.
-- Muestra pacientes recientes usando el estado local actual de pacientes.
-- Muestra un resumen operativo con mensajes derivados de citas actuales.
+- Muestra KPIs de citas de hoy, pendientes de hoy, confirmadas de hoy,
+  reprogramadas del mes, canceladas del mes y pacientes registrados.
+- Muestra maximo 5 proximas citas futuras activas con fecha, hora, paciente,
+  tratamiento y estado.
+- Excluye citas canceladas de proximas citas.
+- Muestra citas que requieren atencion: pendientes proximas, reprogramaciones
+  recientes y casos con telefono faltante cuando existe el dato del paciente.
+- Muestra actividad reciente basada en `changeLog`, ignorando eventos internos
+  de creacion y mostrando confirmaciones, cancelaciones y reprogramaciones.
+- Muestra resumen del mes con total, confirmadas, canceladas y reprogramadas.
+- Mantiene pacientes recientes como bloque secundario usando el estado local
+  actual de pacientes.
 - No muestra nuevos pacientes del mes porque los pacientes mock no tienen fecha
   real de registro.
 - Organiza los KPIs en un panel visual equilibrado para evitar huecos en

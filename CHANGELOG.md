@@ -6,6 +6,25 @@ Registro breve de cambios relevantes en DayIA Dental.
 
 ### Cambios realizados
 
+- Se convirtio el Dashboard en un panel operativo mas completo para el
+  consultorio.
+- Se actualizaron los KPIs del Dashboard a: citas de hoy, pendientes de hoy,
+  confirmadas de hoy, reprogramadas del mes, canceladas del mes y pacientes
+  registrados.
+- Las proximas citas del Dashboard ahora muestran solo citas futuras activas,
+  ordenadas por fecha y hora, excluyendo citas canceladas.
+- Se agrego la seccion `Requieren atencion` para destacar citas pendientes
+  proximas, reprogramaciones recientes y pacientes sin telefono registrado
+  cuando existe el dato del paciente.
+- Se agrego actividad reciente basada en `changeLog`, ignorando eventos
+  internos de creacion y mostrando confirmaciones, cancelaciones y
+  reprogramaciones relevantes.
+- Se agrego resumen del mes con total, confirmadas, canceladas y
+  reprogramadas.
+- Se agregaron componentes especificos para atencion operativa y resumen
+  mensual del Dashboard.
+- Se ampliaron las pruebas unitarias de `dashboardMetrics` para cubrir KPIs,
+  proximas citas, actividad reciente y citas que requieren atencion.
 - Se hizo explicito el cierre del panel de reprogramacion con
   `closeReschedulePanel` y la limpieza de valores temporales con
   `resetRescheduleForm`.
@@ -38,6 +57,10 @@ sin cambiar reglas de negocio ni introducir nuevas funcionalidades.
 El historial simple agrega trazabilidad basica sin backend, usuario responsable
 ni auditoria avanzada. La UI muestra solo un resumen discreto para no saturar la
 agenda, mientras conserva internamente el evento de creacion.
+
+El Dashboard queda orientado a seguimiento operativo: muestra carga del dia,
+estados relevantes del mes, proximas citas activas y eventos recientes sin
+inventar datos ni agregar graficos.
 
 ## 2026-06-11
 

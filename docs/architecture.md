@@ -95,7 +95,9 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
    historial clinico, odontograma y permite volver al listado.
 10. `AppointmentsView` alterna entre la agenda y el formulario de nueva cita.
 11. `DashboardView` recibe citas y pacientes desde `App.tsx`, calcula metricas
-   con `src/utils/dashboardMetrics.ts` y compone las secciones del Dashboard.
+   con `src/utils/dashboardMetrics.ts` y compone KPIs, proximas citas activas,
+   citas que requieren atencion, actividad reciente, resumen mensual y
+   pacientes recientes.
 12. `SettingsView` recibe tratamientos desde `App.tsx`, carga horarios mock y
    compone la configuracion del consultorio.
 13. `BusinessHoursSettings` permite ajustar horario semanal, intervalo de
@@ -135,20 +137,26 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
 
 `Dashboard`
 
-Incluye KPIs operativos, proximas atenciones, pacientes recientes y resumen
-operativo. No muestra nuevos pacientes del mes porque aun no existe una fecha
-real de registro para pacientes.
+Incluye KPIs operativos, proximas citas activas, citas que requieren atencion,
+actividad reciente, resumen mensual y pacientes recientes. No muestra nuevos
+pacientes del mes porque aun no existe una fecha real de registro para
+pacientes.
 
 Participan:
 
 - `src/views/DashboardView.tsx`: compone la pantalla principal.
 - `src/components/DashboardKpiCard.tsx`: muestra cada indicador principal.
 - `src/components/DashboardAppointmentList.tsx`: muestra hasta 5 proximas
-  atenciones.
+  citas activas.
+- `src/components/DashboardAttentionList.tsx`: muestra citas que requieren
+  seguimiento operativo.
+- `src/components/DashboardMonthSummary.tsx`: muestra resumen del mes.
 - `src/components/DashboardPatientsList.tsx`: muestra pacientes recientes.
-- `src/components/DashboardActivityList.tsx`: muestra mensajes operativos.
-- `src/utils/dashboardMetrics.ts`: calcula KPIs, citas de hoy, citas del mes,
-  proximas citas, pacientes recientes y mensajes operativos.
+- `src/components/DashboardActivityList.tsx`: muestra actividad reciente basada
+  en cambios de cita.
+- `src/utils/dashboardMetrics.ts`: calcula KPIs, citas de hoy, resumen mensual,
+  proximas citas, citas que requieren atencion, actividad reciente y pacientes
+  recientes.
 
 `Pacientes`
 

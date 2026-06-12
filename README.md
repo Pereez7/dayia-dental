@@ -11,8 +11,8 @@ historiales y otros modulos clinicos.
 - Sidebar con marca, acciones rapidas y navegacion principal diferenciadas.
 - Modulo de pacientes con listado, busqueda, formulario, validaciones y detalle
   de paciente.
-- Dashboard operativo con KPIs, proximas atenciones, pacientes recientes y
-  resumen de actividad, con composicion visual refinada.
+- Dashboard operativo con KPIs diarios y mensuales, proximas citas activas,
+  citas que requieren atencion, actividad reciente y resumen mensual.
 - Modulo de citas con agenda diaria operativa y formulario de nueva cita.
 - Citas con confirmacion, cancelacion y reprogramacion local, incluyendo
   motivos simples de cancelacion y reprogramacion, con validacion para exigir
@@ -40,8 +40,9 @@ historiales y otros modulos clinicos.
 
 ## Modulos actuales
 
-- **Dashboard:** KPIs operativos, proximas atenciones, pacientes recientes y
-  resumen operativo con jerarquia visual mejorada.
+- **Dashboard:** KPIs operativos, proximas citas activas, citas que requieren
+  atencion, actividad reciente basada en cambios de cita, resumen mensual y
+  pacientes recientes.
 - **Pacientes:** listado, busqueda, alta local, validaciones, detalle de
   paciente, fichas escaneables, citas asociadas e historial clinico inicial.
 - **Citas:** agenda diaria mobile-first con selector horizontal de dias, KPIs

@@ -11,12 +11,15 @@ Estado: iniciado.
 
 Implementado:
 
-- KPIs operativos de atenciones de hoy, atenciones del mes, pendientes por
-  confirmar, pacientes registrados y reprogramadas del mes.
+- KPIs operativos actuales de citas de hoy, pendientes de hoy, confirmadas de
+  hoy, reprogramadas del mes, canceladas del mes y pacientes registrados.
 - Panel visual de KPIs equilibrado para desktop y mobile.
-- Proximas atenciones, con maximo 5 citas.
+- Proximas citas futuras activas, con maximo 5 citas y sin incluir canceladas.
+- Citas que requieren atencion: pendientes proximas, reprogramaciones recientes
+  y pacientes sin telefono cuando el dato existe.
+- Actividad reciente basada en `changeLog`, ignorando eventos `created`.
+- Resumen del mes con total, confirmadas, canceladas y reprogramadas.
 - Pacientes recientes.
-- Resumen operativo con mensajes derivados de los datos actuales.
 - Calculos puros en `src/utils/dashboardMetrics.ts`.
 - Pruebas unitarias para metricas del Dashboard.
 
