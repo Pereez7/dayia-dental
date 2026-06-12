@@ -112,7 +112,7 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
    tratamientos activos.
 17. `App.tsx` agrega la nueva cita al estado local y vuelve a la agenda.
 18. `App.tsx` tambien actualiza el estado local de una cita cuando la agenda
-   solicita confirmar o cancelar.
+   solicita confirmar, cancelar o reprogramar con motivo.
 19. `AppointmentCard` usa funciones de `src/utils` para mostrar fecha, hora y
    estado en formato legible.
 20. `PatientForm` maneja los campos del formulario con estado local, valida con
@@ -206,19 +206,23 @@ Participan:
   de nueva cita.
 - `src/components/AppointmentsAgenda.tsx`: muestra la agenda diaria, selector
   horizontal de dias, resumen del dia, lista de citas del dia seleccionado,
-  acciones locales, Toast y estado temporal de reprogramacion.
+  acciones locales, Toast, motivo temporal de cancelacion y estado temporal de
+  reprogramacion.
 - `src/components/AppointmentAgendaCard.tsx`: muestra cada cita y el panel
-  inline de reprogramacion cuando corresponde.
+  inline de reprogramacion cuando corresponde, incluyendo motivo de
+  reprogramacion.
 - `src/components/ConfirmDialog.tsx`: muestra confirmaciones reutilizables para
-  acciones sensibles, con variantes visuales, Escape para cancelar y atributos
-  basicos de accesibilidad.
+  acciones sensibles, acepta contenido adicional opcional, tiene variantes
+  visuales, Escape para cancelar y atributos basicos de accesibilidad.
 - `src/components/AppointmentForm.tsx`: registra una cita nueva en el estado
   local de la aplicacion.
 - `src/utils/appointmentActions.ts`: define que acciones estan disponibles para
   una cita segun su estado actual y reglas puras para cerrar el panel de
   reprogramacion.
+- `src/utils/appointmentReasons.ts`: define motivos permitidos, valida motivo y
+  detalle `Otro`, normaliza detalles y arma el texto guardado en la cita.
 - `src/utils/appointmentReschedule.ts`: valida y aplica la reprogramacion local
-  de citas.
+  de citas, incluyendo el motivo guardado.
 - `src/utils/appointmentSorters.ts`: ordena citas por fecha y hora.
 - `src/utils/appointmentGroups.ts`: agrupa citas por fecha, filtra citas del
   dia seleccionado, genera dias visibles para el selector y calcula resumen por
@@ -239,8 +243,13 @@ solo con el dia seleccionado.
 
 Desde la agenda diaria se puede confirmar una cita pendiente o cancelar una
 cita pendiente, confirmada o reprogramada. La cancelacion no elimina la cita:
-antes pide confirmacion mediante `ConfirmDialog`, solo cambia su estado a
-`cancelled`, mantiene la card visible y libera el horario para Nueva Cita.
+antes pide confirmacion mediante `ConfirmDialog`, solicita un motivo obligatorio,
+solo cambia su estado a `cancelled`, guarda el motivo en la cita, mantiene la
+card visible y libera el horario para Nueva Cita.
+
+Si el motivo de cancelacion es `Otro`, la agenda solicita un detalle breve,
+normaliza el texto y lo guarda como detalle del motivo. Los errores de motivo se
+muestran inline dentro del dialogo y no usan Toast.
 
 Las citas canceladas no se reprograman directamente. Si el paciente desea
 asistir nuevamente, se crea una nueva cita. Mas adelante, cuando exista
@@ -254,6 +263,11 @@ la agenda vuelve a consultar el estado actual de la cita y bloquea cualquier
 reprogramacion de citas canceladas. `App.tsx` tambien evita aplicar una
 reprogramacion si el estado actual ya no lo permite.
 
+Al reprogramar se solicita un motivo obligatorio. Si el motivo es `Otro`, se
+requiere un detalle breve, se normaliza y se guarda en la cita. Por ahora una
+nueva reprogramacion sobrescribe el ultimo motivo y no crea historial acumulado
+de cambios.
+
 Nueva Cita recibe las citas existentes para ocultar horas ocupadas por citas
 pendientes, confirmadas o reprogramadas. Las citas canceladas no bloquean
 horario. Aunque el selector solo muestra horas disponibles, la validacion final
@@ -263,8 +277,8 @@ La logica de ordenamiento, agrupacion, resumen, horarios, conflictos y
 validacion debe mantenerse fuera de los componentes para poder probarse con
 Vitest.
 
-La edicion general, eliminacion, motivo de cancelacion, historial de cambios y
-persistencia siguen pendientes.
+La edicion general, eliminacion, historial completo de cambios y persistencia
+siguen pendientes.
 
 `Configuracion`
 

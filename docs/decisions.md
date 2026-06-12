@@ -202,9 +202,11 @@ datos, permisos o flujos de edicion.
 ## Agenda visual antes de acciones completas de citas
 
 Primero se implemento una agenda visual de proximas citas. Luego se agrego la
-creacion local de citas para validar el flujo de registro. La edicion,
-eliminacion y cancelacion real de citas quedan pendientes hasta que el modelo de
-agenda sea mas claro y estable.
+creacion local de citas para validar el flujo de registro. Despues se agregaron
+confirmacion, cancelacion con motivo y reprogramacion inline con motivo. La
+edicion general, eliminacion fisica, historial completo de cambios y
+persistencia quedan pendientes hasta que el modelo de agenda sea mas claro y
+estable.
 
 ## Agenda diaria antes que calendario mensual
 
@@ -229,11 +231,29 @@ hora, paciente ni tratamiento.
 
 Cancelar una cita no elimina el registro. La cita sigue visible como
 `Cancelada`, deja de bloquear horarios en Nueva Cita y no genera recordatorios
-WhatsApp. Esta decision conserva contexto operativo sin introducir historial de
-cambios, motivo de cancelacion, edicion ni reprogramacion todavia.
+WhatsApp. Esta decision conserva contexto operativo sin introducir edicion,
+eliminacion fisica ni persistencia todavia.
 
 El feedback usa Toast flotante: confirmar usa tono de exito y cancelar usa tono
 de aviso, porque cancelar es una accion administrativa valida, no un error.
+
+## Motivos simples antes que historial completo
+
+La cancelacion y la reprogramacion guardan un motivo simple dentro de la cita.
+Esto aporta trazabilidad operativa suficiente para la etapa actual sin
+implementar todavia historial completo de cambios, usuario responsable ni fecha
+exacta de modificacion.
+
+Los motivos se seleccionan desde listas cerradas para mantener datos
+consistentes. Si el usuario elige `Otro`, se solicita un detalle breve, se
+normaliza con `textNormalizers` y se guarda junto al motivo.
+
+Los errores de motivo se muestran inline porque son errores de campo. El Toast
+se reserva para confirmar que la accion se completo correctamente.
+
+Por ahora, si una cita se reprograma mas de una vez, se sobrescribe el ultimo
+motivo. El historial acumulado queda pendiente para una etapa posterior con
+persistencia.
 
 ## Citas canceladas no se reprograman directamente
 
@@ -257,7 +277,7 @@ acciones, no permite guardar una reprogramacion y el handler principal de
 
 La reprogramacion se implementa como panel inline dentro de la card de la cita,
 no como modal. Esto mantiene el flujo de recepcion en la agenda diaria y evita
-introducir una superficie nueva antes de tener historial de cambios, motivos o
+introducir una superficie nueva antes de tener historial de cambios completo o
 persistencia.
 
 El panel es contextual al dia y a la cita visible. Por eso se cierra al cambiar
@@ -274,6 +294,11 @@ arquitectura global de modales todavia.
 accidentales y obliga a elegir explicitamente entre volver o confirmar. Escape
 equivale a cancelar.
 
+`ConfirmDialog` acepta contenido adicional opcional para casos como motivo de
+cancelacion. Se mantiene reutilizable porque los consumidores que no necesitan
+campos extra, como Tratamientos, lo siguen usando solo con titulo, mensaje y
+acciones.
+
 ## Creacion local de citas antes de persistencia
 
 El formulario de nueva cita se implementa primero en frontend con estado local.
@@ -282,7 +307,8 @@ inicial antes de introducir base de datos o reglas de negocio mas complejas.
 
 Las citas creadas en esta etapa se agregan en memoria desde `App.tsx` y se
 reflejan en Dashboard y Agenda durante la sesion actual. La persistencia,
-edicion, eliminacion y cancelacion real siguen fuera del alcance inmediato.
+edicion, eliminacion e historial completo de cambios siguen fuera del alcance
+inmediato.
 
 ## Disponibilidad de horarios en Nueva Cita
 

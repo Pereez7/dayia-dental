@@ -77,7 +77,11 @@ Implementado:
 - Confirmacion local de citas pendientes.
 - Cancelacion local de citas pendientes, confirmadas o reprogramadas, sin
   eliminacion fisica y con confirmacion previa.
+- Motivo obligatorio al cancelar una cita, con detalle breve si se elige
+  `Otro`.
 - Reprogramacion local inline de citas pendientes, confirmadas o reprogramadas.
+- Motivo obligatorio al reprogramar una cita, con detalle breve si se elige
+  `Otro`.
 - Cierre del panel de reprogramacion al cambiar de dia, al repetir la accion
   `Reprogramar`, al cancelar el formulario o al cancelar la cita.
 - Bloqueo de reprogramacion para citas canceladas desde UI, validacion y estado
@@ -85,6 +89,8 @@ Implementado:
 - `ConfirmDialog` reutilizable para confirmar cancelacion de citas sin usar la
   confirmacion nativa del navegador.
 - Toast flotante de exito al confirmar y de aviso al cancelar.
+- Motivos de cancelacion y reprogramacion guardados en la cita y mostrados como
+  texto secundario en la card cuando corresponde.
 - Citas canceladas visibles en agenda y sin bloqueo de horarios en Nueva Cita.
 - Citas canceladas no reprogramables directamente; si el paciente desea volver,
   se crea una nueva cita.
@@ -112,9 +118,8 @@ Pendiente:
 
 - Edicion de cita.
 - Eliminacion real.
-- Motivo de cancelacion.
-- Motivo de reprogramacion.
 - Historial de cambios por cita.
+- Auditoria completa de cambios por cita, con usuario, fecha y hora del cambio.
 - Mas estados funcionales conectados a acciones.
 - Estados intermedios como `Solicitud de cancelacion` cuando exista integracion
   real con WhatsApp.

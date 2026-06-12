@@ -143,8 +143,12 @@ Actualmente existe una primera version funcional en frontend:
 - La agenda permite confirmar citas pendientes.
 - La agenda permite cancelar citas pendientes, confirmadas o reprogramadas sin
   eliminarlas, despues de pedir confirmacion con `ConfirmDialog`.
+- Al cancelar una cita se solicita un motivo obligatorio y, si se elige `Otro`,
+  un detalle breve obligatorio.
 - La agenda permite reprogramar citas pendientes, confirmadas o reprogramadas
   desde un panel inline contextual.
+- Al reprogramar una cita se solicita un motivo obligatorio y, si se elige
+  `Otro`, un detalle breve obligatorio.
 - Las citas canceladas quedan visibles con badge `Cancelada`.
 - Las citas canceladas no se reprograman directamente; si el paciente desea
   asistir nuevamente, se crea una nueva cita.
@@ -154,7 +158,10 @@ Actualmente existe una primera version funcional en frontend:
   `Reprogramar`, al cancelar el formulario o al cancelar la cita.
 - Confirmar muestra Toast de confirmacion; cancelar muestra Toast de aviso.
 - `ConfirmDialog` reemplaza la confirmacion nativa del navegador al cancelar
-  citas y queda reutilizable para futuras acciones sensibles.
+  citas, acepta contenido adicional opcional y queda reutilizable para futuras
+  acciones sensibles.
+- Las cards de agenda muestran el motivo de cancelacion o reprogramacion como
+  texto secundario cuando corresponde.
 - Si no hay citas para el dia seleccionado, muestra un estado vacio profesional
   que sugiere usar la accion global `+ Cita`.
 - Los estados usan badges con colores semanticos suaves.
@@ -181,8 +188,8 @@ Actualmente existe una primera version funcional en frontend:
   consistentes para no desalinear la grilla.
 - El formulario muestra solo tratamientos activos configurados localmente.
 
-Todavia no existe edicion general, eliminacion, motivo de cancelacion, historial
-de cambios ni persistencia de citas. Las citas nuevas y reprogramadas solo viven
+Todavia no existe edicion general, eliminacion, historial completo de cambios ni
+persistencia de citas. Las citas nuevas, canceladas y reprogramadas solo viven
 en memoria durante la sesion actual.
 
 Mas adelante, cuando exista integracion real con WhatsApp, se evaluaran estados

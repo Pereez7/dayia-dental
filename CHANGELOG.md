@@ -2,6 +2,42 @@
 
 Registro breve de cambios relevantes en DayIA Dental.
 
+## 2026-06-11
+
+### Cambios realizados
+
+- Se agregaron motivos obligatorios al cancelar una cita desde Agenda.
+- Se agregaron motivos obligatorios al reprogramar una cita desde el panel
+  inline.
+- Se agrego soporte para `Otro` con detalle breve obligatorio y normalizacion
+  de texto.
+- Se extendio `Appointment` con campos opcionales para guardar motivo y detalle
+  de cancelacion o reprogramacion.
+- Se creo `src/utils/appointmentReasons.ts` para centralizar listas de motivos,
+  validaciones, normalizacion y texto visible.
+- Se agregaron pruebas unitarias para motivos de citas.
+- Se extendio `ConfirmDialog` para aceptar contenido adicional opcional sin
+  romper su uso en Tratamientos.
+- Se muestran los motivos de cancelacion o reprogramacion como texto secundario
+  en la card de agenda cuando corresponde.
+- Se mantuvo la regla de que una cita cancelada no se reprograma directamente y
+  no bloquea horario.
+- Se ajusto visualmente la Agenda diaria para reducir estiramiento en desktop,
+  compactar KPIs, mejorar cards y evitar botones demasiado pesados en mobile.
+- Se actualizaron `README.md`, `PRODUCT.md` y los documentos dentro de `docs/`
+  para reflejar el estado real del modulo Citas.
+
+### Motivo del cambio
+
+Agregar trazabilidad operativa basica sin implementar todavia historial completo
+de cambios, usuario responsable, persistencia ni auditoria. Los motivos simples
+permiten entender por que una cita fue cancelada o reprogramada mientras la app
+sigue funcionando solo en frontend con datos mock.
+
+El ajuste visual de Agenda busca que Citas se sienta mas como una herramienta
+operativa de consultorio: compacta en desktop, legible en mobile y alineada con
+el tono clinico de DayIA Dental.
+
 ## 2026-06-10
 
 ### Cambios realizados

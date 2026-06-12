@@ -48,13 +48,15 @@ de backend antes de validar la experiencia local.
 - Priorizar foco diario en agenda: Citas debe ayudar a operar el dia
   seleccionado antes de incorporar vistas mensuales o flujos avanzados.
 - Mantener trazabilidad operativa: cancelar una cita debe cambiar su estado y
-  conservarla visible, no eliminarla del flujo.
+  conservarla visible con un motivo simple, no eliminarla del flujo.
 - No reprogramar citas canceladas directamente: si el paciente desea asistir
   nuevamente, se crea una nueva cita para conservar trazabilidad y evitar
   ambiguedad operativa.
 - Mantener la reprogramacion como accion contextual: el panel debe cerrarse al
   cambiar de dia, al repetir la accion, al cancelar el formulario o al cancelar
   la cita.
+- Pedir motivo en acciones que cambian la operacion de agenda, como cancelar o
+  reprogramar, sin convertirlo todavia en historial completo de auditoria.
 - Usar confirmaciones propias y consistentes para acciones sensibles; evitar
   alertas nativas del navegador cuando rompan la experiencia visual del
   producto.
