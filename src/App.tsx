@@ -26,6 +26,7 @@ import type { Patient, PatientFormValues } from './types/Patient'
 import type { Treatment } from './types/Treatment'
 import { upsertOdontogramEntry } from './utils/odontogram'
 import { canRescheduleAppointment } from './utils/appointmentActions'
+import type { AppointmentReasonPayload } from './utils/appointmentReasons'
 import { rescheduleAppointment } from './utils/appointmentReschedule'
 import { AppointmentsView } from './views/AppointmentsView'
 import { ClinicalHistoryView } from './views/ClinicalHistoryView'
@@ -86,11 +87,23 @@ function App() {
   function handleUpdateAppointmentStatus(
     appointmentId: number,
     status: AppointmentStatus,
+    reasonPayload?: AppointmentReasonPayload,
   ) {
     setAppointments((currentAppointments) =>
       currentAppointments.map((appointment) =>
         appointment.id === appointmentId
-          ? { ...appointment, status }
+          ? {
+              ...appointment,
+              cancellationReason:
+                status === 'cancelled'
+                  ? reasonPayload?.reason
+                  : appointment.cancellationReason,
+              cancellationReasonDetail:
+                status === 'cancelled'
+                  ? reasonPayload?.reasonDetail
+                  : appointment.cancellationReasonDetail,
+              status,
+            }
           : appointment,
       ),
     )
@@ -100,12 +113,22 @@ function App() {
     appointmentId: number,
     date: string,
     time: string,
+    reasonPayload?: AppointmentReasonPayload,
   ) {
     setAppointments((currentAppointments) =>
       currentAppointments.map((appointment) =>
         appointment.id === appointmentId &&
         canRescheduleAppointment(appointment.status)
-          ? rescheduleAppointment(appointment, { date, time })
+          ? rescheduleAppointment(
+              appointment,
+              {
+                date,
+                reason: '',
+                reasonDetail: '',
+                time,
+              },
+              reasonPayload,
+            )
           : appointment,
       ),
     )

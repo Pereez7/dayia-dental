@@ -8,9 +8,13 @@ export type AppointmentStatus =
 export interface Appointment {
   id: number
   patientId?: number
+  cancellationReason?: string
+  cancellationReasonDetail?: string
   date: string
   time: string
   patient: string
+  rescheduleReason?: string
+  rescheduleReasonDetail?: string
   treatment: string
   status: AppointmentStatus
 }

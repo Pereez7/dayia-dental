@@ -1,9 +1,10 @@
-import { useEffect, useId, useRef } from 'react'
+import { useEffect, useId, useRef, type ReactNode } from 'react'
 
 export type ConfirmDialogVariant = 'danger' | 'info' | 'warning'
 
 interface ConfirmDialogProps {
   cancelLabel: string
+  children?: ReactNode
   confirmLabel: string
   isOpen: boolean
   message: string
@@ -15,6 +16,7 @@ interface ConfirmDialogProps {
 
 export function ConfirmDialog({
   cancelLabel,
+  children,
   confirmLabel,
   isOpen,
   message,
@@ -60,6 +62,7 @@ export function ConfirmDialog({
         <div className="confirm-dialog-content">
           <h2 id={titleId}>{title}</h2>
           <p id={messageId}>{message}</p>
+          {children}
         </div>
 
         <div className="confirm-dialog-actions">

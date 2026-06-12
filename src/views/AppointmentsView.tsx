@@ -8,6 +8,7 @@ import type {
 import type { BusinessHoursSettings } from '../types/BusinessHours'
 import type { Patient } from '../types/Patient'
 import type { Treatment } from '../types/Treatment'
+import type { AppointmentReasonPayload } from '../utils/appointmentReasons'
 
 interface AppointmentsViewProps {
   appointments: Appointment[]
@@ -21,10 +22,12 @@ interface AppointmentsViewProps {
     appointmentId: number,
     date: string,
     time: string,
+    reasonPayload?: AppointmentReasonPayload,
   ) => void
   onUpdateAppointmentStatus?: (
     appointmentId: number,
     status: AppointmentStatus,
+    reasonPayload?: AppointmentReasonPayload,
   ) => void
 }
 

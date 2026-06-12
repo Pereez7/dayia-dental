@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Appointment } from '../types/Appointment'
 import type { BusinessHoursSettings } from '../types/BusinessHours'
 import {
+  type AppointmentRescheduleValues,
   rescheduleAppointment,
   validateAppointmentReschedule,
 } from './appointmentReschedule'
@@ -71,10 +72,21 @@ const appointments: Appointment[] = [
   },
 ]
 
+function getRescheduleValues(values: {
+  date: string
+  time: string
+}): AppointmentRescheduleValues {
+  return {
+    ...values,
+    reason: 'patient-request',
+    reasonDetail: '',
+  }
+}
+
 function validate(values: { date: string; time: string }) {
   return validateAppointmentReschedule(
     appointment,
-    values,
+    getRescheduleValues(values),
     appointments,
     businessHours,
     new Date('2026-06-08T10:00:00'),
@@ -85,6 +97,8 @@ describe('rescheduleAppointment', () => {
   it('keeps patient and treatment data', () => {
     const updatedAppointment = rescheduleAppointment(appointment, {
       date: '2026-06-13',
+      reason: 'patient-request',
+      reasonDetail: '',
       time: '10:30',
     })
 
@@ -95,12 +109,21 @@ describe('rescheduleAppointment', () => {
 
   it('changes date, time and status to rescheduled', () => {
     expect(
-      rescheduleAppointment(appointment, {
-        date: '2026-06-13',
-        time: '10:30',
-      }),
+      rescheduleAppointment(
+        appointment,
+        {
+          date: '2026-06-13',
+          reason: 'patient-request',
+          reasonDetail: '',
+          time: '10:30',
+        },
+        {
+          reason: 'Solicitud del paciente',
+        },
+      ),
     ).toMatchObject({
       date: '2026-06-13',
+      rescheduleReason: 'Solicitud del paciente',
       status: 'rescheduled',
       time: '10:30',
     })
@@ -141,7 +164,7 @@ describe('validateAppointmentReschedule', () => {
   it('rejects a past time for today', () => {
     const errors = validateAppointmentReschedule(
       appointment,
-      { date: '2026-06-12', time: '09:00' },
+      getRescheduleValues({ date: '2026-06-12', time: '09:00' }),
       appointments,
       businessHours,
       new Date('2026-06-12T09:30:00'),
@@ -153,7 +176,7 @@ describe('validateAppointmentReschedule', () => {
   it('rejects rescheduling a cancelled appointment', () => {
     const errors = validateAppointmentReschedule(
       { ...appointment, status: 'cancelled' },
-      { date: '2026-06-12', time: '09:00' },
+      getRescheduleValues({ date: '2026-06-12', time: '09:00' }),
       appointments,
       businessHours,
       new Date('2026-06-08T10:00:00'),

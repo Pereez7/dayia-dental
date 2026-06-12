@@ -6,10 +6,16 @@ import {
   hasPatientAppointmentOnDate,
   isPastTimeForDate,
 } from './appointmentConflicts'
+import type {
+  AppointmentReasonPayload,
+  AppointmentRescheduleReason,
+} from './appointmentReasons'
 import { validateAppointmentAgainstBusinessHours } from './businessHours'
 
 export interface AppointmentRescheduleValues {
   date: string
+  reason: AppointmentRescheduleReason | ''
+  reasonDetail: string
   time: string
 }
 
@@ -20,10 +26,13 @@ export type AppointmentRescheduleErrors = Partial<
 export function rescheduleAppointment(
   appointment: Appointment,
   values: AppointmentRescheduleValues,
+  reasonPayload?: AppointmentReasonPayload,
 ): Appointment {
   return {
     ...appointment,
     date: values.date,
+    rescheduleReason: reasonPayload?.reason,
+    rescheduleReasonDetail: reasonPayload?.reasonDetail,
     status: 'rescheduled',
     time: values.time,
   }

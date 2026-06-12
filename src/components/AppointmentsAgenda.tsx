@@ -9,6 +9,19 @@ import {
   shouldCloseReschedulePanelOnToggle,
 } from '../utils/appointmentActions'
 import {
+  appointmentCancellationReasonOptions,
+  appointmentRescheduleReasonOptions,
+  buildAppointmentReasonPayload,
+  type AppointmentCancellationReason,
+  type AppointmentReasonErrors,
+  type AppointmentReasonPayload,
+  type AppointmentReasonValues,
+  type AppointmentRescheduleReason,
+  hasAppointmentReasonErrors,
+  maxAppointmentReasonDetailLength,
+  validateAppointmentReason,
+} from '../utils/appointmentReasons'
+import {
   getAppointmentsForDate,
   getDateInputValue,
   getVisibleAgendaDays,
@@ -33,12 +46,27 @@ interface AppointmentsAgendaProps {
     appointmentId: number,
     date: string,
     time: string,
+    reasonPayload?: AppointmentReasonPayload,
   ) => void
   onUpdateAppointmentStatus?: (
     appointmentId: number,
     status: AppointmentStatus,
+    reasonPayload?: AppointmentReasonPayload,
   ) => void
 }
+
+const emptyRescheduleValues: AppointmentRescheduleValues = {
+  date: '',
+  reason: '',
+  reasonDetail: '',
+  time: '',
+}
+
+const emptyCancellationReasonValues: AppointmentReasonValues<AppointmentCancellationReason> =
+  {
+    reason: '',
+    reasonDetail: '',
+  }
 
 export function AppointmentsAgenda({
   appointments,
@@ -52,14 +80,22 @@ export function AppointmentsAgenda({
     number | null
   >(null)
   const [rescheduleValues, setRescheduleValues] =
-    useState<AppointmentRescheduleValues>({ date: '', time: '' })
+    useState<AppointmentRescheduleValues>(emptyRescheduleValues)
   const [rescheduleErrors, setRescheduleErrors] =
     useState<AppointmentRescheduleErrors>({})
+  const [rescheduleReasonErrors, setRescheduleReasonErrors] =
+    useState<AppointmentReasonErrors>({})
   const [toastMessage, setToastMessage] = useState('')
   const [toastTone, setToastTone] = useState<ToastTone>('success')
   const [isToastVisible, setIsToastVisible] = useState(false)
   const [appointmentIdPendingCancellation, setAppointmentIdPendingCancellation] =
     useState<number | null>(null)
+  const [cancellationReasonValues, setCancellationReasonValues] =
+    useState<AppointmentReasonValues<AppointmentCancellationReason>>(
+      emptyCancellationReasonValues,
+    )
+  const [cancellationReasonErrors, setCancellationReasonErrors] =
+    useState<AppointmentReasonErrors>({})
   const visibleDays = useMemo(
     () => getVisibleAgendaDays(appointments),
     [appointments],
@@ -101,8 +137,9 @@ export function AppointmentsAgenda({
   function updateAppointmentStatus(
     appointmentId: number,
     status: AppointmentStatus,
+    reasonPayload?: AppointmentReasonPayload,
   ) {
-    onUpdateAppointmentStatus?.(appointmentId, status)
+    onUpdateAppointmentStatus?.(appointmentId, status, reasonPayload)
     if (
       shouldCloseReschedulePanelAfterStatusChange(
         rescheduleAppointmentId,
@@ -121,10 +158,14 @@ export function AppointmentsAgenda({
 
   function requestAppointmentCancellation(appointmentId: number) {
     setAppointmentIdPendingCancellation(appointmentId)
+    setCancellationReasonValues(emptyCancellationReasonValues)
+    setCancellationReasonErrors({})
   }
 
   function cancelAppointmentCancellation() {
     setAppointmentIdPendingCancellation(null)
+    setCancellationReasonValues(emptyCancellationReasonValues)
+    setCancellationReasonErrors({})
   }
 
   function confirmAppointmentCancellation() {
@@ -132,8 +173,26 @@ export function AppointmentsAgenda({
       return
     }
 
-    updateAppointmentStatus(appointmentIdPendingCancellation, 'cancelled')
+    const errors = validateAppointmentReason(cancellationReasonValues)
+    setCancellationReasonErrors(errors)
+
+    if (hasAppointmentReasonErrors(errors)) {
+      return
+    }
+
+    const reasonPayload = buildAppointmentReasonPayload(
+      cancellationReasonValues,
+      appointmentCancellationReasonOptions,
+    )
+
+    updateAppointmentStatus(
+      appointmentIdPendingCancellation,
+      'cancelled',
+      reasonPayload,
+    )
     setAppointmentIdPendingCancellation(null)
+    setCancellationReasonValues(emptyCancellationReasonValues)
+    setCancellationReasonErrors({})
   }
 
   function startReschedule(appointment: Appointment) {
@@ -160,9 +219,12 @@ export function AppointmentsAgenda({
     setRescheduleAppointmentId(appointment.id)
     setRescheduleValues({
       date: appointment.date,
+      reason: '',
+      reasonDetail: '',
       time: appointment.time,
     })
     setRescheduleErrors({})
+    setRescheduleReasonErrors({})
     setIsToastVisible(false)
   }
 
@@ -176,8 +238,9 @@ export function AppointmentsAgenda({
 
   function cancelReschedule() {
     setRescheduleAppointmentId(null)
-    setRescheduleValues({ date: '', time: '' })
+    setRescheduleValues(emptyRescheduleValues)
     setRescheduleErrors({})
+    setRescheduleReasonErrors({})
   }
 
   function updateRescheduleDate(appointment: Appointment, date: string) {
@@ -193,6 +256,7 @@ export function AppointmentsAgenda({
     const isClosed = Boolean(date) && daySchedule?.isOpen === false
 
     setRescheduleValues((currentValues) => ({
+      ...currentValues,
       date,
       time:
         !isClosed && timeOptions.some((slot) => slot.value === currentValues.time)
@@ -218,6 +282,54 @@ export function AppointmentsAgenda({
     }))
   }
 
+  function updateRescheduleReason(reason: AppointmentRescheduleReason | '') {
+    setRescheduleValues((currentValues) => ({
+      ...currentValues,
+      reason,
+      reasonDetail: reason === 'other' ? currentValues.reasonDetail : '',
+    }))
+    setRescheduleReasonErrors((currentErrors) => ({
+      ...currentErrors,
+      reason: undefined,
+      reasonDetail: undefined,
+    }))
+  }
+
+  function updateRescheduleReasonDetail(reasonDetail: string) {
+    setRescheduleValues((currentValues) => ({
+      ...currentValues,
+      reasonDetail: reasonDetail.slice(0, maxAppointmentReasonDetailLength),
+    }))
+    setRescheduleReasonErrors((currentErrors) => ({
+      ...currentErrors,
+      reasonDetail: undefined,
+    }))
+  }
+
+  function updateCancellationReason(reason: AppointmentCancellationReason | '') {
+    setCancellationReasonValues((currentValues) => ({
+      ...currentValues,
+      reason,
+      reasonDetail: reason === 'other' ? currentValues.reasonDetail : '',
+    }))
+    setCancellationReasonErrors((currentErrors) => ({
+      ...currentErrors,
+      reason: undefined,
+      reasonDetail: undefined,
+    }))
+  }
+
+  function updateCancellationReasonDetail(reasonDetail: string) {
+    setCancellationReasonValues((currentValues) => ({
+      ...currentValues,
+      reasonDetail: reasonDetail.slice(0, maxAppointmentReasonDetailLength),
+    }))
+    setCancellationReasonErrors((currentErrors) => ({
+      ...currentErrors,
+      reasonDetail: undefined,
+    }))
+  }
+
   function submitReschedule(appointment: Appointment) {
     const currentAppointment =
       appointments.find((item) => item.id === appointment.id) ?? appointment
@@ -227,10 +339,15 @@ export function AppointmentsAgenda({
       appointments,
       businessHours,
     )
+    const reasonErrors = validateAppointmentReason(rescheduleValues)
 
     setRescheduleErrors(errors)
+    setRescheduleReasonErrors(reasonErrors)
 
-    if (hasAppointmentRescheduleErrors(errors)) {
+    if (
+      hasAppointmentRescheduleErrors(errors) ||
+      hasAppointmentReasonErrors(reasonErrors)
+    ) {
       if (errors.appointment) {
         setToastMessage(errors.appointment)
         setToastTone('error')
@@ -244,6 +361,10 @@ export function AppointmentsAgenda({
       appointment.id,
       rescheduleValues.date,
       rescheduleValues.time,
+      buildAppointmentReasonPayload(
+        rescheduleValues,
+        appointmentRescheduleReasonOptions,
+      ),
     )
     cancelReschedule()
     setToastMessage('Cita reprogramada.')
@@ -285,7 +406,53 @@ export function AppointmentsAgenda({
         variant="danger"
         onCancel={cancelAppointmentCancellation}
         onConfirm={confirmAppointmentCancellation}
-      />
+      >
+        <div className="appointment-reason-fields">
+          <label>
+            <span>Motivo de cancelación</span>
+            <select
+              value={cancellationReasonValues.reason}
+              onChange={(event) =>
+                updateCancellationReason(
+                  event.target.value as AppointmentCancellationReason | '',
+                )
+              }
+            >
+              <option value="">Seleccionar motivo</option>
+              {appointmentCancellationReasonOptions.map((reason) => (
+                <option key={reason.value} value={reason.value}>
+                  {reason.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {cancellationReasonErrors.reason && (
+            <p className="field-message field-message--error">
+              {cancellationReasonErrors.reason}
+            </p>
+          )}
+
+          {cancellationReasonValues.reason === 'other' && (
+            <label>
+              <span>Detalle</span>
+              <textarea
+                maxLength={maxAppointmentReasonDetailLength}
+                rows={2}
+                value={cancellationReasonValues.reasonDetail}
+                placeholder="Describe brevemente el motivo"
+                onChange={(event) =>
+                  updateCancellationReasonDetail(event.target.value)
+                }
+              />
+            </label>
+          )}
+          {cancellationReasonErrors.reasonDetail && (
+            <p className="field-message field-message--error">
+              {cancellationReasonErrors.reasonDetail}
+            </p>
+          )}
+        </div>
+      </ConfirmDialog>
 
       <div className="agenda-header">
         <div className="section-heading">
@@ -349,11 +516,15 @@ export function AppointmentsAgenda({
                 updateRescheduleDate(appointment, date)
               }
               onRescheduleSubmit={() => submitReschedule(appointment)}
+              onRescheduleReasonChange={updateRescheduleReason}
+              onRescheduleReasonDetailChange={updateRescheduleReasonDetail}
               onRescheduleTimeChange={updateRescheduleTime}
               patient={getAppointmentPatient(appointment)}
               rescheduleDateIsClosed={isRescheduleDateClosed()}
               rescheduleErrors={rescheduleErrors}
               rescheduleMinDate={getDateInputValue()}
+              rescheduleReasonErrors={rescheduleReasonErrors}
+              rescheduleReasonOptions={appointmentRescheduleReasonOptions}
               rescheduleTimeOptions={getRescheduleTimeOptions(appointment)}
               rescheduleValues={rescheduleValues}
               showRescheduleForm={
