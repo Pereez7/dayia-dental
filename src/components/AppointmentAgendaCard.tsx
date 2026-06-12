@@ -3,6 +3,10 @@ import type { Patient } from '../types/Patient'
 import type { AppointmentTimeSlot } from '../utils/appointmentTimeSlots'
 import { getAppointmentStatusActions } from '../utils/appointmentActions'
 import {
+  getAppointmentLogSummary,
+  getLatestAppointmentLogEntry,
+} from '../utils/appointmentChangeLog'
+import {
   formatAppointmentTime,
   getAppointmentStatusClassName,
   getAppointmentStatusLabel,
@@ -66,6 +70,13 @@ export function AppointmentAgendaCard({
   const statusClassName = getAppointmentStatusClassName(appointment.status)
   const statusLabel = getAppointmentStatusLabel(appointment.status)
   const availableActions = getAppointmentStatusActions(appointment.status)
+  const latestChangeLogEntry = getLatestAppointmentLogEntry(appointment)
+  const visibleChangeLogEntry =
+    latestChangeLogEntry?.type === 'confirmed' ||
+    latestChangeLogEntry?.type === 'cancelled' ||
+    latestChangeLogEntry?.type === 'rescheduled'
+      ? latestChangeLogEntry
+      : undefined
   const reasonText =
     appointment.status === 'cancelled'
       ? getAppointmentReasonDisplayText(
@@ -89,56 +100,72 @@ export function AppointmentAgendaCard({
           {appointmentTime}
         </time>
 
-        <div className="agenda-card-primary">
-          <div className="agenda-card-patient">
-            <h3>{appointment.patient}</h3>
-            <p>{patient?.phone ?? 'Telefono sin registro'}</p>
+        <div className="agenda-card-content">
+          <div className="agenda-card-heading">
+            <div className="agenda-card-patient">
+              <h3>{appointment.patient}</h3>
+              <p>{patient?.phone ?? 'Telefono sin registro'}</p>
+            </div>
+
+            <span className={`agenda-status ${statusClassName}`}>
+              {statusLabel}
+            </span>
           </div>
 
-          <span className={`agenda-status ${statusClassName}`}>
-            {statusLabel}
-          </span>
-        </div>
-
-        <div className="agenda-card-details">
           <p className="agenda-card-treatment">{appointment.treatment}</p>
 
-          {reasonText && (
-            <p className="agenda-card-reason">Motivo: {reasonText}</p>
+          {(reasonText || visibleChangeLogEntry) && (
+            <div
+              className={`agenda-card-meta${
+                !reasonText ? ' agenda-card-meta--single' : ''
+              }`}
+            >
+              {reasonText && (
+                <p className="agenda-card-reason">Motivo: {reasonText}</p>
+              )}
+
+              {visibleChangeLogEntry && (
+                <p className="agenda-card-change-log">
+                  {getAppointmentLogSummary(visibleChangeLogEntry)}
+                </p>
+              )}
+            </div>
           )}
         </div>
 
-        {availableActions.length > 0 && !showRescheduleForm && (
-          <div className="agenda-card-actions" aria-label="Acciones de cita">
-            {availableActions.includes('confirm') && (
-              <button
-                className="agenda-card-action agenda-card-action--confirm"
-                type="button"
-                onClick={onConfirm}
-              >
-                Confirmar
-              </button>
-            )}
-            {availableActions.includes('reschedule') && (
-              <button
-                className="agenda-card-action agenda-card-action--reschedule"
-                type="button"
-                onClick={onReschedule}
-              >
-                Reprogramar
-              </button>
-            )}
-            {availableActions.includes('cancel') && (
-              <button
-                className="agenda-card-action agenda-card-action--cancel"
-                type="button"
-                onClick={onCancel}
-              >
-                Cancelar
-              </button>
-            )}
-          </div>
-        )}
+        <div className="agenda-card-side">
+          {availableActions.length > 0 && !showRescheduleForm && (
+            <div className="agenda-card-actions" aria-label="Acciones de cita">
+              {availableActions.includes('confirm') && (
+                <button
+                  className="agenda-card-action agenda-card-action--confirm"
+                  type="button"
+                  onClick={onConfirm}
+                >
+                  Confirmar
+                </button>
+              )}
+              {availableActions.includes('reschedule') && (
+                <button
+                  className="agenda-card-action agenda-card-action--reschedule"
+                  type="button"
+                  onClick={onReschedule}
+                >
+                  Reprogramar
+                </button>
+              )}
+              {availableActions.includes('cancel') && (
+                <button
+                  className="agenda-card-action agenda-card-action--cancel"
+                  type="button"
+                  onClick={onCancel}
+                >
+                  Cancelar
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {showRescheduleForm && (

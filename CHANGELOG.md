@@ -2,6 +2,27 @@
 
 Registro breve de cambios relevantes en DayIA Dental.
 
+## 2026-06-12
+
+### Cambios realizados
+
+- Se hizo explicito el cierre del panel de reprogramacion con
+  `closeReschedulePanel` y la limpieza de valores temporales con
+  `resetRescheduleForm`.
+- El boton `Cancelar` dentro del panel de reprogramacion ahora cierra la edicion
+  y limpia fecha, hora, motivo, detalle y errores inline sin cancelar la cita.
+- Al abrir el flujo de cancelar cita, se cierra y limpia cualquier panel de
+  reprogramacion activo antes de mostrar `ConfirmDialog`.
+- Mientras una card esta en modo reprogramacion, se ocultan las acciones
+  externas de la cita para dejar solo `Guardar` y `Cancelar` del panel.
+- Se verifico el cambio con `npm run lint`, `npm run test` y `npm run build`.
+
+### Motivo del cambio
+
+Evitar ambiguedad entre cancelar una edicion de reprogramacion y cancelar la
+cita completa. La card queda enfocada en una sola decision operativa a la vez,
+sin cambiar reglas de negocio ni introducir nuevas funcionalidades.
+
 ## 2026-06-11
 
 ### Cambios realizados

@@ -26,6 +26,12 @@ import type { Patient, PatientFormValues } from './types/Patient'
 import type { Treatment } from './types/Treatment'
 import { upsertOdontogramEntry } from './utils/odontogram'
 import { canRescheduleAppointment } from './utils/appointmentActions'
+import {
+  appendAppointmentLogEntry,
+  createAppointmentCancelledLog,
+  createAppointmentConfirmedLog,
+  createAppointmentCreatedLog,
+} from './utils/appointmentChangeLog'
 import type { AppointmentReasonPayload } from './utils/appointmentReasons'
 import { rescheduleAppointment } from './utils/appointmentReschedule'
 import { AppointmentsView } from './views/AppointmentsView'
@@ -69,9 +75,8 @@ function App() {
   }
 
   function handleCreateAppointment(values: AppointmentFormValues) {
-    setAppointments((currentAppointments) => [
-      ...currentAppointments,
-      {
+    setAppointments((currentAppointments) => {
+      const nextAppointment: Appointment = {
         id: getNextNumericId(currentAppointments),
         patientId: values.patientId ?? undefined,
         date: values.date,
@@ -79,8 +84,16 @@ function App() {
         patient: values.patient,
         treatment: values.treatment,
         status: values.status,
-      },
-    ])
+      }
+
+      return [
+        ...currentAppointments,
+        appendAppointmentLogEntry(
+          nextAppointment,
+          createAppointmentCreatedLog(nextAppointment),
+        ),
+      ]
+    })
     setActiveSection('appointments-agenda')
   }
 
@@ -90,22 +103,44 @@ function App() {
     reasonPayload?: AppointmentReasonPayload,
   ) {
     setAppointments((currentAppointments) =>
-      currentAppointments.map((appointment) =>
-        appointment.id === appointmentId
-          ? {
-              ...appointment,
-              cancellationReason:
-                status === 'cancelled'
-                  ? reasonPayload?.reason
-                  : appointment.cancellationReason,
-              cancellationReasonDetail:
-                status === 'cancelled'
-                  ? reasonPayload?.reasonDetail
-                  : appointment.cancellationReasonDetail,
-              status,
-            }
-          : appointment,
-      ),
+      currentAppointments.map((appointment) => {
+        if (appointment.id !== appointmentId) {
+          return appointment
+        }
+
+        if (appointment.status === status) {
+          return appointment
+        }
+
+        const updatedAppointment: Appointment = {
+          ...appointment,
+          cancellationReason:
+            status === 'cancelled'
+              ? reasonPayload?.reason
+              : appointment.cancellationReason,
+          cancellationReasonDetail:
+            status === 'cancelled'
+              ? reasonPayload?.reasonDetail
+              : appointment.cancellationReasonDetail,
+          status,
+        }
+
+        if (status === 'confirmed') {
+          return appendAppointmentLogEntry(
+            updatedAppointment,
+            createAppointmentConfirmedLog(),
+          )
+        }
+
+        if (status === 'cancelled') {
+          return appendAppointmentLogEntry(
+            updatedAppointment,
+            createAppointmentCancelledLog(reasonPayload),
+          )
+        }
+
+        return updatedAppointment
+      }),
     )
   }
 

@@ -48,8 +48,10 @@ historiales y otros modulos clinicos.
   seleccion de paciente, horarios disponibles segun configuracion del
   consultorio, bloqueo de choques de horario y bloqueo de doble cita activa del
   mismo paciente en el dia. Reprogramar exige cambiar fecha u hora, no solo el
-  motivo. Las citas canceladas no se reprograman directamente; si el paciente
-  desea asistir nuevamente, se crea una nueva cita.
+  motivo. Mientras el panel de reprogramacion esta abierto, la card se enfoca en
+  guardar o cancelar esa edicion y oculta acciones externas de la cita. Las
+  citas canceladas no se reprograman directamente; si el paciente desea asistir
+  nuevamente, se crea una nueva cita.
 - **Historial clinico:** registros clinicos dentro del detalle de paciente,
   ordenados por fecha, con resumen temporal y formulario de evolucion basica.
 - **Odontograma:** grilla inicial de piezas permanentes adultas dentro del

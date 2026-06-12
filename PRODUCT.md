@@ -55,6 +55,9 @@ de backend antes de validar la experiencia local.
 - Mantener la reprogramacion como accion contextual: el panel debe cerrarse al
   cambiar de dia, al repetir la accion, al cancelar el formulario o al cancelar
   la cita.
+- Mantener foco de tarea en Agenda: mientras una cita esta en modo
+  reprogramacion, la card debe priorizar guardar o cancelar esa edicion y evitar
+  acciones externas que puedan confundirse con cancelar la cita completa.
 - Reprogramar debe mover la cita: cambiar solo el motivo no cuenta como
   reprogramacion y debera resolverse mas adelante con una accion especifica de
   edicion de motivo.

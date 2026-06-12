@@ -10,6 +10,10 @@ import type {
   AppointmentReasonPayload,
   AppointmentRescheduleReason,
 } from './appointmentReasons'
+import {
+  appendAppointmentLogEntry,
+  createAppointmentRescheduledLog,
+} from './appointmentChangeLog'
 import { validateAppointmentAgainstBusinessHours } from './businessHours'
 
 export interface AppointmentRescheduleValues {
@@ -28,7 +32,7 @@ export function rescheduleAppointment(
   values: AppointmentRescheduleValues,
   reasonPayload?: AppointmentReasonPayload,
 ): Appointment {
-  return {
+  const updatedAppointment: Appointment = {
     ...appointment,
     date: values.date,
     rescheduleReason: reasonPayload?.reason,
@@ -36,6 +40,18 @@ export function rescheduleAppointment(
     status: 'rescheduled',
     time: values.time,
   }
+
+  return appendAppointmentLogEntry(
+    updatedAppointment,
+    createAppointmentRescheduledLog(
+      appointment,
+      {
+        date: values.date,
+        time: values.time,
+      },
+      reasonPayload,
+    ),
+  )
 }
 
 export function validateAppointmentReschedule(

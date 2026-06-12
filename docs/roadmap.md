@@ -88,6 +88,10 @@ Implementado:
   estable.
 - Cierre del panel de reprogramacion al cambiar de dia, al repetir la accion
   `Reprogramar`, al cancelar el formulario o al cancelar la cita.
+- Limpieza de fecha, hora, motivo, detalle de `Otro` y errores inline al cerrar
+  el panel de reprogramacion.
+- Ocultamiento de acciones externas de la cita mientras el panel de
+  reprogramacion esta abierto.
 - Bloqueo de reprogramacion para citas canceladas desde UI, validacion y estado
   principal.
 - `ConfirmDialog` reutilizable para confirmar cancelacion de citas sin usar la

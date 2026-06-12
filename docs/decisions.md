@@ -294,6 +294,11 @@ de dia, al volver a pulsar `Reprogramar`, al cancelar el formulario o al
 cancelar la cita. Esta decision evita estados pegajosos donde un formulario
 queda abierto al volver a un dia anterior.
 
+Al cerrar el panel se limpian fecha, hora, motivo, detalle de `Otro` y errores
+inline temporales. Mientras el panel esta abierto, la card oculta acciones
+externas como confirmar o cancelar cita para mantener una sola decision activa:
+guardar la reprogramacion o cancelar esa edicion.
+
 Antes de cancelar se usa `ConfirmDialog` en lugar de `window.confirm`. El
 dialogo evita la alerta nativa del navegador, mantiene la identidad visual de
 DayIA Dental y queda listo para futuras acciones sensibles sin introducir una

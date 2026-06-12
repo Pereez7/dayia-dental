@@ -258,10 +258,16 @@ integracion real con WhatsApp, se evaluaran estados intermedios como
 
 La reprogramacion local vive como panel inline dentro de la card. El panel es
 contextual: se cierra al cambiar el dia seleccionado, al volver a pulsar
-`Reprogramar`, al cancelar el formulario o al cancelar la cita. Antes de guardar,
-la agenda vuelve a consultar el estado actual de la cita y bloquea cualquier
-reprogramacion de citas canceladas. `App.tsx` tambien evita aplicar una
-reprogramacion si el estado actual ya no lo permite.
+`Reprogramar`, al cancelar el formulario o al cancelar la cita. El cierre usa
+una funcion explicita para limpiar fecha, hora, motivo, detalle de `Otro` y
+errores inline temporales. Antes de guardar, la agenda vuelve a consultar el
+estado actual de la cita y bloquea cualquier reprogramacion de citas canceladas.
+`App.tsx` tambien evita aplicar una reprogramacion si el estado actual ya no lo
+permite.
+
+Mientras el panel esta abierto, `AppointmentAgendaCard` oculta las acciones
+externas de la cita y deja visibles solo `Guardar` y `Cancelar` del panel. Esto
+evita mezclar cancelar la edicion con cancelar la cita completa.
 
 Al reprogramar se solicita un motivo obligatorio. Si el motivo es `Otro`, se
 requiere un detalle breve, se normaliza y se guarda en la cita. Por ahora una

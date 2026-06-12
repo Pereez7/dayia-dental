@@ -153,6 +153,8 @@ Actualmente existe una primera version funcional en frontend:
   reprogramacion si ambos valores son iguales a los de la cita actual.
 - El detalle `Otro` de cancelacion o reprogramacion tiene limite de 120
   caracteres, contador visual y textarea fijo para no romper el layout.
+- Mientras el panel de reprogramacion esta abierto, la card oculta acciones
+  externas como confirmar o cancelar cita y muestra solo las acciones del panel.
 - Las citas canceladas quedan visibles con badge `Cancelada`.
 - Las citas canceladas no se reprograman directamente; si el paciente desea
   asistir nuevamente, se crea una nueva cita.
@@ -160,6 +162,8 @@ Actualmente existe una primera version funcional en frontend:
   aunque quedara un intento de formulario activo.
 - El panel de reprogramacion se cierra al cambiar de dia, al volver a pulsar
   `Reprogramar`, al cancelar el formulario o al cancelar la cita.
+- Al cerrar el panel se limpian nueva fecha, nueva hora, motivo, detalle de
+  `Otro` y errores inline temporales.
 - Confirmar muestra Toast de confirmacion; cancelar muestra Toast de aviso.
 - `ConfirmDialog` reemplaza la confirmacion nativa del navegador al cancelar
   citas, acepta contenido adicional opcional y queda reutilizable para futuras
