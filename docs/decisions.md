@@ -248,12 +248,21 @@ Los motivos se seleccionan desde listas cerradas para mantener datos
 consistentes. Si el usuario elige `Otro`, se solicita un detalle breve, se
 normaliza con `textNormalizers` y se guarda junto al motivo.
 
+El detalle `Otro` se limita a 120 caracteres y se acompaña con un contador
+discreto. La UI usa un textarea fijo con scroll interno para evitar que textos
+largos deformen la agenda.
+
 Los errores de motivo se muestran inline porque son errores de campo. El Toast
 se reserva para confirmar que la accion se completo correctamente.
 
 Por ahora, si una cita se reprograma mas de una vez, se sobrescribe el ultimo
 motivo. El historial acumulado queda pendiente para una etapa posterior con
 persistencia.
+
+Cambiar solo el motivo no cuenta como reprogramacion. La accion `Reprogramar`
+debe modificar fecha u hora; si ambos valores son iguales a los actuales, se
+muestra error inline y no se cambia el estado. Editar solamente el motivo queda
+como una accion futura separada.
 
 ## Citas canceladas no se reprograman directamente
 

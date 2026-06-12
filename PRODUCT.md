@@ -55,6 +55,9 @@ de backend antes de validar la experiencia local.
 - Mantener la reprogramacion como accion contextual: el panel debe cerrarse al
   cambiar de dia, al repetir la accion, al cancelar el formulario o al cancelar
   la cita.
+- Reprogramar debe mover la cita: cambiar solo el motivo no cuenta como
+  reprogramacion y debera resolverse mas adelante con una accion especifica de
+  edicion de motivo.
 - Pedir motivo en acciones que cambian la operacion de agenda, como cancelar o
   reprogramar, sin convertirlo todavia en historial completo de auditoria.
 - Usar confirmaciones propias y consistentes para acciones sensibles; evitar

@@ -222,7 +222,7 @@ Participan:
 - `src/utils/appointmentReasons.ts`: define motivos permitidos, valida motivo y
   detalle `Otro`, normaliza detalles y arma el texto guardado en la cita.
 - `src/utils/appointmentReschedule.ts`: valida y aplica la reprogramacion local
-  de citas, incluyendo el motivo guardado.
+  de citas, incluyendo cambio real de fecha u hora y motivo guardado.
 - `src/utils/appointmentSorters.ts`: ordena citas por fecha y hora.
 - `src/utils/appointmentGroups.ts`: agrupa citas por fecha, filtra citas del
   dia seleccionado, genera dias visibles para el selector y calcula resumen por
@@ -267,6 +267,15 @@ Al reprogramar se solicita un motivo obligatorio. Si el motivo es `Otro`, se
 requiere un detalle breve, se normaliza y se guarda en la cita. Por ahora una
 nueva reprogramacion sobrescribe el ultimo motivo y no crea historial acumulado
 de cambios.
+
+La reprogramacion solo se guarda si cambia la fecha o la hora respecto a la cita
+actual. Si ambos valores son iguales, `validateAppointmentReschedule` devuelve
+un error inline de accion y no se cambia el estado a `rescheduled`.
+
+El detalle `Otro` de motivos se limita a 120 caracteres, muestra contador visual
+y usa un textarea de altura fija para no afectar la composicion de la agenda. En
+las cards, el motivo se muestra como texto secundario truncado para conservar la
+lectura rapida de hora, paciente, tratamiento, estado y acciones.
 
 Nueva Cita recibe las citas existentes para ocultar horas ocupadas por citas
 pendientes, confirmadas o reprogramadas. Las citas canceladas no bloquean

@@ -149,6 +149,10 @@ Actualmente existe una primera version funcional en frontend:
   desde un panel inline contextual.
 - Al reprogramar una cita se solicita un motivo obligatorio y, si se elige
   `Otro`, un detalle breve obligatorio.
+- Reprogramar exige cambiar la fecha o la hora; no se permite guardar una
+  reprogramacion si ambos valores son iguales a los de la cita actual.
+- El detalle `Otro` de cancelacion o reprogramacion tiene limite de 120
+  caracteres, contador visual y textarea fijo para no romper el layout.
 - Las citas canceladas quedan visibles con badge `Cancelada`.
 - Las citas canceladas no se reprograman directamente; si el paciente desea
   asistir nuevamente, se crea una nueva cita.
@@ -161,7 +165,8 @@ Actualmente existe una primera version funcional en frontend:
   citas, acepta contenido adicional opcional y queda reutilizable para futuras
   acciones sensibles.
 - Las cards de agenda muestran el motivo de cancelacion o reprogramacion como
-  texto secundario cuando corresponde.
+  texto secundario truncado cuando corresponde, sin desordenar hora, paciente,
+  tratamiento, estado ni acciones.
 - Si no hay citas para el dia seleccionado, muestra un estado vacio profesional
   que sugiere usar la accion global `+ Cita`.
 - Los estados usan badges con colores semanticos suaves.

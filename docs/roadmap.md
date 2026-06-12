@@ -82,6 +82,10 @@ Implementado:
 - Reprogramacion local inline de citas pendientes, confirmadas o reprogramadas.
 - Motivo obligatorio al reprogramar una cita, con detalle breve si se elige
   `Otro`.
+- Validacion de reprogramacion real: no permite guardar si la fecha y la hora
+  nuevas son iguales a las actuales.
+- Detalle `Otro` limitado a 120 caracteres con contador visual y textarea
+  estable.
 - Cierre del panel de reprogramacion al cambiar de dia, al repetir la accion
   `Reprogramar`, al cancelar el formulario o al cancelar la cita.
 - Bloqueo de reprogramacion para citas canceladas desde UI, validacion y estado
@@ -90,7 +94,7 @@ Implementado:
   confirmacion nativa del navegador.
 - Toast flotante de exito al confirmar y de aviso al cancelar.
 - Motivos de cancelacion y reprogramacion guardados en la cita y mostrados como
-  texto secundario en la card cuando corresponde.
+  texto secundario compacto en la card cuando corresponde.
 - Citas canceladas visibles en agenda y sin bloqueo de horarios en Nueva Cita.
 - Citas canceladas no reprogramables directamente; si el paciente desea volver,
   se crea una nueva cita.

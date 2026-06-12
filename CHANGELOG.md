@@ -20,6 +20,12 @@ Registro breve de cambios relevantes en DayIA Dental.
   romper su uso en Tratamientos.
 - Se muestran los motivos de cancelacion o reprogramacion como texto secundario
   en la card de agenda cuando corresponde.
+- Se limito el detalle `Otro` de motivos a 120 caracteres, con contador visual
+  y textarea fijo para evitar que rompa el layout.
+- Se agrego validacion para impedir reprogramar si la nueva fecha y hora son
+  iguales a las actuales.
+- Se reorganizo la card de cita para ordenar hora, paciente, estado,
+  tratamiento, motivo y acciones tanto en desktop como en mobile.
 - Se mantuvo la regla de que una cita cancelada no se reprograma directamente y
   no bloquea horario.
 - Se ajusto visualmente la Agenda diaria para reducir estiramiento en desktop,
@@ -33,6 +39,10 @@ Agregar trazabilidad operativa basica sin implementar todavia historial completo
 de cambios, usuario responsable, persistencia ni auditoria. Los motivos simples
 permiten entender por que una cita fue cancelada o reprogramada mientras la app
 sigue funcionando solo en frontend con datos mock.
+
+La reprogramacion ahora exige mover realmente la cita. Cambiar solo el motivo
+queda fuera del flujo actual y se reserva para una futura accion especifica de
+edicion de motivo.
 
 El ajuste visual de Agenda busca que Citas se sienta mas como una herramienta
 operativa de consultorio: compacta en desktop, legible en mobile y alineada con
