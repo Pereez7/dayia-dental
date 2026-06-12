@@ -51,6 +51,15 @@ export function validateAppointmentReschedule(
     errors.appointment = 'No puedes reprogramar una cita cancelada.'
   }
 
+  if (
+    !errors.appointment &&
+    values.date === appointment.date &&
+    values.time === appointment.time
+  ) {
+    errors.appointment =
+      'Debes cambiar la fecha o la hora para reprogramar la cita.'
+  }
+
   if (!values.date) {
     errors.date = 'Selecciona una fecha.'
   } else if (isPastDate(values.date, referenceDate)) {

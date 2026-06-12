@@ -581,8 +581,11 @@
 }
 
 .appointment-reason-fields textarea {
-  min-height: 68px;
-  resize: vertical;
+  height: 76px;
+  min-height: 76px;
+  max-height: 76px;
+  overflow-y: auto;
+  resize: none;
 }
 
 .appointment-reason-fields select:focus,
@@ -594,6 +597,19 @@
 
 .appointment-reason-fields--inline {
   margin-top: 0;
+}
+
+.appointment-reason-counter {
+  justify-self: end;
+  margin: -2px 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.appointment-reason-counter--warning {
+  color: var(--color-warning);
 }
 
 .confirm-dialog-actions {
@@ -1310,13 +1326,18 @@
 
 .agenda-card-main {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr);
+  grid-template-areas:
+    'patient patient'
+    'time details'
+    'actions actions';
+  grid-template-columns: 58px minmax(0, 1fr);
   align-items: center;
-  gap: 12px;
+  gap: 8px 10px;
   min-width: 0;
 }
 
 .agenda-card-time {
+  grid-area: time;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1343,11 +1364,19 @@
 }
 
 .agenda-card-primary {
+  grid-area: patient;
   display: flex;
   flex-wrap: wrap;
   align-items: start;
   justify-content: space-between;
   gap: 6px 10px;
+}
+
+.agenda-card-details {
+  grid-area: details;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
 }
 
 .agenda-card-body h3 {
@@ -1357,6 +1386,21 @@
   font-size: 0.94rem;
   font-weight: 600;
   line-height: 1.2;
+}
+
+.agenda-card-patient h3 {
+  margin: 0 0 2px;
+  color: var(--color-heading);
+  font-family: var(--font-heading);
+  font-size: 0.94rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.agenda-card-patient p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
 }
 
 .agenda-card-body p {
@@ -1373,10 +1417,15 @@
 }
 
 .agenda-card-reason {
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
   color: var(--color-text-muted) !important;
   font-size: var(--text-xs) !important;
   font-weight: 500;
   line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .agenda-status {
@@ -1394,6 +1443,7 @@
 }
 
 .agenda-card-actions {
+  grid-area: actions;
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
@@ -1555,8 +1605,12 @@
 
 @media (min-width: 760px) {
   .agenda-card-main {
-    grid-template-columns: 72px minmax(0, 1fr);
+    grid-template-areas:
+      'time patient details'
+      'time actions actions';
+    grid-template-columns: 72px minmax(180px, 1fr) minmax(160px, 0.72fr);
     align-items: center;
+    column-gap: 12px;
   }
 
   .agenda-card-body {
@@ -1575,11 +1629,10 @@
   }
 
   .agenda-card-reason {
-    grid-column: 1 / -1;
+    max-width: 58ch;
   }
 
   .agenda-card-actions {
-    grid-column: 1 / -1;
     justify-self: end;
   }
 
@@ -1597,6 +1650,15 @@
     grid-template-columns:
       minmax(0, 1.02fr)
       minmax(170px, 0.78fr)
+      auto;
+  }
+
+  .agenda-card-main {
+    grid-template-areas: 'time patient details actions';
+    grid-template-columns:
+      72px
+      minmax(190px, 0.9fr)
+      minmax(220px, 1fr)
       auto;
   }
 
@@ -1622,6 +1684,10 @@
   }
 
   .agenda-card-main {
+    grid-template-areas:
+      'patient patient'
+      'time details'
+      'actions actions';
     grid-template-columns: 58px minmax(0, 1fr);
     gap: 10px;
   }

@@ -6,6 +6,7 @@ import {
   getAppointmentReasonDisplayText,
   hasAppointmentReasonErrors,
   normalizeAppointmentReasonDetail,
+  maxAppointmentReasonDetailLength,
   validateAppointmentReason,
 } from './appointmentReasons'
 
@@ -99,7 +100,7 @@ describe('normalizeAppointmentReasonDetail', () => {
       '  CAMBIO '.repeat(20),
     )
 
-    expect(detail).toHaveLength(80)
+    expect(detail).toHaveLength(maxAppointmentReasonDetailLength)
     expect(detail.startsWith('Cambio')).toBe(true)
   })
 })

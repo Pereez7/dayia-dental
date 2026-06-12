@@ -32,7 +32,7 @@ export type AppointmentReasonErrors = Partial<
   Record<keyof AppointmentReasonValues, string>
 >
 
-export const maxAppointmentReasonDetailLength = 80
+export const maxAppointmentReasonDetailLength = 120
 
 export const appointmentCancellationReasonOptions: AppointmentReasonOption<AppointmentCancellationReason>[] =
   [
@@ -87,7 +87,10 @@ export function validateAppointmentReason<TReason extends string>(
     errors.reason = 'Selecciona un motivo.'
   }
 
-  if (values.reason === 'other' && !normalizeAppointmentReasonDetail(values.reasonDetail)) {
+  if (
+    values.reason === 'other' &&
+    !normalizeAppointmentReasonDetail(values.reasonDetail)
+  ) {
     errors.reasonDetail = 'Escribe el motivo.'
   }
 

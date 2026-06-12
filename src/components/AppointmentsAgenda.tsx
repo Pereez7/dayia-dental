@@ -433,18 +433,32 @@ export function AppointmentsAgenda({
           )}
 
           {cancellationReasonValues.reason === 'other' && (
-            <label>
-              <span>Detalle</span>
-              <textarea
-                maxLength={maxAppointmentReasonDetailLength}
-                rows={2}
-                value={cancellationReasonValues.reasonDetail}
-                placeholder="Describe brevemente el motivo"
-                onChange={(event) =>
-                  updateCancellationReasonDetail(event.target.value)
-                }
-              />
-            </label>
+            <>
+              <label>
+                <span>Detalle</span>
+                <textarea
+                  maxLength={maxAppointmentReasonDetailLength}
+                  rows={3}
+                  value={cancellationReasonValues.reasonDetail}
+                  placeholder="Describe brevemente el motivo"
+                  onChange={(event) =>
+                    updateCancellationReasonDetail(event.target.value)
+                  }
+                />
+              </label>
+              <p
+                className={`appointment-reason-counter${
+                  maxAppointmentReasonDetailLength -
+                    cancellationReasonValues.reasonDetail.length <=
+                  15
+                    ? ' appointment-reason-counter--warning'
+                    : ''
+                }`}
+              >
+                {cancellationReasonValues.reasonDetail.length} /{' '}
+                {maxAppointmentReasonDetailLength}
+              </p>
+            </>
           )}
           {cancellationReasonErrors.reasonDetail && (
             <p className="field-message field-message--error">

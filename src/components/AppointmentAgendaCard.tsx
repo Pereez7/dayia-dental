@@ -89,56 +89,56 @@ export function AppointmentAgendaCard({
           {appointmentTime}
         </time>
 
-        <div className="agenda-card-body">
-          <div className="agenda-card-primary">
-            <div className="agenda-card-patient">
-              <h3>{appointment.patient}</h3>
-              <p>{patient?.phone ?? 'Telefono sin registro'}</p>
-            </div>
-
-            <span className={`agenda-status ${statusClassName}`}>
-              {statusLabel}
-            </span>
+        <div className="agenda-card-primary">
+          <div className="agenda-card-patient">
+            <h3>{appointment.patient}</h3>
+            <p>{patient?.phone ?? 'Telefono sin registro'}</p>
           </div>
 
+          <span className={`agenda-status ${statusClassName}`}>
+            {statusLabel}
+          </span>
+        </div>
+
+        <div className="agenda-card-details">
           <p className="agenda-card-treatment">{appointment.treatment}</p>
 
           {reasonText && (
             <p className="agenda-card-reason">Motivo: {reasonText}</p>
           )}
-
-          {availableActions.length > 0 && (
-            <div className="agenda-card-actions" aria-label="Acciones de cita">
-              {availableActions.includes('confirm') && (
-                <button
-                  className="agenda-card-action agenda-card-action--confirm"
-                  type="button"
-                  onClick={onConfirm}
-                >
-                  Confirmar
-                </button>
-              )}
-              {availableActions.includes('reschedule') && (
-                <button
-                  className="agenda-card-action agenda-card-action--reschedule"
-                  type="button"
-                  onClick={onReschedule}
-                >
-                  Reprogramar
-                </button>
-              )}
-              {availableActions.includes('cancel') && (
-                <button
-                  className="agenda-card-action agenda-card-action--cancel"
-                  type="button"
-                  onClick={onCancel}
-                >
-                  Cancelar
-                </button>
-              )}
-            </div>
-          )}
         </div>
+
+        {availableActions.length > 0 && (
+          <div className="agenda-card-actions" aria-label="Acciones de cita">
+            {availableActions.includes('confirm') && (
+              <button
+                className="agenda-card-action agenda-card-action--confirm"
+                type="button"
+                onClick={onConfirm}
+              >
+                Confirmar
+              </button>
+            )}
+            {availableActions.includes('reschedule') && (
+              <button
+                className="agenda-card-action agenda-card-action--reschedule"
+                type="button"
+                onClick={onReschedule}
+              >
+                Reprogramar
+              </button>
+            )}
+            {availableActions.includes('cancel') && (
+              <button
+                className="agenda-card-action agenda-card-action--cancel"
+                type="button"
+                onClick={onCancel}
+              >
+                Cancelar
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {showRescheduleForm && (
@@ -213,18 +213,32 @@ export function AppointmentAgendaCard({
             )}
 
             {rescheduleValues.reason === 'other' && (
-              <label>
-                <span>Detalle</span>
-                <textarea
-                  maxLength={maxAppointmentReasonDetailLength}
-                  rows={2}
-                  value={rescheduleValues.reasonDetail}
-                  placeholder="Describe brevemente el motivo"
-                  onChange={(event) =>
-                    onRescheduleReasonDetailChange(event.target.value)
-                  }
-                />
-              </label>
+              <>
+                <label>
+                  <span>Detalle</span>
+                  <textarea
+                    maxLength={maxAppointmentReasonDetailLength}
+                    rows={3}
+                    value={rescheduleValues.reasonDetail}
+                    placeholder="Describe brevemente el motivo"
+                    onChange={(event) =>
+                      onRescheduleReasonDetailChange(event.target.value)
+                    }
+                  />
+                </label>
+                <p
+                  className={`appointment-reason-counter${
+                    maxAppointmentReasonDetailLength -
+                      rescheduleValues.reasonDetail.length <=
+                    15
+                      ? ' appointment-reason-counter--warning'
+                      : ''
+                  }`}
+                >
+                  {rescheduleValues.reasonDetail.length} /{' '}
+                  {maxAppointmentReasonDetailLength}
+                </p>
+              </>
             )}
             {rescheduleReasonErrors.reasonDetail && (
               <p className="field-message field-message--error">

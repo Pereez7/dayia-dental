@@ -131,8 +131,22 @@ describe('rescheduleAppointment', () => {
 })
 
 describe('validateAppointmentReschedule', () => {
-  it('ignores the current appointment when validating date and time conflict', () => {
-    expect(validate({ date: '2026-06-12', time: '09:00' })).toEqual({})
+  it('rejects rescheduling without changing date or time', () => {
+    expect(validate({ date: '2026-06-12', time: '09:00' }).appointment).toBe(
+      'Debes cambiar la fecha o la hora para reprogramar la cita.',
+    )
+  })
+
+  it('allows rescheduling when only the date changes', () => {
+    expect(validate({ date: '2026-06-19', time: '09:00' })).toEqual({})
+  })
+
+  it('allows rescheduling when only the time changes', () => {
+    expect(validate({ date: '2026-06-12', time: '09:30' })).toEqual({})
+  })
+
+  it('allows rescheduling when date and time change', () => {
+    expect(validate({ date: '2026-06-19', time: '08:30' })).toEqual({})
   })
 
   it('ignores the current appointment when validating patient appointment on date', () => {
