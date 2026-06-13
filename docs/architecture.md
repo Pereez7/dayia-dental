@@ -87,12 +87,14 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
    registros clinicos y odontograma para compartirlo entre Dashboard,
    Pacientes, Citas, Configuracion y Detalle de paciente.
 6. `PatientsView` recibe pacientes, el callback de alta y el callback para ver
-   detalle desde `App.tsx`, y compone `PatientForm` con `PatientsList`.
+   detalle desde `App.tsx`. En modo listado prioriza `PatientsList` y deja el
+   formulario debajo; en modo `new` muestra solo `PatientForm`.
 7. `PatientCard` puede solicitar ver el detalle de un paciente.
 8. `App.tsx` guarda `selectedPatientId`, cambia a la seccion interna
    `patient-detail` y renderiza `PatientDetailView`.
-9. `PatientDetailView` compone la ficha del paciente con sus citas asociadas,
-   historial clinico, odontograma y permite volver al listado.
+9. `PatientDetailView` compone la ficha del paciente con resumen superior,
+   citas activas asociadas, historial clinico, odontograma y permite volver al
+   listado.
 10. `AppointmentsView` alterna entre la agenda y el formulario de nueva cita.
 11. `DashboardView` recibe citas y pacientes desde `App.tsx`, calcula metricas
    con `src/utils/dashboardMetrics.ts` y compone KPIs, proximas citas activas,
@@ -180,17 +182,27 @@ Participan:
 - `src/components/PatientOdontogram.tsx`: muestra y actualiza estados basicos
   de piezas dentales.
 - `src/utils/patientFilters.ts`: filtra pacientes por busqueda.
-- `src/utils/patientDetails.ts`: calcula edad y obtiene citas relacionadas.
+- `src/utils/patientDetails.ts`: calcula edad, obtiene citas relacionadas,
+  filtra citas activas y obtiene la proxima cita activa del paciente.
 - `src/utils/clinicalRecords.ts`: filtra, ordena, valida, normaliza y resume
   registros clinicos.
 - `src/utils/odontogram.ts`: genera piezas FDI adultas, filtra entradas,
   obtiene estados, calcula resumen, valida y actualiza entradas.
 - `src/utils/textNormalizers.ts`: normaliza textos escritos en formularios.
-- `src/utils/dateFormatters.ts`: formatea fechas compactas con año.
+- `src/utils/dateFormatters.ts`: formatea fechas compactas con año y fechas
+  opcionales con fallback seguro.
 
 El detalle asocia citas por `patientId` cuando existe. Para mantener
 compatibilidad con citas mock antiguas, tambien acepta coincidencia por nombre
 exacto del paciente.
+
+La ficha superior del detalle muestra resumen operativo con cantidad de citas
+activas, ultima atencion y proxima cita activa. Las citas canceladas no cuentan
+como proxima atencion del paciente.
+
+Las fechas de ficha clinica usan `formatOptionalCompactDateWithYear` para
+mostrar valores como `18-may-2026` y evitar valores crudos como `2026-05-18` o
+fechas invalidas cuando el dato aun no existe.
 
 El historial clinico se asocia siempre por `patientId`. Por ahora vive dentro
 del detalle del paciente y no en la vista global del menu lateral.

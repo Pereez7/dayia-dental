@@ -38,17 +38,24 @@ Implementado:
 - Listado de pacientes.
 - Busqueda por nombre, apellido o telefono.
 - Cards de pacientes como fichas clinicas escaneables.
+- Cards de pacientes compactas con jerarquia clara: nombre principal y datos de
+  contacto como secundarios.
 - Formulario de registro.
 - Validaciones de datos principales.
 - Telefono en formato internacional.
 - Detalle de paciente como vista completa.
-- Ficha con datos generales, edad, ultima visita y proxima cita.
-- Citas asociadas al paciente.
+- Ficha con datos generales, edad, ultima visita, citas activas y proxima cita
+  activa.
+- Resumen superior del paciente con citas activas, ultima atencion y proxima
+  cita.
+- Citas activas asociadas al paciente, mostradas con fecha, hora, tratamiento y
+  estado.
 - Historial clinico inicial dentro del detalle del paciente.
 - Odontograma inicial dentro del detalle del paciente.
+- Formato de fechas de ficha clinica con año, por ejemplo `18-may-2026`.
 - Navegacion local entre listado y detalle sin React Router.
 - Pruebas unitarias para filtros, validaciones, utilidades de detalle e
-  historial clinico.
+  historial clinico, incluyendo citas activas y fechas opcionales.
 
 Pendiente:
 

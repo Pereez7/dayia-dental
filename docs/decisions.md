@@ -96,6 +96,12 @@ La navegacion hacia esta vista sigue usando estado local en `App.tsx`, sin React
 Router. Esto mantiene la arquitectura actual mientras todavia no se necesitan
 URLs reales ni rutas con parametros.
 
+El resumen superior del paciente muestra solo informacion operativa disponible:
+citas activas, ultima atencion y proxima cita activa. Se evita mostrar textos de
+preparacion interna o datos inventados. Las citas canceladas conservan
+trazabilidad en Agenda, pero no cuentan como proxima atencion activa del
+paciente.
+
 ## Historial clinico dentro del paciente
 
 El historial clinico inicial se implementa dentro del detalle del paciente, no
@@ -148,7 +154,16 @@ Las fechas del historial clinico se muestran con año, por ejemplo
 despues. La agenda puede usar formatos mas cortos, pero el historial necesita
 mayor claridad temporal.
 
-El formateo compacto vive en `src/utils/dateFormatters.ts`.
+El formateo compacto vive en `src/utils/dateFormatters.ts`. La misma utilidad se
+usa para fechas de ficha del paciente, pacientes recientes y valores opcionales
+como ultima visita o fecha de nacimiento. Si el dato falta o no tiene formato de
+fecha valido, se muestra un fallback como `Sin registro` en lugar de renderizar
+una fecha invalida.
+
+La agenda mantiene fechas cortas como `05-jun` y Recordatorios usa formato
+operativo con hora, como `15 jun, 10:00`. La decision es elegir el formato por
+contexto: clinico con año, operativo diario corto y recordatorio con hora en 24
+horas.
 
 ## Asociacion de citas en detalle de paciente
 

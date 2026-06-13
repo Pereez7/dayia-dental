@@ -57,16 +57,20 @@ Actualmente existe:
 - Listado de pacientes.
 - Busqueda por nombre, apellido o telefono.
 - Cards de pacientes con formato de ficha clinica escaneable.
+- Cards de pacientes compactas, con nombre como dato principal y telefono/email
+  como informacion secundaria.
 - Formulario de registro de paciente.
 - Vista completa de detalle de paciente.
 - Validaciones de nombre, apellido, telefono, email y fecha de nacimiento.
 - Selector manual de prefijo telefonico.
 - Guardado del telefono en formato internacional compacto, por ejemplo
   `+59170000000`.
-- Ficha de paciente con telefono, email, fecha de nacimiento, edad, ultima
-  visita y proxima cita.
+- Ficha de paciente con telefono, email, fecha de nacimiento, edad y resumen
+  superior de citas activas, ultima atencion y proxima cita activa.
 - Citas asociadas al paciente usando `patientId` cuando existe y nombre exacto
   como fallback para citas mock antiguas.
+- Las proximas citas visibles en el detalle del paciente consideran solo citas
+  activas.
 - Historial clinico asociado al paciente mediante `patientId`.
 - Registro local de evoluciones clinicas con fecha, motivo, diagnostico,
   tratamiento y observaciones.
@@ -74,12 +78,16 @@ Actualmente existe:
   capitalizacion como oracion.
 - Fechas del historial clinico mostradas con año y resumen temporal del rango
   de registros.
+- Las fechas de ficha clinica, ultima visita, nacimiento y pacientes recientes
+  usan formato compacto con año, por ejemplo `18-may-2026`, y evitan mostrar
+  valores ISO crudos.
 - Odontograma asociado al paciente mediante `patientId`.
 - Grilla simple de piezas permanentes adultas usando numeracion FDI.
 - Registro local de estado, observaciones y fecha de actualizacion por pieza.
 - Resumen de piezas por estado con colores suaves.
-- Sidebar y fichas de pacientes tienen mejoras visuales controladas sin cambiar
-  el flujo funcional.
+- Sidebar, fichas de pacientes, detalle de paciente, historial inicial y
+  odontograma tienen mejoras visuales controladas sin cambiar el flujo
+  funcional.
 
 Este modulo esta preparado para una futura integracion con WhatsApp, pero aun no
 envia mensajes ni consume APIs externas.

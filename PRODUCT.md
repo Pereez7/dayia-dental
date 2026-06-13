@@ -92,6 +92,12 @@ de backend antes de validar la experiencia local.
   guardar.
 - Hacer visible solo lo confiable: no mostrar indicadores incompletos ni datos
   inventados para cubrir vacios del modelo mock.
+- En fichas de paciente, priorizar datos clinicos utiles sobre textos de
+  preparacion interna. El detalle debe mostrar resumen operativo con citas
+  activas, ultima atencion y proxima cita cuando esos datos existan.
+- Mantener formato de fechas coherente segun contexto: ficha clinica e historial
+  con año, agenda con formato corto y recordatorios con fecha corta mas hora en
+  24 horas.
 - No tratar citas canceladas como proximas atenciones activas en el Dashboard,
   aunque sigan visibles y trazables en Agenda.
 - No generar recordatorios para citas canceladas. Recordatorios debe trabajar

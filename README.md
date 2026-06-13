@@ -9,8 +9,8 @@ historiales y otros modulos clinicos.
 - Frontend con React, Vite y TypeScript.
 - Layout base con sidebar, header y navegacion por estado local.
 - Sidebar con marca, acciones rapidas y navegacion principal diferenciadas.
-- Modulo de pacientes con listado, busqueda, formulario, validaciones y detalle
-  de paciente.
+- Modulo de pacientes con listado, busqueda, formulario, validaciones, detalle
+  de paciente y resumen clinico compacto.
 - Dashboard operativo con KPIs diarios y mensuales, proximas citas activas,
   citas que requieren atencion, actividad reciente y resumen mensual.
 - Modulo de citas con agenda diaria operativa y formulario de nueva cita.
@@ -44,7 +44,8 @@ historiales y otros modulos clinicos.
   atencion, actividad reciente basada en cambios de cita, resumen mensual y
   pacientes recientes.
 - **Pacientes:** listado, busqueda, alta local, validaciones, detalle de
-  paciente, fichas escaneables, citas asociadas e historial clinico inicial.
+  paciente, fichas escaneables, resumen clinico compacto, citas activas
+  asociadas, historial clinico inicial y odontograma inicial.
 - **Citas:** agenda diaria mobile-first con selector horizontal de dias, KPIs
   compactos, listado ordenado por hora, confirmacion, cancelacion con motivo en
   `ConfirmDialog`, reprogramacion inline con motivo, creacion local de citas,

@@ -29,9 +29,26 @@ Registro breve de cambios relevantes en DayIA Dental.
 - Se suavizo el protagonismo visual de `Marcar fallido`.
 - Se suavizo el borde general de la card para que un estado interno fallido no
   domine toda la cita.
+- Se pulio visualmente el modulo Pacientes para priorizar listado, busqueda y
+  fichas compactas.
+- El formulario de paciente queda debajo del listado en modo Pacientes y se
+  mantiene como vista principal cuando se entra por `+ Paciente`.
+- Las fichas de paciente ahora priorizan nombre, telefono y email como datos
+  escaneables, con menos peso visual.
+- Se pulio el detalle de paciente con resumen superior de citas activas, ultima
+  atencion y proxima cita activa.
+- Las proximas citas del detalle de paciente consideran solo citas activas.
+- Se ajustaron citas asociadas, historial clinico y odontograma para mantener
+  una jerarquia mas compacta y coherente con Dashboard, Agenda y Recordatorios.
+- Se agrego `formatOptionalCompactDateWithYear` para mostrar fechas opcionales
+  con formato humano y fallback seguro.
+- Pacientes, detalle de paciente y pacientes recientes del Dashboard ya no
+  muestran fechas crudas tipo `2026-05-18`.
 - Se agregaron y actualizaron pruebas unitarias para generacion por estado,
   mensajes sugeridos, citas canceladas, reprogramaciones, telefono faltante y
   formato 24 horas.
+- Se agregaron pruebas unitarias para citas activas del paciente, proxima cita
+  activa y fechas opcionales.
 - Se verifico el cambio con `npm run lint`, `npm run test` y `npm run build`.
 
 ### Motivo del cambio
@@ -43,6 +60,11 @@ y usar un formato de hora claro para el equipo del consultorio.
 El pulido visual mantiene la interfaz compacta y clinica: las acciones sensibles
 siguen visibles, pero no compiten con las acciones principales ni convierten
 toda la card en una alerta.
+
+El pulido de Pacientes busca que listado y detalle queden al nivel visual de
+Dashboard, Agenda, Recordatorios y Configuracion, sin agregar edicion,
+eliminacion ni nuevas reglas de negocio. Tambien se consolida el formato de
+fechas para evitar valores ISO crudos en la ficha clinica.
 
 ## 2026-06-12
 
