@@ -3,7 +3,10 @@ import type { Appointment } from '../types/Appointment'
 import type { Patient } from '../types/Patient'
 import {
   calculatePatientAge,
+  getActivePatientAppointments,
+  getNextActivePatientAppointment,
   getPatientAppointments,
+  getUpcomingActivePatientAppointments,
   getUpcomingPatientAppointments,
 } from './patientDetails'
 
@@ -44,6 +47,24 @@ const appointments: Appointment[] = [
     treatment: 'Endodoncia',
     status: 'confirmed',
   },
+  {
+    id: 4,
+    patientId: 1,
+    date: '2026-06-10',
+    time: '08:00',
+    patient: 'Mariana Rojas',
+    treatment: 'Control',
+    status: 'cancelled',
+  },
+  {
+    id: 5,
+    patientId: 1,
+    date: '2026-06-11',
+    time: '08:00',
+    patient: 'Mariana Rojas',
+    treatment: 'Ortodoncia',
+    status: 'rescheduled',
+  },
 ]
 
 describe('patientDetails', () => {
@@ -60,6 +81,8 @@ describe('patientDetails', () => {
     expect(getPatientAppointments(patient, appointments).map(({ id }) => id)).toEqual([
       2,
       1,
+      4,
+      5,
     ])
   })
 
@@ -70,6 +93,32 @@ describe('patientDetails', () => {
         appointments,
         new Date('2026-06-09T08:00:00'),
       ).map(({ id }) => id),
-    ).toEqual([1])
+    ).toEqual([1, 4, 5])
+  })
+
+  it('gets active patient appointments without cancelled or completed appointments', () => {
+    expect(
+      getActivePatientAppointments(patient, appointments).map(({ id }) => id),
+    ).toEqual([2, 1, 5])
+  })
+
+  it('gets the next active patient appointment', () => {
+    expect(
+      getNextActivePatientAppointment(
+        patient,
+        appointments,
+        new Date('2026-06-10T08:00:00'),
+      )?.id,
+    ).toBe(5)
+  })
+
+  it('gets upcoming active patient appointments', () => {
+    expect(
+      getUpcomingActivePatientAppointments(
+        patient,
+        appointments,
+        new Date('2026-06-09T08:00:00'),
+      ).map(({ id }) => id),
+    ).toEqual([1, 5])
   })
 })

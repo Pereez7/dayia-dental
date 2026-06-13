@@ -1,4 +1,5 @@
 import type { Patient } from '../types/Patient'
+import { formatOptionalCompactDateWithYear } from '../utils/dateFormatters'
 
 interface DashboardPatientsListProps {
   patients: Patient[]
@@ -20,8 +21,11 @@ export function DashboardPatientsList({ patients }: DashboardPatientsListProps) 
 
           <span>
             {patient.nextAppointment
-              ? `Proxima ${patient.nextAppointment}`
-              : `Ultima ${patient.lastVisit}`}
+              ? `Proxima ${formatOptionalCompactDateWithYear(
+                  patient.nextAppointment,
+                  'Sin cita',
+                )}`
+              : `Ultima ${formatOptionalCompactDateWithYear(patient.lastVisit)}`}
           </span>
         </article>
       ))}

@@ -32,7 +32,7 @@ export function PatientAppointmentsList({
 
           <div>
             <h3>{appointment.treatment}</h3>
-            <p>{appointment.patient}</p>
+            <p>Cita asociada al paciente</p>
           </div>
 
           <span

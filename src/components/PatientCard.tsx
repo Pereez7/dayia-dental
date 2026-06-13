@@ -1,4 +1,5 @@
 import type { Patient } from '../types/Patient'
+import { formatOptionalCompactDateWithYear } from '../utils/dateFormatters'
 
 const patientStatusLabels: Record<Patient['status'], string> = {
   active: 'Activo',
@@ -12,8 +13,13 @@ interface PatientCardProps {
 }
 
 export function PatientCard({ onViewDetail, patient }: PatientCardProps) {
-  const nextAppointmentLabel = patient.nextAppointment ?? 'Sin cita agendada'
+  const nextAppointmentLabel = formatOptionalCompactDateWithYear(
+    patient.nextAppointment,
+    'Sin cita agendada',
+  )
+  const lastVisitLabel = formatOptionalCompactDateWithYear(patient.lastVisit)
   const statusClassName = `patient-status patient-status--${patient.status}`
+  const emailLabel = patient.email ?? 'Sin email'
 
   return (
     <article className="patient-card">
@@ -21,6 +27,7 @@ export function PatientCard({ onViewDetail, patient }: PatientCardProps) {
         <div>
           <p className="patient-name">{patient.fullName}</p>
           <p className="patient-phone">{patient.phone}</p>
+          <p className="patient-email">{emailLabel}</p>
         </div>
         <span className={statusClassName}>{patientStatusLabels[patient.status]}</span>
       </div>
@@ -28,7 +35,7 @@ export function PatientCard({ onViewDetail, patient }: PatientCardProps) {
       <dl className="patient-details">
         <div>
           <dt>Ultima visita</dt>
-          <dd>{patient.lastVisit}</dd>
+          <dd>{lastVisitLabel}</dd>
         </div>
         <div>
           <dt>Proxima cita</dt>

@@ -47,6 +47,42 @@ export function getUpcomingPatientAppointments(
   )
 }
 
+export function getActivePatientAppointments(
+  patient: Patient,
+  appointments: Appointment[],
+) {
+  return getPatientAppointments(patient, appointments).filter(
+    (appointment) =>
+      appointment.status === 'pending' ||
+      appointment.status === 'confirmed' ||
+      appointment.status === 'rescheduled',
+  )
+}
+
+export function getNextActivePatientAppointment(
+  patient: Patient,
+  appointments: Appointment[],
+  referenceDate = new Date(),
+) {
+  const today = formatDateInputValue(referenceDate)
+
+  return getActivePatientAppointments(patient, appointments).find(
+    (appointment) => appointment.date >= today,
+  )
+}
+
+export function getUpcomingActivePatientAppointments(
+  patient: Patient,
+  appointments: Appointment[],
+  referenceDate = new Date(),
+) {
+  const today = formatDateInputValue(referenceDate)
+
+  return getActivePatientAppointments(patient, appointments).filter(
+    (appointment) => appointment.date >= today,
+  )
+}
+
 function formatDateInputValue(date: Date) {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')

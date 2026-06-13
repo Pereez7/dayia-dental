@@ -15,12 +15,14 @@ export function PatientsView({
   patients,
   onCreatePatient,
 }: PatientsViewProps) {
+  if (initialMode === 'new') {
+    return <PatientForm onCreatePatient={onCreatePatient} />
+  }
+
   return (
-    <>
+    <section className="patients-view">
+      <PatientsList onViewPatient={onViewPatient} patients={patients} />
       <PatientForm onCreatePatient={onCreatePatient} />
-      {initialMode === 'list' && (
-        <PatientsList onViewPatient={onViewPatient} patients={patients} />
-      )}
-    </>
+    </section>
   )
 }

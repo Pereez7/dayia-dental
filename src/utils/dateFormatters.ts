@@ -7,3 +7,22 @@ export function formatCompactDateWithYear(date: string) {
 
   return formattedDate.replace(/\s/g, '-')
 }
+
+export function formatOptionalCompactDateWithYear(
+  date: string | null | undefined,
+  fallback = 'Sin registro',
+) {
+  if (!date || !isDateInputValue(date)) {
+    return fallback
+  }
+
+  return formatCompactDateWithYear(date)
+}
+
+function isDateInputValue(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false
+  }
+
+  return !Number.isNaN(new Date(`${value}T00:00:00`).getTime())
+}

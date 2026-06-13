@@ -13,11 +13,18 @@ import type {
 } from '../types/Odontogram'
 import type { Patient } from '../types/Patient'
 import { getClinicalRecordsByPatient } from '../utils/clinicalRecords'
+import { formatOptionalCompactDateWithYear } from '../utils/dateFormatters'
 import { getOdontogramEntriesByPatient } from '../utils/odontogram'
 import {
   calculatePatientAge,
-  getUpcomingPatientAppointments,
+  getActivePatientAppointments,
+  getNextActivePatientAppointment,
+  getUpcomingActivePatientAppointments,
 } from '../utils/patientDetails'
+import {
+  formatAppointmentDate,
+  formatAppointmentTime,
+} from '../utils/appointmentFormatters'
 
 interface PatientDetailViewProps {
   appointments: Appointment[]
@@ -41,7 +48,12 @@ export function PatientDetailView({
   onBackToList,
   patient,
 }: PatientDetailViewProps) {
-  const upcomingAppointments = getUpcomingPatientAppointments(
+  const upcomingAppointments = getUpcomingActivePatientAppointments(
+    patient,
+    appointments,
+  )
+  const activeAppointments = getActivePatientAppointments(patient, appointments)
+  const nextActiveAppointment = getNextActivePatientAppointment(
     patient,
     appointments,
   )
@@ -56,19 +68,23 @@ export function PatientDetailView({
     odontogramEntries,
     patient.id,
   )
+  const lastVisitLabel = formatOptionalCompactDateWithYear(patient.lastVisit)
+  const birthDateLabel = formatOptionalCompactDateWithYear(patient.birthDate)
+  const nextAppointmentLabel = nextActiveAppointment
+    ? `${formatAppointmentDate(nextActiveAppointment.date)} · ${formatAppointmentTime(
+        nextActiveAppointment.time,
+      )}`
+    : 'Sin cita activa'
   const patientData = [
     { label: 'Telefono', value: patient.phone },
     { label: 'Email', value: patient.email ?? 'Sin registro' },
-    {
-      label: 'Fecha de nacimiento',
-      value: patient.birthDate ?? 'Sin registro',
-    },
+    { label: 'Nacimiento', value: birthDateLabel },
     { label: 'Edad', value: ageLabel },
-    { label: 'Ultima visita', value: patient.lastVisit },
-    {
-      label: 'Proxima cita',
-      value: patient.nextAppointment ?? 'Sin cita agendada',
-    },
+  ]
+  const patientSummary = [
+    { label: 'Citas activas', value: String(activeAppointments.length) },
+    { label: 'Ultima atencion', value: lastVisitLabel },
+    { label: 'Proxima cita', value: nextAppointmentLabel },
   ]
 
   return (
@@ -85,9 +101,21 @@ export function PatientDetailView({
             <div>
               <p className="eyebrow">Ficha del paciente</p>
               <h2>{patient.fullName}</h2>
-              <p>{patient.phone}</p>
+              <p>
+                {patient.phone}
+                {patient.email ? ` · ${patient.email}` : ''}
+              </p>
             </div>
             <span className="status-pill">Paciente activo</span>
+          </div>
+
+          <div className="patient-summary-grid" aria-label="Resumen del paciente">
+            {patientSummary.map((item) => (
+              <div key={item.label}>
+                <strong>{item.value}</strong>
+                <span>{item.label}</span>
+              </div>
+            ))}
           </div>
 
           <dl className="patient-detail-data">
@@ -100,10 +128,6 @@ export function PatientDetailView({
               </div>
             ))}
           </dl>
-
-          <div className="patient-future-sections">
-            <p>Preparado para agregar recordatorios, antecedentes y evoluciones avanzadas.</p>
-          </div>
         </article>
 
         <article className="patient-detail-panel patient-detail-panel--appointments">
