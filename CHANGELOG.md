@@ -2,6 +2,48 @@
 
 Registro breve de cambios relevantes en DayIA Dental.
 
+## 2026-06-13
+
+### Cambios realizados
+
+- Se alineo Recordatorios WhatsApp con los estados reales de citas activas.
+- Recordatorios ahora genera cola solo para citas pendientes, confirmadas y
+  reprogramadas.
+- Las citas canceladas no generan recordatorios, no aparecen en la cola y no
+  afectan los KPIs del modulo.
+- Las citas reprogramadas usan su fecha y hora vigentes para los recordatorios.
+- Se agrego contexto de estado de cita dentro del tipo `Reminder`.
+- Se ajustaron los mensajes sugeridos:
+  - Pendiente: pide confirmar asistencia.
+  - Confirmada: recuerda que la cita ya esta confirmada.
+  - Reprogramada: menciona que la cita fue reprogramada.
+- Se agrego prioridad de cola para destacar recordatorios pendientes de citas
+  pendientes antes que otros casos.
+- Se reforzo el manejo de pacientes sin telefono: `Marcar enviado` queda
+  deshabilitado y la accion se protege con una funcion pura.
+- Se actualizo el estado vacio de Recordatorios para indicar que no hay
+  recordatorios pendientes para citas activas y que las citas canceladas no
+  generan recordatorios.
+- Se agrego formato visible corto 24 horas para recordatorios, por ejemplo
+  `15 jun, 10:00`, sin `a. m.` ni `p. m.`.
+- Se suavizo el protagonismo visual de `Marcar fallido`.
+- Se suavizo el borde general de la card para que un estado interno fallido no
+  domine toda la cita.
+- Se agregaron y actualizaron pruebas unitarias para generacion por estado,
+  mensajes sugeridos, citas canceladas, reprogramaciones, telefono faltante y
+  formato 24 horas.
+- Se verifico el cambio con `npm run lint`, `npm run test` y `npm run build`.
+
+### Motivo del cambio
+
+Mantener Recordatorios coherente con Agenda y Dashboard. El modulo debe preparar
+mensajes utiles para citas activas, evitar comunicaciones para citas canceladas
+y usar un formato de hora claro para el equipo del consultorio.
+
+El pulido visual mantiene la interfaz compacta y clinica: las acciones sensibles
+siguen visibles, pero no compiten con las acciones principales ni convierten
+toda la card en una alerta.
+
 ## 2026-06-12
 
 ### Cambios realizados

@@ -129,9 +129,9 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
    con fechas compactas con año y resumen temporal.
 25. `PatientOdontogram` muestra piezas permanentes adultas, resumen por estado y
    permite actualizar una pieza dental.
-26. `WhatsAppRemindersView` genera recordatorios locales desde citas y
-   pacientes, aplica filtros por fecha y estado, y muestra feedback mediante
-   `Toast`.
+26. `WhatsAppRemindersView` genera recordatorios locales desde citas activas y
+   pacientes, aplica filtros por fecha y estado, usa mensajes segun estado de
+   cita y muestra feedback mediante `Toast`.
 
 ## Modulos actuales
 
@@ -425,7 +425,8 @@ desde citas futuras y pacientes mock, sin enviar mensajes reales.
 Participan:
 
 - `src/types/Reminder.ts`: define `Reminder`, `ReminderType`,
-  `ReminderStatus`, agrupaciones por cita y opciones de fecha.
+  `ReminderStatus`, estado de cita asociado al recordatorio, agrupaciones por
+  cita y opciones de fecha.
 - `src/views/WhatsAppRemindersView.tsx`: compone KPIs, selector de fecha,
   filtros por estado, listado, vista previa y Toast de feedback.
 - `src/components/ReminderKpiCard.tsx`: muestra indicadores del modulo.
@@ -434,14 +435,38 @@ Participan:
 - `src/components/ReminderMessagePreview.tsx`: muestra el mensaje sugerido.
 - `src/components/Toast.tsx`: muestra feedback flotante sin mover el layout.
 - `src/utils/reminders.ts`: genera recordatorios, filtra por fecha y estado,
-  agrupa por cita y fecha, calcula resumen y crea mensajes sugeridos.
+  agrupa por cita y fecha, calcula resumen, prioriza la cola, valida si un
+  recordatorio puede marcarse como enviado, formatea fecha/hora visible y crea
+  mensajes sugeridos.
 
-La generacion de recordatorios evita crear horarios en el pasado. Para cada cita
-futura no cancelada, `24h` y `2h` solo se generan si su horario programado queda
-despues de la fecha/hora de referencia. Si una cita esta demasiado cerca, se
-registra una nota de omision y, cuando ya no aplica `24h` ni `2h`, se genera
+La generacion de recordatorios solo considera citas futuras activas:
+`pending`, `confirmed` y `rescheduled`. Las citas `cancelled` no generan
+recordatorios, no aparecen en la cola y no afectan KPIs del modulo. Las citas
+`completed` tampoco entran en esta cola inicial.
+
+Para cada cita activa, `24h` y `2h` solo se generan si su horario programado
+queda despues de la fecha/hora de referencia. Si una cita esta demasiado cerca,
+se registra una nota de omision y, cuando ya no aplica `24h` ni `2h`, se genera
 una confirmacion inmediata con estado pendiente.
 
+Las citas reprogramadas usan siempre su fecha y hora vigentes. Si existe motivo
+de reprogramacion, la card puede mostrarlo como texto secundario discreto.
+
+Los mensajes sugeridos se crean segun el estado real de la cita:
+
+- Pendiente: pide confirmar asistencia.
+- Confirmada: menciona que la cita ya esta confirmada y no pide confirmar de
+  nuevo.
+- Reprogramada: menciona que la cita fue reprogramada y pide confirmar
+  asistencia.
+
+La cola se ordena priorizando recordatorios pendientes de citas pendientes y
+luego proximidad operativa. Las fechas visibles en filas de recordatorio usan
+formato corto 24 horas, por ejemplo `15 jun, 10:00`, mediante
+`formatReminderScheduledDateTime`.
+
 El estado de envio es local y simulado. Marcar como enviado o fallido solo
-actualiza la vista durante la sesion actual. El Toast se posiciona como
-elemento flotante para evitar saltos visuales en el layout.
+actualiza la vista durante la sesion actual. Si falta telefono, `Marcar
+enviado` queda deshabilitado y `canMarkReminderAsSent` evita aplicar ese estado
+por defensa de presentacion. El Toast se posiciona como elemento flotante para
+evitar saltos visuales en el layout.

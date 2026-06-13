@@ -94,6 +94,13 @@ de backend antes de validar la experiencia local.
   inventados para cubrir vacios del modelo mock.
 - No tratar citas canceladas como proximas atenciones activas en el Dashboard,
   aunque sigan visibles y trazables en Agenda.
+- No generar recordatorios para citas canceladas. Recordatorios debe trabajar
+  solo con citas activas y usar siempre la fecha y hora vigentes de la cita.
+- Adaptar el mensaje sugerido al estado real de la cita: las pendientes piden
+  confirmacion, las confirmadas no la vuelven a pedir y las reprogramadas
+  explican que la cita fue movida.
+- Usar formato horario claro y operativo en recordatorios, por ejemplo
+  `15 jun, 10:00`, evitando `a. m.` y `p. m.` en la cola visible.
 - Disenar mobile-first: cada flujo importante debe ser usable en pantallas
   pequenas sin perder legibilidad ni area tactil.
 

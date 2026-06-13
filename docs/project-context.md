@@ -18,7 +18,8 @@ especialmente pensando en una futura integracion con WhatsApp.
   Nueva Cita para tratamientos activos y disponibilidad de horarios.
 - Primera version de historial clinico dentro del detalle de paciente.
 - Primera version de odontograma dentro del detalle de paciente.
-- Primera version del modulo Recordatorios WhatsApp con simulacion local.
+- Primera version del modulo Recordatorios WhatsApp con simulacion local,
+  alineada con estados reales de citas activas.
 - Componentes separados en `src/components`.
 - Vistas completas en `src/views`.
 - Datos mock separados en `src/data`.
@@ -220,10 +221,14 @@ accidentales antes de convertir una cita en cancelada.
 
 Actualmente existe una primera version funcional en frontend:
 
-- Genera recordatorios desde citas futuras no canceladas usando datos locales de
+- Genera recordatorios desde citas futuras activas usando datos locales de
   citas y pacientes.
+- Solo considera citas `Pendiente`, `Confirmada` y `Reprogramada`.
+- No genera recordatorios para citas `Cancelada`.
 - Agrupa recordatorios por cita y fecha de cita.
 - Muestra KPIs de todos, pendientes, programados, enviados simulados y fallidos.
+- Los KPIs se calculan desde la cola valida de recordatorios y no cuentan citas
+  canceladas.
 - Tiene selector horizontal por fecha y filtros compactos por estado.
 - Genera recordatorios de `24h` y `2h` solo si su horario programado queda en
   el futuro.
@@ -234,11 +239,26 @@ Actualmente existe una primera version funcional en frontend:
   pendiente.
 - No muestra citas pasadas en Recordatorios.
 - Muestra notas suaves cuando un recordatorio fue omitido por poca anticipacion.
+- Prioriza recordatorios pendientes de citas pendientes y luego ordena por
+  cercania operativa.
 - Permite ver una vista previa del mensaje.
+- Los mensajes sugeridos cambian segun el estado real de la cita:
+  - Pendiente: pide confirmar asistencia.
+  - Confirmada: recuerda que la cita ya esta confirmada.
+  - Reprogramada: menciona que la cita fue reprogramada y usa su fecha/hora
+    vigente.
+- Las fechas visibles de la cola usan formato corto 24 horas, por ejemplo
+  `15 jun, 10:00`, sin `a. m.` ni `p. m.`.
 - Permite marcar recordatorios como enviados o fallidos de forma simulada.
 - Si el paciente no tiene telefono, mantiene `Ver mensaje`, deshabilita
-  `Marcar enviado` y permite marcar fallido si corresponde a la simulacion.
+  `Marcar enviado`, evita guardar ese estado por defensa en la accion y permite
+  marcar fallido si corresponde a la simulacion.
+- Si no hay recordatorios validos, muestra el estado vacio
+  `No hay recordatorios pendientes para citas activas.` y aclara que las citas
+  canceladas no generan recordatorios.
 - Usa un Toast flotante reutilizable para feedback sin mover el layout.
+- La accion `Marcar fallido` se mantiene visible pero con menor protagonismo
+  visual que las acciones principales.
 
 El modulo no envia mensajes reales, no se conecta a WhatsApp API y no persiste
 estados fuera de la sesion actual.

@@ -217,7 +217,9 @@ Estado: iniciado.
 Implementado:
 
 - Vista inicial de Recordatorios WhatsApp con datos locales.
-- Generacion de recordatorios desde citas futuras.
+- Generacion de recordatorios desde citas futuras activas.
+- Exclusion de citas canceladas en generacion, KPIs y cola visible.
+- Soporte de citas pendientes, confirmadas y reprogramadas.
 - Recordatorios de `24h` y `2h` cuando su horario programado queda en el
   futuro.
 - Omision de recordatorios que ya quedaron en el pasado por registro tardio.
@@ -227,12 +229,22 @@ Implementado:
 - Selector horizontal por fecha.
 - Filtros compactos por estado.
 - KPIs de todos, pendientes, programados, enviados simulados y fallidos.
+- KPIs calculados solo desde recordatorios validos de citas activas.
 - Vista previa del mensaje sugerido.
+- Mensajes sugeridos diferenciados por estado de cita:
+  pendiente, confirmada y reprogramada.
+- Uso de fecha y hora vigente para recordatorios de citas reprogramadas.
+- Formato visible corto 24 horas en filas de recordatorio, por ejemplo
+  `15 jun, 10:00`.
+- Priorizacion de recordatorios pendientes de citas pendientes.
 - Marcado local como enviado o fallido.
-- Manejo visual de pacientes sin telefono.
+- Manejo visual y defensivo de pacientes sin telefono: no permite marcar
+  enviado si falta telefono.
+- Estado vacio para cuando no existen recordatorios de citas activas.
 - Toast flotante reutilizable para feedback sin mover el layout.
 - Pruebas unitarias para generacion, omisiones, confirmacion inmediata,
-  agrupacion, filtros y estados.
+  agrupacion, filtros, estados, mensajes por estado, formato visible 24h y
+  bloqueo de enviado sin telefono.
 
 Pendiente:
 

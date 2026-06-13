@@ -422,6 +422,54 @@ frontend. No envia mensajes reales, no programa jobs y no persiste estados.
 Esto permite validar generacion, agrupacion, mensajes sugeridos y acciones de
 seguimiento antes de integrar WhatsApp API.
 
+## Recordatorios solo para citas activas
+
+Recordatorios trabaja solo con citas futuras activas: pendientes, confirmadas y
+reprogramadas. Las citas canceladas conservan trazabilidad en Agenda, pero no
+deben generar mensajes ni ocupar espacio en la cola de WhatsApp.
+
+Esta decision evita preparar comunicaciones para atenciones que ya no
+corresponden. Tambien mantiene los KPIs de Recordatorios enfocados en trabajo
+operativo real y no en historial administrativo.
+
+Las citas reprogramadas usan siempre su fecha y hora vigentes. Si existe motivo
+de reprogramacion, puede mostrarse como contexto secundario, pero el recordatorio
+no debe basarse en la fecha anterior.
+
+## Mensajes segun estado de cita
+
+El mensaje sugerido cambia segun el estado de la cita:
+
+- Pendiente: pide confirmar asistencia.
+- Confirmada: recuerda que la cita ya esta confirmada y no vuelve a pedir
+  confirmacion.
+- Reprogramada: indica que la cita fue reprogramada y pide confirmar
+  asistencia.
+
+La decision mantiene el tono profesional del consultorio y evita mensajes
+contradictorios, por ejemplo pedir confirmacion a una cita que ya esta
+confirmada.
+
+## Formato 24 horas en recordatorios visibles
+
+Las filas visibles de recordatorio usan formato corto 24 horas, por ejemplo
+`15 jun, 10:00`. Se evita `a. m.` y `p. m.` para mantener coherencia con la
+agenda y con el contexto operativo del consultorio.
+
+El formateo vive en `src/utils/reminders.ts` como funcion pura para probarlo sin
+renderizar componentes.
+
+## Pacientes sin telefono en Recordatorios
+
+Una cita activa sin telefono puede aparecer en Recordatorios para que el equipo
+detecte el dato faltante. Sin embargo, no se permite marcar el recordatorio como
+enviado porque no existe un destino valido para la simulacion.
+
+La UI deshabilita `Marcar enviado` y la funcion pura
+`canMarkReminderAsSent` refuerza la regla por defensa de presentacion. `Ver
+mensaje` sigue disponible porque puede ayudar al equipo a revisar el texto
+sugerido.
+
 ## No generar recordatorios en el pasado
 
 Los recordatorios de `24h` y `2h` solo se crean si su `scheduledFor` queda
