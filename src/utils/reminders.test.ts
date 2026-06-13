@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest'
 import type { Appointment } from '../types/Appointment'
 import type { Patient } from '../types/Patient'
 import {
+  canMarkReminderAsSent,
   createWhatsAppReminderMessage,
   filterRemindersByAppointmentDate,
   filterRemindersByStatus,
+  formatReminderScheduledDateTime,
   generateAppointmentReminders,
   groupRemindersByAppointment,
   groupRemindersByAppointmentDate,
@@ -72,19 +74,20 @@ describe('generateAppointmentReminders', () => {
 
     expect(reminders).toHaveLength(4)
     expect(reminders.map((reminder) => reminder.id)).toEqual([
+      '3-2h',
+      '3-24h',
       '1-24h',
       '1-2h',
-      '3-24h',
-      '3-2h',
     ])
-    expect(reminders[0]).toMatchObject({
+    expect(reminders[2]).toMatchObject({
       appointmentId: 1,
       patientId: 1,
       patientName: 'Mariana Rojas',
       phone: '+59170012345',
       status: 'scheduled',
     })
-    expect(reminders[1]).toMatchObject({
+    expect(reminders[0]).toMatchObject({
+      appointmentStatus: 'pending',
       status: 'pending',
     })
   })
@@ -97,10 +100,10 @@ describe('generateAppointmentReminders', () => {
     )
 
     expect(reminders.map((reminder) => reminder.patientName)).toEqual([
-      'Mariana Rojas',
-      'Mariana Rojas',
       'Carlos Medina',
       'Carlos Medina',
+      'Mariana Rojas',
+      'Mariana Rojas',
     ])
   })
 
@@ -134,7 +137,7 @@ describe('generateAppointmentReminders', () => {
     expect(reminders).toHaveLength(2)
     expect(reminders[0]).toMatchObject({
       patientId: null,
-      phone: 'Sin telefono registrado',
+      phone: 'Sin teléfono registrado',
     })
   })
 
@@ -188,7 +191,7 @@ describe('generateAppointmentReminders', () => {
     expect(reminders[0]).toMatchObject({
       id: '6-immediate',
       message:
-        'Hola Mariana, te recordamos que tienes una cita odontológica para Extracción simple hoy a las 09:00. Por favor confirma tu asistencia.',
+        'Hola Mariana, te recordamos tu cita odontológica confirmada para Extracción simple hoy a las 09:00.',
       omittedReminderNotes: [
         'Recordatorios de 24h y 2h omitidos por cita cercana.',
       ],
@@ -238,6 +241,33 @@ describe('generateAppointmentReminders', () => {
     expect(reminders).toHaveLength(0)
   })
 
+  it('creates reminders for rescheduled appointments using their current date and time', () => {
+    const reminders = generateAppointmentReminders(
+      [
+        {
+          date: '2026-06-22',
+          id: 12,
+          patient: 'Ana Salazar',
+          status: 'rescheduled',
+          time: '08:30',
+          treatment: 'Retiro de brackets',
+        },
+      ],
+      patients,
+      new Date('2026-06-20T08:00:00'),
+    )
+
+    expect(reminders).toHaveLength(2)
+    expect(reminders[0]).toMatchObject({
+      appointmentDate: '2026-06-22',
+      appointmentStatus: 'rescheduled',
+      appointmentTime: '08:30',
+      message:
+        'Hola Ana, te recordamos que tu cita fue reprogramada para Retiro de brackets el 22 de junio a las 08:30. Por favor confirma tu asistencia.',
+      scheduledFor: '2026-06-21T08:30',
+    })
+  })
+
   it('never generates scheduled reminders in the past', () => {
     const referenceDate = new Date('2026-06-09T18:00:00')
     const reminders = generateAppointmentReminders(
@@ -277,8 +307,19 @@ describe('getScheduledFor', () => {
   })
 })
 
+describe('formatReminderScheduledDateTime', () => {
+  it('formats reminder dates with short date and 24-hour time', () => {
+    const formattedDate = formatReminderScheduledDateTime('2026-06-15T10:00')
+
+    expect(formattedDate).toBe('15 jun, 10:00')
+    expect(formattedDate).not.toContain('a. m.')
+    expect(formattedDate).not.toContain('p. m.')
+    expect(formattedDate).not.toContain('2026')
+  })
+})
+
 describe('createWhatsAppReminderMessage', () => {
-  it('creates a suggested message with appointment data', () => {
+  it('asks pending appointments to confirm attendance', () => {
     expect(
       createWhatsAppReminderMessage(
         'Mariana Rojas',
@@ -292,12 +333,70 @@ describe('createWhatsAppReminderMessage', () => {
       'Hola Mariana, te recordamos tu cita odontológica para Limpieza dental el 10 de junio a las 09:00. Por favor confirma tu asistencia.',
     )
   })
+
+  it('mentions confirmed appointments without asking for confirmation again', () => {
+    expect(
+      createWhatsAppReminderMessage(
+        'Mariana Rojas',
+        'Limpieza dental',
+        '2026-06-10',
+        '09:00',
+        '24h',
+        new Date('2026-06-01T08:00:00'),
+        'confirmed',
+      ),
+    ).toBe(
+      'Hola Mariana, te recordamos tu cita odontológica confirmada para Limpieza dental el 10 de junio a las 09:00.',
+    )
+  })
+
+  it('mentions rescheduled appointments and asks for confirmation', () => {
+    expect(
+      createWhatsAppReminderMessage(
+        'Ana Salazar',
+        'Retiro de brackets',
+        '2026-06-22',
+        '08:30',
+        '2h',
+        new Date('2026-06-10T08:00:00'),
+        'rescheduled',
+      ),
+    ).toBe(
+      'Hola Ana, te recordamos que tu cita fue reprogramada para Retiro de brackets el 22 de junio a las 08:30. Por favor confirma tu asistencia.',
+    )
+  })
 })
 
 describe('summarizeRemindersByStatus', () => {
   it('counts reminders by status', () => {
     const reminders = generateAppointmentReminders(
       appointments,
+      patients,
+      new Date('2026-06-09T08:00:00'),
+    )
+
+    expect(summarizeRemindersByStatus(reminders)).toEqual({
+      failed: 0,
+      pending: 2,
+      scheduled: 2,
+      sent: 0,
+    })
+  })
+
+  it('does not count reminders from cancelled appointments', () => {
+    const reminders = generateAppointmentReminders(
+      [
+        ...appointments,
+        {
+          date: '2026-06-12',
+          id: 10,
+          patient: 'Mariana Rojas',
+          patientId: 1,
+          status: 'cancelled',
+          time: '09:00',
+          treatment: 'Limpieza dental',
+        },
+      ],
       patients,
       new Date('2026-06-09T08:00:00'),
     )
@@ -477,11 +576,42 @@ describe('updateReminderStatus', () => {
       new Date('2026-06-09T08:00:00'),
     )
 
-    expect(updateReminderStatus(reminders, '1-2h', 'sent')[1].status).toBe(
+    expect(updateReminderStatus(reminders, '1-2h', 'sent')[3].status).toBe(
       'sent',
     )
-    expect(updateReminderStatus(reminders, '1-2h', 'sent')[0].status).toBe(
+    expect(updateReminderStatus(reminders, '1-2h', 'sent')[2].status).toBe(
       'scheduled',
     )
+  })
+})
+
+describe('canMarkReminderAsSent', () => {
+  it('does not allow marking reminders as sent when phone is missing', () => {
+    const reminders = generateAppointmentReminders(
+      [
+        {
+          date: '2026-06-12',
+          id: 11,
+          patient: 'Paciente Externo',
+          status: 'pending',
+          time: '11:00',
+          treatment: 'Control',
+        },
+      ],
+      patients,
+      new Date('2026-06-09T08:00:00'),
+    )
+
+    expect(canMarkReminderAsSent(reminders[0])).toBe(false)
+  })
+
+  it('allows marking reminders as sent when phone exists', () => {
+    const reminders = generateAppointmentReminders(
+      appointments,
+      patients,
+      new Date('2026-06-09T08:00:00'),
+    )
+
+    expect(canMarkReminderAsSent(reminders[0])).toBe(true)
   })
 })

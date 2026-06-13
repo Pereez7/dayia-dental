@@ -1,3 +1,5 @@
+import type { AppointmentStatus } from './Appointment'
+
 export type ReminderType = '24h' | '2h' | 'immediate'
 
 export type ReminderStatus = 'pending' | 'scheduled' | 'sent' | 'failed'
@@ -11,8 +13,14 @@ export interface Reminder {
   patientName: string
   phone: string
   appointmentDate: string
+  appointmentStatus: Extract<
+    AppointmentStatus,
+    'confirmed' | 'pending' | 'rescheduled'
+  >
   appointmentTime: string
   treatment: string
+  rescheduleReason?: string
+  rescheduleReasonDetail?: string
   reminderType: ReminderType
   scheduledFor: string
   status: ReminderStatus
@@ -25,10 +33,16 @@ export type ReminderSummary = Record<ReminderStatus, number>
 export interface ReminderAppointmentGroup {
   appointmentDate: string
   appointmentId: number
+  appointmentStatus: Extract<
+    AppointmentStatus,
+    'confirmed' | 'pending' | 'rescheduled'
+  >
   appointmentTime: string
   patientId: number | null
   patientName: string
   phone: string
+  rescheduleReason?: string
+  rescheduleReasonDetail?: string
   omittedReminderNotes: string[]
   reminders: Reminder[]
   treatment: string

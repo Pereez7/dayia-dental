@@ -1,4 +1,5 @@
 import type { Appointment } from '../types/Appointment'
+import type { AppointmentStatus } from '../types/Appointment'
 import type { Patient } from '../types/Patient'
 import type {
   Reminder,
@@ -12,6 +13,10 @@ import type {
 } from '../types/Reminder'
 
 type ScheduledReminderType = Exclude<ReminderType, 'immediate'>
+type ReminderAppointmentStatus = Extract<
+  AppointmentStatus,
+  'confirmed' | 'pending' | 'rescheduled'
+>
 
 const reminderHoursBeforeAppointment: Record<ScheduledReminderType, number> = {
   '24h': 24,
@@ -30,6 +35,14 @@ const initialReminderSummary: ReminderSummary = {
   sent: 0,
 }
 
+const noPhoneReminderLabel = 'Sin teléfono registrado'
+
+const activeReminderAppointmentStatuses: ReminderAppointmentStatus[] = [
+  'pending',
+  'confirmed',
+  'rescheduled',
+]
+
 export function generateAppointmentReminders(
   appointments: Appointment[],
   patients: Patient[],
@@ -38,7 +51,7 @@ export function generateAppointmentReminders(
   return appointments
     .filter(
       (appointment) =>
-        appointment.status !== 'cancelled' &&
+        isActiveReminderAppointmentStatus(appointment.status) &&
         isFutureAppointmentDateTime(appointment, referenceDate),
     )
     .flatMap((appointment) => {
@@ -46,6 +59,7 @@ export function generateAppointmentReminders(
 
       return createAppointmentReminders(appointment, patient, referenceDate)
     })
+    .sort(compareRemindersByPriority)
 }
 
 export function summarizeRemindersByStatus(reminders: Reminder[]) {
@@ -134,10 +148,13 @@ export function groupRemindersByAppointment(reminders: Reminder[]) {
     appointmentGroups.set(reminder.appointmentId, {
       appointmentDate: reminder.appointmentDate,
       appointmentId: reminder.appointmentId,
+      appointmentStatus: reminder.appointmentStatus,
       appointmentTime: reminder.appointmentTime,
       patientId: reminder.patientId,
       patientName: reminder.patientName,
       phone: reminder.phone,
+      rescheduleReason: reminder.rescheduleReason,
+      rescheduleReasonDetail: reminder.rescheduleReasonDetail,
       omittedReminderNotes: reminder.omittedReminderNotes ?? [],
       reminders: [reminder],
       treatment: reminder.treatment,
@@ -155,6 +172,10 @@ export function updateReminderStatus(
   return reminders.map((reminder) =>
     reminder.id === reminderId ? { ...reminder, status } : reminder,
   )
+}
+
+export function canMarkReminderAsSent(reminder: Reminder | undefined) {
+  return Boolean(reminder && hasReminderPhone(reminder.phone))
 }
 
 export function getReminderTypeLabel(reminderType: ReminderType) {
@@ -195,6 +216,24 @@ export function getScheduledFor(
   return formatDateTimeValue(scheduledDate)
 }
 
+export function formatReminderScheduledDateTime(value: string) {
+  const date = new Date(value)
+  const dateLabel = new Intl.DateTimeFormat('es-BO', {
+    day: '2-digit',
+    month: 'short',
+  })
+    .format(date)
+    .replace('.', '')
+    .replace('-', ' ')
+  const timeLabel = new Intl.DateTimeFormat('es-BO', {
+    hour: '2-digit',
+    hourCycle: 'h23',
+    minute: '2-digit',
+  }).format(date)
+
+  return `${dateLabel}, ${timeLabel}`.replace(/\s+/g, ' ')
+}
+
 export function createWhatsAppReminderMessage(
   patientName: string,
   treatment: string,
@@ -202,6 +241,7 @@ export function createWhatsAppReminderMessage(
   appointmentTime: string,
   reminderType: ReminderType = '24h',
   referenceDate = new Date(),
+  appointmentStatus: ReminderAppointmentStatus = 'pending',
 ) {
   const firstName = patientName.trim().split(/\s+/)[0] || patientName
   const formattedDate = formatReminderMessageDate(
@@ -209,11 +249,27 @@ export function createWhatsAppReminderMessage(
     referenceDate,
   )
 
+  if (appointmentStatus === 'confirmed') {
+    return `Hola ${firstName}, te recordamos tu cita odontológica confirmada para ${treatment} ${formattedDate} a las ${appointmentTime}.`
+  }
+
+  if (appointmentStatus === 'rescheduled') {
+    return `Hola ${firstName}, te recordamos que tu cita fue reprogramada para ${treatment} ${formattedDate} a las ${appointmentTime}. Por favor confirma tu asistencia.`
+  }
+
   if (reminderType === 'immediate') {
     return `Hola ${firstName}, te recordamos que tienes una cita odontológica para ${treatment} ${formattedDate} a las ${appointmentTime}. Por favor confirma tu asistencia.`
   }
 
   return `Hola ${firstName}, te recordamos tu cita odontológica para ${treatment} ${formattedDate} a las ${appointmentTime}. Por favor confirma tu asistencia.`
+}
+
+export function isActiveReminderAppointmentStatus(
+  status: AppointmentStatus,
+): status is ReminderAppointmentStatus {
+  return activeReminderAppointmentStatuses.includes(
+    status as ReminderAppointmentStatus,
+  )
 }
 
 export function getReminderDateGroupLabel(
@@ -365,10 +421,14 @@ function createReminder(
   omittedReminderNotes: string[],
 ): Reminder {
   const patientName = appointment.patient.trim() || 'Paciente sin nombre'
+  const appointmentStatus = isActiveReminderAppointmentStatus(appointment.status)
+    ? appointment.status
+    : 'pending'
 
   return {
     appointmentDate: appointment.date,
     appointmentId: appointment.id,
+    appointmentStatus,
     appointmentTime: appointment.time,
     id: `${appointment.id}-${reminderType}`,
     message: createWhatsAppReminderMessage(
@@ -378,11 +438,14 @@ function createReminder(
       appointment.time,
       reminderType,
       referenceDate,
+      appointmentStatus,
     ),
     omittedReminderNotes,
     patientId: patient?.id ?? appointment.patientId ?? null,
     patientName,
-    phone: patient?.phone ?? 'Sin telefono registrado',
+    phone: patient?.phone ?? noPhoneReminderLabel,
+    rescheduleReason: appointment.rescheduleReason,
+    rescheduleReasonDetail: appointment.rescheduleReasonDetail,
     reminderType,
     scheduledFor,
     status: reminderType === '24h' ? 'scheduled' : 'pending',
@@ -405,6 +468,53 @@ function sortRemindersByAppointment(reminders: Reminder[]) {
 
     return firstDateTime.localeCompare(secondDateTime)
   })
+}
+
+function compareRemindersByPriority(
+  firstReminder: Reminder,
+  secondReminder: Reminder,
+) {
+  const firstPriority = getReminderPriority(firstReminder)
+  const secondPriority = getReminderPriority(secondReminder)
+
+  if (firstPriority !== secondPriority) {
+    return firstPriority - secondPriority
+  }
+
+  const firstScheduledFor = new Date(firstReminder.scheduledFor).getTime()
+  const secondScheduledFor = new Date(secondReminder.scheduledFor).getTime()
+
+  if (firstScheduledFor !== secondScheduledFor) {
+    return firstScheduledFor - secondScheduledFor
+  }
+
+  const firstDateTime = `${firstReminder.appointmentDate}T${firstReminder.appointmentTime}`
+  const secondDateTime = `${secondReminder.appointmentDate}T${secondReminder.appointmentTime}`
+
+  return firstDateTime.localeCompare(secondDateTime)
+}
+
+function getReminderPriority(reminder: Reminder) {
+  if (
+    reminder.appointmentStatus === 'pending' &&
+    reminder.status === 'pending'
+  ) {
+    return 0
+  }
+
+  if (reminder.appointmentStatus === 'pending') {
+    return 1
+  }
+
+  if (reminder.appointmentStatus === 'confirmed') {
+    return 2
+  }
+
+  return 3
+}
+
+function hasReminderPhone(phone: string) {
+  return phone.trim() !== noPhoneReminderLabel
 }
 
 function findAppointmentPatient(

@@ -7,6 +7,7 @@ import type { Appointment } from '../types/Appointment'
 import type { Patient } from '../types/Patient'
 import type { ReminderStatus, ReminderStatusFilter } from '../types/Reminder'
 import {
+  canMarkReminderAsSent,
   filterRemindersByAppointmentDate,
   filterRemindersByStatus,
   generateAppointmentReminders,
@@ -73,13 +74,16 @@ export function WhatsAppRemindersView({
     groupRemindersByAppointmentDate(filteredReminders)
   const selectedReminder =
     filteredReminders.find((reminder) => reminder.id === selectedReminderId) ??
-    dateFilteredReminders[0] ??
     filteredReminders[0] ??
-    reminders[0]
+    (statusFilter === 'all' ? dateFilteredReminders[0] : undefined)
   const emptyListMessage =
     reminders.length === 0
-      ? 'No hay recordatorios pendientes porque no existen citas futuras.'
+      ? 'No hay recordatorios pendientes para citas activas.'
       : 'No hay recordatorios para esta fecha y filtro.'
+  const emptyListDescription =
+    reminders.length === 0
+      ? 'Las citas canceladas no generan recordatorios.'
+      : 'Prueba con otra fecha o estado de recordatorio.'
 
   useEffect(() => {
     if (!isToastVisible) {
@@ -102,6 +106,16 @@ export function WhatsAppRemindersView({
   }, [isToastVisible, toastMessage])
 
   function updateReminderStatus(reminderId: string, status: ReminderStatus) {
+    const targetReminder = reminders.find((reminder) => reminder.id === reminderId)
+
+    if (status === 'sent' && !canMarkReminderAsSent(targetReminder)) {
+      setSelectedReminderId(reminderId)
+      setToastTone('error')
+      setToastMessage('No se puede marcar como enviado sin teléfono registrado.')
+      setIsToastVisible(true)
+      return
+    }
+
     setStatusOverrides((currentOverrides) => ({
       ...currentOverrides,
       [reminderId]: status,
@@ -224,6 +238,7 @@ export function WhatsAppRemindersView({
 
           <RemindersList
             dateGroups={reminderDateGroups}
+            emptyDescription={emptyListDescription}
             emptyMessage={emptyListMessage}
             selectedReminderId={selectedReminder?.id ?? null}
             onMarkFailed={(reminderId) =>

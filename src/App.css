@@ -3585,6 +3585,13 @@
   padding: 10px;
 }
 
+.reminder-card--pending {
+  border-color: rgba(240, 212, 135, 0.52);
+  background:
+    linear-gradient(90deg, rgba(255, 247, 223, 0.24), rgba(255, 255, 255, 0.9)),
+    rgba(255, 255, 255, 0.78);
+}
+
 .reminder-card--selected {
   border-color: #b9ddec;
   box-shadow: var(--shadow-focus);
@@ -3608,6 +3615,48 @@
   font-size: var(--text-sm);
   font-weight: 600;
   line-height: 1.2;
+}
+
+.reminder-card-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.reminder-card-title h4 {
+  margin: 0;
+}
+
+.reminder-card-title .appointment-status {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 4px 7px;
+  white-space: nowrap;
+}
+
+.reminder-card-title .appointment-status--pending {
+  background: #fff7df;
+  border-color: #f0d487;
+  color: #8a5a00;
+}
+
+.reminder-card-title .appointment-status--confirmed {
+  background: var(--color-soft-green);
+  border-color: #b7e4ce;
+  color: var(--color-success);
+}
+
+.reminder-card-title .appointment-status--rescheduled {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: var(--color-indigo);
 }
 
 .reminder-card p {
@@ -3635,6 +3684,18 @@
   font-weight: 500;
   line-height: 1.35;
   padding: 5px 7px;
+}
+
+.reminder-reason-note {
+  margin-top: 5px;
+  color: var(--color-text-muted);
+  display: -webkit-box;
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.35;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .reminder-omission-notes {
@@ -3739,6 +3800,15 @@
 }
 
 .reminder-action-danger {
+  border-color: rgba(217, 232, 239, 0.72);
+  background: rgba(255, 255, 255, 0.68);
+  color: #8f3650;
+  font-weight: 500;
+}
+
+.reminder-action-danger:hover {
+  border-color: rgba(253, 164, 175, 0.72);
+  background: rgba(255, 241, 242, 0.48);
   color: #9f1239;
 }
 
@@ -3794,6 +3864,25 @@
 
 .reminder-note {
   margin: 12px 0 0;
+  font-weight: 500;
+}
+
+.reminder-empty-state {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+}
+
+.reminder-empty-state strong {
+  color: var(--color-heading);
+  font-family: var(--font-heading);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.reminder-empty-state span {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
   font-weight: 500;
 }
 
