@@ -95,6 +95,9 @@ de backend antes de validar la experiencia local.
 - En fichas de paciente, priorizar datos clinicos utiles sobre textos de
   preparacion interna. El detalle debe mostrar resumen operativo con citas
   activas, ultima atencion y proxima cita cuando esos datos existan.
+- En el historial clinico global, agrupar por paciente para evitar listas
+  repetitivas. La vista debe resumir el ultimo registro, permitir escaneo rapido
+  y abrir el detalle cuando se necesite mas contexto.
 - Mantener formato de fechas coherente segun contexto: ficha clinica e historial
   con año, agenda con formato corto y recordatorios con fecha corta mas hora en
   24 horas.

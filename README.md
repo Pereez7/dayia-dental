@@ -23,6 +23,8 @@ historiales y otros modulos clinicos.
   horarios del consultorio, bloqueo de horas ocupadas y validaciones de campos.
 - Historial clinico inicial dentro del detalle de paciente, con registros
   asociados por paciente, normalizacion de textos y fechas con año.
+- Historial clinico global con cards agrupadas por paciente, busqueda, filtros,
+  KPIs y expansion controlada de ultimos registros.
 - Odontograma inicial dentro del detalle de paciente, con piezas permanentes
   adultas, estados por pieza y resumen por estado.
 - Recordatorios WhatsApp iniciado con generacion local desde citas activas,
@@ -60,6 +62,9 @@ historiales y otros modulos clinicos.
   una nueva cita.
 - **Historial clinico:** registros clinicos dentro del detalle de paciente,
   ordenados por fecha, con resumen temporal y formulario de evolucion basica.
+  El modulo global muestra una card por paciente, resume el ultimo registro,
+  permite buscar por paciente o contenido clinico, filtrar por periodo y
+  expandir hasta los ultimos 3 registros.
 - **Odontograma:** grilla inicial de piezas permanentes adultas dentro del
   detalle de paciente, con actualizacion simple por pieza.
 - **Recordatorios WhatsApp:** generacion local de recordatorios `24h`, `2h` y

@@ -131,7 +131,10 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
    con fechas compactas con año y resumen temporal.
 25. `PatientOdontogram` muestra piezas permanentes adultas, resumen por estado y
    permite actualizar una pieza dental.
-26. `WhatsAppRemindersView` genera recordatorios locales desde citas activas y
+26. `ClinicalHistoryView` recibe pacientes y registros clinicos desde `App.tsx`,
+   agrupa los registros por paciente, aplica busqueda/filtros locales y permite
+   volver al detalle del paciente con `onViewPatient`.
+27. `WhatsAppRemindersView` genera recordatorios locales desde citas activas y
    pacientes, aplica filtros por fecha y estado, usa mensajes segun estado de
    cita y muestra feedback mediante `Toast`.
 
@@ -204,8 +207,10 @@ Las fechas de ficha clinica usan `formatOptionalCompactDateWithYear` para
 mostrar valores como `18-may-2026` y evitar valores crudos como `2026-05-18` o
 fechas invalidas cuando el dato aun no existe.
 
-El historial clinico se asocia siempre por `patientId`. Por ahora vive dentro
-del detalle del paciente y no en la vista global del menu lateral.
+El historial clinico se asocia siempre por `patientId`. Existe dentro del
+detalle del paciente para registrar y revisar evoluciones de un paciente
+seleccionado, y tambien existe como vista global agrupada por paciente para
+consultar historiales entre pacientes sin repetir cards por cada registro.
 
 El odontograma tambien se asocia por `patientId`; cada entrada identifica una
 pieza mediante `toothNumber`. Por ahora vive dentro del detalle del paciente y
@@ -359,23 +364,41 @@ evolucion hacia feriados, cierres especiales o dias con horario distinto.
 
 `Historial clinico`
 
-Existe como primera version dentro de `PatientDetailView`. Participan:
+Existe como primera version dentro de `PatientDetailView` y como vista global
+agrupada por paciente. Participan:
 
 - `src/types/ClinicalRecord.ts`: define `ClinicalRecord` y los valores del
   formulario.
 - `src/data/clinicalRecords.ts`: contiene registros clinicos mock.
+- `src/views/ClinicalHistoryView.tsx`: compone el modulo global con KPIs,
+  buscador, filtros, cards agrupadas por paciente y expansion controlada de
+  registros.
 - `src/components/ClinicalRecordForm.tsx`: captura fecha, motivo, diagnostico,
   tratamiento y observaciones.
 - `src/components/ClinicalRecordsList.tsx`: renderiza los registros del
   paciente y el resumen temporal.
 - `src/utils/clinicalRecords.ts`: filtra por paciente, ordena por fecha
-  descendente, valida fecha no futura y campos obligatorios, normaliza valores
-  y calcula el resumen temporal.
+  descendente, valida fecha no futura y campos obligatorios, normaliza valores,
+  calcula resumen temporal, compone registros globales con datos de pacientes,
+  agrupa por paciente, obtiene el ultimo registro, filtra grupos por busqueda y
+  calcula KPIs globales.
 - `src/utils/textNormalizers.ts`: compacta espacios y capitaliza como oracion.
-- `src/utils/dateFormatters.ts`: muestra fechas como `09-jun-2026`.
+- `src/utils/dateFormatters.ts`: muestra fechas con año dentro del detalle del
+  paciente y fechas cortas en la vista global, como `18 may` o
+  `12 jun, 15:16` cuando hay hora.
 
-El modulo lateral `Historial clinico` sigue siendo placeholder hasta definir una
-experiencia global de busqueda, filtros y seleccion de paciente.
+El detalle de paciente muestra todos los registros del paciente seleccionado y
+permite agregar evoluciones. La vista global no permite editar ni eliminar:
+resume una card por paciente, muestra el ultimo registro, permite expandir hasta
+los ultimos 3 registros y ofrece `Ver paciente` para volver al detalle.
+
+La busqueda global revisa paciente, motivo, diagnostico, tratamiento y
+observaciones. Si una coincidencia esta dentro de los registros, se muestra la
+card del paciente y los registros coincidentes como muestra interna.
+
+Los textos clinicos guardados se normalizan al crear registros. Para datos mock
+antiguos o textos sin tilde, la vista global usa un formatter de presentacion
+conservador que mejora tildes visibles sin cambiar el dato original.
 
 `Odontograma`
 

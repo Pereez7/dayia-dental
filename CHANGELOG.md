@@ -2,6 +2,48 @@
 
 Registro breve de cambios relevantes en DayIA Dental.
 
+## 2026-06-14
+
+### Cambios realizados
+
+- Se implemento la primera version del modulo global `Historial clinico`.
+- El modulo global usa los registros clinicos y pacientes del estado local
+  compartido en `App.tsx`.
+- Se agrupan los registros por paciente para evitar repetir una card completa
+  por cada evolucion clinica.
+- Cada card muestra nombre, telefono si existe, total de registros, fecha del
+  ultimo registro, ultimo motivo, ultimo diagnostico y ultimo tratamiento.
+- Se agrego expansion controlada con `Ver ultimos registros`, mostrando hasta
+  los ultimos 3 registros del paciente.
+- Se mantuvo el acceso `Ver paciente` para volver al detalle del paciente.
+- Se agrego busqueda global por paciente, motivo, diagnostico, tratamiento y
+  observaciones.
+- Se mantuvieron filtros de periodo: todos, este mes y ultimos 30 dias.
+- Los KPIs del modulo global reflejan los registros visibles segun busqueda y
+  filtros.
+- Se agrego formato de fecha global para historial, por ejemplo `18 may`, con
+  año solo cuando corresponde.
+- Se agrego formatter de presentacion para textos clinicos visibles, corrigiendo
+  casos conservadores como `Aplicacion de fluor` a `Aplicación de flúor` sin
+  modificar el dato original.
+- Se pulio visualmente el modulo con acentos clinicos suaves, badges compactos,
+  botones secundarios y bloques internos mas legibles.
+- Se agregaron y actualizaron pruebas unitarias para agrupacion, busqueda,
+  resumen, fechas y textos clinicos visibles.
+- Se actualizo la documentacion del proyecto para reflejar el nuevo estado del
+  modulo global `Historial clinico`.
+
+### Motivo del cambio
+
+Evitar que el historial global se vuelva una lista repetitiva cuando un paciente
+tiene varios registros. La agrupacion por paciente permite escanear mejor el
+seguimiento clinico, mantener una card compacta por persona y entrar al detalle
+cuando se necesita mas contexto.
+
+El pulido visual busca cerrar la primera version con jerarquia clara sin
+convertir el modulo en una interfaz recargada. El modulo sigue sin backend,
+persistencia, edicion, eliminacion, PDF, adjuntos ni IA medica.
+
 ## 2026-06-13
 
 ### Cambios realizados

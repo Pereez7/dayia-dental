@@ -154,7 +154,7 @@ Pendiente:
 
 ### Historial clinico
 
-Estado: iniciado dentro del detalle de paciente.
+Estado: parcialmente implementado.
 
 Implementado:
 
@@ -162,6 +162,7 @@ Implementado:
 - Datos mock asociados a pacientes existentes.
 - Estado local compartido en `App.tsx`.
 - Visualizacion dentro del detalle de paciente.
+- Vista global desde el modulo lateral `Historial clinico`.
 - Filtrado por `patientId`.
 - Ordenamiento del mas reciente al mas antiguo.
 - Formulario para agregar evolucion clinica basica.
@@ -169,12 +170,27 @@ Implementado:
 - Normalizacion de textos clinicos antes de guardar.
 - Fechas del historial con año.
 - Resumen temporal de cantidad y rango de registros.
-- Pruebas unitarias para filtrado, ordenamiento, validacion, normalizacion y
-  resumen temporal.
+- Agrupacion global de registros por paciente para evitar repetir una card por
+  cada evolucion clinica.
+- Cards globales con nombre, telefono, total de registros, fecha del ultimo
+  registro, ultimo motivo, ultimo diagnostico y ultimo tratamiento.
+- Expansion controlada para mostrar hasta los ultimos 3 registros del paciente.
+- Busqueda global por paciente, motivo, diagnostico, tratamiento y
+  observaciones.
+- Filtros globales: todos, este mes y ultimos 30 dias.
+- KPIs globales de registros visibles, registros del mes y pacientes con
+  historial.
+- Fechas globales cortas como `18 may`, con año solo cuando corresponde.
+- Formatter de presentacion para textos clinicos visibles, sin modificar el
+  dato original.
+- Pulido visual mobile-first con acentos clinicos suaves, badges compactos y
+  botones secundarios.
+- Pruebas unitarias para filtrado, ordenamiento, validacion, normalizacion,
+  resumen temporal, agrupacion global, busqueda global, fechas y textos de
+  presentacion.
 
 Pendiente:
 
-- Pantalla global de historial clinico.
 - Edicion de registros clinicos.
 - Eliminacion de registros clinicos.
 - Antecedentes clinicos estructurados.

@@ -17,6 +17,8 @@ especialmente pensando en una futura integracion con WhatsApp.
 - Configuracion de horarios y tratamientos del consultorio, conectada con
   Nueva Cita para tratamientos activos y disponibilidad de horarios.
 - Primera version de historial clinico dentro del detalle de paciente.
+- Primera version del modulo global Historial clinico con registros agrupados
+  por paciente, busqueda, filtros y resumen superior.
 - Primera version de odontograma dentro del detalle de paciente.
 - Primera version del modulo Recordatorios WhatsApp con simulacion local,
   alineada con estados reales de citas activas.
@@ -98,7 +100,9 @@ historial clinico, odontograma, recordatorios y evoluciones.
 
 ## Historial clinico
 
-Actualmente existe una primera version dentro del detalle de paciente:
+Actualmente existen dos superficies iniciales de historial clinico.
+
+Dentro del detalle de paciente:
 
 - Usa datos mock desde `src/data/clinicalRecords.ts`.
 - Mantiene los registros clinicos en estado local dentro de `src/App.tsx`.
@@ -112,9 +116,30 @@ Actualmente existe una primera version dentro del detalle de paciente:
 - Valida campos obligatorios y no permite fechas futuras.
 - Normaliza los textos clinicos escritos por el doctor antes de guardarlos.
 
-El menu lateral `Historial clinico` sigue como placeholder. Por ahora el
-historial permanece dentro del detalle de cada paciente porque necesita contexto
-clinico del paciente seleccionado.
+En el modulo global `Historial clinico`:
+
+- Usa los mismos registros clinicos y pacientes desde el estado local de
+  `App.tsx`.
+- Agrupa registros por paciente para evitar repetir una card completa por cada
+  evolucion clinica.
+- Cada card muestra paciente, telefono si existe, total de registros, fecha del
+  ultimo registro, ultimo motivo, ultimo diagnostico, ultimo tratamiento y
+  observaciones cuando aportan contexto.
+- Muestra solo el registro mas reciente por defecto.
+- Permite expandir hasta los ultimos 3 registros mediante `Ver ultimos
+  registros`, sin implementar paginacion real.
+- Mantiene busqueda por paciente, motivo, diagnostico, tratamiento y
+  observaciones.
+- Mantiene filtros locales: todos, este mes y ultimos 30 dias.
+- Los KPIs reflejan los registros visibles segun filtros y busqueda.
+- Usa fechas cortas de lectura global, por ejemplo `18 may`, y agrega año solo
+  cuando corresponde.
+- Aplica un formatter de presentacion para corregir textos clinicos visibles de
+  forma conservadora, por ejemplo `Aplicacion de fluor` se muestra como
+  `Aplicación de flúor` sin modificar el dato mock original.
+
+Todavia no existe edicion, eliminacion, impresion PDF, adjuntos, imagenes,
+radiografias, IA medica ni persistencia para registros clinicos.
 
 ## Odontograma
 

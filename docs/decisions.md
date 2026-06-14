@@ -102,15 +102,34 @@ preparacion interna o datos inventados. Las citas canceladas conservan
 trazabilidad en Agenda, pero no cuentan como proxima atencion activa del
 paciente.
 
-## Historial clinico dentro del paciente
+## Historial clinico por paciente y vista global de consulta
 
-El historial clinico inicial se implementa dentro del detalle del paciente, no
-como pantalla global. En esta etapa cada registro necesita el contexto del
-paciente seleccionado y no se requieren busquedas globales, filtros por doctor
-ni rutas con parametros.
+El historial clinico mantiene dos superficies complementarias:
 
-El item lateral `Historial clinico` se mantiene como placeholder hasta que exista
-una experiencia clara para consultar historiales entre pacientes.
+- Dentro del detalle del paciente, permite revisar y agregar evoluciones con el
+  contexto completo del paciente seleccionado.
+- En el modulo lateral `Historial clinico`, permite consultar registros entre
+  pacientes en una vista global de solo lectura.
+
+La vista global agrupa registros por paciente en lugar de mostrar una card por
+cada registro clinico. Esta decision evita repetir visualmente el mismo paciente
+muchas veces cuando existan varios registros y prepara el modulo para escalar
+con mas pacientes.
+
+Cada card global resume el ultimo registro del paciente y muestra el total de
+registros. Si hay mas historial, se permite expandir hasta los ultimos 3
+registros con `Ver ultimos registros`. No se implementa paginacion real todavia
+porque el objetivo actual es validar la estructura y la lectura, no resolver
+volumen avanzado.
+
+La vista global permite busqueda por paciente, motivo, diagnostico, tratamiento
+y observaciones, y mantiene filtros simples por periodo. La logica de
+agrupacion, busqueda y resumen vive en `src/utils/clinicalRecords.ts` para
+mantenerla testeable y fuera del JSX.
+
+Por ahora la vista global no permite editar, eliminar, exportar PDF, adjuntar
+archivos ni usar IA medica. Es una superficie de consulta y navegacion hacia el
+detalle del paciente.
 
 ## Odontograma dentro del paciente
 
@@ -147,6 +166,11 @@ como oracion. Esto evita registros inconsistentes como `CARIES`,
 La logica vive en `src/utils/textNormalizers.ts` para poder reutilizarla en
 futuros formularios y probarla sin depender de React.
 
+Para datos mock antiguos o textos clinicos visibles sin tildes, la vista global
+puede aplicar un formatter de presentacion conservador. Este formatter corrige
+casos conocidos como `Aplicacion de fluor` a `Aplicación de flúor`, sin cambiar
+el dato original ni reinterpretar el significado clinico.
+
 ## Fechas clinicas con año
 
 Las fechas del historial clinico se muestran con año, por ejemplo
@@ -160,10 +184,11 @@ como ultima visita o fecha de nacimiento. Si el dato falta o no tiene formato de
 fecha valido, se muestra un fallback como `Sin registro` en lugar de renderizar
 una fecha invalida.
 
-La agenda mantiene fechas cortas como `05-jun` y Recordatorios usa formato
-operativo con hora, como `15 jun, 10:00`. La decision es elegir el formato por
-contexto: clinico con año, operativo diario corto y recordatorio con hora en 24
-horas.
+La agenda mantiene fechas cortas como `05-jun`, Recordatorios usa formato
+operativo con hora como `15 jun, 10:00`, y la vista global de Historial clinico
+usa fechas de escaneo como `18 may`, agregando año solo cuando corresponde. La
+decision es elegir el formato por contexto: detalle clinico con año, operativo
+diario corto, recordatorio con hora en 24 horas y exploracion global compacta.
 
 ## Asociacion de citas en detalle de paciente
 
