@@ -304,7 +304,13 @@ function App() {
     }
 
     if (activeSection === 'clinical-history') {
-      return <ClinicalHistoryView />
+      return (
+        <ClinicalHistoryView
+          clinicalRecords={clinicalRecords}
+          patients={patients}
+          onViewPatient={handleViewPatient}
+        />
+      )
     }
 
     if (activeSection === 'odontogram') {

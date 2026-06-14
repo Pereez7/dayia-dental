@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  formatClinicalHistoryDate,
   formatCompactDateWithYear,
   formatOptionalCompactDateWithYear,
 } from './dateFormatters'
@@ -22,6 +23,41 @@ describe('formatOptionalCompactDateWithYear', () => {
   it('returns fallback for non-date values', () => {
     expect(formatOptionalCompactDateWithYear('Sin registro')).toBe(
       'Sin registro',
+    )
+  })
+})
+
+describe('formatClinicalHistoryDate', () => {
+  it('formats current-year clinical history dates without year', () => {
+    expect(
+      formatClinicalHistoryDate(
+        '2026-06-12',
+        new Date('2026-06-14T10:00:00'),
+      ),
+    ).toBe('12 jun')
+  })
+
+  it('includes the year when the clinical history date is outside the current year', () => {
+    expect(
+      formatClinicalHistoryDate(
+        '2025-06-12',
+        new Date('2026-06-14T10:00:00'),
+      ),
+    ).toBe('12 jun 2025')
+  })
+
+  it('formats clinical history dates with 24-hour time', () => {
+    expect(
+      formatClinicalHistoryDate(
+        '2026-06-12T15:16:00',
+        new Date('2026-06-14T10:00:00'),
+      ),
+    ).toBe('12 jun, 15:16')
+  })
+
+  it('handles invalid dates without throwing', () => {
+    expect(formatClinicalHistoryDate('fecha-invalida')).toBe(
+      'Fecha no disponible',
     )
   })
 })
