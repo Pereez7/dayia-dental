@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Appointment, AppointmentStatus } from '../types/Appointment'
-import type { BusinessHoursSettings } from '../types/BusinessHours'
+import type {
+  BusinessHoursSettings,
+  CalendarException,
+} from '../types/BusinessHours'
 import type { Patient } from '../types/Patient'
 import type { Treatment } from '../types/Treatment'
 import { getAvailableTimeOptionsByDuration } from '../utils/appointmentConflicts'
@@ -35,7 +38,10 @@ import {
   hasAppointmentRescheduleErrors,
   validateAppointmentReschedule,
 } from '../utils/appointmentReschedule'
-import { getBusinessDayScheduleForDate } from '../utils/businessHours'
+import {
+  getCalendarExceptionForDate,
+  getEffectiveBusinessHoursForDate,
+} from '../utils/businessHours'
 import { AppointmentAgendaCard } from './AppointmentAgendaCard'
 import { ConfirmDialog } from './ConfirmDialog'
 import { Toast, type ToastTone } from './Toast'
@@ -43,6 +49,7 @@ import { Toast, type ToastTone } from './Toast'
 interface AppointmentsAgendaProps {
   appointments: Appointment[]
   businessHours: BusinessHoursSettings
+  calendarExceptions: CalendarException[]
   patients: Patient[]
   treatments: Treatment[]
   onRescheduleAppointment?: (
@@ -74,6 +81,7 @@ const emptyCancellationReasonValues: AppointmentReasonValues<AppointmentCancella
 export function AppointmentsAgenda({
   appointments,
   businessHours,
+  calendarExceptions,
   onRescheduleAppointment,
   onUpdateAppointmentStatus,
   patients,
@@ -261,15 +269,24 @@ export function AppointmentsAgenda({
           getAppointmentDuration(appointment, treatments),
           {
             appointmentIdToIgnore: appointment.id,
+            calendarExceptions,
             excludePastTimes: true,
             treatments,
           },
         )
       : []
     const daySchedule = date
-      ? getBusinessDayScheduleForDate(businessHours, date)
+      ? getEffectiveBusinessHoursForDate(
+          businessHours,
+          date,
+          calendarExceptions,
+        )
       : undefined
     const isClosed = Boolean(date) && daySchedule?.isOpen === false
+    const calendarException = getCalendarExceptionForDate(
+      calendarExceptions,
+      date,
+    )
 
     setRescheduleValues((currentValues) => ({
       ...currentValues,
@@ -281,7 +298,11 @@ export function AppointmentsAgenda({
     }))
     setRescheduleErrors((currentErrors) => ({
       ...currentErrors,
-      date: isClosed ? 'El consultorio está cerrado ese día.' : undefined,
+      date: isClosed
+        ? calendarException?.type === 'closed'
+          ? 'El consultorio está cerrado por excepción ese día.'
+          : 'El consultorio está cerrado ese día.'
+        : undefined,
       patient: undefined,
       time: undefined,
     }))
@@ -356,6 +377,7 @@ export function AppointmentsAgenda({
       businessHours,
       new Date(),
       treatments,
+      calendarExceptions,
     )
     const reasonErrors = validateAppointmentReason(rescheduleValues)
 
@@ -395,6 +417,7 @@ export function AppointmentsAgenda({
             getAppointmentDuration(appointment, treatments),
             {
               appointmentIdToIgnore: appointment.id,
+              calendarExceptions,
               excludePastTimes: true,
               treatments,
             },
@@ -404,7 +427,11 @@ export function AppointmentsAgenda({
 
   function isRescheduleDateClosed() {
     const daySchedule = rescheduleValues.date
-      ? getBusinessDayScheduleForDate(businessHours, rescheduleValues.date)
+      ? getEffectiveBusinessHoursForDate(
+          businessHours,
+          rescheduleValues.date,
+          calendarExceptions,
+        )
       : undefined
 
     return Boolean(rescheduleValues.date) && daySchedule?.isOpen === false

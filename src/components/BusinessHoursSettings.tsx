@@ -4,24 +4,61 @@ import type {
   BusinessDaySchedule,
   BusinessHoursErrors,
   BusinessHoursSettings as BusinessHoursSettingsType,
+  CalendarException,
+  CalendarExceptionFormErrors,
+  CalendarExceptionFormValues,
+  CalendarExceptionReason,
+  CalendarExceptionType,
   Weekday,
 } from '../types/BusinessHours'
 import {
   appointmentIntervals,
   areBusinessHoursSettingsEqual,
+  calendarExceptionReasonLabels,
+  hasCalendarExceptionFormErrors,
   hasBusinessHoursErrors,
+  isValidBusinessTimeFormat,
+  validateCalendarExceptionForm,
   validateBusinessHours,
   weekdayLabels,
 } from '../utils/businessHours'
-import { Toast } from './Toast'
+import { ConfirmDialog } from './ConfirmDialog'
+import { Toast, type ToastTone } from './Toast'
 
 interface BusinessHoursSettingsProps {
+  calendarExceptions: CalendarException[]
   settings: BusinessHoursSettingsType
+  onCalendarExceptionsChange: (exceptions: CalendarException[]) => void
   onSettingsChange: (settings: BusinessHoursSettingsType) => void
 }
 
+const emptyCalendarExceptionValues: CalendarExceptionFormValues = {
+  date: '',
+  endTime: '',
+  reason: '',
+  reasonDetail: '',
+  startTime: '',
+  type: 'closed',
+}
+
+const calendarExceptionTypeLabels: Record<CalendarExceptionType, string> = {
+  closed: 'Cerrado',
+  'special-hours': 'Horario especial',
+}
+
+const calendarExceptionReasonOptions: CalendarExceptionReason[] = [
+  '',
+  'holiday',
+  'maintenance',
+  'doctor-travel',
+  'special-campaign',
+  'other',
+]
+
 export function BusinessHoursSettings({
+  calendarExceptions,
   settings: initialSettings,
+  onCalendarExceptionsChange,
   onSettingsChange,
 }: BusinessHoursSettingsProps) {
   const [settings, setSettings] =
@@ -29,8 +66,18 @@ export function BusinessHoursSettings({
   const [savedSettings, setSavedSettings] =
     useState<BusinessHoursSettingsType>(initialSettings)
   const [errors, setErrors] = useState<BusinessHoursErrors>({})
+  const [calendarExceptionValues, setCalendarExceptionValues] =
+    useState<CalendarExceptionFormValues>(emptyCalendarExceptionValues)
+  const [calendarExceptionErrors, setCalendarExceptionErrors] =
+    useState<CalendarExceptionFormErrors>({})
+  const [calendarExceptionIdPendingDeletion, setCalendarExceptionIdPendingDeletion] =
+    useState<number | null>(null)
   const [toastMessage, setToastMessage] = useState('')
+  const [toastTone, setToastTone] = useState<ToastTone>('success')
   const [isToastVisible, setIsToastVisible] = useState(false)
+  const sortedCalendarExceptions = [...calendarExceptions].sort((first, second) =>
+    first.date.localeCompare(second.date),
+  )
 
   useEffect(() => {
     if (!isToastVisible) {
@@ -99,6 +146,101 @@ export function BusinessHoursSettings({
     setSavedSettings(settings)
     onSettingsChange(settings)
     setToastMessage('Horarios del consultorio actualizados.')
+    setToastTone('success')
+    setIsToastVisible(true)
+  }
+
+  function updateCalendarExceptionField(
+    field: keyof CalendarExceptionFormValues,
+    value: string,
+  ) {
+    setCalendarExceptionValues((currentValues) => {
+      const nextValues = {
+        ...currentValues,
+        [field]: value,
+      }
+
+      if (field === 'type' && value === 'closed') {
+        nextValues.startTime = ''
+        nextValues.endTime = ''
+      }
+
+      if (field === 'reason' && value !== 'other') {
+        nextValues.reasonDetail = ''
+      }
+
+      return nextValues
+    })
+    setCalendarExceptionErrors((currentErrors) => ({
+      ...currentErrors,
+      [field]: undefined,
+    }))
+    setIsToastVisible(false)
+  }
+
+  function handleCalendarExceptionSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    blurActiveFormElement(event.currentTarget)
+
+    const validationErrors = validateCalendarExceptionForm(
+      calendarExceptionValues,
+      calendarExceptions,
+    )
+    setCalendarExceptionErrors(validationErrors)
+
+    if (hasCalendarExceptionFormErrors(validationErrors)) {
+      setIsToastVisible(false)
+      return
+    }
+
+    const nextException: CalendarException = {
+      id: getNextNumericId(calendarExceptions),
+      date: calendarExceptionValues.date,
+      type: calendarExceptionValues.type,
+      reason: calendarExceptionValues.reason || undefined,
+      reasonDetail:
+        calendarExceptionValues.reason === 'other'
+          ? calendarExceptionValues.reasonDetail.trim() || undefined
+          : undefined,
+      ...(calendarExceptionValues.type === 'special-hours'
+        ? {
+            endTime: calendarExceptionValues.endTime,
+            startTime: calendarExceptionValues.startTime,
+          }
+        : {}),
+    }
+
+    onCalendarExceptionsChange([nextException, ...calendarExceptions])
+    setCalendarExceptionValues(emptyCalendarExceptionValues)
+    setCalendarExceptionErrors({})
+    setToastMessage('Excepción agregada.')
+    setToastTone('success')
+    setIsToastVisible(true)
+  }
+
+  function requestCalendarExceptionDeletion(exceptionId: number) {
+    setCalendarExceptionIdPendingDeletion(exceptionId)
+    setIsToastVisible(false)
+  }
+
+  function cancelCalendarExceptionDeletion() {
+    setCalendarExceptionIdPendingDeletion(null)
+  }
+
+  function confirmCalendarExceptionDeletion() {
+    if (calendarExceptionIdPendingDeletion === null) {
+      return
+    }
+
+    onCalendarExceptionsChange(
+      calendarExceptions.filter(
+        (calendarException) =>
+          calendarException.id !== calendarExceptionIdPendingDeletion,
+      ),
+    )
+    setCalendarExceptionIdPendingDeletion(null)
+    setToastMessage('Excepción eliminada.')
+    setToastTone('warning')
     setIsToastVisible(true)
   }
 
@@ -228,25 +370,246 @@ export function BusinessHoursSettings({
           </button>
         </div>
 
-        <aside
-          className="business-calendar-note"
-          aria-labelledby="calendar-exceptions-title"
-        >
-          <h3 id="calendar-exceptions-title">Excepciones del calendario</h3>
-          <p>
-            Más adelante podrás definir feriados, cierres especiales o días con
-            horario distinto.
-          </p>
-        </aside>
       </form>
+
+      <section
+        className="business-calendar-note"
+        aria-labelledby="calendar-exceptions-title"
+      >
+        <div className="business-calendar-header">
+          <div>
+            <h3 id="calendar-exceptions-title">Excepciones del calendario</h3>
+            <p>
+              Define cierres especiales o un horario distinto para una fecha
+              específica.
+            </p>
+          </div>
+        </div>
+
+        <form
+          className="calendar-exception-form"
+          onSubmit={handleCalendarExceptionSubmit}
+        >
+          <label>
+            <span>Fecha</span>
+            <input
+              type="date"
+              value={calendarExceptionValues.date}
+              onChange={(event) =>
+                updateCalendarExceptionField('date', event.target.value)
+              }
+            />
+          </label>
+
+          <label>
+            <span>Tipo</span>
+            <select
+              value={calendarExceptionValues.type}
+              onChange={(event) =>
+                updateCalendarExceptionField('type', event.target.value)
+              }
+            >
+              {Object.entries(calendarExceptionTypeLabels).map(
+                ([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ),
+              )}
+            </select>
+          </label>
+
+          {calendarExceptionValues.type === 'special-hours' && (
+            <div className="calendar-exception-time-fields">
+              <label>
+                <span>Inicio</span>
+                <input
+                  type="text"
+                  inputMode="text"
+                  maxLength={5}
+                  pattern="[0-2][0-9]:[0-5][0-9]"
+                  placeholder="09:00"
+                  value={calendarExceptionValues.startTime}
+                  onChange={(event) =>
+                    updateCalendarExceptionField(
+                      'startTime',
+                      event.target.value,
+                    )
+                  }
+                />
+              </label>
+              <label>
+                <span>Fin</span>
+                <input
+                  type="text"
+                  inputMode="text"
+                  maxLength={5}
+                  pattern="[0-2][0-9]:[0-5][0-9]"
+                  placeholder="13:00"
+                  value={calendarExceptionValues.endTime}
+                  onChange={(event) =>
+                    updateCalendarExceptionField('endTime', event.target.value)
+                  }
+                />
+              </label>
+            </div>
+          )}
+
+          <label>
+            <span>Motivo opcional</span>
+            <select
+              value={calendarExceptionValues.reason}
+              onChange={(event) =>
+                updateCalendarExceptionField('reason', event.target.value)
+              }
+            >
+              {calendarExceptionReasonOptions.map((reason) => (
+                <option key={reason || 'empty'} value={reason}>
+                  {reason
+                    ? calendarExceptionReasonLabels[reason]
+                    : 'Sin motivo'}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {calendarExceptionValues.reason === 'other' && (
+            <label>
+              <span>Detalle</span>
+              <input
+                type="text"
+                maxLength={80}
+                placeholder="Describe brevemente el motivo"
+                value={calendarExceptionValues.reasonDetail}
+                onChange={(event) =>
+                  updateCalendarExceptionField(
+                    'reasonDetail',
+                    event.target.value,
+                  )
+                }
+              />
+            </label>
+          )}
+
+          <div className="calendar-exception-messages">
+            {Object.values(calendarExceptionErrors).map((error) =>
+              error ? (
+                <p className="field-message field-message--error" key={error}>
+                  {error}
+                </p>
+              ) : null,
+            )}
+          </div>
+
+          <button className="primary-action" type="submit">
+            Agregar excepción
+          </button>
+        </form>
+
+        <div className="calendar-exception-list">
+          {sortedCalendarExceptions.length > 0 ? (
+            sortedCalendarExceptions.map((calendarException) => (
+              <article
+                className="calendar-exception-row"
+                key={calendarException.id}
+              >
+                <div>
+                  <h4>{formatCalendarExceptionDate(calendarException.date)}</h4>
+                  <p>{getCalendarExceptionSummary(calendarException)}</p>
+                  {getCalendarExceptionReasonText(calendarException) && (
+                    <span>
+                      {getCalendarExceptionReasonText(calendarException)}
+                    </span>
+                  )}
+                </div>
+                <button
+                  className="danger-action"
+                  type="button"
+                  onClick={() =>
+                    requestCalendarExceptionDeletion(calendarException.id)
+                  }
+                >
+                  Eliminar
+                </button>
+              </article>
+            ))
+          ) : (
+            <p className="calendar-exception-empty">
+              No hay excepciones configuradas.
+            </p>
+          )}
+        </div>
+      </section>
+
+      <ConfirmDialog
+        cancelLabel="Volver"
+        confirmLabel="Sí, eliminar"
+        isOpen={calendarExceptionIdPendingDeletion !== null}
+        message="¿Seguro que deseas eliminar esta excepción del calendario?"
+        title="Eliminar excepción"
+        variant="danger"
+        onCancel={cancelCalendarExceptionDeletion}
+        onConfirm={confirmCalendarExceptionDeletion}
+      />
 
       <Toast
         message={toastMessage}
-        tone="success"
+        tone={toastTone}
         visible={isToastVisible}
       />
     </section>
   )
+}
+
+function getNextNumericId(items: { id: number }[]) {
+  return Math.max(0, ...items.map((item) => item.id)) + 1
+}
+
+function formatCalendarExceptionDate(date: string) {
+  const parsedDate = new Date(`${date}T00:00:00`)
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return 'Fecha no disponible'
+  }
+
+  return new Intl.DateTimeFormat('es-BO', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
+    .format(parsedDate)
+    .replace('.', '')
+}
+
+function getCalendarExceptionSummary(calendarException: CalendarException) {
+  if (calendarException.type === 'closed') {
+    return 'Cerrado por excepción'
+  }
+
+  const startTime = isValidBusinessTimeFormat(calendarException.startTime ?? '')
+    ? calendarException.startTime
+    : '--:--'
+  const endTime = isValidBusinessTimeFormat(calendarException.endTime ?? '')
+    ? calendarException.endTime
+    : '--:--'
+
+  return `Horario especial: ${startTime} - ${endTime}`
+}
+
+function getCalendarExceptionReasonText(
+  calendarException: CalendarException,
+) {
+  if (!calendarException.reason) {
+    return ''
+  }
+
+  if (calendarException.reason === 'other') {
+    return calendarException.reasonDetail
+      ? `Motivo: ${calendarException.reasonDetail}`
+      : 'Motivo: Otro'
+  }
+
+  return `Motivo: ${calendarExceptionReasonLabels[calendarException.reason]}`
 }
 
 function blurActiveFormElement(formElement: HTMLFormElement) {

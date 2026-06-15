@@ -4,7 +4,10 @@ import type {
   AppointmentFormValues,
   AppointmentStatus,
 } from '../types/Appointment'
-import type { BusinessHoursSettings } from '../types/BusinessHours'
+import type {
+  BusinessHoursSettings,
+  CalendarException,
+} from '../types/BusinessHours'
 import type { Treatment } from '../types/Treatment'
 import {
   hasAppointmentDurationConflict,
@@ -14,7 +17,7 @@ import {
 import { doesAppointmentFitBusinessHours } from './appointmentDuration'
 import { appointmentTimeSlots } from './appointmentTimeSlots'
 import {
-  getBusinessDayScheduleForDate,
+  getEffectiveBusinessHoursForDate,
   validateAppointmentAgainstBusinessHours,
 } from './businessHours'
 import {
@@ -34,6 +37,7 @@ export function validateAppointmentForm(
   businessHours?: BusinessHoursSettings,
   appointments: Appointment[] = [],
   appointmentIdToIgnore?: number,
+  calendarExceptions: CalendarException[] = [],
 ): AppointmentFormErrors {
   const errors: AppointmentFormErrors = {}
 
@@ -73,10 +77,14 @@ export function validateAppointmentForm(
         businessHours,
         values.date,
         values.time,
+        calendarExceptions,
       )
     : ''
 
-  if (businessHoursError === 'El consultorio está cerrado ese día.') {
+  if (
+    businessHoursError === 'El consultorio está cerrado ese día.' ||
+    businessHoursError === 'El consultorio está cerrado por excepción ese día.'
+  ) {
     errors.date = businessHoursError
   } else if (!values.time) {
     errors.time = 'Selecciona una hora.'
@@ -98,6 +106,7 @@ export function validateAppointmentForm(
       values.durationMinutes,
       {
         appointmentIdToIgnore,
+        calendarExceptions,
         treatments: activeTreatments,
       },
     )
@@ -125,7 +134,11 @@ export function validateAppointmentForm(
     !errors.date &&
     !errors.time &&
     !doesAppointmentFitBusinessHours(
-      getBusinessDayScheduleForDate(businessHours, values.date),
+      getEffectiveBusinessHoursForDate(
+        businessHours,
+        values.date,
+        calendarExceptions,
+      ),
       values.time,
       values.durationMinutes,
     )

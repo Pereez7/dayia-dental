@@ -3,6 +3,10 @@ import type {
   BusinessDaySchedule,
   BusinessHoursErrors,
   BusinessHoursSettings,
+  CalendarException,
+  CalendarExceptionFormErrors,
+  CalendarExceptionFormValues,
+  CalendarExceptionReason,
   Weekday,
 } from '../types/BusinessHours'
 import {
@@ -21,6 +25,17 @@ export const weekdayLabels: Record<Weekday, string> = {
 }
 
 export const appointmentIntervals: AppointmentInterval[] = [15, 30, 45, 60]
+
+export const calendarExceptionReasonLabels: Record<
+  Exclude<CalendarExceptionReason, ''>,
+  string
+> = {
+  'doctor-travel': 'Viaje del doctor',
+  holiday: 'Feriado',
+  maintenance: 'Mantenimiento',
+  other: 'Otro',
+  'special-campaign': 'Campaña especial',
+}
 
 export function validateBusinessHours(
   settings: BusinessHoursSettings,
@@ -134,11 +149,61 @@ export function getBusinessDayScheduleForDate(
   return settings.weeklySchedule.find((schedule) => schedule.day === weekday)
 }
 
+export function getCalendarExceptionForDate(
+  exceptions: CalendarException[],
+  date: string,
+) {
+  if (!date) {
+    return undefined
+  }
+
+  return exceptions.find((exception) => exception.date === date)
+}
+
+export function getEffectiveBusinessHoursForDate(
+  settings: BusinessHoursSettings,
+  date: string,
+  exceptions: CalendarException[] = [],
+) {
+  const weekday = getWeekdayFromDate(date)
+
+  if (!weekday) {
+    return undefined
+  }
+
+  const calendarException = getCalendarExceptionForDate(exceptions, date)
+
+  if (calendarException?.type === 'closed') {
+    return {
+      day: weekday,
+      endTime: '',
+      isOpen: false,
+      startTime: '',
+    }
+  }
+
+  if (calendarException?.type === 'special-hours') {
+    return {
+      day: weekday,
+      endTime: calendarException.endTime ?? '',
+      isOpen: true,
+      startTime: calendarException.startTime ?? '',
+    }
+  }
+
+  return settings.weeklySchedule.find((schedule) => schedule.day === weekday)
+}
+
 export function generateBusinessTimeSlotsForDate(
   settings: BusinessHoursSettings,
   date: string,
+  exceptions: CalendarException[] = [],
 ): AppointmentTimeSlot[] {
-  const daySchedule = getBusinessDayScheduleForDate(settings, date)
+  const daySchedule = getEffectiveBusinessHoursForDate(
+    settings,
+    date,
+    exceptions,
+  )
 
   if (!daySchedule?.isOpen || validateBusinessDaySchedule(daySchedule)) {
     return []
@@ -155,14 +220,24 @@ export function validateAppointmentAgainstBusinessHours(
   settings: BusinessHoursSettings,
   date: string,
   time: string,
+  exceptions: CalendarException[] = [],
 ) {
-  const daySchedule = getBusinessDayScheduleForDate(settings, date)
+  const calendarException = getCalendarExceptionForDate(exceptions, date)
+  const daySchedule = getEffectiveBusinessHoursForDate(
+    settings,
+    date,
+    exceptions,
+  )
 
   if (!daySchedule) {
     return ''
   }
 
   if (!daySchedule.isOpen) {
+    if (calendarException?.type === 'closed') {
+      return 'El consultorio está cerrado por excepción ese día.'
+    }
+
     return 'El consultorio está cerrado ese día.'
   }
 
@@ -177,13 +252,55 @@ export function validateAppointmentAgainstBusinessHours(
     return 'La hora seleccionada está fuera del horario de atención.'
   }
 
-  const validSlots = generateBusinessTimeSlotsForDate(settings, date)
+  const validSlots = generateBusinessTimeSlotsForDate(settings, date, exceptions)
 
   if (!validSlots.some((slot) => slot.value === time)) {
     return 'Selecciona una hora valida.'
   }
 
   return ''
+}
+
+export function validateCalendarExceptionForm(
+  values: CalendarExceptionFormValues,
+  exceptions: CalendarException[],
+) {
+  const errors: CalendarExceptionFormErrors = {}
+
+  if (!values.date) {
+    errors.date = 'Selecciona una fecha.'
+  } else if (Number.isNaN(new Date(`${values.date}T00:00:00`).getTime())) {
+    errors.date = 'Selecciona una fecha válida.'
+  } else if (
+    exceptions.some((calendarException) => calendarException.date === values.date)
+  ) {
+    errors.date = 'Ya existe una excepción para esa fecha.'
+  }
+
+  if (values.type === 'special-hours') {
+    if (!values.startTime || !values.endTime) {
+      errors.startTime = 'Define hora de inicio y fin.'
+    } else if (
+      !isValidBusinessTimeFormat(values.startTime) ||
+      !isValidBusinessTimeFormat(values.endTime)
+    ) {
+      errors.startTime = 'Usa formato de 24 horas HH:mm.'
+    } else if (!isEndTimeAfterStartTime(values.startTime, values.endTime)) {
+      errors.endTime = 'La hora de fin debe ser mayor que la hora de inicio.'
+    }
+  }
+
+  if (values.reason === 'other' && values.reasonDetail.trim().length > 80) {
+    errors.reasonDetail = 'Usa un detalle de 80 caracteres o menos.'
+  }
+
+  return errors
+}
+
+export function hasCalendarExceptionFormErrors(
+  errors: CalendarExceptionFormErrors,
+) {
+  return Object.values(errors).some(Boolean)
 }
 
 export function isTimeInsideBusinessHours(

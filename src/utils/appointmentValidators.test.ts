@@ -149,6 +149,28 @@ describe('validateAppointmentForm', () => {
     expect(errors.date).toBe('El consultorio está cerrado ese día.')
   })
 
+  it('rejects appointments when the date is closed by exception', () => {
+    const errors = validateAppointmentForm(
+      validAppointmentFormValues,
+      new Date('2026-06-08T10:00:00'),
+      activeTreatments,
+      businessHours,
+      existingAppointments,
+      undefined,
+      [
+        {
+          date: '2026-06-12',
+          id: 1,
+          type: 'closed',
+        },
+      ],
+    )
+
+    expect(errors.date).toBe(
+      'El consultorio está cerrado por excepción ese día.',
+    )
+  })
+
   it('rejects a time before opening', () => {
     const errors = validate({
       ...validAppointmentFormValues,

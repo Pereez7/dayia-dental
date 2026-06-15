@@ -159,6 +159,51 @@ describe('validateAppointmentReschedule', () => {
     )
   })
 
+  it('rejects a day closed by exception', () => {
+    const errors = validateAppointmentReschedule(
+      appointment,
+      getRescheduleValues({ date: '2026-06-12', time: '09:30' }),
+      appointments,
+      businessHours,
+      new Date('2026-06-08T10:00:00'),
+      [],
+      [
+        {
+          date: '2026-06-12',
+          id: 1,
+          type: 'closed',
+        },
+      ],
+    )
+
+    expect(errors.date).toBe(
+      'El consultorio está cerrado por excepción ese día.',
+    )
+  })
+
+  it('allows special hours on a normally closed day while ignoring the current appointment', () => {
+    const errors = validateAppointmentReschedule(
+      appointment,
+      getRescheduleValues({ date: '2026-06-14', time: '09:00' }),
+      appointments,
+      businessHours,
+      new Date('2026-06-08T10:00:00'),
+      [],
+      [
+        {
+          date: '2026-06-14',
+          endTime: '12:00',
+          id: 1,
+          startTime: '09:00',
+          type: 'special-hours',
+        },
+      ],
+    )
+
+    expect(errors.date).toBeUndefined()
+    expect(errors.time).toBeUndefined()
+  })
+
   it('rejects an occupied time', () => {
     expect(validate({ date: '2026-06-12', time: '10:00' }).time).toBe(
       'El horario seleccionado se cruza con otra cita.',

@@ -460,4 +460,48 @@ describe('getAvailableTimeOptionsByDuration', () => {
       ).map((slot) => slot.value),
     ).toEqual(['13:30'])
   })
+
+  it('generates available times from special hours exceptions', () => {
+    expect(
+      getAvailableTimeOptionsByDuration(
+        durationBusinessHours,
+        [],
+        '2026-06-14',
+        30,
+        {
+          calendarExceptions: [
+            {
+              date: '2026-06-14',
+              endTime: '10:00',
+              id: 1,
+              startTime: '09:00',
+              type: 'special-hours',
+            },
+          ],
+        },
+      ).map((slot) => slot.value),
+    ).toEqual(['09:00', '09:15', '09:30'])
+  })
+
+  it('does not show times that exceed special hours', () => {
+    expect(
+      getAvailableTimeOptionsByDuration(
+        durationBusinessHours,
+        [],
+        '2026-06-14',
+        45,
+        {
+          calendarExceptions: [
+            {
+              date: '2026-06-14',
+              endTime: '10:00',
+              id: 1,
+              startTime: '09:00',
+              type: 'special-hours',
+            },
+          ],
+        },
+      ).map((slot) => slot.value),
+    ).toEqual(['09:00', '09:15'])
+  })
 })

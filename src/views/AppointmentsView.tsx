@@ -5,7 +5,10 @@ import type {
   AppointmentFormValues,
   AppointmentStatus,
 } from '../types/Appointment'
-import type { BusinessHoursSettings } from '../types/BusinessHours'
+import type {
+  BusinessHoursSettings,
+  CalendarException,
+} from '../types/BusinessHours'
 import type { Patient } from '../types/Patient'
 import type { Treatment } from '../types/Treatment'
 import type { AppointmentReasonPayload } from '../utils/appointmentReasons'
@@ -13,6 +16,7 @@ import type { AppointmentReasonPayload } from '../utils/appointmentReasons'
 interface AppointmentsViewProps {
   appointments: Appointment[]
   businessHours: BusinessHoursSettings
+  calendarExceptions: CalendarException[]
   patients: Patient[]
   treatments: Treatment[]
   mode?: 'agenda' | 'new'
@@ -34,6 +38,7 @@ interface AppointmentsViewProps {
 export function AppointmentsView({
   appointments,
   businessHours,
+  calendarExceptions,
   patients,
   treatments,
   mode = 'agenda',
@@ -51,6 +56,7 @@ export function AppointmentsView({
       <AppointmentForm
         appointments={appointments}
         businessHours={businessHours}
+        calendarExceptions={calendarExceptions}
         patients={patients}
         treatments={treatments}
         onCancel={() => onNavigateToAgenda?.()}
@@ -63,6 +69,7 @@ export function AppointmentsView({
     <AppointmentsAgenda
       appointments={appointments}
       businessHours={businessHours}
+      calendarExceptions={calendarExceptions}
       onRescheduleAppointment={onRescheduleAppointment}
       patients={patients}
       treatments={treatments}

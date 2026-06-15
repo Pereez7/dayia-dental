@@ -1,14 +1,21 @@
 import { describe, expect, it } from 'vitest'
-import type { BusinessHoursSettings } from '../types/BusinessHours'
+import type {
+  BusinessHoursSettings,
+  CalendarException,
+  CalendarExceptionFormValues,
+} from '../types/BusinessHours'
 import {
   areBusinessHoursSettingsEqual,
   generateBusinessTimeSlotsForDate,
+  getEffectiveBusinessHoursForDate,
   getBusinessDayScheduleForDate,
   getWeekdayFromDate,
+  hasCalendarExceptionFormErrors,
   hasBusinessHoursErrors,
   isEndTimeAfterStartTime,
   isTimeInsideBusinessHours,
   isValidBusinessTimeFormat,
+  validateCalendarExceptionForm,
   validateAppointmentAgainstBusinessHours,
   validateBusinessDaySchedule,
   validateBusinessHours,
@@ -270,5 +277,152 @@ describe('business hours by appointment date', () => {
     expect(generateBusinessTimeSlotsForDate(weeklySettings, '2026-06-14')).toEqual(
       [],
     )
+  })
+
+  it('uses weekly hours when there is no exception', () => {
+    expect(
+      getEffectiveBusinessHoursForDate(weeklySettings, '2026-06-08', []),
+    ).toEqual({
+      day: 'monday',
+      endTime: '18:00',
+      isOpen: true,
+      startTime: '08:00',
+    })
+  })
+
+  it('closes a normally open day with a closed exception', () => {
+    const exceptions: CalendarException[] = [
+      {
+        date: '2026-06-08',
+        id: 1,
+        reason: 'holiday',
+        type: 'closed',
+      },
+    ]
+
+    expect(
+      getEffectiveBusinessHoursForDate(
+        weeklySettings,
+        '2026-06-08',
+        exceptions,
+      ),
+    ).toEqual({
+      day: 'monday',
+      endTime: '',
+      isOpen: false,
+      startTime: '',
+    })
+    expect(
+      validateAppointmentAgainstBusinessHours(
+        weeklySettings,
+        '2026-06-08',
+        '09:00',
+        exceptions,
+      ),
+    ).toBe('El consultorio está cerrado por excepción ese día.')
+  })
+
+  it('opens a normally closed day with special hours', () => {
+    const exceptions: CalendarException[] = [
+      {
+        date: '2026-06-14',
+        endTime: '13:00',
+        id: 1,
+        startTime: '09:00',
+        type: 'special-hours',
+      },
+    ]
+
+    expect(
+      generateBusinessTimeSlotsForDate(
+        weeklySettings,
+        '2026-06-14',
+        exceptions,
+      ).map((slot) => slot.value),
+    ).toEqual(['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30'])
+  })
+
+  it('replaces weekly hours with special hours', () => {
+    const exceptions: CalendarException[] = [
+      {
+        date: '2026-06-08',
+        endTime: '12:00',
+        id: 1,
+        startTime: '10:00',
+        type: 'special-hours',
+      },
+    ]
+
+    expect(
+      generateBusinessTimeSlotsForDate(
+        weeklySettings,
+        '2026-06-08',
+        exceptions,
+      ).map((slot) => slot.value),
+    ).toEqual(['10:00', '10:30', '11:00', '11:30'])
+  })
+})
+
+describe('validateCalendarExceptionForm', () => {
+  const values: CalendarExceptionFormValues = {
+    date: '2026-06-08',
+    endTime: '',
+    reason: '',
+    reasonDetail: '',
+    startTime: '',
+    type: 'closed',
+  }
+
+  it('does not allow duplicating an exception date', () => {
+    const errors = validateCalendarExceptionForm(values, [
+      {
+        date: '2026-06-08',
+        id: 1,
+        type: 'closed',
+      },
+    ])
+
+    expect(errors.date).toBe('Ya existe una excepción para esa fecha.')
+    expect(hasCalendarExceptionFormErrors(errors)).toBe(true)
+  })
+
+  it('requires start and end time for special hours', () => {
+    expect(
+      validateCalendarExceptionForm(
+        {
+          ...values,
+          type: 'special-hours',
+        },
+        [],
+      ).startTime,
+    ).toBe('Define hora de inicio y fin.')
+  })
+
+  it('requires end time to be greater than start time', () => {
+    expect(
+      validateCalendarExceptionForm(
+        {
+          ...values,
+          endTime: '09:00',
+          startTime: '13:00',
+          type: 'special-hours',
+        },
+        [],
+      ).endTime,
+    ).toBe('La hora de fin debe ser mayor que la hora de inicio.')
+  })
+
+  it('requires valid 24-hour time values', () => {
+    expect(
+      validateCalendarExceptionForm(
+        {
+          ...values,
+          endTime: '13:00',
+          startTime: '9:00',
+          type: 'special-hours',
+        },
+        [],
+      ).startTime,
+    ).toBe('Usa formato de 24 horas HH:mm.')
   })
 })

@@ -1,5 +1,8 @@
 import type { Appointment } from '../types/Appointment'
-import type { BusinessHoursSettings } from '../types/BusinessHours'
+import type {
+  BusinessHoursSettings,
+  CalendarException,
+} from '../types/BusinessHours'
 import type { Treatment } from '../types/Treatment'
 import { canRescheduleAppointment } from './appointmentActions'
 import {
@@ -20,7 +23,7 @@ import {
   createAppointmentRescheduledLog,
 } from './appointmentChangeLog'
 import {
-  getBusinessDayScheduleForDate,
+  getEffectiveBusinessHoursForDate,
   validateAppointmentAgainstBusinessHours,
 } from './businessHours'
 
@@ -69,6 +72,7 @@ export function validateAppointmentReschedule(
   businessHours: BusinessHoursSettings,
   referenceDate = new Date(),
   treatments: Treatment[] = [],
+  calendarExceptions: CalendarException[] = [],
 ) {
   const errors: AppointmentRescheduleErrors = {}
   const durationMinutes = getAppointmentDuration(appointment, treatments)
@@ -98,10 +102,14 @@ export function validateAppointmentReschedule(
           businessHours,
           values.date,
           values.time,
+          calendarExceptions,
         )
       : ''
 
-  if (businessHoursError === 'El consultorio está cerrado ese día.') {
+  if (
+    businessHoursError === 'El consultorio está cerrado ese día.' ||
+    businessHoursError === 'El consultorio está cerrado por excepción ese día.'
+  ) {
     errors.date = businessHoursError
   } else if (!values.time) {
     errors.time = 'Selecciona una hora.'
@@ -111,7 +119,11 @@ export function validateAppointmentReschedule(
     errors.time = 'No puedes seleccionar una hora que ya pasó.'
   } else if (
     !doesAppointmentFitBusinessHours(
-      getBusinessDayScheduleForDate(businessHours, values.date),
+      getEffectiveBusinessHoursForDate(
+        businessHours,
+        values.date,
+        calendarExceptions,
+      ),
       values.time,
       durationMinutes,
     )
@@ -125,6 +137,7 @@ export function validateAppointmentReschedule(
       durationMinutes,
       {
         appointmentIdToIgnore: appointment.id,
+        calendarExceptions,
         treatments,
       },
     )

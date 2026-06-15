@@ -5,7 +5,10 @@ import type {
   AppointmentFormValues,
   AppointmentStatus,
 } from '../types/Appointment'
-import type { BusinessHoursSettings } from '../types/BusinessHours'
+import type {
+  BusinessHoursSettings,
+  CalendarException,
+} from '../types/BusinessHours'
 import type { Patient } from '../types/Patient'
 import type { Treatment } from '../types/Treatment'
 import { getAppointmentStatusLabel } from '../utils/appointmentFormatters'
@@ -14,7 +17,8 @@ import {
   hasPatientAppointmentOnDate,
 } from '../utils/appointmentConflicts'
 import {
-  getBusinessDayScheduleForDate,
+  getCalendarExceptionForDate,
+  getEffectiveBusinessHoursForDate,
 } from '../utils/businessHours'
 import { filterPatients } from '../utils/patientFilters'
 import {
@@ -50,6 +54,7 @@ function getTodayDateInputValue() {
 interface AppointmentFormProps {
   appointments: Appointment[]
   businessHours: BusinessHoursSettings
+  calendarExceptions: CalendarException[]
   patients: Patient[]
   treatments: Treatment[]
   onCancel: () => void
@@ -59,6 +64,7 @@ interface AppointmentFormProps {
 export function AppointmentForm({
   appointments,
   businessHours,
+  calendarExceptions,
   patients,
   treatments,
   onCancel,
@@ -76,7 +82,11 @@ export function AppointmentForm({
     ? getTreatmentDuration(activeTreatments, formValues.treatment)
     : null
   const selectedDaySchedule = formValues.date
-    ? getBusinessDayScheduleForDate(businessHours, formValues.date)
+    ? getEffectiveBusinessHoursForDate(
+        businessHours,
+        formValues.date,
+        calendarExceptions,
+      )
     : undefined
   const selectedDateIsClosed =
     Boolean(formValues.date) && selectedDaySchedule?.isOpen === false
@@ -89,6 +99,7 @@ export function AppointmentForm({
             formValues.date,
             formValues.durationMinutes,
             {
+              calendarExceptions,
               excludePastTimes: true,
               treatments: activeTreatments,
             },
@@ -98,6 +109,7 @@ export function AppointmentForm({
       activeTreatments,
       appointments,
       businessHours,
+      calendarExceptions,
       formValues.date,
       formValues.durationMinutes,
     ],
@@ -120,15 +132,24 @@ export function AppointmentForm({
           value,
           formValues.durationMinutes,
           {
+            calendarExceptions,
             excludePastTimes: true,
             treatments: activeTreatments,
           },
         )
       : []
     const daySchedule = value
-      ? getBusinessDayScheduleForDate(businessHours, value)
+      ? getEffectiveBusinessHoursForDate(
+          businessHours,
+          value,
+          calendarExceptions,
+        )
       : undefined
     const isClosed = Boolean(value) && daySchedule?.isOpen === false
+    const calendarException = getCalendarExceptionForDate(
+      calendarExceptions,
+      value,
+    )
     const hasPatientConflict = hasPatientAppointmentOnDate(
       appointments,
       formValues.patientId,
@@ -145,7 +166,11 @@ export function AppointmentForm({
     }))
     setErrors((currentErrors) => ({
       ...currentErrors,
-      date: isClosed ? 'El consultorio está cerrado ese día.' : undefined,
+      date: isClosed
+        ? calendarException?.type === 'closed'
+          ? 'El consultorio está cerrado por excepción ese día.'
+          : 'El consultorio está cerrado ese día.'
+        : undefined,
       patient: hasPatientConflict
         ? 'Este paciente ya tiene una cita activa ese día.'
         : undefined,
@@ -172,6 +197,7 @@ export function AppointmentForm({
           formValues.date,
           durationMinutes,
           {
+            calendarExceptions,
             excludePastTimes: true,
             treatments: activeTreatments,
           },
@@ -236,6 +262,8 @@ export function AppointmentForm({
       activeTreatments,
       businessHours,
       appointments,
+      undefined,
+      calendarExceptions,
     )
     setErrors(validationErrors)
 

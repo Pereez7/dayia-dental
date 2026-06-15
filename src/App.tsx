@@ -2,6 +2,7 @@ import { useState } from 'react'
 import './App.css'
 import { appointments as initialAppointments } from './data/appointments'
 import { businessHours as initialBusinessHours } from './data/businessHours'
+import { calendarExceptions as initialCalendarExceptions } from './data/calendarExceptions'
 import { clinicalRecords as initialClinicalRecords } from './data/clinicalRecords'
 import { odontogramEntries as initialOdontogramEntries } from './data/odontogram'
 import { patients as initialPatients } from './data/patients'
@@ -13,7 +14,10 @@ import type {
   AppointmentFormValues,
   AppointmentStatus,
 } from './types/Appointment'
-import type { BusinessHoursSettings } from './types/BusinessHours'
+import type {
+  BusinessHoursSettings,
+  CalendarException,
+} from './types/BusinessHours'
 import type {
   ClinicalRecord,
   ClinicalRecordFormValues,
@@ -53,6 +57,8 @@ function App() {
     useState<Treatment[]>(initialTreatments)
   const [businessHours, setBusinessHours] =
     useState<BusinessHoursSettings>(initialBusinessHours)
+  const [calendarExceptions, setCalendarExceptions] =
+    useState<CalendarException[]>(initialCalendarExceptions)
   const [clinicalRecords, setClinicalRecords] =
     useState<ClinicalRecord[]>(initialClinicalRecords)
   const [odontogramEntries, setOdontogramEntries] =
@@ -282,6 +288,7 @@ function App() {
         <AppointmentsView
           appointments={appointments}
           businessHours={businessHours}
+          calendarExceptions={calendarExceptions}
           mode="agenda"
           patients={patients}
           treatments={treatments}
@@ -296,6 +303,7 @@ function App() {
         <AppointmentsView
           appointments={appointments}
           businessHours={businessHours}
+          calendarExceptions={calendarExceptions}
           mode="new"
           patients={patients}
           treatments={treatments}
@@ -332,6 +340,8 @@ function App() {
       return (
         <SettingsView
           businessHours={businessHours}
+          calendarExceptions={calendarExceptions}
+          onCalendarExceptionsChange={setCalendarExceptions}
           onBusinessHoursChange={setBusinessHours}
           treatments={treatments}
           onTreatmentsChange={setTreatments}

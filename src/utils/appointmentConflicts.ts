@@ -1,9 +1,12 @@
 import type { Appointment, AppointmentStatus } from '../types/Appointment'
-import type { BusinessHoursSettings } from '../types/BusinessHours'
+import type {
+  BusinessHoursSettings,
+  CalendarException,
+} from '../types/BusinessHours'
 import type { Treatment } from '../types/Treatment'
 import {
   generateBusinessTimeSlotsForDate,
-  getBusinessDayScheduleForDate,
+  getEffectiveBusinessHoursForDate,
   isValidBusinessTimeFormat,
 } from './businessHours'
 import {
@@ -18,6 +21,7 @@ interface AvailableTimeOptionsConfig {
   excludePastTimes?: boolean
   referenceDate?: Date
   treatments?: Treatment[]
+  calendarExceptions?: CalendarException[]
 }
 
 export interface AppointmentTimeRange {
@@ -195,9 +199,17 @@ export function getAvailableTimeOptionsByDuration(
       ? { appointmentIdToIgnore: configOrAppointmentId }
       : configOrAppointmentId
   const referenceDate = config?.referenceDate ?? new Date()
-  const daySchedule = getBusinessDayScheduleForDate(businessHours, date)
+  const daySchedule = getEffectiveBusinessHoursForDate(
+    businessHours,
+    date,
+    config?.calendarExceptions,
+  )
 
-  return generateBusinessTimeSlotsForDate(businessHours, date).filter(
+  return generateBusinessTimeSlotsForDate(
+    businessHours,
+    date,
+    config?.calendarExceptions,
+  ).filter(
     (slot) =>
       doesAppointmentFitBusinessHours(daySchedule, slot.value, durationMinutes) &&
       !hasAppointmentDurationConflict(

@@ -22,3 +22,36 @@ export interface BusinessHoursSettings {
 }
 
 export type BusinessHoursErrors = Partial<Record<Weekday, string>>
+
+export type CalendarExceptionType = 'closed' | 'special-hours'
+
+export type CalendarExceptionReason =
+  | ''
+  | 'holiday'
+  | 'maintenance'
+  | 'doctor-travel'
+  | 'special-campaign'
+  | 'other'
+
+export interface CalendarException {
+  id: number
+  date: string
+  type: CalendarExceptionType
+  startTime?: string
+  endTime?: string
+  reason?: CalendarExceptionReason
+  reasonDetail?: string
+}
+
+export interface CalendarExceptionFormValues {
+  date: string
+  endTime: string
+  reason: CalendarExceptionReason
+  reasonDetail: string
+  startTime: string
+  type: CalendarExceptionType
+}
+
+export type CalendarExceptionFormErrors = Partial<
+  Record<keyof CalendarExceptionFormValues, string>
+>
