@@ -156,6 +156,8 @@ Actualmente existe una primera version dentro del detalle de paciente:
   como derecha o izquierda del paciente y rangos FDI visibles.
 - Cada pieza muestra numero y estado actual.
 - Si una pieza no tiene entrada, se considera `Sano`.
+- El resumen recorre las 32 piezas adultas FDI y cuenta como sanas las piezas
+  que todavia no tienen entrada guardada.
 - Permite seleccionar una pieza y actualizar estado y observaciones.
 - El estado actual se muestra como badge con el mismo color semantico del
   estado de la pieza.
@@ -167,6 +169,9 @@ Actualmente existe una primera version dentro del detalle de paciente:
 - Muestra la fecha de ultima actualizacion con el formato global de la app,
   por ejemplo `14 jun` o `14 jun 2025` segun corresponda.
 - Usa Toast flotante para confirmar el guardado sin mover el layout.
+- Los estados canonicos del odontograma son `healthy`, `caries`, `restored`,
+  `missing`, `pending`, `watch` y `other`; las etiquetas largas y cortas viven
+  en `src/utils/odontogram.ts`.
 
 El menu lateral `Odontograma` sigue como placeholder global. Por ahora el
 odontograma permanece dentro del detalle de cada paciente porque necesita el

@@ -216,11 +216,13 @@ Implementado:
 - Grilla simple y responsive de piezas dentales.
 - Estados iniciales: sano, caries, restaurado, ausente, tratamiento pendiente,
   en observacion y otro.
+- Estado `Sano` por defecto para piezas sin entrada guardada.
 - Colores suaves por estado.
 - Resumen de cantidad de piezas por estado.
 - Seleccion de pieza y panel simple de actualizacion.
 - Estado actual mostrado como badge con color semantico.
 - Actualizacion o creacion de entrada por `patientId` y `toothNumber`.
+- Lectura por pieza sobre entradas ya filtradas del paciente.
 - Observaciones con limite de 160 caracteres, contador discreto, textarea
   estable y normalizacion antes de guardar.
 - Fecha de ultima actualizacion con `formatAppDate`, mostrando año solo cuando

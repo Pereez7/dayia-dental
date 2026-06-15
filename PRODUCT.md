@@ -105,6 +105,9 @@ de backend antes de validar la experiencia local.
   arcadas y cuadrantes FDI deben identificarse con facilidad, el estado actual
   debe verse como badge semantico y las observaciones no deben deformar el
   layout.
+- En odontograma, una pieza sin entrada explicita debe leerse como sana para
+  mantener el resumen completo de 32 piezas adultas sin obligar a guardar datos
+  vacios.
 - No tratar citas canceladas como proximas atenciones activas en el Dashboard,
   aunque sigan visibles y trazables en Agenda.
 - No generar recordatorios para citas canceladas. Recordatorios debe trabajar

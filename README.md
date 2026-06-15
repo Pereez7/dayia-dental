@@ -27,7 +27,7 @@ historiales y otros modulos clinicos.
   KPIs y expansion controlada de ultimos registros.
 - Odontograma inicial dentro del detalle de paciente, con piezas permanentes
   adultas, arcadas FDI, estados por pieza, resumen por estado, Toast de
-  guardado y observaciones limitadas.
+  guardado, observaciones limitadas y piezas sin registro tratadas como sanas.
 - Formato global de fechas con `formatAppDate`: muestra año solo cuando la
   fecha no pertenece al año actual y mantiene hora en formato 24 horas.
 - Recordatorios WhatsApp iniciado con generacion local desde citas activas,
@@ -71,7 +71,8 @@ historiales y otros modulos clinicos.
 - **Odontograma:** grilla inicial de piezas permanentes adultas dentro del
   detalle de paciente, con arcada superior e inferior, cuadrantes FDI, resumen
   por estado, edicion simple por pieza, observaciones normalizadas y fecha de
-  ultima actualizacion con formato global.
+  ultima actualizacion con formato global. Usa siete estados canonicos:
+  `healthy`, `caries`, `restored`, `missing`, `pending`, `watch` y `other`.
 - **Recordatorios WhatsApp:** generacion local de recordatorios `24h`, `2h` y
   confirmacion inmediata solo para citas activas, con selector por fecha,
   filtros por estado, mensajes sugeridos segun cita pendiente, confirmada o

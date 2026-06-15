@@ -2,6 +2,27 @@
 
 Registro breve de cambios relevantes en DayIA Dental.
 
+## 2026-06-15
+
+### Cambios realizados
+
+- Se actualizo la documentacion del proyecto para explicitar el contrato actual
+  del odontograma.
+- Se documento que el resumen recorre las 32 piezas permanentes adultas FDI y
+  cuenta como sanas las piezas sin entrada guardada.
+- Se aclararon los estados canonicos del odontograma y el uso de etiquetas
+  largas y cortas desde `src/utils/odontogram.ts`.
+- Se agrego contexto tecnico sobre la lectura por pieza: `PatientDetailView`
+  entrega entradas filtradas por paciente y los helpers buscan por
+  `toothNumber` dentro de esa coleccion.
+
+### Motivo del cambio
+
+Dejar alineada la documentacion con el comportamiento real de
+`src/utils/odontogram.ts` y `PatientOdontogram`: el odontograma inicial sigue
+siendo una grilla funcional de adulto, pero su contrato de datos ya esta
+definido para resumen, estados, validacion y actualizacion local.
+
 ## 2026-06-14
 
 ### Cambios realizados

@@ -424,6 +424,16 @@ El modulo lateral `Odontograma` sigue siendo placeholder global hasta definir
 una experiencia visual mas completa. La primera version evita superficies
 dentales, denticion temporal infantil y graficos complejos.
 
+`PatientDetailView` entrega a `PatientOdontogram` entradas ya filtradas por
+paciente. Por eso los helpers de lectura de pieza trabajan sobre la coleccion
+recibida y buscan por `toothNumber`; el filtrado por `patientId` queda en
+`getOdontogramEntriesByPatient`.
+
+El resumen del odontograma no cuenta solo entradas existentes: recorre las 32
+piezas adultas FDI generadas por `generateAdultTeethNumbers` y usa `healthy`
+como estado por defecto cuando una pieza aun no tiene entrada. Esto permite que
+el resumen siempre represente la boca adulta completa.
+
 ## Estilos reutilizables
 
 `src/App.css` contiene clases globales simples para botones:

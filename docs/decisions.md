@@ -152,6 +152,10 @@ Los estados actuales son sano, caries, restaurado, ausente, tratamiento
 pendiente, en observacion y otro. Cada estado usa colores suaves para mantener
 lectura rapida sin saturar la ficha del paciente.
 
+Las piezas sin entrada guardada se tratan como `healthy`. Esta decision evita
+crear registros vacios solo para completar la grilla y permite que el resumen
+represente siempre las 32 piezas adultas FDI.
+
 Las observaciones del odontograma se normalizan con la utilidad global
 `textNormalizers` para mantener consistencia con historial clinico y futuros
 formularios.
