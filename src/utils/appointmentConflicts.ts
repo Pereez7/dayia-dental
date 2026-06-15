@@ -4,6 +4,7 @@ import type {
   CalendarException,
 } from '../types/BusinessHours'
 import type { Treatment } from '../types/Treatment'
+import type { PatientId } from '../types/Patient'
 import {
   generateBusinessTimeSlotsForDate,
   getEffectiveBusinessHoursForDate,
@@ -147,7 +148,7 @@ export function hasAppointmentDurationConflict(
 
 export function hasPatientAppointmentOnDate(
   appointments: Appointment[],
-  patientId: number | null,
+  patientId: PatientId | null,
   date: string,
   appointmentIdToIgnore?: number,
 ) {

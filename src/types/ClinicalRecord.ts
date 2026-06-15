@@ -1,6 +1,8 @@
+import type { PatientId } from './Patient'
+
 export interface ClinicalRecord {
   id: number
-  patientId: number
+  patientId: PatientId
   date: string
   reason: string
   diagnosis: string

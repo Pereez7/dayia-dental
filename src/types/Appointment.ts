@@ -1,3 +1,5 @@
+import type { PatientId } from './Patient'
+
 export type AppointmentStatus =
   | 'confirmed'
   | 'pending'
@@ -21,7 +23,7 @@ export interface AppointmentChangeLogEntry {
 
 export interface Appointment {
   id: number
-  patientId?: number
+  patientId?: PatientId
   cancellationReason?: string
   cancellationReasonDetail?: string
   changeLog?: AppointmentChangeLogEntry[]
@@ -36,7 +38,7 @@ export interface Appointment {
 }
 
 export interface AppointmentFormValues {
-  patientId: number | null
+  patientId: PatientId | null
   patient: string
   date: string
   durationMinutes: number

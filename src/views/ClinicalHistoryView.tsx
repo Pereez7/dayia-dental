@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { ClinicalRecord } from '../types/ClinicalRecord'
-import type { Patient } from '../types/Patient'
+import type { Patient, PatientId } from '../types/Patient'
 import {
   type ClinicalHistoryPeriodFilter,
   type GlobalClinicalRecord,
@@ -16,7 +16,7 @@ import { formatClinicalHistoryDate } from '../utils/dateFormatters'
 interface ClinicalHistoryViewProps {
   clinicalRecords: ClinicalRecord[]
   patients: Patient[]
-  onViewPatient: (patientId: number) => void
+  onViewPatient: (patientId: PatientId) => void
 }
 
 const periodFilters: Array<{
@@ -36,7 +36,7 @@ export function ClinicalHistoryView({
   const [searchText, setSearchText] = useState('')
   const [periodFilter, setPeriodFilter] =
     useState<ClinicalHistoryPeriodFilter>('all')
-  const [expandedPatientIds, setExpandedPatientIds] = useState<number[]>([])
+  const [expandedPatientIds, setExpandedPatientIds] = useState<PatientId[]>([])
 
   const globalRecords = useMemo(
     () => getGlobalClinicalRecords(clinicalRecords, patients),
@@ -63,7 +63,7 @@ export function ClinicalHistoryView({
     [visibleRecords],
   )
 
-  function togglePatientRecords(patientId: number) {
+  function togglePatientRecords(patientId: PatientId) {
     setExpandedPatientIds((currentIds) =>
       currentIds.includes(patientId)
         ? currentIds.filter((currentId) => currentId !== patientId)

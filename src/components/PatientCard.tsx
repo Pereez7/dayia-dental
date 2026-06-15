@@ -8,7 +8,7 @@ const patientStatusLabels: Record<Patient['status'], string> = {
 }
 
 interface PatientCardProps {
-  onViewDetail: (patientId: number) => void
+  onViewDetail: (patientId: Patient['id']) => void
   patient: Patient
 }
 

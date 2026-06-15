@@ -4,11 +4,20 @@ import { filterPatients } from '../utils/patientFilters'
 import { PatientCard } from './PatientCard'
 
 interface PatientsListProps {
-  onViewPatient: (patientId: number) => void
+  emptyMessage?: string
+  errorMessage?: string
+  isLoading?: boolean
+  onViewPatient: (patientId: Patient['id']) => void
   patients: Patient[]
 }
 
-export function PatientsList({ onViewPatient, patients }: PatientsListProps) {
+export function PatientsList({
+  emptyMessage = 'No hay pacientes registrados todavía.',
+  errorMessage = '',
+  isLoading = false,
+  onViewPatient,
+  patients,
+}: PatientsListProps) {
   const [searchText, setSearchText] = useState('')
   const filteredPatients = filterPatients(patients, searchText)
 
@@ -31,18 +40,28 @@ export function PatientsList({ onViewPatient, patients }: PatientsListProps) {
         </label>
       </div>
 
-      <div className="patients-grid">
-        {filteredPatients.map((patient) => (
-          <PatientCard
-            key={patient.id}
-            onViewDetail={onViewPatient}
-            patient={patient}
-          />
-        ))}
-      </div>
+      {isLoading ? (
+        <p className="empty-state">Cargando pacientes del consultorio...</p>
+      ) : errorMessage ? (
+        <p className="empty-state">{errorMessage}</p>
+      ) : (
+        <div className="patients-grid">
+          {filteredPatients.map((patient) => (
+            <PatientCard
+              key={patient.id}
+              onViewDetail={onViewPatient}
+              patient={patient}
+            />
+          ))}
+        </div>
+      )}
 
-      {filteredPatients.length === 0 && (
-        <p className="empty-state">No encontramos pacientes con esa busqueda.</p>
+      {!isLoading && !errorMessage && filteredPatients.length === 0 && (
+        <p className="empty-state">
+          {searchText.trim()
+            ? 'No encontramos pacientes con esa busqueda.'
+            : emptyMessage}
+        </p>
       )}
     </section>
   )

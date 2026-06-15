@@ -4,6 +4,7 @@ import type {
   OdontogramFormValues,
   ToothStatus,
 } from '../types/Odontogram'
+import type { PatientId } from '../types/Patient'
 import { normalizeSentenceText } from './textNormalizers'
 
 export const toothStatuses: ToothStatus[] = [
@@ -94,7 +95,7 @@ export function generateAdultTeethGroups(): AdultTeethGroup[] {
 
 export function getOdontogramEntriesByPatient(
   entries: OdontogramEntry[],
-  patientId: number,
+  patientId: PatientId,
 ) {
   return entries.filter((entry) => entry.patientId === patientId)
 }

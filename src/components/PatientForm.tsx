@@ -24,24 +24,29 @@ const countryCodeOptions = [
 ]
 
 interface PatientFormProps {
-  onCreatePatient: (values: PatientFormValues) => void
+  onCreatePatient: (
+    values: PatientFormValues,
+  ) => Promise<{ error?: string; success: boolean }>
 }
 
 export function PatientForm({ onCreatePatient }: PatientFormProps) {
   const [formValues, setFormValues] =
     useState<PatientFormValues>(initialFormValues)
   const [errors, setErrors] = useState<PatientFormErrors>({})
+  const [submitError, setSubmitError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   function updateField(field: keyof PatientFormValues, value: string) {
     setFormValues((currentValues) => ({
       ...currentValues,
       [field]: value,
     }))
+    setSubmitError('')
     setSuccessMessage('')
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const validationErrors = validatePatientForm(formValues)
@@ -51,9 +56,19 @@ export function PatientForm({ onCreatePatient }: PatientFormProps) {
       return
     }
 
-    onCreatePatient(formValues)
+    setIsSubmitting(true)
+    const result = await onCreatePatient(formValues)
+    setIsSubmitting(false)
+
+    if (!result.success) {
+      setSubmitError(result.error ?? 'No pudimos registrar el paciente.')
+      setSuccessMessage('')
+      return
+    }
+
     setFormValues(initialFormValues)
     setErrors({})
+    setSubmitError('')
     setSuccessMessage('Paciente registrado correctamente.')
   }
 
@@ -71,6 +86,7 @@ export function PatientForm({ onCreatePatient }: PatientFormProps) {
             type="text"
             placeholder="Ej. Charles"
             value={formValues.firstName}
+            disabled={isSubmitting}
             onChange={(event) => updateField('firstName', event.target.value)}
           />
           {errors.firstName && <small>{errors.firstName}</small>}
@@ -82,6 +98,7 @@ export function PatientForm({ onCreatePatient }: PatientFormProps) {
             type="text"
             placeholder="Ej. Pérez"
             value={formValues.lastName}
+            disabled={isSubmitting}
             onChange={(event) => updateField('lastName', event.target.value)}
           />
           {errors.lastName && <small>{errors.lastName}</small>}
@@ -93,6 +110,7 @@ export function PatientForm({ onCreatePatient }: PatientFormProps) {
             <select
               aria-label="Prefijo de pais"
               value={formValues.countryCode}
+              disabled={isSubmitting}
               onChange={(event) =>
                 updateField('countryCode', event.target.value)
               }
@@ -110,6 +128,7 @@ export function PatientForm({ onCreatePatient }: PatientFormProps) {
               aria-label="Numero local"
               placeholder="70000000"
               value={formValues.localPhone}
+              disabled={isSubmitting}
               onChange={(event) =>
                 updateField('localPhone', event.target.value)
               }
@@ -125,6 +144,7 @@ export function PatientForm({ onCreatePatient }: PatientFormProps) {
             type="email"
             placeholder="correo@ejemplo.com"
             value={formValues.email}
+            disabled={isSubmitting}
             onChange={(event) => updateField('email', event.target.value)}
           />
           {errors.email && <small>{errors.email}</small>}
@@ -135,13 +155,18 @@ export function PatientForm({ onCreatePatient }: PatientFormProps) {
           <input
             type="date"
             value={formValues.birthDate}
+            disabled={isSubmitting}
             onChange={(event) => updateField('birthDate', event.target.value)}
           />
           {errors.birthDate && <small>{errors.birthDate}</small>}
         </label>
 
-        <button className="primary-action" type="submit">
-          Registrar paciente
+        {submitError && (
+          <p className="field-message field-message--error">{submitError}</p>
+        )}
+
+        <button className="primary-action" disabled={isSubmitting} type="submit">
+          {isSubmitting ? 'Registrando...' : 'Registrar paciente'}
         </button>
       </form>
 

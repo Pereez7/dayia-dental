@@ -3,14 +3,22 @@ import { PatientsList } from '../components/PatientsList'
 import type { Patient, PatientFormValues } from '../types/Patient'
 
 interface PatientsViewProps {
+  emptyMessage?: string
+  errorMessage?: string
   initialMode?: 'list' | 'new'
-  onViewPatient: (patientId: number) => void
+  isLoading?: boolean
+  onViewPatient: (patientId: Patient['id']) => void
   patients: Patient[]
-  onCreatePatient: (values: PatientFormValues) => void
+  onCreatePatient: (
+    values: PatientFormValues,
+  ) => Promise<{ error?: string; success: boolean }>
 }
 
 export function PatientsView({
+  emptyMessage,
+  errorMessage,
   initialMode = 'list',
+  isLoading,
   onViewPatient,
   patients,
   onCreatePatient,
@@ -21,7 +29,13 @@ export function PatientsView({
 
   return (
     <section className="patients-view">
-      <PatientsList onViewPatient={onViewPatient} patients={patients} />
+      <PatientsList
+        emptyMessage={emptyMessage}
+        errorMessage={errorMessage}
+        isLoading={isLoading}
+        onViewPatient={onViewPatient}
+        patients={patients}
+      />
       <PatientForm onCreatePatient={onCreatePatient} />
     </section>
   )

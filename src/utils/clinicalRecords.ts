@@ -3,7 +3,7 @@ import type {
   ClinicalRecordFormErrors,
   ClinicalRecordFormValues,
 } from '../types/ClinicalRecord'
-import type { Patient } from '../types/Patient'
+import type { Patient, PatientId } from '../types/Patient'
 import { formatCompactDateWithYear } from './dateFormatters'
 import { compactText, normalizeSentenceText } from './textNormalizers'
 
@@ -11,7 +11,7 @@ export type ClinicalHistoryPeriodFilter = 'all' | 'this-month' | 'last-30-days'
 
 export interface GlobalClinicalRecord {
   id: number
-  patientId: number
+  patientId: PatientId
   patientName: string
   patientPhone: string
   date: string
@@ -23,7 +23,7 @@ export interface GlobalClinicalRecord {
 }
 
 export interface ClinicalRecordPatientGroup {
-  patientId: number
+  patientId: PatientId
   patientName: string
   patientPhone: string
   hasPatient: boolean
@@ -42,7 +42,7 @@ export function sortClinicalRecordsByDateDesc(records: ClinicalRecord[]) {
 
 export function getClinicalRecordsByPatient(
   records: ClinicalRecord[],
-  patientId: number,
+  patientId: PatientId,
 ) {
   return sortClinicalRecordsByDateDesc(
     records.filter((record) => record.patientId === patientId),
@@ -110,7 +110,7 @@ export function filterGlobalClinicalRecords(
 export function groupClinicalRecordsByPatient(
   records: GlobalClinicalRecord[],
 ): ClinicalRecordPatientGroup[] {
-  const groupsByPatientId = new Map<number, GlobalClinicalRecord[]>()
+  const groupsByPatientId = new Map<PatientId, GlobalClinicalRecord[]>()
 
   records.forEach((record) => {
     const patientRecords = groupsByPatientId.get(record.patientId) ?? []

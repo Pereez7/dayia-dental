@@ -1,14 +1,19 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import './App.css'
+import { useAuth } from './auth/AuthContext'
 import { appointments as initialAppointments } from './data/appointments'
 import { businessHours as initialBusinessHours } from './data/businessHours'
 import { calendarExceptions as initialCalendarExceptions } from './data/calendarExceptions'
 import { clinicalRecords as initialClinicalRecords } from './data/clinicalRecords'
 import { odontogramEntries as initialOdontogramEntries } from './data/odontogram'
-import { patients as initialPatients } from './data/patients'
 import { treatments as initialTreatments } from './data/treatments'
 import { AppLayout } from './layout/AppLayout'
 import type { AppSection } from './layout/navigation'
+import {
+  createPatient,
+  getPatientsByClinic,
+  mapPatientFormValuesToPatientInput,
+} from './services/patientsService'
 import type {
   Appointment,
   AppointmentFormValues,
@@ -26,7 +31,7 @@ import type {
   OdontogramEntry,
   OdontogramFormValues,
 } from './types/Odontogram'
-import type { Patient, PatientFormValues } from './types/Patient'
+import type { Patient, PatientFormValues, PatientId } from './types/Patient'
 import type { Treatment } from './types/Treatment'
 import { upsertOdontogramEntry } from './utils/odontogram'
 import { canRescheduleAppointment } from './utils/appointmentActions'
@@ -49,10 +54,13 @@ import { SettingsView } from './views/SettingsView'
 import { WhatsAppRemindersView } from './views/WhatsAppRemindersView'
 
 function App() {
+  const { currentClinic } = useAuth()
   const [activeSection, setActiveSection] = useState<AppSection>('dashboard')
   const [appointments, setAppointments] =
     useState<Appointment[]>(initialAppointments)
-  const [patients, setPatients] = useState<Patient[]>(initialPatients)
+  const [patients, setPatients] = useState<Patient[]>([])
+  const [isPatientsLoading, setIsPatientsLoading] = useState(true)
+  const [patientsError, setPatientsError] = useState('')
   const [treatments, setTreatments] =
     useState<Treatment[]>(initialTreatments)
   const [businessHours, setBusinessHours] =
@@ -63,22 +71,72 @@ function App() {
     useState<ClinicalRecord[]>(initialClinicalRecords)
   const [odontogramEntries, setOdontogramEntries] =
     useState<OdontogramEntry[]>(initialOdontogramEntries)
-  const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null)
+  const [selectedPatientId, setSelectedPatientId] = useState<PatientId | null>(
+    null,
+  )
 
-  function handleCreatePatient(values: PatientFormValues) {
-    setPatients((currentPatients) => [
-      {
-        id: getNextNumericId(currentPatients),
-        fullName: `${values.firstName.trim()} ${values.lastName.trim()}`,
-        phone: `${values.countryCode}${values.localPhone.trim()}`,
-        email: values.email.trim() || undefined,
-        birthDate: values.birthDate || undefined,
-        lastVisit: 'Sin registro',
-        nextAppointment: null,
-        status: 'active',
-      },
-      ...currentPatients,
-    ])
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadPatients() {
+      if (!currentClinic?.id) {
+        setPatients([])
+        setIsPatientsLoading(false)
+        setPatientsError('No hay consultorio activo para cargar pacientes.')
+        return
+      }
+
+      setIsPatientsLoading(true)
+      setPatientsError('')
+
+      const { data, error } = await getPatientsByClinic(currentClinic.id)
+
+      if (!isMounted) {
+        return
+      }
+
+      if (error) {
+        setPatients([])
+        setPatientsError(error)
+        setIsPatientsLoading(false)
+        return
+      }
+
+      setPatients(data ?? [])
+      setIsPatientsLoading(false)
+    }
+
+    loadPatients()
+
+    return () => {
+      isMounted = false
+    }
+  }, [currentClinic?.id])
+
+  async function handleCreatePatient(values: PatientFormValues) {
+    if (!currentClinic?.id) {
+      return {
+        error: 'No hay consultorio activo para registrar pacientes.',
+        success: false,
+      }
+    }
+
+    const { data, error } = await createPatient(
+      currentClinic.id,
+      mapPatientFormValuesToPatientInput(values),
+    )
+
+    if (error || !data) {
+      return {
+        error: error ?? 'No pudimos registrar el paciente.',
+        success: false,
+      }
+    }
+
+    setPatients((currentPatients) => [data, ...currentPatients])
+    setPatientsError('')
+
+    return { success: true }
   }
 
   function handleCreateAppointment(values: AppointmentFormValues) {
@@ -177,13 +235,13 @@ function App() {
     )
   }
 
-  function handleViewPatient(patientId: number) {
+  function handleViewPatient(patientId: PatientId) {
     setSelectedPatientId(patientId)
     setActiveSection('patient-detail')
   }
 
   function handleCreateClinicalRecord(
-    patientId: number,
+    patientId: PatientId,
     values: ClinicalRecordFormValues,
   ) {
     setClinicalRecords((currentRecords) => [
@@ -201,7 +259,7 @@ function App() {
   }
 
   function handleSaveOdontogramTooth(
-    patientId: number,
+    patientId: PatientId,
     toothNumber: number,
     values: OdontogramFormValues,
   ) {
@@ -231,7 +289,10 @@ function App() {
     if (activeSection === 'patients-list') {
       return (
         <PatientsView
+          emptyMessage="No hay pacientes registrados en este consultorio."
+          errorMessage={patientsError}
           initialMode="list"
+          isLoading={isPatientsLoading}
           onViewPatient={handleViewPatient}
           patients={patients}
           onCreatePatient={handleCreatePatient}
@@ -242,7 +303,10 @@ function App() {
     if (activeSection === 'patient-new') {
       return (
         <PatientsView
+          emptyMessage="No hay pacientes registrados en este consultorio."
+          errorMessage={patientsError}
           initialMode="new"
+          isLoading={isPatientsLoading}
           onViewPatient={handleViewPatient}
           patients={patients}
           onCreatePatient={handleCreatePatient}
@@ -258,7 +322,10 @@ function App() {
       if (!selectedPatient) {
         return (
           <PatientsView
+            emptyMessage="No hay pacientes registrados en este consultorio."
+            errorMessage={patientsError}
             initialMode="list"
+            isLoading={isPatientsLoading}
             onViewPatient={handleViewPatient}
             patients={patients}
             onCreatePatient={handleCreatePatient}

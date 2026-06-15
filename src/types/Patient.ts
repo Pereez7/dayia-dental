@@ -1,5 +1,7 @@
+export type PatientId = number | string
+
 export interface Patient {
-  id: number
+  id: PatientId
   fullName: string
   phone: string
   email?: string

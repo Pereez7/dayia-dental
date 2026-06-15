@@ -1,3 +1,5 @@
+import type { PatientId } from './Patient'
+
 export type ToothStatus =
   | 'healthy'
   | 'caries'
@@ -9,7 +11,7 @@ export type ToothStatus =
 
 export interface OdontogramEntry {
   id: number
-  patientId: number
+  patientId: PatientId
   toothNumber: number
   status: ToothStatus
   notes: string
