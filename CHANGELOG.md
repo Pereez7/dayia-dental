@@ -6,6 +6,15 @@ Registro breve de cambios relevantes en DayIA Dental.
 
 ### Cambios realizados
 
+- Se reorganizaron las cards de Agenda para separar rango horario, datos del
+  paciente, estado, tratamiento, metadatos y acciones.
+- El rango horario, por ejemplo `13:00 - 13:30`, ahora tiene un bloque propio
+  para evitar que se junte visualmente con nombre, telefono o tratamiento.
+- En mobile, la card se apila para mantener paciente/estado, rango horario,
+  tratamiento y acciones legibles sin desbordes.
+- Se corrigio la alerta duplicada al intentar reprogramar sin cambiar fecha u
+  hora: el error queda inline dentro del panel y no se muestra tambien como
+  Toast.
 - Se actualizo la documentacion del proyecto para explicitar el contrato actual
   del odontograma.
 - Se documento que el resumen recorre las 32 piezas permanentes adultas FDI y

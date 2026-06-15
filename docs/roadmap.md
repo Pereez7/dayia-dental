@@ -85,6 +85,8 @@ Implementado:
 - Pulido visual de Agenda diaria alineado con Recordatorios y Configuracion:
   KPIs compactos, selector de dias, cards, botones, estado vacio y panel de
   reprogramacion.
+- Cards de agenda separadas en bloques de rango horario, datos del paciente,
+  estado y acciones, con lectura completa de rangos como `13:00 - 13:30`.
 - Confirmacion local de citas pendientes.
 - Cancelacion local de citas pendientes, confirmadas o reprogramadas, sin
   eliminacion fisica y con confirmacion previa.
@@ -95,6 +97,8 @@ Implementado:
   `Otro`.
 - Validacion de reprogramacion real: no permite guardar si la fecha y la hora
   nuevas son iguales a las actuales.
+- Error de reprogramacion mostrado una sola vez dentro del panel, sin Toast
+  duplicado.
 - Detalle `Otro` limitado a 120 caracteres con contador visual y textarea
   estable.
 - Cierre del panel de reprogramacion al cambiar de dia, al repetir la accion

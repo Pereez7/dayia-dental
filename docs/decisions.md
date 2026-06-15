@@ -280,6 +280,11 @@ experiencia cercana a Recordatorios. Los KPIs se calculan por dia seleccionado
 para que recepcion pueda entender rapidamente carga, pendientes, confirmadas,
 reprogramadas y canceladas.
 
+Las cards de agenda separan rango horario, datos del paciente, estado y
+acciones en bloques independientes. La decision evita que rangos con duracion,
+como `13:00 - 13:30`, compitan con nombre, telefono o tratamiento, y mantiene
+la lectura profesional tanto en desktop como en mobile.
+
 El calendario mensual, la reprogramacion visual y acciones mas avanzadas por
 estado quedan pendientes hasta que la agenda diaria este estable.
 
@@ -315,6 +320,10 @@ largos deformen la agenda.
 
 Los errores de motivo se muestran inline porque son errores de campo. El Toast
 se reserva para confirmar que la accion se completo correctamente.
+
+Los errores de reprogramacion tambien se muestran inline dentro del panel. Si
+la fecha y la hora no cambian, no se duplica el mensaje en Toast porque el error
+pertenece al formulario y debe aparecer una sola vez.
 
 Por ahora, si una cita se reprograma mas de una vez, se sobrescribe el ultimo
 motivo. El historial acumulado queda pendiente para una etapa posterior con

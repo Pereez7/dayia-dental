@@ -237,9 +237,10 @@ Participan:
   horizontal de dias, resumen del dia, lista de citas del dia seleccionado,
   acciones locales, Toast, motivo temporal de cancelacion y estado temporal de
   reprogramacion.
-- `src/components/AppointmentAgendaCard.tsx`: muestra cada cita y el panel
-  inline de reprogramacion cuando corresponde, incluyendo motivo de
-  reprogramacion.
+- `src/components/AppointmentAgendaCard.tsx`: muestra cada cita con bloques
+  separados para rango horario, paciente, estado, tratamiento, metadatos y
+  acciones; tambien muestra el panel inline de reprogramacion cuando
+  corresponde, incluyendo motivo de reprogramacion.
 - `src/components/ConfirmDialog.tsx`: muestra confirmaciones reutilizables para
   acciones sensibles, acepta contenido adicional opcional, tiene variantes
   visuales, Escape para cancelar y atributos basicos de accesibilidad.
@@ -301,6 +302,12 @@ Mientras el panel esta abierto, `AppointmentAgendaCard` oculta las acciones
 externas de la cita y deja visibles solo `Guardar` y `Cancelar` del panel. Esto
 evita mezclar cancelar la edicion con cancelar la cita completa.
 
+La card de agenda separa visualmente el rango horario de los datos del paciente
+y de las acciones. En desktop reserva una columna propia para rangos como
+`13:00 - 13:30`, una columna flexible para paciente/tratamiento y una columna a
+la derecha para estado y acciones. En mobile se apila para conservar lectura y
+evitar desbordes.
+
 Al reprogramar se solicita un motivo obligatorio. Si el motivo es `Otro`, se
 requiere un detalle breve, se normaliza y se guarda en la cita. Por ahora una
 nueva reprogramacion sobrescribe el ultimo motivo y no crea historial acumulado
@@ -308,7 +315,9 @@ de cambios.
 
 La reprogramacion solo se guarda si cambia la fecha o la hora respecto a la cita
 actual. Si ambos valores son iguales, `validateAppointmentReschedule` devuelve
-un error inline de accion y no se cambia el estado a `rescheduled`.
+un error inline de accion y no se cambia el estado a `rescheduled`. Ese error
+se queda dentro del panel de reprogramacion y no dispara Toast para evitar
+mensajes duplicados.
 
 El detalle `Otro` de motivos se limita a 120 caracteres, muestra contador visual
 y usa un textarea de altura fija para no afectar la composicion de la agenda. En

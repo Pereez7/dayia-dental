@@ -195,6 +195,9 @@ Actualmente existe una primera version funcional en frontend:
 - La Agenda tiene pulido visual para KPIs, selector de dias, cards, botones,
   estado vacio y panel de reprogramacion, alineado con Recordatorios y
   Configuracion.
+- Las cards separan rango horario, datos del paciente, estado y acciones en
+  bloques claros para que rangos como `13:00 - 13:30` no se junten con el
+  nombre, telefono o tratamiento.
 - La agenda permite confirmar citas pendientes.
 - La agenda permite cancelar citas pendientes, confirmadas o reprogramadas sin
   eliminarlas, despues de pedir confirmacion con `ConfirmDialog`.
@@ -208,6 +211,8 @@ Actualmente existe una primera version funcional en frontend:
   `Otro`, un detalle breve obligatorio.
 - Reprogramar exige cambiar la fecha o la hora; no se permite guardar una
   reprogramacion si ambos valores son iguales a los de la cita actual.
+- Los errores de reprogramacion se muestran inline dentro del panel y no se
+  duplican como Toast.
 - El detalle `Otro` de cancelacion o reprogramacion tiene limite de 120
   caracteres, contador visual y textarea fijo para no romper el layout.
 - Mientras el panel de reprogramacion esta abierto, la card oculta acciones
