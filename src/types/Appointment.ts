@@ -26,6 +26,7 @@ export interface Appointment {
   cancellationReasonDetail?: string
   changeLog?: AppointmentChangeLogEntry[]
   date: string
+  durationMinutes?: number
   time: string
   patient: string
   rescheduleReason?: string
@@ -38,6 +39,7 @@ export interface AppointmentFormValues {
   patientId: number | null
   patient: string
   date: string
+  durationMinutes: number
   time: string
   treatment: string
   status: AppointmentStatus

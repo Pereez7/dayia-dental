@@ -1,6 +1,8 @@
 import type { Treatment } from '../types/Treatment'
 
 const treatmentNamePattern = /^[\p{L}\p{N}\s/()-]+$/u
+export const allowedTreatmentDurations = [15, 30, 45, 60, 90, 120]
+export const defaultTreatmentDurationMinutes = 30
 
 export function compactTreatmentName(name: string) {
   return name.trim().replace(/\s+/g, ' ')
@@ -27,6 +29,30 @@ export function normalizeTreatmentNameForComparison(name: string) {
 
 export function getActiveTreatments(treatments: Treatment[]) {
   return treatments.filter((treatment) => treatment.isActive)
+}
+
+export function isValidTreatmentDuration(durationMinutes: number) {
+  return allowedTreatmentDurations.includes(durationMinutes)
+}
+
+export function getTreatmentDuration(
+  treatments: Treatment[],
+  treatmentName: string,
+  fallbackDuration = defaultTreatmentDurationMinutes,
+) {
+  const treatment = treatments.find(
+    (currentTreatment) => currentTreatment.name === treatmentName,
+  )
+
+  if (
+    treatment &&
+    Number.isFinite(treatment.durationMinutes) &&
+    isValidTreatmentDuration(treatment.durationMinutes)
+  ) {
+    return treatment.durationMinutes
+  }
+
+  return fallbackDuration
 }
 
 export function hasTreatmentName(
@@ -68,6 +94,22 @@ export function validateTreatmentName(
 
   if (hasTreatmentName(treatments, compactName, ignoredTreatmentId)) {
     return 'Ya existe un tratamiento con ese nombre.'
+  }
+
+  return ''
+}
+
+export function validateTreatmentDuration(durationMinutes: number) {
+  if (!Number.isFinite(durationMinutes)) {
+    return 'Selecciona una duración.'
+  }
+
+  if (durationMinutes <= 0) {
+    return 'La duración debe ser mayor a 0.'
+  }
+
+  if (!isValidTreatmentDuration(durationMinutes)) {
+    return 'Selecciona una duración válida.'
   }
 
   return ''

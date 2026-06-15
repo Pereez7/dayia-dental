@@ -4,6 +4,7 @@ export const appointments: Appointment[] = [
   {
     id: 1,
     date: '2026-06-07',
+    durationMinutes: 45,
     time: '09:00',
     patient: 'Mariana Rojas',
     treatment: 'Limpieza dental',
@@ -12,6 +13,7 @@ export const appointments: Appointment[] = [
   {
     id: 2,
     date: '2026-06-07',
+    durationMinutes: 30,
     time: '10:30',
     patient: 'Carlos Medina',
     treatment: 'Evaluacion inicial',
@@ -20,6 +22,7 @@ export const appointments: Appointment[] = [
   {
     id: 3,
     date: '2026-06-08',
+    durationMinutes: 30,
     time: '12:00',
     patient: 'Ana Salazar',
     treatment: 'Control de ortodoncia',
@@ -28,6 +31,7 @@ export const appointments: Appointment[] = [
   {
     id: 4,
     date: '2026-06-08',
+    durationMinutes: 30,
     time: '08:30',
     patient: 'Lucia Vargas',
     treatment: 'Revision post tratamiento',
@@ -36,6 +40,7 @@ export const appointments: Appointment[] = [
   {
     id: 5,
     date: '2026-06-09',
+    durationMinutes: 45,
     time: '15:00',
     patient: 'Jorge Quiroga',
     treatment: 'Extraccion simple',

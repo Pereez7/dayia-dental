@@ -1,18 +1,21 @@
 import { describe, expect, it } from 'vitest'
 import type { Treatment } from '../types/Treatment'
 import {
+  defaultTreatmentDurationMinutes,
   filterTreatmentsBySearch,
   formatTreatmentName,
   getActiveTreatments,
+  getTreatmentDuration,
   hasTreatmentName,
   normalizeTreatmentNameForComparison,
+  validateTreatmentDuration,
   validateTreatmentName,
 } from './treatmentUtils'
 
 const treatments: Treatment[] = [
-  { id: 1, name: 'Limpieza dental', isActive: true },
-  { id: 2, name: 'Evaluación inicial', isActive: false },
-  { id: 3, name: 'Restauración / resina', isActive: true },
+  { id: 1, name: 'Limpieza dental', durationMinutes: 45, isActive: true },
+  { id: 2, name: 'Evaluación inicial', durationMinutes: 30, isActive: false },
+  { id: 3, name: 'Restauración / resina', durationMinutes: 60, isActive: true },
 ]
 
 describe('treatmentUtils', () => {
@@ -36,6 +39,16 @@ describe('treatmentUtils', () => {
       treatments[0],
       treatments[2],
     ])
+  })
+
+  it('gets the duration for a selected treatment', () => {
+    expect(getTreatmentDuration(treatments, 'Limpieza dental')).toBe(45)
+  })
+
+  it('uses the default duration when a treatment has no valid duration', () => {
+    expect(getTreatmentDuration(treatments, 'Tratamiento antiguo')).toBe(
+      defaultTreatmentDurationMinutes,
+    )
   })
 
   it('detects duplicated names ignoring case accents and spaces', () => {
@@ -79,6 +92,14 @@ describe('treatmentUtils', () => {
 
   it('returns no error for a new treatment name', () => {
     expect(validateTreatmentName(treatments, 'Ortodoncia')).toBe('')
+  })
+
+  it('validates treatment duration options', () => {
+    expect(validateTreatmentDuration(30)).toBe('')
+    expect(validateTreatmentDuration(0)).toBe('La duración debe ser mayor a 0.')
+    expect(validateTreatmentDuration(20)).toBe(
+      'Selecciona una duración válida.',
+    )
   })
 
   it('filters treatments by search ignoring accents and case', () => {

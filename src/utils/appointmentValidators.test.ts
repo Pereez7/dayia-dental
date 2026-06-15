@@ -8,8 +8,9 @@ import {
 } from './appointmentValidators'
 
 const activeTreatments: Treatment[] = [
-  { id: 1, name: 'Limpieza dental', isActive: true },
-  { id: 2, name: 'Endodoncia', isActive: false },
+  { id: 1, name: 'Limpieza dental', durationMinutes: 45, isActive: true },
+  { id: 2, name: 'Endodoncia', durationMinutes: 90, isActive: false },
+  { id: 3, name: 'Evaluación inicial', durationMinutes: 30, isActive: true },
 ]
 
 const existingAppointments: Appointment[] = [
@@ -52,6 +53,7 @@ const validAppointmentFormValues: AppointmentFormValues = {
   patientId: 1,
   patient: 'Mariana Rojas',
   date: '2026-06-12',
+  durationMinutes: 45,
   time: '09:30',
   treatment: 'Limpieza dental',
   status: 'pending',
@@ -191,7 +193,30 @@ describe('validateAppointmentForm', () => {
     const errors = validate({
       ...validAppointmentFormValues,
       date: '2026-06-13',
-      time: '11:30',
+      time: '11:00',
+    })
+
+    expect(errors.time).toBeUndefined()
+  })
+
+  it('rejects appointments that end after clinic closing time', () => {
+    const errors = validate({
+      ...validAppointmentFormValues,
+      durationMinutes: 45,
+      time: '17:30',
+    })
+
+    expect(errors.time).toBe(
+      'La duración del tratamiento excede el horario de atención.',
+    )
+  })
+
+  it('allows appointments that end exactly at closing time', () => {
+    const errors = validate({
+      ...validAppointmentFormValues,
+      durationMinutes: 30,
+      time: '17:30',
+      treatment: 'Evaluación inicial',
     })
 
     expect(errors.time).toBeUndefined()
@@ -279,13 +304,30 @@ describe('validateAppointmentForm', () => {
     const errors = validateAppointmentForm(
       validAppointmentFormValues,
       new Date('2026-06-08T10:00:00'),
-      [{ id: 1, name: 'Limpieza dental', isActive: false }],
+      [{ id: 1, name: 'Limpieza dental', durationMinutes: 45, isActive: false }],
       businessHours,
       existingAppointments,
     )
 
     expect(errors.treatment).toBe(
       'Activa al menos un tratamiento en Configuracion.',
+    )
+  })
+
+  it('requires a valid treatment duration', () => {
+    const errors = validateAppointmentForm(
+      {
+        ...validAppointmentFormValues,
+        durationMinutes: 20,
+      },
+      new Date('2026-06-08T10:00:00'),
+      [{ id: 1, name: 'Limpieza dental', durationMinutes: 20, isActive: true }],
+      businessHours,
+      existingAppointments,
+    )
+
+    expect(errors.treatment).toBe(
+      'El tratamiento seleccionado no tiene una duración válida.',
     )
   })
 })

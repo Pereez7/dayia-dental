@@ -34,6 +34,7 @@ import {
 } from './utils/appointmentChangeLog'
 import type { AppointmentReasonPayload } from './utils/appointmentReasons'
 import { rescheduleAppointment } from './utils/appointmentReschedule'
+import { getTreatmentDuration } from './utils/treatmentUtils'
 import { AppointmentsView } from './views/AppointmentsView'
 import { ClinicalHistoryView } from './views/ClinicalHistoryView'
 import { DashboardView } from './views/DashboardView'
@@ -80,6 +81,7 @@ function App() {
         id: getNextNumericId(currentAppointments),
         patientId: values.patientId ?? undefined,
         date: values.date,
+        durationMinutes: getTreatmentDuration(treatments, values.treatment),
         time: values.time,
         patient: values.patient,
         treatment: values.treatment,

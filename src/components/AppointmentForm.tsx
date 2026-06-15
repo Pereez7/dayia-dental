@@ -17,7 +17,11 @@ import {
   getBusinessDayScheduleForDate,
 } from '../utils/businessHours'
 import { filterPatients } from '../utils/patientFilters'
-import { getActiveTreatments } from '../utils/treatmentUtils'
+import {
+  defaultTreatmentDurationMinutes,
+  getActiveTreatments,
+  getTreatmentDuration,
+} from '../utils/treatmentUtils'
 import {
   appointmentInitialStatuses,
   hasAppointmentFormErrors,
@@ -28,6 +32,7 @@ const initialFormValues: AppointmentFormValues = {
   patientId: null,
   patient: '',
   date: '',
+  durationMinutes: defaultTreatmentDurationMinutes,
   time: '',
   treatment: '',
   status: 'pending',
@@ -67,6 +72,9 @@ export function AppointmentForm({
   const minAppointmentDate = getTodayDateInputValue()
   const filteredPatients = filterPatients(patients, patientSearch).slice(0, 5)
   const activeTreatments = getActiveTreatments(treatments)
+  const selectedTreatmentDuration = formValues.treatment
+    ? getTreatmentDuration(activeTreatments, formValues.treatment)
+    : null
   const selectedDaySchedule = formValues.date
     ? getBusinessDayScheduleForDate(businessHours, formValues.date)
     : undefined
@@ -130,6 +138,21 @@ export function AppointmentForm({
     setErrors((currentErrors) => ({
       ...currentErrors,
       time: undefined,
+    }))
+  }
+
+  function updateTreatment(value: string) {
+    setFormValues((currentValues) => ({
+      ...currentValues,
+      durationMinutes: value
+        ? getTreatmentDuration(activeTreatments, value)
+        : defaultTreatmentDurationMinutes,
+      treatment: value,
+    }))
+    setErrors((currentErrors) => ({
+      ...currentErrors,
+      time: undefined,
+      treatment: undefined,
     }))
   }
 
@@ -344,7 +367,7 @@ export function AppointmentForm({
           <select
             id="appointment-treatment"
             value={formValues.treatment}
-            onChange={(event) => updateField('treatment', event.target.value)}
+            onChange={(event) => updateTreatment(event.target.value)}
           >
             <option value="">Seleccionar tratamiento</option>
             {activeTreatments.map((treatment) => (
@@ -361,6 +384,10 @@ export function AppointmentForm({
             ) : errors.treatment ? (
               <p className="field-message field-message--error">
                 {errors.treatment}
+              </p>
+            ) : selectedTreatmentDuration ? (
+              <p className="field-message field-message--help">
+                Duración estimada: {selectedTreatmentDuration} min
               </p>
             ) : null}
           </div>

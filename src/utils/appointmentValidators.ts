@@ -11,9 +11,16 @@ import {
   hasPatientAppointmentOnDate,
   isPastTimeForDate,
 } from './appointmentConflicts'
+import { doesAppointmentFitBusinessHours } from './appointmentDuration'
 import { appointmentTimeSlots } from './appointmentTimeSlots'
-import { validateAppointmentAgainstBusinessHours } from './businessHours'
-import { getActiveTreatments } from './treatmentUtils'
+import {
+  getBusinessDayScheduleForDate,
+  validateAppointmentAgainstBusinessHours,
+} from './businessHours'
+import {
+  getActiveTreatments,
+  isValidTreatmentDuration,
+} from './treatmentUtils'
 
 export const appointmentInitialStatuses: AppointmentStatus[] = [
   'pending',
@@ -84,15 +91,36 @@ export function validateAppointmentForm(
   }
 
   const activeTreatments = getActiveTreatments(treatments)
+  const selectedTreatment = activeTreatments.find(
+    (treatment) => treatment.name === values.treatment,
+  )
 
   if (!values.treatment.trim()) {
     errors.treatment = 'Ingresa el motivo o tratamiento.'
   } else if (activeTreatments.length === 0) {
     errors.treatment = 'Activa al menos un tratamiento en Configuracion.'
-  } else if (
-    !activeTreatments.some((treatment) => treatment.name === values.treatment)
-  ) {
+  } else if (!selectedTreatment) {
     errors.treatment = 'Selecciona un tratamiento valido.'
+  } else if (!isValidTreatmentDuration(selectedTreatment.durationMinutes)) {
+    errors.treatment = 'El tratamiento seleccionado no tiene una duración válida.'
+  } else if (
+    values.durationMinutes !== selectedTreatment.durationMinutes ||
+    !isValidTreatmentDuration(values.durationMinutes)
+  ) {
+    errors.treatment = 'El tratamiento seleccionado no tiene una duración válida.'
+  } else if (
+    businessHours &&
+    values.date &&
+    values.time &&
+    !errors.date &&
+    !errors.time &&
+    !doesAppointmentFitBusinessHours(
+      getBusinessDayScheduleForDate(businessHours, values.date),
+      values.time,
+      values.durationMinutes,
+    )
+  ) {
+    errors.time = 'La duración del tratamiento excede el horario de atención.'
   }
 
   if (!appointmentInitialStatuses.includes(values.status)) {

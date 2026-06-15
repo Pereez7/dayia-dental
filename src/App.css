@@ -727,8 +727,10 @@
 .appointment-form select,
 .patient-search input,
 .treatment-form input,
+.treatment-form select,
 .treatment-search input,
 .treatment-edit-field input,
+.treatment-edit-field select,
 .business-interval-field select,
 .business-time-fields input,
 .clinical-form-grid input,
@@ -749,8 +751,10 @@
 .appointment-form select:hover,
 .patient-search input:hover,
 .treatment-form input:hover,
+.treatment-form select:hover,
 .treatment-search input:hover,
 .treatment-edit-field input:hover,
+.treatment-edit-field select:hover,
 .clinical-form-grid input:hover,
 .clinical-form-grid textarea:hover,
 .odontogram-editor select:hover,
@@ -1397,7 +1401,7 @@
   grid-template-areas:
     'time content'
     'side side';
-  grid-template-columns: 58px minmax(0, 1fr);
+  grid-template-columns: 92px minmax(0, 1fr);
   align-items: start;
   gap: 8px 12px;
   min-width: 0;
@@ -1409,14 +1413,16 @@
   align-items: center;
   justify-content: center;
   min-height: 42px;
+  min-width: 92px;
   border-radius: var(--radius-sm);
   background: #eef8fc;
   color: var(--color-primary-dark);
   font-family: var(--font-heading);
-  font-size: 0.96rem;
+  font-size: 0.82rem;
   font-weight: 700;
   line-height: 1;
   padding: 6px 8px;
+  white-space: nowrap;
 }
 
 .agenda-card-content,
@@ -2340,8 +2346,10 @@
 }
 
 .treatment-form input,
+.treatment-form select,
 .treatment-search input,
-.treatment-edit-field input {
+.treatment-edit-field input,
+.treatment-edit-field select {
   width: 100%;
   min-width: 0;
   border: 1px solid var(--color-border);
@@ -2352,8 +2360,10 @@
 }
 
 .treatment-form input:focus,
+.treatment-form select:focus,
 .treatment-search input:focus,
-.treatment-edit-field input:focus {
+.treatment-edit-field input:focus,
+.treatment-edit-field select:focus {
   border-color: var(--color-primary);
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
@@ -2385,6 +2395,12 @@
   min-width: 0;
 }
 
+.treatment-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .treatment-row h3 {
   margin: 0 0 5px;
   color: var(--color-heading);
@@ -2413,6 +2429,20 @@
   border-color: #b7e4ce;
   background: #e9f8f1;
   color: #237b55;
+}
+
+.treatment-duration {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #cbe8f2;
+  border-radius: 999px;
+  background: #eef8fc;
+  color: var(--color-primary-dark);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1;
+  padding: 5px 8px;
 }
 
 .settings-note {

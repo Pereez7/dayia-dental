@@ -1,8 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { Treatment } from '../types/Treatment'
 import {
+  allowedTreatmentDurations,
+  defaultTreatmentDurationMinutes,
   filterTreatmentsBySearch,
   formatTreatmentName,
+  validateTreatmentDuration,
   validateTreatmentName,
 } from '../utils/treatmentUtils'
 import { ConfirmDialog } from './ConfirmDialog'
@@ -18,11 +21,17 @@ export function TreatmentsSettings({
   onTreatmentsChange,
 }: TreatmentsSettingsProps) {
   const [treatmentName, setTreatmentName] = useState('')
+  const [treatmentDuration, setTreatmentDuration] = useState(
+    defaultTreatmentDurationMinutes,
+  )
   const [searchText, setSearchText] = useState('')
   const [editingTreatmentId, setEditingTreatmentId] = useState<number | null>(
     null,
   )
   const [editingName, setEditingName] = useState('')
+  const [editingDuration, setEditingDuration] = useState(
+    defaultTreatmentDurationMinutes,
+  )
   const [toastMessage, setToastMessage] = useState('')
   const [toastTone, setToastTone] = useState<ToastTone>('success')
   const [isToastVisible, setIsToastVisible] = useState(false)
@@ -54,10 +63,11 @@ export function TreatmentsSettings({
     event.preventDefault()
 
     const validationError = validateTreatmentName(treatments, treatmentName)
+    const durationError = validateTreatmentDuration(treatmentDuration)
     setIsToastVisible(false)
 
-    if (validationError) {
-      setToastMessage(validationError)
+    if (validationError || durationError) {
+      setToastMessage(validationError || durationError)
       setToastTone('warning')
       setIsToastVisible(true)
       return
@@ -65,12 +75,14 @@ export function TreatmentsSettings({
 
     const newTreatment: Treatment = {
       id: Date.now(),
+      durationMinutes: treatmentDuration,
       name: formatTreatmentName(treatmentName),
       isActive: true,
     }
 
     onTreatmentsChange([...treatments, newTreatment])
     setTreatmentName('')
+    setTreatmentDuration(defaultTreatmentDurationMinutes)
     setToastMessage('Tratamiento agregado.')
     setToastTone('success')
     setIsToastVisible(true)
@@ -132,12 +144,14 @@ export function TreatmentsSettings({
   function startEditing(treatment: Treatment) {
     setEditingTreatmentId(treatment.id)
     setEditingName(treatment.name)
+    setEditingDuration(treatment.durationMinutes)
     setIsToastVisible(false)
   }
 
   function cancelEditing() {
     setEditingTreatmentId(null)
     setEditingName('')
+    setEditingDuration(defaultTreatmentDurationMinutes)
   }
 
   function saveEditing(treatmentId: number) {
@@ -146,10 +160,11 @@ export function TreatmentsSettings({
       editingName,
       treatmentId,
     )
+    const durationError = validateTreatmentDuration(editingDuration)
     setIsToastVisible(false)
 
-    if (validationError) {
-      setToastMessage(validationError)
+    if (validationError || durationError) {
+      setToastMessage(validationError || durationError)
       setToastTone('warning')
       setIsToastVisible(true)
       return
@@ -158,7 +173,11 @@ export function TreatmentsSettings({
     onTreatmentsChange(
       treatments.map((treatment) =>
         treatment.id === treatmentId
-          ? { ...treatment, name: formatTreatmentName(editingName) }
+          ? {
+              ...treatment,
+              durationMinutes: editingDuration,
+              name: formatTreatmentName(editingName),
+            }
           : treatment,
       ),
     )
@@ -170,6 +189,16 @@ export function TreatmentsSettings({
 
   function updateEditingName(value: string) {
     setEditingName(value)
+    setIsToastVisible(false)
+  }
+
+  function updateTreatmentDuration(value: string) {
+    setTreatmentDuration(Number(value))
+    setIsToastVisible(false)
+  }
+
+  function updateEditingDuration(value: string) {
+    setEditingDuration(Number(value))
     setIsToastVisible(false)
   }
 
@@ -207,6 +236,20 @@ export function TreatmentsSettings({
           />
         </label>
 
+        <label>
+          <span>Duración</span>
+          <select
+            value={treatmentDuration}
+            onChange={(event) => updateTreatmentDuration(event.target.value)}
+          >
+            {allowedTreatmentDurations.map((duration) => (
+              <option key={duration} value={duration}>
+                {duration} min
+              </option>
+            ))}
+          </select>
+        </label>
+
         <button className="primary-action" type="submit">
           Agregar tratamiento
         </button>
@@ -238,6 +281,22 @@ export function TreatmentsSettings({
                       }
                     />
                   </label>
+
+                  <label>
+                    <span>Duración</span>
+                    <select
+                      value={editingDuration}
+                      onChange={(event) =>
+                        updateEditingDuration(event.target.value)
+                      }
+                    >
+                      {allowedTreatmentDurations.map((duration) => (
+                        <option key={duration} value={duration}>
+                          {duration} min
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
 
                 <div className="treatment-row-actions">
@@ -261,13 +320,18 @@ export function TreatmentsSettings({
               <>
                 <div>
                   <h3>{treatment.name}</h3>
-                  <span
-                    className={`treatment-status${
-                      treatment.isActive ? ' treatment-status--active' : ''
-                    }`}
-                  >
-                    {treatment.isActive ? 'Activo' : 'Inactivo'}
-                  </span>
+                  <div className="treatment-meta">
+                    <span
+                      className={`treatment-status${
+                        treatment.isActive ? ' treatment-status--active' : ''
+                      }`}
+                    >
+                      {treatment.isActive ? 'Activo' : 'Inactivo'}
+                    </span>
+                    <span className="treatment-duration">
+                      {treatment.durationMinutes} min
+                    </span>
+                  </div>
                 </div>
 
                 <div className="treatment-row-actions">

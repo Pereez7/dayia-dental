@@ -7,7 +7,10 @@ import {
   getLatestAppointmentLogEntry,
 } from '../utils/appointmentChangeLog'
 import {
-  formatAppointmentTime,
+  formatAppointmentTimeRange,
+  getAppointmentDuration,
+} from '../utils/appointmentDuration'
+import {
   getAppointmentStatusClassName,
   getAppointmentStatusLabel,
 } from '../utils/appointmentFormatters'
@@ -66,7 +69,10 @@ export function AppointmentAgendaCard({
   rescheduleValues,
   showRescheduleForm,
 }: AppointmentAgendaCardProps) {
-  const appointmentTime = formatAppointmentTime(appointment.time)
+  const appointmentTimeRange = formatAppointmentTimeRange(
+    appointment.time,
+    getAppointmentDuration(appointment),
+  )
   const statusClassName = getAppointmentStatusClassName(appointment.status)
   const statusLabel = getAppointmentStatusLabel(appointment.status)
   const availableActions = getAppointmentStatusActions(appointment.status)
@@ -97,7 +103,7 @@ export function AppointmentAgendaCard({
           className="agenda-card-time"
           dateTime={`${appointment.date}T${appointment.time}`}
         >
-          {appointmentTime}
+          {appointmentTimeRange}
         </time>
 
         <div className="agenda-card-content">
