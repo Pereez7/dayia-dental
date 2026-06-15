@@ -59,6 +59,8 @@ Las migraciones actuales son:
 - `003_initial_clinic_setup_template.sql`: plantilla comentada para crear
   manualmente el primer consultorio y vincular un usuario de Auth sin guardar
   datos reales en el repositorio.
+- `004_patients_indexes.sql`: indice adicional para listar/buscar pacientes por
+  consultorio y apellido.
 
 ## Migracion por modulos
 
@@ -114,6 +116,30 @@ Por ahora no hay registro publico, invitaciones ni creacion de consultorios
 desde el frontend. Esa decision evita que usuarios autenticados puedan crear
 tenants arbitrariamente antes de definir roles y administracion.
 
+## Migración de Pacientes
+
+Pacientes es el primer modulo conectado a Supabase. Despues del login, la app
+carga pacientes desde `patients` filtrando siempre por `clinic_id` del
+consultorio actual. La busqueda visible sigue siendo local sobre los pacientes
+cargados.
+
+Al registrar un paciente, el formulario mantiene las validaciones actuales,
+normaliza nombre y apellido, conserva el prefijo telefonico y crea el registro
+en Supabase asociado al `clinic_id`. Si la operacion falla, no se crea un
+paciente local falso.
+
+La forma de datos de frontend sigue siendo compatible con `Patient`, pero los
+pacientes reales usan UUID como `id`. Las citas, historial clinico, odontograma
+y recordatorios no se migran todavia. En esta etapa pueden seguir usando datos
+mock/locales y fallbacks por nombre cuando corresponda.
+
+Las policies de `002_auth_profiles_policies.sql` ya permiten que un usuario
+autenticado gestione solo pacientes de su consultorio. La app tambien filtra por
+`clinic_id` desde el frontend, pero la separacion de datos depende de RLS.
+
+El siguiente paso recomendado es migrar Citas para que `patient_id` use los UUID
+reales de Supabase y deje de depender de datos mock.
+
 ## WhatsApp real
 
 WhatsApp real no debe implementarse desde el frontend. Cada consultorio tendra
@@ -136,9 +162,9 @@ La preparacion actual agrega:
 - Cliente Supabase seguro en `src/lib/supabaseClient.ts`.
 - Capa Auth en `src/auth` para login, sesion, perfil y consultorio actual.
 - Tipos backend base en `src/types/database.ts`.
-- Servicios placeholder en `src/services`.
+- Servicio real de Pacientes y servicios placeholder para el resto en
+  `src/services`.
 - SQL inicial y policies Auth en `supabase/migrations`.
 
-Ninguna vista consume Supabase todavia. Dashboard, Pacientes, Citas,
-Configuracion, Recordatorios, Historial clinico y Odontograma siguen usando el
-estado local/mock actual.
+Pacientes ya consume Supabase. Dashboard, Citas, Configuracion, Recordatorios,
+Historial clinico y Odontograma siguen usando estado local/mock actual.
