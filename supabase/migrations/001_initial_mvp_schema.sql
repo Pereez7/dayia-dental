@@ -181,20 +181,10 @@ alter table public.appointment_change_logs enable row level security;
 alter table public.reminders enable row level security;
 alter table public.whatsapp_settings enable row level security;
 
--- RLS policy direction for the next Auth step:
+-- RLS policy direction:
 -- 1. A user belongs to one clinic through public.profiles.clinic_id.
 -- 2. Reads/writes must be scoped to rows whose clinic_id matches that profile.
 -- 3. Avoid public policies for clinical data.
 -- 4. Service role access should be reserved for trusted backend/Edge Functions.
---
--- Example policy shape for a later migration:
--- create policy "clinic members can read patients"
--- on public.patients
--- for select
--- using (
---   clinic_id = (
---     select profiles.clinic_id
---     from public.profiles
---     where profiles.id = auth.uid()
---   )
--- );
+-- The concrete Auth policies live in:
+-- supabase/migrations/002_auth_profiles_policies.sql

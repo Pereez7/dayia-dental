@@ -1,0 +1,51 @@
+-- DayIA Dental initial clinic setup template.
+--
+-- This file is intentionally a commented template, not an automatic seed.
+-- Do not commit real user IDs, clinic names, phone numbers, or secrets.
+--
+-- Manual setup flow for the first MVP tenant:
+-- 1. Create the user in Supabase Auth.
+-- 2. Copy the user's auth.users.id.
+-- 3. Run a customized version of the SQL below in the Supabase SQL editor.
+-- 4. Sign in from the app with that user.
+--
+-- Example:
+--
+-- with created_clinic as (
+--   insert into public.clinics (name, phone, country_code)
+--   values ('Nombre del consultorio', '+59170000000', '+591')
+--   returning id
+-- )
+-- insert into public.profiles (id, clinic_id, full_name, role)
+-- select
+--   '00000000-0000-0000-0000-000000000000'::uuid,
+--   created_clinic.id,
+--   'Nombre del usuario',
+--   'admin'
+-- from created_clinic;
+--
+-- Optional default settings for that clinic:
+--
+-- insert into public.treatments (clinic_id, name, duration_minutes, is_active)
+-- select id, 'Evaluación inicial', 30, true
+-- from public.clinics
+-- where name = 'Nombre del consultorio';
+--
+-- insert into public.business_hours (
+--   clinic_id,
+--   weekday,
+--   is_open,
+--   start_time,
+--   end_time,
+--   slot_interval_minutes
+-- )
+-- select
+--   id,
+--   weekday,
+--   weekday between 1 and 5,
+--   case when weekday between 1 and 5 then '08:00'::time else null end,
+--   case when weekday between 1 and 5 then '18:00'::time else null end,
+--   15
+-- from public.clinics
+-- cross join generate_series(0, 6) as weekday
+-- where name = 'Nombre del consultorio';
