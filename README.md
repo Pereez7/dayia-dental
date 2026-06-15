@@ -20,7 +20,8 @@ historiales y otros modulos clinicos.
 - Historial simple de cambios de cita en memoria para creacion, confirmacion,
   cancelacion y reprogramacion.
 - Nueva cita con seleccion real de paciente, horarios disponibles segun
-  horarios del consultorio, bloqueo de horas ocupadas y validaciones de campos.
+  horarios del consultorio, duracion del tratamiento, bloqueo de rangos
+  solapados y validaciones de campos.
 - Historial clinico inicial dentro del detalle de paciente, con registros
   asociados por paciente, normalizacion de textos y fechas con año.
 - Historial clinico global con cards agrupadas por paciente, busqueda, filtros,
@@ -55,16 +56,18 @@ historiales y otros modulos clinicos.
   compactos, listado ordenado por hora, confirmacion, cancelacion con motivo en
   `ConfirmDialog`, reprogramacion inline con motivo, creacion local de citas,
   seleccion de paciente, horarios disponibles segun configuracion del
-  consultorio, bloqueo de choques de horario y bloqueo de doble cita activa del
-  mismo paciente en el dia. Reprogramar exige cambiar fecha u hora, no solo el
-  motivo. Mientras el panel de reprogramacion esta abierto, la card se enfoca en
-  guardar o cancelar esa edicion y oculta acciones externas de la cita. Las
-  cards separan rango horario, datos del paciente, estado y acciones para evitar
-  solapamientos; muestran motivo y ultimo cambio como informacion secundaria. El
-  evento interno de creacion no se muestra como ultimo cambio. Los errores de
-  reprogramacion se muestran inline dentro del panel para evitar alertas
-  duplicadas. Las citas canceladas no se reprograman directamente; si el
-  paciente desea asistir nuevamente, se crea una nueva cita.
+  consultorio, duracion del tratamiento, bloqueo de rangos solapados, bloqueo
+  de horarios que exceden el cierre y bloqueo de doble cita activa del mismo
+  paciente en el dia. Reprogramar exige cambiar fecha u hora, no solo el motivo,
+  y tambien valida disponibilidad por duracion ignorando la cita actual. Mientras
+  el panel de reprogramacion esta abierto, la card se enfoca en guardar o
+  cancelar esa edicion y oculta acciones externas de la cita. Las cards separan
+  rango horario, datos del paciente, estado y acciones para evitar solapamientos;
+  muestran motivo y ultimo cambio como informacion secundaria. El evento interno
+  de creacion no se muestra como ultimo cambio. Los errores de reprogramacion se
+  muestran inline dentro del panel para evitar alertas duplicadas. Las citas
+  canceladas no se reprograman directamente; si el paciente desea asistir
+  nuevamente, se crea una nueva cita.
 - **Historial clinico:** registros clinicos dentro del detalle de paciente,
   ordenados por fecha, con resumen temporal y formulario de evolucion basica.
   El modulo global muestra una card por paciente, resume el ultimo registro,

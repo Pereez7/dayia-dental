@@ -267,8 +267,9 @@ Participan:
   intervalos de 15 minutos para el formulario.
 - `src/utils/businessHours.ts`: genera slots validos por fecha segun horario
   semanal e intervalo configurado.
-- `src/utils/appointmentConflicts.ts`: detecta choques de fecha/hora, doble
-  cita activa de paciente en el dia y calcula horas disponibles.
+- `src/utils/appointmentConflicts.ts`: calcula rangos horarios por duracion,
+  detecta solapamientos entre citas activas, valida doble cita activa de
+  paciente en el dia y calcula horas disponibles.
 
 La agenda diaria inicia en hoy y permite saltar a mañana o a proximos dias con
 citas. Las citas del dia se ordenan por hora ascendente y los KPIs se calculan
@@ -334,10 +335,23 @@ La card de agenda muestra solo un resumen del ultimo cambio relevante. El evento
 `Ultimo cambio`; se muestran confirmaciones, cancelaciones y reprogramaciones en
 formato corto y legible.
 
-Nueva Cita recibe las citas existentes para ocultar horas ocupadas por citas
-pendientes, confirmadas o reprogramadas. Las citas canceladas no bloquean
-horario. Aunque el selector solo muestra horas disponibles, la validacion final
-vuelve a comprobar choque exacto y doble cita activa del paciente en el dia.
+Nueva Cita recibe las citas existentes para ocultar horas cuyo rango completo se
+solaparia con citas pendientes, confirmadas o reprogramadas. La disponibilidad
+usa la duracion del tratamiento seleccionado, el intervalo configurado, el
+horario del consultorio y las horas pasadas cuando la fecha es hoy. Las citas
+canceladas no bloquean horario. Aunque el selector solo muestra horas
+disponibles, la validacion final vuelve a comprobar solapamiento por rango,
+ajuste al horario de cierre y doble cita activa del paciente en el dia.
+
+La deteccion de solapamiento usa rangos `[inicio, fin)`: hay conflicto cuando el
+inicio de una cita queda antes del fin de otra y su fin queda despues del inicio
+de la otra. Con esa regla, `13:00 - 13:30` y `13:30 - 14:00` pueden convivir,
+pero `13:15 - 13:45` se bloquea.
+
+Reprogramar usa la misma regla de disponibilidad por duracion, pasando
+`appointmentIdToIgnore` para ignorar la cita que se esta moviendo. Las citas
+antiguas sin `durationMinutes` usan la duracion del tratamiento cuando se puede
+resolver y, si no, el fallback seguro de 30 minutos.
 
 La logica de ordenamiento, agrupacion, resumen, horarios, conflictos y
 validacion debe mantenerse fuera de los componentes para poder probarse con

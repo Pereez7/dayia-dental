@@ -6,6 +6,17 @@ Registro breve de cambios relevantes en DayIA Dental.
 
 ### Cambios realizados
 
+- Se implemento disponibilidad real de citas por duracion del tratamiento.
+- Nueva Cita ahora oculta horas que se solaparian con rangos de citas activas o
+  que harian que la cita termine despues del cierre.
+- Reprogramar usa la misma validacion de disponibilidad por duracion e ignora la
+  cita actual mediante `appointmentIdToIgnore`.
+- Las citas pendientes, confirmadas y reprogramadas bloquean disponibilidad; las
+  canceladas no bloquean.
+- Se agrego fallback seguro de 30 minutos para citas antiguas sin duracion
+  resoluble.
+- Se agregaron pruebas unitarias para solapamientos por rango, bordes exactos
+  permitidos, citas canceladas, reprogramacion y horas disponibles por duracion.
 - Se reorganizaron las cards de Agenda para separar rango horario, datos del
   paciente, estado, tratamiento, metadatos y acciones.
 - El rango horario, por ejemplo `13:00 - 13:30`, ahora tiene un bloque propio

@@ -93,6 +93,9 @@ de backend antes de validar la experiencia local.
 - Prevenir sobreagendamiento desde la experiencia: mostrar solo horarios
   disponibles cuando sea posible y mantener validaciones finales antes de
   guardar.
+- La disponibilidad de Agenda debe considerar rangos completos segun duracion
+  del tratamiento. Una cita activa bloquea desde su inicio hasta su fin, pero se
+  permite que otra cita empiece exactamente cuando la anterior termina.
 - Hacer visible solo lo confiable: no mostrar indicadores incompletos ni datos
   inventados para cubrir vacios del modelo mock.
 - En fichas de paciente, priorizar datos clinicos utiles sobre textos de

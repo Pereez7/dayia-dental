@@ -246,13 +246,18 @@ Actualmente existe una primera version funcional en frontend:
 - La hora se elige desde un catalogo de 24 horas en intervalos de 15 minutos,
   por ejemplo `08:15`, `08:30` o `08:45`.
 - Las opciones de hora se calculan con los horarios del consultorio, el
-  intervalo configurado y las citas existentes.
-- Nueva Cita oculta horas ocupadas por citas pendientes, confirmadas o
-  reprogramadas.
-- Las citas canceladas no bloquean un horario.
+  intervalo configurado, la duracion del tratamiento seleccionado y las citas
+  existentes.
+- Nueva Cita oculta horas cuyo rango completo se solaparia con citas
+  pendientes, confirmadas o reprogramadas.
+- Reprogramar usa la misma disponibilidad por duracion e ignora la cita actual
+  al calcular opciones y validar el guardado.
+- Las citas canceladas no bloquean disponibilidad.
 - Si una fecha no tiene horas disponibles, el formulario muestra un mensaje
   claro sin permitir seleccionar una hora invalida.
-- El guardado mantiene una validacion final de choque exacto por fecha y hora.
+- El guardado mantiene una validacion final de solapamiento por rango horario.
+- Una cita puede empezar justo cuando termina otra, pero no puede iniciar o
+  terminar dentro del rango de otra cita activa.
 - El formulario no permite que el mismo paciente tenga mas de una cita activa
   en el mismo dia.
 - El buscador de pacientes desactiva el autocompletado nativo del navegador

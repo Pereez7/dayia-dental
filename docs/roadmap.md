@@ -129,10 +129,14 @@ Implementado:
 - Nueva Cita consume solo tratamientos activos definidos en Configuracion.
 - Selector de hora con horarios exactos de 24 horas en intervalos de 15 minutos.
 - Horas disponibles calculadas desde horarios del consultorio, intervalo de
-  atencion y citas existentes.
-- Ocultamiento de horas ocupadas por citas pendientes, confirmadas o
-  reprogramadas.
-- Validacion final de choque exacto por fecha y hora.
+  atencion, duracion del tratamiento y citas existentes.
+- Ocultamiento de horas cuyo rango completo se solaparia con citas pendientes,
+  confirmadas o reprogramadas.
+- Validacion final de solapamiento por rango horario, permitiendo citas
+  consecutivas cuando una empieza exactamente al terminar otra.
+- Reprogramacion con disponibilidad por duracion e ignorando la cita actual al
+  validar rangos.
+- Fallback seguro de 30 minutos para citas antiguas sin duracion resoluble.
 - Bloqueo de doble cita activa del mismo paciente en el mismo dia.
 - Mensaje cuando una fecha no tiene horarios disponibles.
 - Autocompletado nativo del navegador desactivado en el buscador de pacientes
