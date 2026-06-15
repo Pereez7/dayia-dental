@@ -19,7 +19,7 @@ export function formatOptionalCompactDateWithYear(
   return formatCompactDateWithYear(date)
 }
 
-export function formatClinicalHistoryDate(
+export function formatAppDate(
   date: string,
   referenceDate = new Date(),
 ) {
@@ -44,6 +44,13 @@ export function formatClinicalHistoryDate(
   }).format(parsedDate)
 
   return `${dateLabel}, ${timeLabel}`
+}
+
+export function formatClinicalHistoryDate(
+  date: string,
+  referenceDate = new Date(),
+) {
+  return formatAppDate(date, referenceDate)
 }
 
 function isDateInputValue(value: string) {

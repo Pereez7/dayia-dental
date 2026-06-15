@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { OdontogramEntry, ToothStatus } from '../types/Odontogram'
 import {
+  generateAdultTeethGroups,
   generateAdultTeethNumbers,
   getOdontogramEntriesByPatient,
   getToothStatus,
@@ -38,6 +39,45 @@ describe('odontogram helpers', () => {
       21, 22, 23, 24, 25, 26, 27, 28,
       31, 32, 33, 34, 35, 36, 37, 38,
       41, 42, 43, 44, 45, 46, 47, 48,
+    ])
+  })
+
+  it('groups adult permanent teeth by arch and quadrant', () => {
+    expect(generateAdultTeethGroups()).toEqual([
+      {
+        id: 'upper',
+        label: 'Arcada superior',
+        range: 'Piezas 11-28',
+        quadrants: [
+          {
+            label: 'Derecha del paciente',
+            range: 'Piezas 11-18',
+            teeth: [11, 12, 13, 14, 15, 16, 17, 18],
+          },
+          {
+            label: 'Izquierda del paciente',
+            range: 'Piezas 21-28',
+            teeth: [21, 22, 23, 24, 25, 26, 27, 28],
+          },
+        ],
+      },
+      {
+        id: 'lower',
+        label: 'Arcada inferior',
+        range: 'Piezas 31-48',
+        quadrants: [
+          {
+            label: 'Izquierda del paciente',
+            range: 'Piezas 31-38',
+            teeth: [31, 32, 33, 34, 35, 36, 37, 38],
+          },
+          {
+            label: 'Derecha del paciente',
+            range: 'Piezas 41-48',
+            teeth: [41, 42, 43, 44, 45, 46, 47, 48],
+          },
+        ],
+      },
     ])
   })
 

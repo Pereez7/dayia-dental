@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import type {
   OdontogramEntry,
   OdontogramFormErrors,
@@ -6,7 +6,7 @@ import type {
   ToothStatus,
 } from '../types/Odontogram'
 import {
-  generateAdultTeethNumbers,
+  generateAdultTeethGroups,
   getToothEntry,
   getToothStatus,
   hasOdontogramFormErrors,
@@ -17,18 +17,21 @@ import {
   toothStatuses,
   validateOdontogramForm,
 } from '../utils/odontogram'
-import { formatCompactDateWithYear } from '../utils/dateFormatters'
+import { formatAppDate } from '../utils/dateFormatters'
+import { Toast } from './Toast'
 
 interface PatientOdontogramProps {
   entries: OdontogramEntry[]
   onSaveTooth: (toothNumber: number, values: OdontogramFormValues) => void
 }
 
+const ODONTOGRAM_NOTES_MAX_LENGTH = 160
+
 export function PatientOdontogram({
   entries,
   onSaveTooth,
 }: PatientOdontogramProps) {
-  const teethNumbers = generateAdultTeethNumbers()
+  const teethGroups = generateAdultTeethGroups()
   const summary = summarizeToothStatuses(entries)
   const [selectedToothNumber, setSelectedToothNumber] = useState<number | null>(
     null,
@@ -38,10 +41,37 @@ export function PatientOdontogram({
     status: '',
   })
   const [errors, setErrors] = useState<OdontogramFormErrors>({})
-  const [successMessage, setSuccessMessage] = useState('')
+  const [toastMessage, setToastMessage] = useState('')
+  const [isToastVisible, setIsToastVisible] = useState(false)
   const selectedEntry = selectedToothNumber
     ? getToothEntry(entries, selectedToothNumber)
     : undefined
+  const selectedToothStatus = selectedToothNumber
+    ? getToothStatus(entries, selectedToothNumber)
+    : undefined
+  const remainingNotesCharacters =
+    ODONTOGRAM_NOTES_MAX_LENGTH - formValues.notes.length
+  const isNotesLimitClose = remainingNotesCharacters <= 20
+
+  useEffect(() => {
+    if (!isToastVisible) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => setIsToastVisible(false), 3200)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [isToastVisible, toastMessage])
+
+  useEffect(() => {
+    if (isToastVisible || !toastMessage) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => setToastMessage(''), 220)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [isToastVisible, toastMessage])
 
   function selectTooth(toothNumber: number) {
     const toothEntry = getToothEntry(entries, toothNumber)
@@ -52,15 +82,18 @@ export function PatientOdontogram({
       status: toothEntry?.status ?? 'healthy',
     })
     setErrors({})
-    setSuccessMessage('')
+    setIsToastVisible(false)
   }
 
   function updateField(field: keyof OdontogramFormValues, value: string) {
+    const nextValue =
+      field === 'notes' ? value.slice(0, ODONTOGRAM_NOTES_MAX_LENGTH) : value
+
     setFormValues((currentValues) => ({
       ...currentValues,
-      [field]: value,
+      [field]: nextValue,
     }))
-    setSuccessMessage('')
+    setIsToastVisible(false)
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -85,14 +118,18 @@ export function PatientOdontogram({
       ...currentValues,
       notes: normalizeOdontogramNotes(currentValues.notes),
     }))
-    setSuccessMessage('Pieza dental actualizada correctamente.')
+    setToastMessage('Pieza dental actualizada.')
+    setIsToastVisible(true)
   }
 
   return (
     <section className="odontogram-section" aria-label="Odontograma del paciente">
       <div className="odontogram-summary">
         {toothStatuses.map((status) => (
-          <div className="odontogram-summary-item" key={status}>
+          <div
+            className={`odontogram-summary-item odontogram-status-summary--${status}`}
+            key={status}
+          >
             <strong>{summary[status]}</strong>
             <span>{toothStatusShortLabels[status]}</span>
           </div>
@@ -100,24 +137,61 @@ export function PatientOdontogram({
       </div>
 
       <div className="odontogram-layout">
-        <div className="odontogram-grid" aria-label="Piezas dentales permanentes">
-          {teethNumbers.map((toothNumber) => {
-            const status = getToothStatus(entries, toothNumber)
-            const isSelected = toothNumber === selectedToothNumber
+        <div
+          className="odontogram-map"
+          aria-label="Piezas dentales permanentes"
+        >
+          <div className="odontogram-legend" aria-label="Leyenda de estados">
+            {toothStatuses.map((status) => (
+              <span className="odontogram-legend-item" key={status}>
+                <span
+                  className={`odontogram-legend-dot odontogram-status-dot--${status}`}
+                  aria-hidden="true"
+                />
+                {toothStatusShortLabels[status]}
+              </span>
+            ))}
+          </div>
 
-            return (
-              <button
-                aria-pressed={isSelected}
-                className={`tooth-card odontogram-status--${status}`}
-                key={toothNumber}
-                type="button"
-                onClick={() => selectTooth(toothNumber)}
-              >
-                <strong>{toothNumber}</strong>
-                <span>{toothStatusShortLabels[status]}</span>
-              </button>
-            )
-          })}
+          {teethGroups.map((group) => (
+            <section className="odontogram-arch" key={group.id}>
+              <div className="odontogram-arch-header">
+                <h4>{group.label}</h4>
+                <span>{group.range}</span>
+              </div>
+
+              <div className="odontogram-quadrants">
+                {group.quadrants.map((quadrant) => (
+                  <div className="odontogram-quadrant" key={quadrant.label}>
+                    <div className="odontogram-quadrant-header">
+                      <p>{quadrant.label}</p>
+                      <span>{quadrant.range}</span>
+                    </div>
+                    <div className="odontogram-tooth-row">
+                      {quadrant.teeth.map((toothNumber) => {
+                        const status = getToothStatus(entries, toothNumber)
+                        const isSelected = toothNumber === selectedToothNumber
+
+                        return (
+                          <button
+                            aria-label={`Pieza ${toothNumber}, ${toothStatusLabels[status]}`}
+                            aria-pressed={isSelected}
+                            className={`tooth-card odontogram-status--${status}`}
+                            key={toothNumber}
+                            type="button"
+                            onClick={() => selectTooth(toothNumber)}
+                          >
+                            <strong>{toothNumber}</strong>
+                            <span>{toothStatusShortLabels[status]}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ))}
         </div>
 
         <form className="odontogram-editor" onSubmit={handleSubmit}>
@@ -131,6 +205,17 @@ export function PatientOdontogram({
             <p className="section-description">
               Actualiza el estado actual de la pieza seleccionada.
             </p>
+          </div>
+
+          <div className="odontogram-current-state">
+            <span>Estado actual</span>
+            <strong
+              className={`odontogram-current-state-badge odontogram-status-badge--${selectedToothStatus ?? 'other'}`}
+            >
+              {selectedToothStatus
+                ? toothStatusLabels[selectedToothStatus]
+                : 'Sin pieza seleccionada'}
+            </strong>
           </div>
 
           <label>
@@ -160,40 +245,38 @@ export function PatientOdontogram({
             <span>Observaciones</span>
             <textarea
               disabled={selectedToothNumber === null}
+              maxLength={ODONTOGRAM_NOTES_MAX_LENGTH}
               value={formValues.notes}
               onChange={(event) => updateField('notes', event.target.value)}
               placeholder="Ej. Controlar sensibilidad"
               rows={4}
             />
+            <small
+              className={`odontogram-character-counter${
+                isNotesLimitClose ? ' odontogram-character-counter--warning' : ''
+              }`}
+            >
+              {formValues.notes.length} / {ODONTOGRAM_NOTES_MAX_LENGTH}
+            </small>
           </label>
 
           {selectedEntry && (
             <p className="odontogram-updated-at">
-              Última actualización:{' '}
-              {formatCompactDateWithYear(selectedEntry.updatedAt)}
+              Última actualización: {formatAppDate(selectedEntry.updatedAt)}
             </p>
           )}
 
           <button
-            className="primary-action"
+            className="primary-action odontogram-save-button"
             disabled={selectedToothNumber === null}
             type="submit"
           >
             Guardar pieza
           </button>
-
-          <div className="clinical-record-feedback-slot">
-            {successMessage && (
-              <p
-                className="settings-feedback settings-feedback--success"
-                role="status"
-              >
-                {successMessage}
-              </p>
-            )}
-          </div>
         </form>
       </div>
+
+      <Toast message={toastMessage} tone="success" visible={isToastVisible} />
     </section>
   )
 }

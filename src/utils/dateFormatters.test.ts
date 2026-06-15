@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  formatAppDate,
   formatClinicalHistoryDate,
   formatCompactDateWithYear,
   formatOptionalCompactDateWithYear,
@@ -23,6 +24,36 @@ describe('formatOptionalCompactDateWithYear', () => {
   it('returns fallback for non-date values', () => {
     expect(formatOptionalCompactDateWithYear('Sin registro')).toBe(
       'Sin registro',
+    )
+  })
+})
+
+describe('formatAppDate', () => {
+  const referenceDate = new Date('2026-06-14T10:00:00')
+
+  it('formats current-year dates without year', () => {
+    expect(formatAppDate('2026-06-14', referenceDate)).toBe('14 jun')
+  })
+
+  it('includes the year when the date is outside the current year', () => {
+    expect(formatAppDate('2025-06-14', referenceDate)).toBe('14 jun 2025')
+  })
+
+  it('formats current-year dates with 24-hour time', () => {
+    expect(formatAppDate('2026-06-14T15:16:00', referenceDate)).toBe(
+      '14 jun, 15:16',
+    )
+  })
+
+  it('formats dates from another year with year and 24-hour time', () => {
+    expect(formatAppDate('2025-06-14T15:16:00', referenceDate)).toBe(
+      '14 jun 2025, 15:16',
+    )
+  })
+
+  it('handles invalid dates without throwing', () => {
+    expect(formatAppDate('fecha-invalida', referenceDate)).toBe(
+      'Fecha no disponible',
     )
   })
 })

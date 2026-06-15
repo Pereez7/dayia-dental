@@ -16,6 +16,17 @@ export const toothStatuses: ToothStatus[] = [
   'other',
 ]
 
+export interface AdultTeethGroup {
+  id: 'upper' | 'lower'
+  label: string
+  range: string
+  quadrants: Array<{
+    label: string
+    range: string
+    teeth: number[]
+  }>
+}
+
 export const toothStatusLabels: Record<ToothStatus, string> = {
   caries: 'Caries',
   healthy: 'Sano',
@@ -40,6 +51,45 @@ export function generateAdultTeethNumbers() {
   return [1, 2, 3, 4].flatMap((quadrant) =>
     Array.from({ length: 8 }, (_, index) => quadrant * 10 + index + 1),
   )
+}
+
+export function generateAdultTeethGroups(): AdultTeethGroup[] {
+  return [
+    {
+      id: 'upper',
+      label: 'Arcada superior',
+      range: 'Piezas 11-28',
+      quadrants: [
+        {
+          label: 'Derecha del paciente',
+          range: 'Piezas 11-18',
+          teeth: [11, 12, 13, 14, 15, 16, 17, 18],
+        },
+        {
+          label: 'Izquierda del paciente',
+          range: 'Piezas 21-28',
+          teeth: [21, 22, 23, 24, 25, 26, 27, 28],
+        },
+      ],
+    },
+    {
+      id: 'lower',
+      label: 'Arcada inferior',
+      range: 'Piezas 31-48',
+      quadrants: [
+        {
+          label: 'Izquierda del paciente',
+          range: 'Piezas 31-38',
+          teeth: [31, 32, 33, 34, 35, 36, 37, 38],
+        },
+        {
+          label: 'Derecha del paciente',
+          range: 'Piezas 41-48',
+          teeth: [41, 42, 43, 44, 45, 46, 47, 48],
+        },
+      ],
+    },
+  ]
 }
 
 export function getOdontogramEntriesByPatient(
