@@ -342,6 +342,10 @@ consultorio:
 - Validacion de excepciones para evitar fechas duplicadas, horarios invalidos y
   rangos especiales sin inicio o fin.
 - Eliminacion de excepciones con `ConfirmDialog` y feedback mediante Toast.
+- Horarios, Excepciones y Tratamientos se muestran como bloques visuales
+  diferenciados, con fondo suave compartido para mantener coherencia.
+- El boton `Guardar horarios` queda dentro del bloque de Horarios para evitar
+  que parezca una accion de Excepciones.
 - Usa el tipo `Treatment` con `id`, `name` e `isActive`.
 - Permite agregar tratamientos.
 - Normaliza nombres antes de guardarlos, por ejemplo `LIMPIEZA DentaL` pasa a

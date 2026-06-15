@@ -88,6 +88,9 @@ de backend antes de validar la experiencia local.
   flujo operativo, como cancelar una cita o desactivar un tratamiento.
 - Mantener botones compactos y consistentes: la jerarquia debe venir del rol de
   la accion, no de exceso de tamaño, negrita o fondos saturados.
+- En Configuracion, separar visualmente Horarios, Excepciones y Tratamientos
+  para que cada accion pertenezca claramente a su bloque, especialmente
+  `Guardar horarios`.
 - Validar primero en frontend: construir flujos locales, tipados y testeables
   antes de agregar persistencia o integraciones externas.
 - Prevenir sobreagendamiento desde la experiencia: mostrar solo horarios

@@ -497,6 +497,9 @@ Tambien centraliza el pulido visual actual de:
 - Inputs, selects, textareas, mensajes y estados vacios.
 - Botones compactos de Configuracion alineados con Recordatorios, con acciones
   neutras y color semantico en el texto.
+- Subpaneles de Configuracion para Horarios, Excepciones y Tratamientos con
+  degradado suave compartido, separacion por borde y acciones asociadas a su
+  bloque.
 - Agenda diaria con KPIs compactos, selector de dias, cards de cita, botones de
   accion, estado vacio y panel de reprogramacion alineados con Recordatorios y
   Configuracion.

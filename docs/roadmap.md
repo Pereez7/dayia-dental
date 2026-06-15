@@ -311,6 +311,10 @@ Implementado:
 - Intervalo de atencion configurable.
 - Validacion local de horarios.
 - Toast flotante al guardar horarios.
+- Separacion visual entre Horarios del consultorio, Excepciones del calendario
+  y Tratamientos.
+- Fondo suave compartido entre los bloques principales de Configuracion.
+- Boton `Guardar horarios` asociado visualmente a la tabla semanal.
 - Excepciones del calendario para cerrar fechas puntuales.
 - Excepciones del calendario con horario especial para una fecha puntual.
 - Validacion de excepciones para evitar fechas duplicadas y rangos invalidos.

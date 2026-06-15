@@ -86,7 +86,8 @@ historiales y otros modulos clinicos.
   reprogramada, formato corto 24h, vista previa y Toast de feedback.
 - **Configuracion:** horarios semanales del consultorio, intervalo de atencion,
   excepciones del calendario para cierres y horarios especiales, y gestion
-  local de tratamientos disponibles para Nueva Cita.
+  local de tratamientos disponibles para Nueva Cita. Horarios, Excepciones y
+  Tratamientos se presentan como bloques visuales diferenciados y coherentes.
 
 La aplicacion todavia no tiene backend, base de datos, autenticacion,
 persistencia ni integracion real con WhatsApp.

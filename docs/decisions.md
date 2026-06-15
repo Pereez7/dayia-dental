@@ -608,6 +608,18 @@ rojo suave para desactivar.
 Esto reduce ruido visual y evita que acciones secundarias compitan con acciones
 primarias como guardar horarios o agregar tratamiento.
 
+## Configuracion en bloques visuales claros
+
+Horarios, Excepciones y Tratamientos se presentan como bloques separados para
+evitar que acciones de un flujo parezcan pertenecer a otro. En particular,
+`Guardar horarios` debe cerrar visualmente la tabla semanal antes de que empiece
+Excepciones del calendario.
+
+Los bloques usan un degradado suave compartido y bordes discretos para mantener
+coherencia entre la columna de Horarios/Excepciones y la columna de
+Tratamientos. El objetivo es ordenar la lectura sin redisenar toda la pantalla
+ni cambiar reglas de disponibilidad, tratamientos o excepciones.
+
 ## Documentacion ampliada con PRODUCT.md
 
 Cuando se pida actualizar la documentacion, `PRODUCT.md` forma parte del mismo

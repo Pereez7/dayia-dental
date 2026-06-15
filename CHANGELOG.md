@@ -6,6 +6,14 @@ Registro breve de cambios relevantes en DayIA Dental.
 
 ### Cambios realizados
 
+- Se pulio visualmente Configuracion para separar mejor Horarios del
+  consultorio, Excepciones del calendario y Tratamientos.
+- `Guardar horarios` quedo visualmente asociado al bloque de Horarios, antes de
+  Excepciones.
+- Horarios, Excepciones y Tratamientos ahora comparten un degradado suave para
+  mantener coherencia entre subpaneles y columnas.
+- La lista de excepciones se ajusto como item compacto con fecha principal,
+  tipo/motivo secundario y accion de eliminacion discreta.
 - Se implemento el MVP de excepciones del calendario en Configuracion.
 - El bloque `Excepciones del calendario` dejo de ser solo informativo y ahora
   participa en la disponibilidad real de citas.
