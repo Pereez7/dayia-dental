@@ -84,8 +84,9 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
    secciones principales y acciones rapidas, separadas visualmente en marca,
    acciones y modulos.
 5. `App.tsx` mantiene el estado local de citas, pacientes, tratamientos,
-   registros clinicos y odontograma para compartirlo entre Dashboard,
-   Pacientes, Citas, Configuracion y Detalle de paciente.
+   excepciones del calendario, registros clinicos y odontograma para
+   compartirlo entre Dashboard, Pacientes, Citas, Configuracion y Detalle de
+   paciente.
 6. `PatientsView` recibe pacientes, el callback de alta y el callback para ver
    detalle desde `App.tsx`. En modo listado prioriza `PatientsList` y deja el
    formulario debajo; en modo `new` muestra solo `PatientForm`.
@@ -100,11 +101,11 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
    con `src/utils/dashboardMetrics.ts` y compone KPIs, proximas citas activas,
    citas que requieren atencion, actividad reciente, resumen mensual y
    pacientes recientes.
-12. `SettingsView` recibe tratamientos desde `App.tsx`, carga horarios mock y
-   compone la configuracion del consultorio.
+12. `SettingsView` recibe tratamientos y excepciones del calendario desde
+   `App.tsx`, carga horarios mock y compone la configuracion del consultorio.
 13. `BusinessHoursSettings` permite ajustar horario semanal, intervalo de
-   atencion y estado abierto/cerrado por dia usando utilidades puras de
-   `src/utils/businessHours.ts`.
+   atencion, estado abierto/cerrado por dia y excepciones del calendario usando
+   utilidades puras de `src/utils/businessHours.ts`.
 14. `TreatmentsSettings` agrega, busca, edita, activa y desactiva tratamientos
    usando utilidades puras de `src/utils/treatmentUtils.ts`, confirma la
    desactivacion con `ConfirmDialog` y muestra feedback mediante `Toast`.
@@ -231,6 +232,8 @@ Participan:
   `AppointmentChangeLogEntry` y los valores del formulario de citas.
 - `src/data/appointments.ts`: contiene citas mock.
 - `src/data/treatments.ts`: contiene el catalogo inicial tipado de tratamientos.
+- `src/data/calendarExceptions.ts`: contiene la lista inicial de excepciones
+  del calendario.
 - `src/views/AppointmentsView.tsx`: compone la vista de agenda o el formulario
   de nueva cita.
 - `src/components/AppointmentsAgenda.tsx`: muestra la agenda diaria, selector
@@ -266,7 +269,8 @@ Participan:
 - `src/utils/appointmentTimeSlots.ts`: genera el catalogo de horas exactas en
   intervalos de 15 minutos para el formulario.
 - `src/utils/businessHours.ts`: genera slots validos por fecha segun horario
-  semanal e intervalo configurado.
+  efectivo, horario semanal, excepciones del calendario e intervalo
+  configurado.
 - `src/utils/appointmentConflicts.ts`: calcula rangos horarios por duracion,
   detecta solapamientos entre citas activas, valida doble cita activa de
   paciente en el dia y calcula horas disponibles.
@@ -338,10 +342,16 @@ formato corto y legible.
 Nueva Cita recibe las citas existentes para ocultar horas cuyo rango completo se
 solaparia con citas pendientes, confirmadas o reprogramadas. La disponibilidad
 usa la duracion del tratamiento seleccionado, el intervalo configurado, el
-horario del consultorio y las horas pasadas cuando la fecha es hoy. Las citas
-canceladas no bloquean horario. Aunque el selector solo muestra horas
+horario efectivo del consultorio y las horas pasadas cuando la fecha es hoy. Las
+citas canceladas no bloquean horario. Aunque el selector solo muestra horas
 disponibles, la validacion final vuelve a comprobar solapamiento por rango,
 ajuste al horario de cierre y doble cita activa del paciente en el dia.
+
+El horario efectivo de una fecha se calcula en `src/utils/businessHours.ts`.
+Primero se busca una excepcion del calendario para la fecha; si existe una
+excepcion cerrada, el dia queda cerrado aunque el horario semanal diga lo
+contrario. Si existe una excepcion de horario especial, ese rango reemplaza al
+horario semanal. Si no existe excepcion, se usa el horario semanal base.
 
 La deteccion de solapamiento usa rangos `[inicio, fin)`: hay conflicto cuando el
 inicio de una cita queda antes del fin de otra y su fin queda despues del inicio
@@ -362,32 +372,38 @@ siguen pendientes.
 
 `Configuracion`
 
-Incluye horarios del consultorio y gestion local de tratamientos. Participan:
+Incluye horarios del consultorio, excepciones del calendario y gestion local de
+tratamientos. Participan:
 
 - `src/types/BusinessHours.ts`: define dias, horarios e intervalos de
-  atencion.
+  atencion, ademas de tipos para excepciones del calendario.
 - `src/data/businessHours.ts`: contiene la configuracion mock inicial de
   horarios.
+- `src/data/calendarExceptions.ts`: contiene la lista inicial de excepciones
+  del calendario.
 - `src/types/Treatment.ts`: define `Treatment`.
 - `src/views/SettingsView.tsx`: compone la vista de configuracion.
 - `src/components/BusinessHoursSettings.tsx`: muestra horario semanal,
-  intervalo de atencion, validaciones y Toast al guardar.
+  intervalo de atencion, excepciones del calendario, validaciones,
+  `ConfirmDialog` para eliminar excepciones y Toast de feedback.
 - `src/components/TreatmentsSettings.tsx`: muestra formulario, busqueda,
   edicion, activacion, confirmacion de desactivacion y Toast de feedback.
 - `src/components/Toast.tsx`: muestra confirmaciones flotantes sin mover el
   layout.
 - `src/components/ConfirmDialog.tsx`: confirma acciones sensibles como cancelar
   citas o desactivar tratamientos.
-- `src/utils/businessHours.ts`: valida horarios, estados de dia e intervalos.
+- `src/utils/businessHours.ts`: valida horarios, estados de dia, intervalos,
+  excepciones del calendario y calcula horarios efectivos por fecha.
 - `src/utils/treatmentUtils.ts`: normaliza nombres, valida duplicados, filtra
   activos y aplica busqueda.
 
 Los tratamientos se mantienen en estado local dentro de `App.tsx`; Nueva Cita
 recibe esa misma lista y muestra solo tratamientos activos.
 
-Los horarios se validan de forma local y no tienen persistencia todavia. El
-bloque `Excepciones del calendario` es informativo y prepara una futura
-evolucion hacia feriados, cierres especiales o dias con horario distinto.
+Los horarios y excepciones se validan de forma local y no tienen persistencia
+todavia. Las excepciones permiten cerrar una fecha puntual o definir un horario
+especial. Nueva Cita y Reprogramar consumen esas excepciones para calcular
+opciones disponibles y validar el guardado.
 
 `Historial clinico`
 

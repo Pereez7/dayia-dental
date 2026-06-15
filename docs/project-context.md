@@ -15,7 +15,8 @@ especialmente pensando en una futura integracion con WhatsApp.
   citas que requieren atencion, actividad reciente, resumen mensual y pacientes
   recientes.
 - Configuracion de horarios y tratamientos del consultorio, conectada con
-  Nueva Cita para tratamientos activos y disponibilidad de horarios.
+  Nueva Cita para tratamientos activos, disponibilidad de horarios y
+  excepciones del calendario.
 - Primera version de historial clinico dentro del detalle de paciente.
 - Primera version del modulo global Historial clinico con registros agrupados
   por paciente, busqueda, filtros y resumen superior.
@@ -248,6 +249,12 @@ Actualmente existe una primera version funcional en frontend:
 - Las opciones de hora se calculan con los horarios del consultorio, el
   intervalo configurado, la duracion del tratamiento seleccionado y las citas
   existentes.
+- Las opciones de hora usan el horario efectivo de la fecha: excepcion cerrada,
+  horario especial o el horario semanal base.
+- Si una fecha esta cerrada por excepcion, Nueva Cita y Reprogramar muestran un
+  mensaje claro y no permiten guardar en esa fecha.
+- Si una fecha tiene horario especial, la disponibilidad por duracion se calcula
+  solo dentro del rango configurado para esa excepcion.
 - Nueva Cita oculta horas cuyo rango completo se solaparia con citas
   pendientes, confirmadas o reprogramadas.
 - Reprogramar usa la misma disponibilidad por duracion e ignora la cita actual
@@ -331,9 +338,10 @@ consultorio:
 - Intervalo de atencion configurable.
 - Validacion local de horarios del consultorio.
 - Toast flotante al guardar horarios, sin mover el layout.
-- Bloque informativo `Excepciones del calendario` para preparar feriados,
-  cierres especiales o dias con horario distinto, sin implementar la logica
-  todavia.
+- Excepciones del calendario para fechas cerradas y dias con horario especial.
+- Validacion de excepciones para evitar fechas duplicadas, horarios invalidos y
+  rangos especiales sin inicio o fin.
+- Eliminacion de excepciones con `ConfirmDialog` y feedback mediante Toast.
 - Usa el tipo `Treatment` con `id`, `name` e `isActive`.
 - Permite agregar tratamientos.
 - Normaliza nombres antes de guardarlos, por ejemplo `LIMPIEZA DentaL` pasa a

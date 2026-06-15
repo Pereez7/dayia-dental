@@ -22,6 +22,8 @@ historiales y otros modulos clinicos.
 - Nueva cita con seleccion real de paciente, horarios disponibles segun
   horarios del consultorio, duracion del tratamiento, bloqueo de rangos
   solapados y validaciones de campos.
+- Excepciones del calendario en Configuracion para cerrar fechas puntuales o
+  definir horarios especiales que afectan Nueva Cita y Reprogramar.
 - Historial clinico inicial dentro del detalle de paciente, con registros
   asociados por paciente, normalizacion de textos y fechas con año.
 - Historial clinico global con cards agrupadas por paciente, busqueda, filtros,
@@ -83,8 +85,8 @@ historiales y otros modulos clinicos.
   filtros por estado, mensajes sugeridos segun cita pendiente, confirmada o
   reprogramada, formato corto 24h, vista previa y Toast de feedback.
 - **Configuracion:** horarios semanales del consultorio, intervalo de atencion,
-  bloque informativo de futuras excepciones del calendario y gestion local de
-  tratamientos disponibles para Nueva Cita.
+  excepciones del calendario para cierres y horarios especiales, y gestion
+  local de tratamientos disponibles para Nueva Cita.
 
 La aplicacion todavia no tiene backend, base de datos, autenticacion,
 persistencia ni integracion real con WhatsApp.

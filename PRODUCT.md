@@ -96,6 +96,9 @@ de backend antes de validar la experiencia local.
 - La disponibilidad de Agenda debe considerar rangos completos segun duracion
   del tratamiento. Una cita activa bloquea desde su inicio hasta su fin, pero se
   permite que otra cita empiece exactamente cuando la anterior termina.
+- Las excepciones del calendario tienen prioridad sobre el horario semanal:
+  una fecha cerrada no permite agendar ni reprogramar, y una fecha con horario
+  especial calcula disponibilidad solo dentro de ese rango.
 - Hacer visible solo lo confiable: no mostrar indicadores incompletos ni datos
   inventados para cubrir vacios del modelo mock.
 - En fichas de paciente, priorizar datos clinicos utiles sobre textos de

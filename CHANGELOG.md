@@ -6,6 +6,22 @@ Registro breve de cambios relevantes en DayIA Dental.
 
 ### Cambios realizados
 
+- Se implemento el MVP de excepciones del calendario en Configuracion.
+- El bloque `Excepciones del calendario` dejo de ser solo informativo y ahora
+  participa en la disponibilidad real de citas.
+- Configuracion ahora permite agregar fechas cerradas o fechas con horario
+  especial, con motivo opcional y detalle cuando corresponde.
+- Se bloqueo el registro de dos excepciones para la misma fecha.
+- Las excepciones se pueden eliminar con `ConfirmDialog` y muestran feedback
+  mediante Toast al agregarse o eliminarse.
+- Nueva Cita usa el horario efectivo del dia: excepcion cerrada, horario
+  especial o horario semanal segun corresponda.
+- Reprogramar usa las mismas excepciones al calcular horas disponibles y al
+  validar el guardado.
+- La disponibilidad por duracion toma en cuenta excepciones de calendario antes
+  de ofrecer horas disponibles.
+- Se agregaron pruebas unitarias para fechas cerradas, horarios especiales,
+  duplicados y validaciones de excepciones.
 - Se implemento disponibilidad real de citas por duracion del tratamiento.
 - Nueva Cita ahora oculta horas que se solaparian con rangos de citas activas o
   que harian que la cita termine despues del cierre.
@@ -38,10 +54,10 @@ Registro breve de cambios relevantes en DayIA Dental.
 
 ### Motivo del cambio
 
-Dejar alineada la documentacion con el comportamiento real de
-`src/utils/odontogram.ts` y `PatientOdontogram`: el odontograma inicial sigue
-siendo una grilla funcional de adulto, pero su contrato de datos ya esta
-definido para resumen, estados, validacion y actualizacion local.
+Dejar alineada la documentacion con el comportamiento real de Agenda,
+Configuracion y Odontograma. Las citas ya no dependen solo del horario semanal:
+la disponibilidad se calcula con duracion, citas activas y excepciones del
+calendario, manteniendo validaciones finales antes de guardar.
 
 ## 2026-06-14
 

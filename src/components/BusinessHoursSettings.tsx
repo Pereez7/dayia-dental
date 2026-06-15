@@ -249,7 +249,10 @@ export function BusinessHoursSettings({
       className="settings-panel business-hours-panel"
       aria-labelledby="business-hours-title"
     >
-      <form className="business-hours-form" onSubmit={handleSubmit}>
+      <form
+        className="business-hours-form business-settings-subpanel"
+        onSubmit={handleSubmit}
+      >
         <div className="business-hours-header">
           <div className="section-heading">
             <h2 id="business-hours-title">Horarios del consultorio</h2>
@@ -373,7 +376,7 @@ export function BusinessHoursSettings({
       </form>
 
       <section
-        className="business-calendar-note"
+        className="business-calendar-note business-settings-subpanel"
         aria-labelledby="calendar-exceptions-title"
       >
         <div className="business-calendar-header">

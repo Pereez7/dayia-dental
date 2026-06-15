@@ -129,13 +129,17 @@ Implementado:
 - Nueva Cita consume solo tratamientos activos definidos en Configuracion.
 - Selector de hora con horarios exactos de 24 horas en intervalos de 15 minutos.
 - Horas disponibles calculadas desde horarios del consultorio, intervalo de
-  atencion, duracion del tratamiento y citas existentes.
+  atencion, excepciones del calendario, duracion del tratamiento y citas
+  existentes.
 - Ocultamiento de horas cuyo rango completo se solaparia con citas pendientes,
   confirmadas o reprogramadas.
 - Validacion final de solapamiento por rango horario, permitiendo citas
   consecutivas cuando una empieza exactamente al terminar otra.
 - Reprogramacion con disponibilidad por duracion e ignorando la cita actual al
   validar rangos.
+- Nueva Cita y Reprogramar respetan fechas cerradas por excepcion.
+- Nueva Cita y Reprogramar respetan horarios especiales configurados para una
+  fecha puntual.
 - Fallback seguro de 30 minutos para citas antiguas sin duracion resoluble.
 - Bloqueo de doble cita activa del mismo paciente en el mismo dia.
 - Mensaje cuando una fecha no tiene horarios disponibles.
@@ -155,9 +159,8 @@ Pendiente:
 - Estados intermedios como `Solicitud de cancelacion` cuando exista integracion
   real con WhatsApp.
 - Calendario mensual.
-- Duracion real por tratamiento.
 - Multiples doctores o sillones.
-- Excepciones de calendario, feriados y cierres especiales.
+- Feriados recurrentes o reglas avanzadas de calendario.
 - Persistencia.
 - Integracion con WhatsApp.
 
@@ -308,7 +311,11 @@ Implementado:
 - Intervalo de atencion configurable.
 - Validacion local de horarios.
 - Toast flotante al guardar horarios.
-- Bloque informativo de futuras excepciones del calendario.
+- Excepciones del calendario para cerrar fechas puntuales.
+- Excepciones del calendario con horario especial para una fecha puntual.
+- Validacion de excepciones para evitar fechas duplicadas y rangos invalidos.
+- Eliminacion de excepciones con `ConfirmDialog`.
+- Toast flotante al agregar o eliminar excepciones.
 - Tratamientos del consultorio.
 - Alta local de tratamientos.
 - Normalizacion y capitalizacion de nombres.
@@ -330,7 +337,8 @@ Pendiente:
 - Preferencias y ajustes de notificaciones.
 - Persistencia de tratamientos.
 - Persistencia de horarios.
-- Excepciones reales de calendario.
+- Edicion directa de excepciones existentes.
+- Feriados recurrentes.
 
 ## Pendientes generales
 

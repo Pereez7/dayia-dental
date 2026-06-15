@@ -66,10 +66,11 @@ introducen drawer, bottom navigation ni React Router.
 
 ## Estado local compartido
 
-`App.tsx` mantiene el estado local de citas, pacientes, tratamientos, registros
-clinicos y odontograma mientras no existe backend. Esto permite que Dashboard,
-Pacientes, Agenda, Nueva Cita, Configuracion y Detalle de paciente usen la
-misma fuente de datos sin duplicar estado.
+`App.tsx` mantiene el estado local de citas, pacientes, tratamientos,
+excepciones del calendario, registros clinicos y odontograma mientras no existe
+backend. Esto permite que Dashboard, Pacientes, Agenda, Nueva Cita,
+Configuracion y Detalle de paciente usen la misma fuente de datos sin duplicar
+estado.
 
 Los pacientes creados localmente se agregan al estado compartido y pueden ser
 usados por el Dashboard y por el formulario de nueva cita durante la sesion
@@ -77,6 +78,10 @@ actual.
 
 Los tratamientos tambien se mantienen en ese estado compartido para que los
 cambios hechos en Configuracion se reflejen inmediatamente en Nueva Cita.
+
+Las excepciones del calendario se mantienen en el mismo estado compartido para
+que Configuracion, Nueva Cita y Reprogramar usen el mismo horario efectivo de
+cada fecha durante la sesion actual.
 
 Los registros clinicos tambien viven en ese estado compartido y se asocian a
 pacientes mediante `patientId`. Esto evita duplicar historial dentro del
@@ -428,9 +433,32 @@ exactamente cuando termina otra, pero no puede cruzarse parcial o totalmente con
 otra cita activa. Reprogramar reutiliza la misma regla e ignora la cita actual
 mediante `appointmentIdToIgnore`.
 
-Por ahora no se consideran doctores, sillones, tiempos de limpieza ni
-excepciones de calendario. Esas reglas quedan pendientes hasta que el modelo de
-agenda sea mas completo.
+Por ahora no se consideran doctores, sillones ni tiempos de limpieza. Esas
+reglas quedan pendientes hasta que el modelo de agenda sea mas completo.
+
+## Excepciones del calendario antes que calendario mensual
+
+Las excepciones del calendario se implementan como una regla puntual sobre una
+fecha, no como calendario mensual completo. Esto permite resolver feriados,
+cierres administrativos, viajes del doctor o campañas con horario especial sin
+agregar una vista pesada ni persistencia.
+
+La decision central es que la excepcion tiene prioridad sobre el horario
+semanal. Una excepcion `closed` cierra la fecha completa; una excepcion
+`special-hours` reemplaza el horario semanal por un rango especifico de inicio
+y fin. Si no hay excepcion, se usa el horario semanal base.
+
+Nueva Cita y Reprogramar consumen el mismo calculo de horario efectivo para
+mostrar opciones disponibles y validar antes de guardar. La disponibilidad por
+duracion sigue usando rangos completos y solapamientos de citas activas, pero
+ahora parte del horario efectivo del dia.
+
+No se permiten dos excepciones para la misma fecha porque la regla actual debe
+ser deterministica y facil de explicar al equipo operativo. Si se necesita
+cambiar una excepcion, por ahora se elimina y se vuelve a crear.
+
+La eliminacion usa `ConfirmDialog` porque afecta reglas de agenda. Agregar y
+eliminar muestran Toast no bloqueante, coherente con Configuracion.
 
 ## Una cita activa por paciente y dia
 
@@ -566,13 +594,9 @@ error. El boton de confirmacion usa rojo suave para ser coherente con el boton
 ## Horarios semanales antes que calendario completo
 
 Configuracion incluye primero un panel semanal de horarios del consultorio con
-intervalo de atencion y dias abiertos o cerrados. Esta version permite validar
-la estructura basica sin construir todavia calendario mensual, feriados,
-excepciones reales ni persistencia.
-
-El bloque `Excepciones del calendario` se deja como comunicacion de producto:
-prepara la evolucion futura hacia feriados, cierres especiales o dias con
-horario distinto, pero no agrega logica nueva.
+intervalo de atencion y dias abiertos o cerrados. Sobre esa base se agregan
+excepciones puntuales de calendario para validar cierres y horarios especiales
+sin construir todavia calendario mensual, feriados recurrentes ni persistencia.
 
 ## Botones de Configuracion alineados con Recordatorios
 
