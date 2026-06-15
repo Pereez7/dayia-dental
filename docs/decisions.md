@@ -156,6 +156,11 @@ Las observaciones del odontograma se normalizan con la utilidad global
 `textNormalizers` para mantener consistencia con historial clinico y futuros
 formularios.
 
+La UI del odontograma prioriza claridad antes que grafico avanzado: separa
+arcadas y cuadrantes FDI con etiquetas de derecha/izquierda del paciente, usa
+badges semanticos para estado actual, limita observaciones a 160 caracteres y
+usa Toast flotante para confirmacion de guardado sin mover el layout.
+
 ## Normalizacion de textos clinicos
 
 Los textos escritos por el doctor en historial clinico se normalizan antes de
@@ -171,24 +176,24 @@ puede aplicar un formatter de presentacion conservador. Este formatter corrige
 casos conocidos como `Aplicacion de fluor` a `Aplicación de flúor`, sin cambiar
 el dato original ni reinterpretar el significado clinico.
 
-## Fechas clinicas con año
+## Formato global de fechas
 
-Las fechas del historial clinico se muestran con año, por ejemplo
-`09-jun-2026`, porque los registros clinicos pueden consultarse mucho tiempo
-despues. La agenda puede usar formatos mas cortos, pero el historial necesita
-mayor claridad temporal.
+Se consolida `formatAppDate` en `src/utils/dateFormatters.ts` como formatter
+general de fechas visibles. La regla base es mostrar `14 jun` cuando la fecha
+pertenece al año actual y `14 jun 2025` cuando pertenece a otro año.
 
-El formateo compacto vive en `src/utils/dateFormatters.ts`. La misma utilidad se
-usa para fechas de ficha del paciente, pacientes recientes y valores opcionales
-como ultima visita o fecha de nacimiento. Si el dato falta o no tiene formato de
-fecha valido, se muestra un fallback como `Sin registro` en lugar de renderizar
-una fecha invalida.
+Si la fecha incluye hora, se mantiene formato 24 horas: `14 jun, 15:16` para el
+año actual y `14 jun 2025, 15:16` para otros años. No se usan `a. m.` ni
+`p. m.` en fechas operativas.
 
-La agenda mantiene fechas cortas como `05-jun`, Recordatorios usa formato
-operativo con hora como `15 jun, 10:00`, y la vista global de Historial clinico
-usa fechas de escaneo como `18 may`, agregando año solo cuando corresponde. La
-decision es elegir el formato por contexto: detalle clinico con año, operativo
-diario corto, recordatorio con hora en 24 horas y exploracion global compacta.
+`formatClinicalHistoryDate` queda como alias de compatibilidad para evitar una
+migracion grande de una sola vez. Los formatters anteriores con año fijo se
+mantienen temporalmente donde todavia se usan, pero la direccion nueva es
+migrar pantallas visibles a `formatAppDate` cuando se toquen.
+
+Si una fecha falta o es invalida, las utilidades deben devolver un texto seguro
+como `Fecha no disponible` o el fallback especifico del contexto, nunca un valor
+ISO crudo ni una fecha invalida renderizada.
 
 ## Asociacion de citas en detalle de paciente
 

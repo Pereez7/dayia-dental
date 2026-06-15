@@ -52,7 +52,8 @@ Implementado:
   estado.
 - Historial clinico inicial dentro del detalle del paciente.
 - Odontograma inicial dentro del detalle del paciente.
-- Formato de fechas de ficha clinica con año, por ejemplo `18-may-2026`.
+- Formato de fechas mediante utilidades compartidas, evitando valores ISO
+  crudos y agregando año solo cuando corresponde.
 - Navegacion local entre listado y detalle sin React Router.
 - Pruebas unitarias para filtros, validaciones, utilidades de detalle e
   historial clinico, incluyendo citas activas y fechas opcionales.
@@ -210,15 +211,21 @@ Implementado:
 - Estado local compartido en `App.tsx`.
 - Visualizacion dentro del detalle de paciente.
 - Piezas permanentes adultas con numeracion FDI.
+- Arcada superior e inferior con cuadrantes FDI identificados por derecha e
+  izquierda del paciente.
 - Grilla simple y responsive de piezas dentales.
 - Estados iniciales: sano, caries, restaurado, ausente, tratamiento pendiente,
   en observacion y otro.
 - Colores suaves por estado.
 - Resumen de cantidad de piezas por estado.
 - Seleccion de pieza y panel simple de actualizacion.
+- Estado actual mostrado como badge con color semantico.
 - Actualizacion o creacion de entrada por `patientId` y `toothNumber`.
-- Normalizacion de observaciones antes de guardar.
-- Fecha de ultima actualizacion con formato compacto con año.
+- Observaciones con limite de 160 caracteres, contador discreto, textarea
+  estable y normalizacion antes de guardar.
+- Fecha de ultima actualizacion con `formatAppDate`, mostrando año solo cuando
+  corresponde.
+- Toast flotante de confirmacion al guardar.
 - Pruebas unitarias para generacion de piezas, filtrado, resumen, validacion y
   actualizacion de entradas.
 

@@ -98,9 +98,13 @@ de backend antes de validar la experiencia local.
 - En el historial clinico global, agrupar por paciente para evitar listas
   repetitivas. La vista debe resumir el ultimo registro, permitir escaneo rapido
   y abrir el detalle cuando se necesite mas contexto.
-- Mantener formato de fechas coherente segun contexto: ficha clinica e historial
-  con año, agenda con formato corto y recordatorios con fecha corta mas hora en
-  24 horas.
+- Mantener formato de fechas coherente y humano: usar `14 jun` para fechas del
+  año actual, `14 jun 2025` para otros años y hora en 24 horas cuando
+  corresponda, por ejemplo `14 jun, 15:16`.
+- En odontograma, priorizar claridad clinica antes que grafico avanzado:
+  arcadas y cuadrantes FDI deben identificarse con facilidad, el estado actual
+  debe verse como badge semantico y las observaciones no deben deformar el
+  layout.
 - No tratar citas canceladas como proximas atenciones activas en el Dashboard,
   aunque sigan visibles y trazables en Agenda.
 - No generar recordatorios para citas canceladas. Recordatorios debe trabajar

@@ -6,6 +6,22 @@ Registro breve de cambios relevantes en DayIA Dental.
 
 ### Cambios realizados
 
+- Se consolido `formatAppDate` como formatter global para fechas visibles de la
+  app.
+- `formatAppDate` muestra año solo cuando la fecha no pertenece al año actual y
+  mantiene hora en formato 24 horas.
+- La fecha de `Ultima actualizacion` del Odontograma usa el formato global de
+  la app, evitando formatos ISO, con guiones o numericos rigidos.
+- Se agregaron pruebas unitarias para fechas del año actual, fechas de otro
+  año, fechas con hora en 24 horas y fechas invalidas.
+- Se pulio el Odontograma inicial dentro del detalle de paciente.
+- El Odontograma ahora separa arcada superior e inferior con cuadrantes FDI
+  identificados como derecha o izquierda del paciente.
+- La confirmacion de guardado del Odontograma usa Toast flotante reutilizable.
+- El estado actual de la pieza se muestra como badge con el mismo color
+  semantico del estado.
+- Las observaciones del Odontograma tienen limite de 160 caracteres, contador
+  discreto, textarea fijo con scroll interno y normalizacion al guardar.
 - Se implemento la primera version del modulo global `Historial clinico`.
 - El modulo global usa los registros clinicos y pacientes del estado local
   compartido en `App.tsx`.
@@ -40,9 +56,14 @@ tiene varios registros. La agrupacion por paciente permite escanear mejor el
 seguimiento clinico, mantener una card compacta por persona y entrar al detalle
 cuando se necesita mas contexto.
 
-El pulido visual busca cerrar la primera version con jerarquia clara sin
-convertir el modulo en una interfaz recargada. El modulo sigue sin backend,
-persistencia, edicion, eliminacion, PDF, adjuntos ni IA medica.
+El pulido visual busca cerrar las primeras versiones con jerarquia clara sin
+convertir los modulos en interfaces recargadas. El odontograma sigue siendo una
+grilla inicial funcional, sin superficies dentales, denticion temporal,
+imagenes, PDF ni historial por pieza.
+
+La consolidacion de fechas evita que convivan formatos rigidos como ISO,
+`14-jun-2026` o `14/06/2026` en superficies visibles. La app queda preparada
+para migrar gradualmente otros modulos hacia `formatAppDate`.
 
 ## 2026-06-13
 
@@ -414,7 +435,8 @@ administrativo y no un error.
   tratamiento pendiente, en observacion y otro.
 - Se agregaron colores suaves por estado y resumen de piezas por estado.
 - Se normalizan observaciones del odontograma antes de guardarlas.
-- Se usa formato compacto con año para la ultima actualizacion de una pieza.
+- La ultima actualizacion de una pieza queda documentada como fecha visible del
+  odontograma; luego se migro al formato global `formatAppDate`.
 - Se agregaron pruebas unitarias para piezas FDI, filtrado por paciente,
   resumen por estado, validacion y actualizacion de entradas de odontograma.
 - Se aplico una mejora visual mediana controlada sin cambiar logica funcional.

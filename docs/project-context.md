@@ -78,11 +78,11 @@ Actualmente existe:
   tratamiento y observaciones.
 - Textos clinicos normalizados antes de guardarse: espacios compactados y
   capitalizacion como oracion.
-- Fechas del historial clinico mostradas con año y resumen temporal del rango
-  de registros.
-- Las fechas de ficha clinica, ultima visita, nacimiento y pacientes recientes
-  usan formato compacto con año, por ejemplo `18-may-2026`, y evitan mostrar
-  valores ISO crudos.
+- Fechas del historial clinico mostradas con formato legible y resumen temporal
+  del rango de registros.
+- Las fechas visibles evitan valores ISO crudos y usan formatters compartidos.
+  Para fechas operativas y clinicas recientes se usa un formato como `14 jun`,
+  agregando año solo cuando corresponde, por ejemplo `14 jun 2025`.
 - Odontograma asociado al paciente mediante `patientId`.
 - Grilla simple de piezas permanentes adultas usando numeracion FDI.
 - Registro local de estado, observaciones y fecha de actualizacion por pieza.
@@ -110,8 +110,8 @@ Dentro del detalle de paciente:
 - Muestra registros del paciente ordenados del mas reciente al mas antiguo.
 - Cada registro muestra fecha con año, motivo de consulta, diagnostico,
   tratamiento y observaciones.
-- Muestra un resumen temporal cuando existen registros, por ejemplo
-  `3 registros · Desde 10-mar-2025 hasta 09-jun-2026`.
+- Muestra un resumen temporal cuando existen registros, usando fechas legibles
+  y año solo cuando corresponde.
 - Permite agregar una evolucion clinica basica desde el detalle del paciente.
 - Valida campos obligatorios y no permite fechas futuras.
 - Normaliza los textos clinicos escritos por el doctor antes de guardarlos.
@@ -152,12 +152,21 @@ Actualmente existe una primera version dentro del detalle de paciente:
 - Usa piezas permanentes adultas con numeracion FDI: `11-18`, `21-28`,
   `31-38` y `41-48`.
 - Muestra una grilla simple y responsive de piezas dentales.
+- Divide visualmente arcada superior e inferior, con cuadrantes identificados
+  como derecha o izquierda del paciente y rangos FDI visibles.
 - Cada pieza muestra numero y estado actual.
 - Si una pieza no tiene entrada, se considera `Sano`.
 - Permite seleccionar una pieza y actualizar estado y observaciones.
+- El estado actual se muestra como badge con el mismo color semantico del
+  estado de la pieza.
+- Las observaciones tienen limite de 160 caracteres, contador discreto,
+  textarea estable y scroll interno.
 - Normaliza observaciones antes de guardarlas.
 - Actualiza `updatedAt` al guardar.
 - Muestra resumen por estado con colores suaves.
+- Muestra la fecha de ultima actualizacion con el formato global de la app,
+  por ejemplo `14 jun` o `14 jun 2025` segun corresponda.
+- Usa Toast flotante para confirmar el guardado sin mover el layout.
 
 El menu lateral `Odontograma` sigue como placeholder global. Por ahora el
 odontograma permanece dentro del detalle de cada paciente porque necesita el

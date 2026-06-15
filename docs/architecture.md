@@ -192,8 +192,9 @@ Participan:
 - `src/utils/odontogram.ts`: genera piezas FDI adultas, filtra entradas,
   obtiene estados, calcula resumen, valida y actualiza entradas.
 - `src/utils/textNormalizers.ts`: normaliza textos escritos en formularios.
-- `src/utils/dateFormatters.ts`: formatea fechas compactas con año y fechas
-  opcionales con fallback seguro.
+- `src/utils/dateFormatters.ts`: formatea fechas de la app con
+  `formatAppDate`, agrega año solo cuando corresponde, mantiene horas en 24
+  horas y ofrece fallbacks seguros para fechas invalidas.
 
 El detalle asocia citas por `patientId` cuando existe. Para mantener
 compatibilidad con citas mock antiguas, tambien acepta coincidencia por nombre
@@ -203,9 +204,10 @@ La ficha superior del detalle muestra resumen operativo con cantidad de citas
 activas, ultima atencion y proxima cita activa. Las citas canceladas no cuentan
 como proxima atencion del paciente.
 
-Las fechas de ficha clinica usan `formatOptionalCompactDateWithYear` para
-mostrar valores como `18-may-2026` y evitar valores crudos como `2026-05-18` o
-fechas invalidas cuando el dato aun no existe.
+Las fechas visibles usan utilidades compartidas para evitar valores crudos como
+`2026-05-18`. El formato global preferido es `14 jun` para fechas del año
+actual y `14 jun 2025` para otros años. Cuando existe hora, se muestra en
+formato 24 horas, por ejemplo `14 jun, 15:16`.
 
 El historial clinico se asocia siempre por `patientId`. Existe dentro del
 detalle del paciente para registrar y revisar evoluciones de un paciente
@@ -213,8 +215,10 @@ seleccionado, y tambien existe como vista global agrupada por paciente para
 consultar historiales entre pacientes sin repetir cards por cada registro.
 
 El odontograma tambien se asocia por `patientId`; cada entrada identifica una
-pieza mediante `toothNumber`. Por ahora vive dentro del detalle del paciente y
-no en la vista global del menu lateral.
+pieza mediante `toothNumber`. `PatientOdontogram` usa grupos FDI generados por
+`src/utils/odontogram.ts` para separar arcada superior e inferior y mostrar
+cuadrantes como derecha o izquierda del paciente. Por ahora vive dentro del
+detalle del paciente y no en la vista global del menu lateral.
 
 `Citas`
 
@@ -413,7 +417,8 @@ Existe como primera version dentro de `PatientDetailView`. Participan:
   paciente, obtiene estado por pieza, cuenta estados, valida formulario,
   normaliza observaciones y crea o actualiza entradas.
 - `src/utils/textNormalizers.ts`: normaliza observaciones.
-- `src/utils/dateFormatters.ts`: muestra `updatedAt` como `09-jun-2026`.
+- `src/utils/dateFormatters.ts`: muestra `updatedAt` con `formatAppDate`, por
+  ejemplo `14 jun` o `14 jun 2025` segun corresponda.
 
 El modulo lateral `Odontograma` sigue siendo placeholder global hasta definir
 una experiencia visual mas completa. La primera version evita superficies
