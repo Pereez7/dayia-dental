@@ -65,6 +65,7 @@ export function AppointmentsView({
       businessHours={businessHours}
       onRescheduleAppointment={onRescheduleAppointment}
       patients={patients}
+      treatments={treatments}
       onUpdateAppointmentStatus={onUpdateAppointmentStatus}
     />
   )

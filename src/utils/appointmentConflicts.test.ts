@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest'
 import type { Appointment } from '../types/Appointment'
 import type { BusinessHoursSettings } from '../types/BusinessHours'
 import {
+  doTimeRangesOverlap,
   getAvailableTimeOptions,
+  getAvailableTimeOptionsByDuration,
+  getAppointmentTimeRange,
+  hasAppointmentDurationConflict,
   hasAppointmentConflict,
   hasPatientAppointmentOnDate,
 } from './appointmentConflicts'
@@ -105,6 +109,164 @@ describe('hasAppointmentConflict', () => {
     expect(hasAppointmentConflict(appointments, '2026-06-10', '09:00', 1)).toBe(
       false,
     )
+  })
+})
+
+describe('appointment duration conflicts', () => {
+  const durationAppointments: Appointment[] = [
+    {
+      date: '2026-06-10',
+      durationMinutes: 30,
+      id: 1,
+      patient: 'Jorge Quiroga',
+      patientId: 1,
+      status: 'pending',
+      time: '13:00',
+      treatment: 'Consulta de emergencia',
+    },
+    {
+      date: '2026-06-10',
+      durationMinutes: 30,
+      id: 2,
+      patient: 'Ana Salazar',
+      patientId: 2,
+      status: 'cancelled',
+      time: '14:00',
+      treatment: 'Control odontológico',
+    },
+  ]
+
+  it('detects overlap when a new appointment starts inside another', () => {
+    expect(
+      hasAppointmentDurationConflict(
+        durationAppointments,
+        '2026-06-10',
+        '13:15',
+        30,
+      ),
+    ).toBe(true)
+  })
+
+  it('detects overlap when a new appointment ends inside another', () => {
+    expect(
+      hasAppointmentDurationConflict(
+        durationAppointments,
+        '2026-06-10',
+        '12:45',
+        30,
+      ),
+    ).toBe(true)
+  })
+
+  it('detects overlap when a new appointment covers another appointment', () => {
+    expect(
+      hasAppointmentDurationConflict(
+        durationAppointments,
+        '2026-06-10',
+        '12:45',
+        60,
+      ),
+    ).toBe(true)
+  })
+
+  it('detects overlap when a new appointment is fully inside another', () => {
+    expect(
+      hasAppointmentDurationConflict(
+        [
+          {
+            ...durationAppointments[0],
+            durationMinutes: 60,
+          },
+        ],
+        '2026-06-10',
+        '13:15',
+        15,
+      ),
+    ).toBe(true)
+  })
+
+  it('does not detect overlap when a new appointment ends exactly when another starts', () => {
+    expect(
+      hasAppointmentDurationConflict(
+        durationAppointments,
+        '2026-06-10',
+        '12:30',
+        30,
+      ),
+    ).toBe(false)
+  })
+
+  it('does not detect overlap when a new appointment starts exactly when another ends', () => {
+    expect(
+      hasAppointmentDurationConflict(
+        durationAppointments,
+        '2026-06-10',
+        '13:30',
+        30,
+      ),
+    ).toBe(false)
+  })
+
+  it('ignores cancelled appointments', () => {
+    expect(
+      hasAppointmentDurationConflict(
+        durationAppointments,
+        '2026-06-10',
+        '14:15',
+        30,
+      ),
+    ).toBe(false)
+  })
+
+  it('ignores the current appointment when rescheduling', () => {
+    expect(
+      hasAppointmentDurationConflict(
+        durationAppointments,
+        '2026-06-10',
+        '13:15',
+        30,
+        1,
+      ),
+    ).toBe(false)
+  })
+
+  it('uses a 30 minute fallback for older appointments without duration', () => {
+    expect(
+      hasAppointmentDurationConflict(
+        [
+          {
+            date: '2026-06-10',
+            id: 5,
+            patient: 'Paciente antiguo',
+            patientId: 5,
+            status: 'confirmed',
+            time: '15:00',
+            treatment: 'Tratamiento antiguo',
+          },
+        ],
+        '2026-06-10',
+        '15:15',
+        30,
+      ),
+    ).toBe(true)
+  })
+
+  it('builds comparable appointment time ranges', () => {
+    expect(getAppointmentTimeRange('2026-06-10', '13:00', 30)).toEqual({
+      date: '2026-06-10',
+      endMinutes: 810,
+      endTime: '13:30',
+      startMinutes: 780,
+      startTime: '13:00',
+    })
+  })
+
+  it('compares time ranges with exclusive edges', () => {
+    const firstRange = getAppointmentTimeRange('2026-06-10', '13:00', 30)
+    const secondRange = getAppointmentTimeRange('2026-06-10', '13:30', 30)
+
+    expect(firstRange && secondRange).toBeTruthy()
+    expect(doTimeRangesOverlap(firstRange!, secondRange!)).toBe(false)
   })
 })
 
@@ -222,5 +384,80 @@ describe('getAvailableTimeOptions', () => {
         },
       ).map((slot) => slot.value),
     ).toContain('09:45')
+  })
+})
+
+describe('getAvailableTimeOptionsByDuration', () => {
+  const durationBusinessHours: BusinessHoursSettings = {
+    appointmentInterval: 15,
+    weeklySchedule: [
+      {
+        day: 'wednesday',
+        endTime: '14:00',
+        isOpen: true,
+        startTime: '13:00',
+      },
+    ],
+  }
+
+  const durationAppointments: Appointment[] = [
+    {
+      date: '2026-06-10',
+      durationMinutes: 30,
+      id: 1,
+      patient: 'Ana Salazar',
+      patientId: 1,
+      status: 'confirmed',
+      time: '13:00',
+      treatment: 'Consulta de emergencia',
+    },
+  ]
+
+  it('does not show times that overlap active appointments', () => {
+    expect(
+      getAvailableTimeOptionsByDuration(
+        durationBusinessHours,
+        durationAppointments,
+        '2026-06-10',
+        30,
+      ).map((slot) => slot.value),
+    ).toEqual(['13:30'])
+  })
+
+  it('does not show times that exceed closing time', () => {
+    expect(
+      getAvailableTimeOptionsByDuration(
+        durationBusinessHours,
+        [],
+        '2026-06-10',
+        45,
+      ).map((slot) => slot.value),
+    ).toEqual(['13:00', '13:15'])
+  })
+
+  it('respects the selected treatment duration', () => {
+    expect(
+      getAvailableTimeOptionsByDuration(
+        durationBusinessHours,
+        durationAppointments,
+        '2026-06-10',
+        60,
+      ).map((slot) => slot.value),
+    ).toEqual([])
+  })
+
+  it('keeps past times hidden for today', () => {
+    expect(
+      getAvailableTimeOptionsByDuration(
+        durationBusinessHours,
+        [],
+        '2026-06-10',
+        30,
+        {
+          excludePastTimes: true,
+          referenceDate: new Date('2026-06-10T13:15:00'),
+        },
+      ).map((slot) => slot.value),
+    ).toEqual(['13:30'])
   })
 })

@@ -10,7 +10,7 @@ import type { Patient } from '../types/Patient'
 import type { Treatment } from '../types/Treatment'
 import { getAppointmentStatusLabel } from '../utils/appointmentFormatters'
 import {
-  getAvailableTimeOptions,
+  getAvailableTimeOptionsByDuration,
   hasPatientAppointmentOnDate,
 } from '../utils/appointmentConflicts'
 import {
@@ -83,11 +83,24 @@ export function AppointmentForm({
   const appointmentTimeOptions = useMemo(
     () =>
       formValues.date
-        ? getAvailableTimeOptions(businessHours, appointments, formValues.date, {
-            excludePastTimes: true,
-          })
+        ? getAvailableTimeOptionsByDuration(
+            businessHours,
+            appointments,
+            formValues.date,
+            formValues.durationMinutes,
+            {
+              excludePastTimes: true,
+              treatments: activeTreatments,
+            },
+          )
         : [],
-    [appointments, businessHours, formValues.date],
+    [
+      activeTreatments,
+      appointments,
+      businessHours,
+      formValues.date,
+      formValues.durationMinutes,
+    ],
   )
   const isTimeSelectDisabled =
     !formValues.date || selectedDateIsClosed || appointmentTimeOptions.length === 0
@@ -101,9 +114,16 @@ export function AppointmentForm({
 
   function updateAppointmentDate(value: string) {
     const timeOptions = value
-      ? getAvailableTimeOptions(businessHours, appointments, value, {
-          excludePastTimes: true,
-        })
+      ? getAvailableTimeOptionsByDuration(
+          businessHours,
+          appointments,
+          value,
+          formValues.durationMinutes,
+          {
+            excludePastTimes: true,
+            treatments: activeTreatments,
+          },
+        )
       : []
     const daySchedule = value
       ? getBusinessDayScheduleForDate(businessHours, value)
@@ -142,11 +162,28 @@ export function AppointmentForm({
   }
 
   function updateTreatment(value: string) {
+    const durationMinutes = value
+      ? getTreatmentDuration(activeTreatments, value)
+      : defaultTreatmentDurationMinutes
+    const timeOptions = formValues.date
+      ? getAvailableTimeOptionsByDuration(
+          businessHours,
+          appointments,
+          formValues.date,
+          durationMinutes,
+          {
+            excludePastTimes: true,
+            treatments: activeTreatments,
+          },
+        )
+      : []
+
     setFormValues((currentValues) => ({
       ...currentValues,
-      durationMinutes: value
-        ? getTreatmentDuration(activeTreatments, value)
-        : defaultTreatmentDurationMinutes,
+      durationMinutes,
+      time: timeOptions.some((slot) => slot.value === currentValues.time)
+        ? currentValues.time
+        : '',
       treatment: value,
     }))
     setErrors((currentErrors) => ({

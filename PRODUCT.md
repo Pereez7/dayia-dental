@@ -61,6 +61,9 @@ de backend antes de validar la experiencia local.
 - Mantener foco de tarea en Agenda: mientras una cita esta en modo
   reprogramacion, la card debe priorizar guardar o cancelar esa edicion y evitar
   acciones externas que puedan confundirse con cancelar la cita completa.
+- Mantener la card de Agenda escaneable: rango horario, datos del paciente,
+  estado y acciones deben vivir en bloques separados para evitar solapamientos,
+  especialmente cuando se muestran rangos como `13:00 - 13:30`.
 - Reprogramar debe mover la cita: cambiar solo el motivo no cuenta como
   reprogramacion y debera resolverse mas adelante con una accion especifica de
   edicion de motivo.
@@ -137,6 +140,8 @@ producto.
 - Mensajes de error y exito claros, cercanos al campo o accion correspondiente.
 - Formularios de agenda con errores inline para conflictos de horario o doble
   cita activa del paciente, sin depender de Toast para errores de validacion.
+- El panel de reprogramacion debe mostrar errores de validacion una sola vez,
+  junto al formulario, sin duplicarlos en Toast.
 - Tamanos tactiles comodos en mobile.
 - Interfaz mobile-first.
 - Respetar `prefers-reduced-motion` si se agregan animaciones.

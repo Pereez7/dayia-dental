@@ -1,5 +1,6 @@
 import type { Appointment } from '../types/Appointment'
 import type { Patient } from '../types/Patient'
+import type { Treatment } from '../types/Treatment'
 import type { AppointmentTimeSlot } from '../utils/appointmentTimeSlots'
 import { getAppointmentStatusActions } from '../utils/appointmentActions'
 import {
@@ -46,6 +47,7 @@ interface AppointmentAgendaCardProps {
   rescheduleTimeOptions: AppointmentTimeSlot[]
   rescheduleValues: AppointmentRescheduleValues
   showRescheduleForm: boolean
+  treatments?: Treatment[]
 }
 
 export function AppointmentAgendaCard({
@@ -68,10 +70,11 @@ export function AppointmentAgendaCard({
   rescheduleTimeOptions,
   rescheduleValues,
   showRescheduleForm,
+  treatments = [],
 }: AppointmentAgendaCardProps) {
   const appointmentTimeRange = formatAppointmentTimeRange(
     appointment.time,
-    getAppointmentDuration(appointment),
+    getAppointmentDuration(appointment, treatments),
   )
   const statusClassName = getAppointmentStatusClassName(appointment.status)
   const statusLabel = getAppointmentStatusLabel(appointment.status)

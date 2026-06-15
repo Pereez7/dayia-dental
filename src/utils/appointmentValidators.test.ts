@@ -54,7 +54,7 @@ const validAppointmentFormValues: AppointmentFormValues = {
   patient: 'Mariana Rojas',
   date: '2026-06-12',
   durationMinutes: 45,
-  time: '09:30',
+  time: '10:30',
   treatment: 'Limpieza dental',
   status: 'pending',
 }
@@ -232,16 +232,24 @@ describe('validateAppointmentForm', () => {
     expect(errors.date).toBe('La fecha no puede ser anterior a hoy.')
   })
 
-  it('rejects an appointment when the date and time are already occupied', () => {
+  it('rejects an appointment when the selected range overlaps another appointment', () => {
     const errors = validate({
       ...validAppointmentFormValues,
       date: '2026-06-12',
       time: '10:00',
     })
 
-    expect(errors.time).toBe(
-      'Ya existe una cita programada para esa fecha y hora.',
-    )
+    expect(errors.time).toBe('El horario seleccionado se cruza con otra cita.')
+  })
+
+  it('rejects an appointment that starts before an active appointment and ends during it', () => {
+    const errors = validate({
+      ...validAppointmentFormValues,
+      date: '2026-06-12',
+      time: '09:30',
+    })
+
+    expect(errors.time).toBe('El horario seleccionado se cruza con otra cita.')
   })
 
   it('rejects an appointment when the patient already has an active appointment that day', () => {

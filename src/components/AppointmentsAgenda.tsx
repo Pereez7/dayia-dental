@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Appointment, AppointmentStatus } from '../types/Appointment'
 import type { BusinessHoursSettings } from '../types/BusinessHours'
 import type { Patient } from '../types/Patient'
-import { getAvailableTimeOptions } from '../utils/appointmentConflicts'
+import type { Treatment } from '../types/Treatment'
+import { getAvailableTimeOptionsByDuration } from '../utils/appointmentConflicts'
+import { getAppointmentDuration } from '../utils/appointmentDuration'
 import {
   canRescheduleAppointment,
   shouldCloseReschedulePanelAfterStatusChange,
@@ -42,6 +44,7 @@ interface AppointmentsAgendaProps {
   appointments: Appointment[]
   businessHours: BusinessHoursSettings
   patients: Patient[]
+  treatments: Treatment[]
   onRescheduleAppointment?: (
     appointmentId: number,
     date: string,
@@ -74,6 +77,7 @@ export function AppointmentsAgenda({
   onRescheduleAppointment,
   onUpdateAppointmentStatus,
   patients,
+  treatments,
 }: AppointmentsAgendaProps) {
   const [selectedDate, setSelectedDate] = useState(() => getDateInputValue())
   const [rescheduleAppointmentId, setRescheduleAppointmentId] = useState<
@@ -250,10 +254,17 @@ export function AppointmentsAgenda({
 
   function updateRescheduleDate(appointment: Appointment, date: string) {
     const timeOptions = date
-      ? getAvailableTimeOptions(businessHours, appointments, date, {
-          appointmentIdToIgnore: appointment.id,
-          excludePastTimes: true,
-        })
+      ? getAvailableTimeOptionsByDuration(
+          businessHours,
+          appointments,
+          date,
+          getAppointmentDuration(appointment, treatments),
+          {
+            appointmentIdToIgnore: appointment.id,
+            excludePastTimes: true,
+            treatments,
+          },
+        )
       : []
     const daySchedule = date
       ? getBusinessDayScheduleForDate(businessHours, date)
@@ -343,6 +354,8 @@ export function AppointmentsAgenda({
       rescheduleValues,
       appointments,
       businessHours,
+      new Date(),
+      treatments,
     )
     const reasonErrors = validateAppointmentReason(rescheduleValues)
 
@@ -375,13 +388,15 @@ export function AppointmentsAgenda({
 
   function getRescheduleTimeOptions(appointment: Appointment) {
     return rescheduleValues.date
-        ? getAvailableTimeOptions(
+        ? getAvailableTimeOptionsByDuration(
             businessHours,
             appointments,
             rescheduleValues.date,
+            getAppointmentDuration(appointment, treatments),
             {
               appointmentIdToIgnore: appointment.id,
               excludePastTimes: true,
+              treatments,
             },
           )
       : []
@@ -546,6 +561,7 @@ export function AppointmentsAgenda({
                 rescheduleAppointmentId === appointment.id &&
                 canRescheduleAppointment(appointment.status)
               }
+              treatments={treatments}
             />
           ))}
         </div>

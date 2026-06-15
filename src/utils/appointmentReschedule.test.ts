@@ -161,8 +161,23 @@ describe('validateAppointmentReschedule', () => {
 
   it('rejects an occupied time', () => {
     expect(validate({ date: '2026-06-12', time: '10:00' }).time).toBe(
-      'Ya existe una cita programada para esa fecha y hora.',
+      'El horario seleccionado se cruza con otra cita.',
     )
+  })
+
+  it('rejects a range that overlaps another active appointment', () => {
+    const errors = validateAppointmentReschedule(
+      {
+        ...appointment,
+        durationMinutes: 45,
+      },
+      getRescheduleValues({ date: '2026-06-12', time: '09:30' }),
+      appointments,
+      businessHours,
+      new Date('2026-06-08T10:00:00'),
+    )
+
+    expect(errors.time).toBe('El horario seleccionado se cruza con otra cita.')
   })
 
   it('rejects another active appointment for the same patient that day', () => {
@@ -173,6 +188,23 @@ describe('validateAppointmentReschedule', () => {
 
   it('allows a time occupied by a cancelled appointment', () => {
     expect(validate({ date: '2026-06-12', time: '11:00' })).toEqual({})
+  })
+
+  it('rejects a reschedule that would exceed clinic closing time', () => {
+    const errors = validateAppointmentReschedule(
+      {
+        ...appointment,
+        durationMinutes: 45,
+      },
+      getRescheduleValues({ date: '2026-06-12', time: '17:30' }),
+      appointments,
+      businessHours,
+      new Date('2026-06-08T10:00:00'),
+    )
+
+    expect(errors.time).toBe(
+      'La duración del tratamiento excede el horario de atención.',
+    )
   })
 
   it('rejects a past time for today', () => {

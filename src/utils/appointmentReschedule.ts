@@ -1,11 +1,16 @@
 import type { Appointment } from '../types/Appointment'
 import type { BusinessHoursSettings } from '../types/BusinessHours'
+import type { Treatment } from '../types/Treatment'
 import { canRescheduleAppointment } from './appointmentActions'
 import {
-  hasAppointmentConflict,
+  hasAppointmentDurationConflict,
   hasPatientAppointmentOnDate,
   isPastTimeForDate,
 } from './appointmentConflicts'
+import {
+  doesAppointmentFitBusinessHours,
+  getAppointmentDuration,
+} from './appointmentDuration'
 import type {
   AppointmentReasonPayload,
   AppointmentRescheduleReason,
@@ -14,7 +19,10 @@ import {
   appendAppointmentLogEntry,
   createAppointmentRescheduledLog,
 } from './appointmentChangeLog'
-import { validateAppointmentAgainstBusinessHours } from './businessHours'
+import {
+  getBusinessDayScheduleForDate,
+  validateAppointmentAgainstBusinessHours,
+} from './businessHours'
 
 export interface AppointmentRescheduleValues {
   date: string
@@ -60,8 +68,10 @@ export function validateAppointmentReschedule(
   appointments: Appointment[],
   businessHours: BusinessHoursSettings,
   referenceDate = new Date(),
+  treatments: Treatment[] = [],
 ) {
   const errors: AppointmentRescheduleErrors = {}
+  const durationMinutes = getAppointmentDuration(appointment, treatments)
 
   if (!canRescheduleAppointment(appointment.status)) {
     errors.appointment = 'No puedes reprogramar una cita cancelada.'
@@ -100,14 +110,26 @@ export function validateAppointmentReschedule(
   } else if (isPastTimeForDate(values.date, values.time, referenceDate)) {
     errors.time = 'No puedes seleccionar una hora que ya pasó.'
   } else if (
-    hasAppointmentConflict(
+    !doesAppointmentFitBusinessHours(
+      getBusinessDayScheduleForDate(businessHours, values.date),
+      values.time,
+      durationMinutes,
+    )
+  ) {
+    errors.time = 'La duración del tratamiento excede el horario de atención.'
+  } else if (
+    hasAppointmentDurationConflict(
       appointments,
       values.date,
       values.time,
-      appointment.id,
+      durationMinutes,
+      {
+        appointmentIdToIgnore: appointment.id,
+        treatments,
+      },
     )
   ) {
-    errors.time = 'Ya existe una cita programada para esa fecha y hora.'
+    errors.time = 'El horario seleccionado se cruza con otra cita.'
   }
 
   if (

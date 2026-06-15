@@ -7,7 +7,7 @@ import type {
 import type { BusinessHoursSettings } from '../types/BusinessHours'
 import type { Treatment } from '../types/Treatment'
 import {
-  hasAppointmentConflict,
+  hasAppointmentDurationConflict,
   hasPatientAppointmentOnDate,
   isPastTimeForDate,
 } from './appointmentConflicts'
@@ -56,6 +56,16 @@ export function validateAppointmentForm(
     errors.date = 'La fecha no puede ser anterior a hoy.'
   }
 
+  const activeTreatments = getActiveTreatments(treatments)
+  const selectedTreatment = activeTreatments.find(
+    (treatment) => treatment.name === values.treatment,
+  )
+  const hasValidSelectedDuration =
+    selectedTreatment &&
+    isValidTreatmentDuration(selectedTreatment.durationMinutes) &&
+    values.durationMinutes === selectedTreatment.durationMinutes &&
+    isValidTreatmentDuration(values.durationMinutes)
+
   const canValidateBusinessHours =
     businessHours && values.date && !errors.date
   const businessHoursError = canValidateBusinessHours
@@ -80,20 +90,20 @@ export function validateAppointmentForm(
   ) {
     errors.time = 'Selecciona una hora valida.'
   } else if (
-    hasAppointmentConflict(
+    hasValidSelectedDuration &&
+    hasAppointmentDurationConflict(
       appointments,
       values.date,
       values.time,
-      appointmentIdToIgnore,
+      values.durationMinutes,
+      {
+        appointmentIdToIgnore,
+        treatments: activeTreatments,
+      },
     )
   ) {
-    errors.time = 'Ya existe una cita programada para esa fecha y hora.'
+    errors.time = 'El horario seleccionado se cruza con otra cita.'
   }
-
-  const activeTreatments = getActiveTreatments(treatments)
-  const selectedTreatment = activeTreatments.find(
-    (treatment) => treatment.name === values.treatment,
-  )
 
   if (!values.treatment.trim()) {
     errors.treatment = 'Ingresa el motivo o tratamiento.'
