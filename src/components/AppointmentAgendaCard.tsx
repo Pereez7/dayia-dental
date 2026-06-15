@@ -106,38 +106,34 @@ export function AppointmentAgendaCard({
           {appointmentTimeRange}
         </time>
 
-        <div className="agenda-card-content">
-          <div className="agenda-card-heading">
-            <div className="agenda-card-patient">
-              <h3>{appointment.patient}</h3>
-              <p>{patient?.phone ?? 'Telefono sin registro'}</p>
-            </div>
-
-            <span className={`agenda-status ${statusClassName}`}>
-              {statusLabel}
-            </span>
-          </div>
-
-          <p className="agenda-card-treatment">{appointment.treatment}</p>
-
-          {(reasonText || visibleChangeLogEntry) && (
-            <div
-              className={`agenda-card-meta${
-                !reasonText ? ' agenda-card-meta--single' : ''
-              }`}
-            >
-              {reasonText && (
-                <p className="agenda-card-reason">Motivo: {reasonText}</p>
-              )}
-
-              {visibleChangeLogEntry && (
-                <p className="agenda-card-change-log">
-                  {getAppointmentLogSummary(visibleChangeLogEntry)}
-                </p>
-              )}
-            </div>
-          )}
+        <div className="agenda-card-patient">
+          <h3>{appointment.patient}</h3>
+          <p>{patient?.phone ?? 'Telefono sin registro'}</p>
         </div>
+
+        <span className={`agenda-status agenda-card-status ${statusClassName}`}>
+          {statusLabel}
+        </span>
+
+        <p className="agenda-card-treatment">{appointment.treatment}</p>
+
+        {(reasonText || visibleChangeLogEntry) && (
+          <div
+            className={`agenda-card-meta${
+              !reasonText ? ' agenda-card-meta--single' : ''
+            }`}
+          >
+            {reasonText && (
+              <p className="agenda-card-reason">Motivo: {reasonText}</p>
+            )}
+
+            {visibleChangeLogEntry && (
+              <p className="agenda-card-change-log">
+                {getAppointmentLogSummary(visibleChangeLogEntry)}
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="agenda-card-side">
           {availableActions.length > 0 && !showRescheduleForm && (

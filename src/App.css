@@ -1399,9 +1399,12 @@
 .agenda-card-main {
   display: grid;
   grid-template-areas:
-    'time content'
+    'patient status'
+    'time time'
+    'treatment treatment'
+    'meta meta'
     'side side';
-  grid-template-columns: 92px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) max-content;
   align-items: start;
   gap: 8px 12px;
   min-width: 0;
@@ -1413,7 +1416,8 @@
   align-items: center;
   justify-content: center;
   min-height: 42px;
-  min-width: 92px;
+  width: fit-content;
+  min-width: 124px;
   border-radius: var(--radius-sm);
   background: #eef8fc;
   color: var(--color-primary-dark);
@@ -1425,16 +1429,13 @@
   white-space: nowrap;
 }
 
-.agenda-card-content,
 .agenda-card-patient,
 .agenda-card-side {
   min-width: 0;
 }
 
-.agenda-card-content {
-  grid-area: content;
-  display: grid;
-  gap: 4px;
+.agenda-card-patient {
+  grid-area: patient;
 }
 
 .agenda-card-side {
@@ -1443,14 +1444,6 @@
   align-items: start;
   justify-content: flex-end;
   gap: 8px;
-}
-
-.agenda-card-heading {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 12px;
-  min-width: 0;
 }
 
 .agenda-card-patient h3 {
@@ -1469,6 +1462,7 @@
 }
 
 .agenda-card-treatment {
+  grid-area: treatment;
   color: var(--color-heading) !important;
   font-size: 0.82rem !important;
   font-weight: 500;
@@ -1476,6 +1470,7 @@
 }
 
 .agenda-card-meta {
+  grid-area: meta;
   display: grid;
   gap: 2px;
   min-width: 0;
@@ -1534,8 +1529,10 @@
   user-select: none;
 }
 
-.agenda-card-heading .agenda-status {
+.agenda-card-status {
+  grid-area: status;
   margin-top: 1px;
+  justify-self: end;
 }
 
 .agenda-card-actions {
@@ -1682,7 +1679,7 @@
   color: var(--color-warning);
 }
 
-.agenda-card-heading .agenda-status.appointment-status--pending {
+.agenda-card-status.appointment-status--pending {
   background: rgba(255, 247, 223, 0.64);
 }
 
@@ -1693,7 +1690,7 @@
   color: var(--color-indigo);
 }
 
-.agenda-card-heading .agenda-status.appointment-status--rescheduled {
+.agenda-card-status.appointment-status--rescheduled {
   background: rgba(238, 242, 255, 0.66);
 }
 
@@ -1713,14 +1710,20 @@
 
 @media (min-width: 760px) {
   .agenda-card-main {
-    grid-template-areas: 'time content side';
-    grid-template-columns: 72px minmax(0, 1fr) auto;
+    grid-template-areas:
+      'time patient status'
+      'time treatment side'
+      'time meta side';
+    grid-template-columns: minmax(124px, max-content) minmax(0, 1fr) minmax(
+        148px,
+        max-content
+      );
     align-items: start;
     column-gap: 14px;
   }
 
-  .agenda-card-content {
-    gap: 4px;
+  .agenda-card-time {
+    justify-self: stretch;
   }
 
   .agenda-card-reason {
@@ -1750,11 +1753,14 @@
   }
 
   .agenda-card-main {
-    grid-template-areas: 'time content side';
+    grid-template-areas:
+      'time patient status'
+      'time treatment side'
+      'time meta side';
     grid-template-columns:
-      72px
+      minmax(124px, max-content)
       minmax(360px, 1fr)
-      auto;
+      minmax(148px, max-content);
   }
 }
 
@@ -1775,18 +1781,22 @@
 
   .agenda-card-main {
     grid-template-areas:
-      'content content'
-      'time side';
-    grid-template-columns: 58px minmax(0, 1fr);
+      'patient status'
+      'time time'
+      'treatment treatment'
+      'meta meta'
+      'side side';
+    grid-template-columns: minmax(0, 1fr) max-content;
     gap: 10px;
   }
 
-  .agenda-card-heading {
-    align-items: start;
+  .agenda-card-status {
+    align-self: start;
   }
 
   .agenda-card-side {
-    align-self: center;
+    width: 100%;
+    align-self: stretch;
   }
 
   .agenda-card-meta {
@@ -1795,19 +1805,21 @@
   }
 
   .agenda-card-time {
+    width: 100%;
     min-height: 38px;
     font-size: 0.9rem;
   }
 
   .agenda-card-actions {
     display: grid;
-    grid-template-columns: repeat(2, max-content);
-    justify-content: flex-end;
+    width: 100%;
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+    justify-content: stretch;
     gap: 5px;
   }
 
   .agenda-card-actions:has(.agenda-card-action:nth-child(3)) {
-    grid-template-columns: repeat(2, max-content);
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
   }
 
   .agenda-card-action {

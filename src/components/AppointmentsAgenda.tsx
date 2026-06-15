@@ -353,12 +353,8 @@ export function AppointmentsAgenda({
       hasAppointmentRescheduleErrors(errors) ||
       hasAppointmentReasonErrors(reasonErrors)
     ) {
-      if (errors.appointment) {
-        setToastMessage(errors.appointment)
-        setToastTone('error')
-        setIsToastVisible(true)
-      }
-
+      setToastMessage('')
+      setIsToastVisible(false)
       return
     }
 
