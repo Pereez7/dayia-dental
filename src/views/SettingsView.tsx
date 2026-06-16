@@ -3,37 +3,87 @@ import { TreatmentsSettings } from '../components/TreatmentsSettings'
 import type {
   BusinessHoursSettings as BusinessHoursSettingsType,
   CalendarException,
+  CalendarExceptionFormValues,
+  CalendarExceptionId,
 } from '../types/BusinessHours'
-import type { Treatment } from '../types/Treatment'
+import type { Treatment, TreatmentId } from '../types/Treatment'
+
+interface SettingsActionResult {
+  error?: string
+  success: boolean
+}
 
 interface SettingsViewProps {
   businessHours: BusinessHoursSettingsType
   calendarExceptions: CalendarException[]
-  onCalendarExceptionsChange: (exceptions: CalendarException[]) => void
-  onBusinessHoursChange: (settings: BusinessHoursSettingsType) => void
+  businessHoursError?: string
+  isBusinessHoursConfigured?: boolean
+  onBusinessHoursChange: (
+    settings: BusinessHoursSettingsType,
+  ) => Promise<SettingsActionResult> | SettingsActionResult
+  onCreateCalendarException: (
+    values: CalendarExceptionFormValues,
+  ) => Promise<SettingsActionResult> | SettingsActionResult
+  onCreateTreatment: (
+    treatment: Omit<Treatment, 'id'>,
+  ) => Promise<SettingsActionResult> | SettingsActionResult
+  onDeleteCalendarException: (
+    exceptionId: CalendarExceptionId,
+  ) => Promise<SettingsActionResult> | SettingsActionResult
+  onSetTreatmentActive: (
+    treatmentId: TreatmentId,
+    isActive: boolean,
+  ) => Promise<SettingsActionResult> | SettingsActionResult
+  onUpdateTreatment: (
+    treatmentId: TreatmentId,
+    treatment: Omit<Treatment, 'id'>,
+  ) => Promise<SettingsActionResult> | SettingsActionResult
+  settingsError?: string
+  treatmentsError?: string
   treatments: Treatment[]
-  onTreatmentsChange: (treatments: Treatment[]) => void
 }
 
 export function SettingsView({
   businessHours,
   calendarExceptions,
-  onCalendarExceptionsChange,
+  businessHoursError = '',
   onBusinessHoursChange,
+  onCreateCalendarException,
+  onCreateTreatment,
+  onDeleteCalendarException,
+  onSetTreatmentActive,
+  onUpdateTreatment,
+  isBusinessHoursConfigured = true,
+  settingsError = '',
+  treatmentsError = '',
   treatments,
-  onTreatmentsChange,
 }: SettingsViewProps) {
+  const businessHoursKey = [
+    businessHours.appointmentInterval,
+    ...businessHours.weeklySchedule.map(
+      (day) =>
+        `${day.day}:${day.isOpen ? 'open' : 'closed'}:${day.startTime}-${day.endTime}`,
+    ),
+  ].join('|')
+
   return (
     <section className="view-stack settings-grid">
       <BusinessHoursSettings
+        key={businessHoursKey}
         calendarExceptions={calendarExceptions}
+        errorMessage={businessHoursError || settingsError}
+        isBusinessHoursConfigured={isBusinessHoursConfigured}
         settings={businessHours}
-        onCalendarExceptionsChange={onCalendarExceptionsChange}
+        onCreateCalendarException={onCreateCalendarException}
+        onDeleteCalendarException={onDeleteCalendarException}
         onSettingsChange={onBusinessHoursChange}
       />
       <TreatmentsSettings
+        errorMessage={treatmentsError || settingsError}
         treatments={treatments}
-        onTreatmentsChange={onTreatmentsChange}
+        onCreateTreatment={onCreateTreatment}
+        onSetTreatmentActive={onSetTreatmentActive}
+        onUpdateTreatment={onUpdateTreatment}
       />
     </section>
   )

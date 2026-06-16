@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import type { Treatment } from '../types/Treatment'
+import type { Treatment, TreatmentId } from '../types/Treatment'
 import {
   allowedTreatmentDurations,
   defaultTreatmentDurationMinutes,
@@ -12,22 +12,40 @@ import { ConfirmDialog } from './ConfirmDialog'
 import { Toast, type ToastTone } from './Toast'
 
 interface TreatmentsSettingsProps {
+  errorMessage?: string
   treatments: Treatment[]
-  onTreatmentsChange: (treatments: Treatment[]) => void
+  onCreateTreatment: (
+    treatment: Omit<Treatment, 'id'>,
+  ) => Promise<TreatmentActionResult> | TreatmentActionResult
+  onSetTreatmentActive: (
+    treatmentId: TreatmentId,
+    isActive: boolean,
+  ) => Promise<TreatmentActionResult> | TreatmentActionResult
+  onUpdateTreatment: (
+    treatmentId: TreatmentId,
+    treatment: Omit<Treatment, 'id'>,
+  ) => Promise<TreatmentActionResult> | TreatmentActionResult
+}
+
+interface TreatmentActionResult {
+  error?: string
+  success: boolean
 }
 
 export function TreatmentsSettings({
+  errorMessage = '',
   treatments,
-  onTreatmentsChange,
+  onCreateTreatment,
+  onSetTreatmentActive,
+  onUpdateTreatment,
 }: TreatmentsSettingsProps) {
   const [treatmentName, setTreatmentName] = useState('')
   const [treatmentDuration, setTreatmentDuration] = useState(
     defaultTreatmentDurationMinutes,
   )
   const [searchText, setSearchText] = useState('')
-  const [editingTreatmentId, setEditingTreatmentId] = useState<number | null>(
-    null,
-  )
+  const [editingTreatmentId, setEditingTreatmentId] =
+    useState<TreatmentId | null>(null)
   const [editingName, setEditingName] = useState('')
   const [editingDuration, setEditingDuration] = useState(
     defaultTreatmentDurationMinutes,
@@ -36,7 +54,8 @@ export function TreatmentsSettings({
   const [toastTone, setToastTone] = useState<ToastTone>('success')
   const [isToastVisible, setIsToastVisible] = useState(false)
   const [treatmentIdPendingDeactivation, setTreatmentIdPendingDeactivation] =
-    useState<number | null>(null)
+    useState<TreatmentId | null>(null)
+  const [actionError, setActionError] = useState('')
   const filteredTreatments = filterTreatmentsBySearch(treatments, searchText)
 
   useEffect(() => {
@@ -59,7 +78,7 @@ export function TreatmentsSettings({
     return () => window.clearTimeout(timeoutId)
   }, [isToastVisible, toastMessage])
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const validationError = validateTreatmentName(treatments, treatmentName)
@@ -73,14 +92,17 @@ export function TreatmentsSettings({
       return
     }
 
-    const newTreatment: Treatment = {
-      id: Date.now(),
+    const result = await onCreateTreatment({
       durationMinutes: treatmentDuration,
       name: formatTreatmentName(treatmentName),
       isActive: true,
+    })
+
+    if (!result.success) {
+      showActionError(result.error ?? 'No pudimos guardar el tratamiento.')
+      return
     }
 
-    onTreatmentsChange([...treatments, newTreatment])
     setTreatmentName('')
     setTreatmentDuration(defaultTreatmentDurationMinutes)
     setToastMessage('Tratamiento agregado.')
@@ -88,18 +110,20 @@ export function TreatmentsSettings({
     setIsToastVisible(true)
   }
 
-  function toggleTreatment(treatmentId: number) {
+  async function toggleTreatment(treatmentId: TreatmentId) {
     const targetTreatment = treatments.find(
       (treatment) => treatment.id === treatmentId,
     )
 
-    onTreatmentsChange(
-      treatments.map((treatment) =>
-        treatment.id === treatmentId
-          ? { ...treatment, isActive: !treatment.isActive }
-          : treatment,
-      ),
-    )
+    const nextIsActive = !targetTreatment?.isActive
+    const result = await onSetTreatmentActive(treatmentId, nextIsActive)
+
+    if (!result.success) {
+      showActionError(result.error ?? 'No pudimos actualizar el tratamiento.')
+      return
+    }
+
+    setActionError('')
     setToastMessage(
       targetTreatment?.isActive
         ? 'Tratamiento desactivado.'
@@ -109,7 +133,7 @@ export function TreatmentsSettings({
     setIsToastVisible(true)
   }
 
-  function requestTreatmentDeactivation(treatmentId: number) {
+  function requestTreatmentDeactivation(treatmentId: TreatmentId) {
     setTreatmentIdPendingDeactivation(treatmentId)
     setIsToastVisible(false)
   }
@@ -118,7 +142,7 @@ export function TreatmentsSettings({
     setTreatmentIdPendingDeactivation(null)
   }
 
-  function confirmTreatmentDeactivation() {
+  async function confirmTreatmentDeactivation() {
     if (treatmentIdPendingDeactivation === null) {
       return
     }
@@ -127,18 +151,19 @@ export function TreatmentsSettings({
       (treatment) => treatment.id === treatmentIdPendingDeactivation,
     )
 
-    setTreatmentIdPendingDeactivation(null)
-
     if (!targetTreatment || !targetTreatment.isActive) {
+      setTreatmentIdPendingDeactivation(null)
       return
     }
 
-    toggleTreatment(targetTreatment.id)
+    await toggleTreatment(targetTreatment.id)
+    setTreatmentIdPendingDeactivation(null)
   }
 
   function updateTreatmentName(value: string) {
     setTreatmentName(value)
     setIsToastVisible(false)
+    setActionError('')
   }
 
   function startEditing(treatment: Treatment) {
@@ -146,6 +171,7 @@ export function TreatmentsSettings({
     setEditingName(treatment.name)
     setEditingDuration(treatment.durationMinutes)
     setIsToastVisible(false)
+    setActionError('')
   }
 
   function cancelEditing() {
@@ -154,7 +180,10 @@ export function TreatmentsSettings({
     setEditingDuration(defaultTreatmentDurationMinutes)
   }
 
-  function saveEditing(treatmentId: number) {
+  async function saveEditing(treatmentId: TreatmentId) {
+    const targetTreatment = treatments.find(
+      (treatment) => treatment.id === treatmentId,
+    )
     const validationError = validateTreatmentName(
       treatments,
       editingName,
@@ -170,17 +199,23 @@ export function TreatmentsSettings({
       return
     }
 
-    onTreatmentsChange(
-      treatments.map((treatment) =>
-        treatment.id === treatmentId
-          ? {
-              ...treatment,
-              durationMinutes: editingDuration,
-              name: formatTreatmentName(editingName),
-            }
-          : treatment,
-      ),
-    )
+    if (!targetTreatment) {
+      showActionError('No encontramos el tratamiento seleccionado.')
+      return
+    }
+
+    const result = await onUpdateTreatment(treatmentId, {
+      durationMinutes: editingDuration,
+      isActive: targetTreatment.isActive,
+      name: formatTreatmentName(editingName),
+    })
+
+    if (!result.success) {
+      showActionError(result.error ?? 'No pudimos actualizar el tratamiento.')
+      return
+    }
+
+    setActionError('')
     cancelEditing()
     setToastMessage('Tratamiento actualizado.')
     setToastTone('warning')
@@ -190,16 +225,26 @@ export function TreatmentsSettings({
   function updateEditingName(value: string) {
     setEditingName(value)
     setIsToastVisible(false)
+    setActionError('')
   }
 
   function updateTreatmentDuration(value: string) {
     setTreatmentDuration(Number(value))
     setIsToastVisible(false)
+    setActionError('')
   }
 
   function updateEditingDuration(value: string) {
     setEditingDuration(Number(value))
     setIsToastVisible(false)
+    setActionError('')
+  }
+
+  function showActionError(message: string) {
+    setActionError(message)
+    setToastMessage(message)
+    setToastTone('error')
+    setIsToastVisible(true)
   }
 
   return (
@@ -224,6 +269,12 @@ export function TreatmentsSettings({
           Administra los tratamientos que estaran disponibles al crear una cita.
         </p>
       </div>
+
+      {(errorMessage || actionError) && (
+        <p className="field-message field-message--error">
+          {actionError || errorMessage}
+        </p>
+      )}
 
       <form className="treatment-form" onSubmit={handleSubmit}>
         <label>

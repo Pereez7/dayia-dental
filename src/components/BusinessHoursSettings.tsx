@@ -5,6 +5,7 @@ import type {
   BusinessHoursErrors,
   BusinessHoursSettings as BusinessHoursSettingsType,
   CalendarException,
+  CalendarExceptionId,
   CalendarExceptionFormErrors,
   CalendarExceptionFormValues,
   CalendarExceptionReason,
@@ -27,9 +28,23 @@ import { Toast, type ToastTone } from './Toast'
 
 interface BusinessHoursSettingsProps {
   calendarExceptions: CalendarException[]
+  errorMessage?: string
+  isBusinessHoursConfigured?: boolean
   settings: BusinessHoursSettingsType
-  onCalendarExceptionsChange: (exceptions: CalendarException[]) => void
-  onSettingsChange: (settings: BusinessHoursSettingsType) => void
+  onCreateCalendarException: (
+    values: CalendarExceptionFormValues,
+  ) => Promise<BusinessSettingsActionResult> | BusinessSettingsActionResult
+  onDeleteCalendarException: (
+    exceptionId: CalendarExceptionId,
+  ) => Promise<BusinessSettingsActionResult> | BusinessSettingsActionResult
+  onSettingsChange: (
+    settings: BusinessHoursSettingsType,
+  ) => Promise<BusinessSettingsActionResult> | BusinessSettingsActionResult
+}
+
+interface BusinessSettingsActionResult {
+  error?: string
+  success: boolean
 }
 
 const emptyCalendarExceptionValues: CalendarExceptionFormValues = {
@@ -57,8 +72,11 @@ const calendarExceptionReasonOptions: CalendarExceptionReason[] = [
 
 export function BusinessHoursSettings({
   calendarExceptions,
+  errorMessage = '',
+  isBusinessHoursConfigured = true,
   settings: initialSettings,
-  onCalendarExceptionsChange,
+  onCreateCalendarException,
+  onDeleteCalendarException,
   onSettingsChange,
 }: BusinessHoursSettingsProps) {
   const [settings, setSettings] =
@@ -71,10 +89,11 @@ export function BusinessHoursSettings({
   const [calendarExceptionErrors, setCalendarExceptionErrors] =
     useState<CalendarExceptionFormErrors>({})
   const [calendarExceptionIdPendingDeletion, setCalendarExceptionIdPendingDeletion] =
-    useState<number | null>(null)
+    useState<CalendarExceptionId | null>(null)
   const [toastMessage, setToastMessage] = useState('')
   const [toastTone, setToastTone] = useState<ToastTone>('success')
   const [isToastVisible, setIsToastVisible] = useState(false)
+  const [actionError, setActionError] = useState('')
   const sortedCalendarExceptions = [...calendarExceptions].sort((first, second) =>
     first.date.localeCompare(second.date),
   )
@@ -116,6 +135,7 @@ export function BusinessHoursSettings({
       [day]: '',
     }))
     setIsToastVisible(false)
+    setActionError('')
   }
 
   function updateAppointmentInterval(value: string) {
@@ -124,9 +144,10 @@ export function BusinessHoursSettings({
       appointmentInterval: Number(value) as AppointmentInterval,
     }))
     setIsToastVisible(false)
+    setActionError('')
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     blurActiveFormElement(event.currentTarget)
 
@@ -143,8 +164,14 @@ export function BusinessHoursSettings({
       return
     }
 
+    const result = await onSettingsChange(settings)
+
+    if (!result.success) {
+      showActionError(result.error ?? 'No pudimos guardar los horarios.')
+      return
+    }
+
     setSavedSettings(settings)
-    onSettingsChange(settings)
     setToastMessage('Horarios del consultorio actualizados.')
     setToastTone('success')
     setIsToastVisible(true)
@@ -176,9 +203,10 @@ export function BusinessHoursSettings({
       [field]: undefined,
     }))
     setIsToastVisible(false)
+    setActionError('')
   }
 
-  function handleCalendarExceptionSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleCalendarExceptionSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     blurActiveFormElement(event.currentTarget)
 
@@ -193,24 +221,13 @@ export function BusinessHoursSettings({
       return
     }
 
-    const nextException: CalendarException = {
-      id: getNextNumericId(calendarExceptions),
-      date: calendarExceptionValues.date,
-      type: calendarExceptionValues.type,
-      reason: calendarExceptionValues.reason || undefined,
-      reasonDetail:
-        calendarExceptionValues.reason === 'other'
-          ? calendarExceptionValues.reasonDetail.trim() || undefined
-          : undefined,
-      ...(calendarExceptionValues.type === 'special-hours'
-        ? {
-            endTime: calendarExceptionValues.endTime,
-            startTime: calendarExceptionValues.startTime,
-          }
-        : {}),
+    const result = await onCreateCalendarException(calendarExceptionValues)
+
+    if (!result.success) {
+      showActionError(result.error ?? 'No pudimos agregar la excepción.')
+      return
     }
 
-    onCalendarExceptionsChange([nextException, ...calendarExceptions])
     setCalendarExceptionValues(emptyCalendarExceptionValues)
     setCalendarExceptionErrors({})
     setToastMessage('Excepción agregada.')
@@ -218,7 +235,7 @@ export function BusinessHoursSettings({
     setIsToastVisible(true)
   }
 
-  function requestCalendarExceptionDeletion(exceptionId: number) {
+  function requestCalendarExceptionDeletion(exceptionId: CalendarExceptionId) {
     setCalendarExceptionIdPendingDeletion(exceptionId)
     setIsToastVisible(false)
   }
@@ -227,20 +244,30 @@ export function BusinessHoursSettings({
     setCalendarExceptionIdPendingDeletion(null)
   }
 
-  function confirmCalendarExceptionDeletion() {
+  async function confirmCalendarExceptionDeletion() {
     if (calendarExceptionIdPendingDeletion === null) {
       return
     }
 
-    onCalendarExceptionsChange(
-      calendarExceptions.filter(
-        (calendarException) =>
-          calendarException.id !== calendarExceptionIdPendingDeletion,
-      ),
+    const result = await onDeleteCalendarException(
+      calendarExceptionIdPendingDeletion,
     )
+
+    if (!result.success) {
+      showActionError(result.error ?? 'No pudimos eliminar la excepción.')
+      return
+    }
+
     setCalendarExceptionIdPendingDeletion(null)
     setToastMessage('Excepción eliminada.')
     setToastTone('warning')
+    setIsToastVisible(true)
+  }
+
+  function showActionError(message: string) {
+    setActionError(message)
+    setToastMessage(message)
+    setToastTone('error')
     setIsToastVisible(true)
   }
 
@@ -277,6 +304,18 @@ export function BusinessHoursSettings({
             </select>
           </label>
         </div>
+
+        {!isBusinessHoursConfigured && (
+          <p className="field-message field-message--help">
+            Configura los horarios del consultorio para generar citas.
+          </p>
+        )}
+
+        {(errorMessage || actionError) && (
+          <p className="field-message field-message--error">
+            {actionError || errorMessage}
+          </p>
+        )}
 
         <div className="business-hours-list">
           <div className="business-hours-table-head" aria-hidden="true">
@@ -562,10 +601,6 @@ export function BusinessHoursSettings({
       />
     </section>
   )
-}
-
-function getNextNumericId(items: { id: number }[]) {
-  return Math.max(0, ...items.map((item) => item.id)) + 1
 }
 
 function formatCalendarExceptionDate(date: string) {

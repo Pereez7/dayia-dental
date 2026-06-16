@@ -1,4 +1,5 @@
 import type { Treatment } from '../types/Treatment'
+import type { TreatmentId } from '../types/Treatment'
 
 const treatmentNamePattern = /^[\p{L}\p{N}\s/()-]+$/u
 export const allowedTreatmentDurations = [15, 30, 45, 60, 90, 120]
@@ -58,7 +59,7 @@ export function getTreatmentDuration(
 export function hasTreatmentName(
   treatments: Treatment[],
   name: string,
-  ignoredTreatmentId?: number,
+  ignoredTreatmentId?: TreatmentId,
 ) {
   const normalizedName = normalizeTreatmentNameForComparison(name)
 
@@ -72,7 +73,7 @@ export function hasTreatmentName(
 export function validateTreatmentName(
   treatments: Treatment[],
   name: string,
-  ignoredTreatmentId?: number,
+  ignoredTreatmentId?: TreatmentId,
 ) {
   const compactName = compactTreatmentName(name)
 

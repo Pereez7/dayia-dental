@@ -33,8 +33,10 @@ export type CalendarExceptionReason =
   | 'special-campaign'
   | 'other'
 
+export type CalendarExceptionId = number | string
+
 export interface CalendarException {
-  id: number
+  id: CalendarExceptionId
   date: string
   type: CalendarExceptionType
   startTime?: string

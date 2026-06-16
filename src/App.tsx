@@ -22,6 +22,18 @@ import {
   rescheduleAppointment as rescheduleAppointmentInSupabase,
   updateAppointmentStatus as updateAppointmentStatusInSupabase,
 } from './services/appointmentsService'
+import {
+  createCalendarException,
+  createTreatment as createTreatmentInSupabase,
+  deleteCalendarException,
+  getClosedBusinessHoursSettings,
+  getBusinessHoursByClinic,
+  getCalendarExceptionsByClinic,
+  getTreatmentsByClinic,
+  saveBusinessHours,
+  setTreatmentActive,
+  updateTreatment as updateTreatmentInSupabase,
+} from './services/settingsService'
 import type {
   Appointment,
   AppointmentFormValues,
@@ -31,6 +43,8 @@ import type {
 import type {
   BusinessHoursSettings,
   CalendarException,
+  CalendarExceptionFormValues,
+  CalendarExceptionId,
 } from './types/BusinessHours'
 import type {
   ClinicalRecord,
@@ -41,7 +55,7 @@ import type {
   OdontogramFormValues,
 } from './types/Odontogram'
 import type { Patient, PatientFormValues, PatientId } from './types/Patient'
-import type { Treatment } from './types/Treatment'
+import type { Treatment, TreatmentId } from './types/Treatment'
 import { upsertOdontogramEntry } from './utils/odontogram'
 import { canRescheduleAppointment } from './utils/appointmentActions'
 import {
@@ -76,6 +90,11 @@ function App() {
     useState<Treatment[]>(initialTreatments)
   const [businessHours, setBusinessHours] =
     useState<BusinessHoursSettings>(initialBusinessHours)
+  const [isBusinessHoursConfigured, setIsBusinessHoursConfigured] =
+    useState(true)
+  const [settingsError, setSettingsError] = useState('')
+  const [treatmentsError, setTreatmentsError] = useState('')
+  const [businessHoursError, setBusinessHoursError] = useState('')
   const [calendarExceptions, setCalendarExceptions] =
     useState<CalendarException[]>(initialCalendarExceptions)
   const [clinicalRecords, setClinicalRecords] =
@@ -178,6 +197,79 @@ function App() {
       isMounted = false
     }
   }, [currentClinic?.id, isDemoMode, patients])
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadSettings() {
+      if (isDemoMode) {
+        setTreatments(initialTreatments)
+        setBusinessHours(initialBusinessHours)
+        setCalendarExceptions(initialCalendarExceptions)
+        setIsBusinessHoursConfigured(true)
+        setSettingsError('')
+        setTreatmentsError('')
+        setBusinessHoursError('')
+        return
+      }
+
+      if (!currentClinic?.id) {
+        setTreatments([])
+        setBusinessHours(getClosedBusinessHoursSettings())
+        setCalendarExceptions([])
+        setIsBusinessHoursConfigured(false)
+        setSettingsError('No hay consultorio activo para cargar configuración.')
+        return
+      }
+
+      setSettingsError('')
+      setTreatmentsError('')
+      setBusinessHoursError('')
+
+      const [
+        treatmentsResult,
+        businessHoursResult,
+        calendarExceptionsResult,
+      ] = await Promise.all([
+        getTreatmentsByClinic(currentClinic.id),
+        getBusinessHoursByClinic(currentClinic.id),
+        getCalendarExceptionsByClinic(currentClinic.id),
+      ])
+
+      if (!isMounted) {
+        return
+      }
+
+      if (treatmentsResult.error) {
+        setTreatments([])
+        setTreatmentsError(treatmentsResult.error)
+      } else {
+        setTreatments(treatmentsResult.data ?? [])
+      }
+
+      if (businessHoursResult.error) {
+        setBusinessHours(getClosedBusinessHoursSettings())
+        setIsBusinessHoursConfigured(false)
+        setBusinessHoursError(businessHoursResult.error)
+      } else if (businessHoursResult.data) {
+        setBusinessHours(businessHoursResult.data.settings)
+        setIsBusinessHoursConfigured(businessHoursResult.data.isConfigured)
+      }
+
+      if (calendarExceptionsResult.error) {
+        setCalendarExceptions([])
+        setSettingsError(calendarExceptionsResult.error)
+      } else {
+        setCalendarExceptions(calendarExceptionsResult.data ?? [])
+      }
+    }
+
+    loadSettings()
+
+    return () => {
+      isMounted = false
+    }
+  }, [currentClinic?.id, isDemoMode])
 
   async function handleCreatePatient(values: PatientFormValues) {
     if (isDemoMode) {
@@ -459,6 +551,262 @@ function App() {
     return { success: true }
   }
 
+  async function handleCreateTreatment(values: Omit<Treatment, 'id'>) {
+    if (isDemoMode) {
+      setTreatments((currentTreatments) => [
+        ...currentTreatments,
+        {
+          ...values,
+          id: getNextNumericTreatmentId(currentTreatments),
+        },
+      ])
+      setTreatmentsError('')
+
+      return { success: true }
+    }
+
+    if (!currentClinic?.id) {
+      return {
+        error: 'No hay consultorio activo para guardar tratamientos.',
+        success: false,
+      }
+    }
+
+    const { data, error } = await createTreatmentInSupabase(
+      currentClinic.id,
+      values,
+    )
+
+    if (error || !data) {
+      setTreatmentsError(error ?? 'No pudimos guardar el tratamiento.')
+      return {
+        error: error ?? 'No pudimos guardar el tratamiento.',
+        success: false,
+      }
+    }
+
+    setTreatments((currentTreatments) => [...currentTreatments, data])
+    setTreatmentsError('')
+
+    return { success: true }
+  }
+
+  async function handleUpdateTreatment(
+    treatmentId: TreatmentId,
+    values: Omit<Treatment, 'id'>,
+  ) {
+    if (isDemoMode) {
+      setTreatments((currentTreatments) =>
+        currentTreatments.map((treatment) =>
+          treatment.id === treatmentId ? { ...treatment, ...values } : treatment,
+        ),
+      )
+      setTreatmentsError('')
+
+      return { success: true }
+    }
+
+    if (!currentClinic?.id) {
+      return {
+        error: 'No hay consultorio activo para actualizar tratamientos.',
+        success: false,
+      }
+    }
+
+    const { data, error } = await updateTreatmentInSupabase(
+      currentClinic.id,
+      treatmentId,
+      values,
+    )
+
+    if (error || !data) {
+      return {
+        error: error ?? 'No pudimos actualizar el tratamiento.',
+        success: false,
+      }
+    }
+
+    setTreatments((currentTreatments) =>
+      currentTreatments.map((treatment) =>
+        treatment.id === treatmentId ? data : treatment,
+      ),
+    )
+    setTreatmentsError('')
+
+    return { success: true }
+  }
+
+  async function handleSetTreatmentActive(
+    treatmentId: TreatmentId,
+    isActive: boolean,
+  ) {
+    if (isDemoMode) {
+      setTreatments((currentTreatments) =>
+        currentTreatments.map((treatment) =>
+          treatment.id === treatmentId ? { ...treatment, isActive } : treatment,
+        ),
+      )
+      setTreatmentsError('')
+
+      return { success: true }
+    }
+
+    if (!currentClinic?.id) {
+      return {
+        error: 'No hay consultorio activo para actualizar tratamientos.',
+        success: false,
+      }
+    }
+
+    const { data, error } = await setTreatmentActive(
+      currentClinic.id,
+      treatmentId,
+      isActive,
+    )
+
+    if (error || !data) {
+      return {
+        error: error ?? 'No pudimos actualizar el tratamiento.',
+        success: false,
+      }
+    }
+
+    setTreatments((currentTreatments) =>
+      currentTreatments.map((treatment) =>
+        treatment.id === treatmentId ? data : treatment,
+      ),
+    )
+    setTreatmentsError('')
+
+    return { success: true }
+  }
+
+  async function handleSaveBusinessHours(settings: BusinessHoursSettings) {
+    if (isDemoMode) {
+      setBusinessHours(settings)
+      setIsBusinessHoursConfigured(true)
+      setBusinessHoursError('')
+
+      return { success: true }
+    }
+
+    if (!currentClinic?.id) {
+      return {
+        error: 'No hay consultorio activo para guardar horarios.',
+        success: false,
+      }
+    }
+
+    const { data, error } = await saveBusinessHours(currentClinic.id, settings)
+
+    if (error || !data) {
+      setBusinessHoursError(error ?? 'No pudimos guardar los horarios.')
+      return {
+        error: error ?? 'No pudimos guardar los horarios.',
+        success: false,
+      }
+    }
+
+    setBusinessHours(data)
+    setIsBusinessHoursConfigured(true)
+    setBusinessHoursError('')
+
+    return { success: true }
+  }
+
+  async function handleCreateCalendarException(
+    values: CalendarExceptionFormValues,
+  ) {
+    if (isDemoMode) {
+      const nextException: CalendarException = {
+        date: values.date,
+        id: getNextNumericCalendarExceptionId(calendarExceptions),
+        reason: values.reason || undefined,
+        reasonDetail:
+          values.reason === 'other'
+            ? values.reasonDetail.trim() || undefined
+            : undefined,
+        type: values.type,
+        ...(values.type === 'special-hours'
+          ? {
+              endTime: values.endTime,
+              startTime: values.startTime,
+            }
+          : {}),
+      }
+
+      setCalendarExceptions((currentExceptions) => [
+        nextException,
+        ...currentExceptions,
+      ])
+      setSettingsError('')
+
+      return { success: true }
+    }
+
+    if (!currentClinic?.id) {
+      return {
+        error: 'No hay consultorio activo para guardar excepciones.',
+        success: false,
+      }
+    }
+
+    const { data, error } = await createCalendarException(
+      currentClinic.id,
+      values,
+    )
+
+    if (error || !data) {
+      setSettingsError(error ?? 'No pudimos guardar la excepción.')
+      return {
+        error: error ?? 'No pudimos guardar la excepción.',
+        success: false,
+      }
+    }
+
+    setCalendarExceptions((currentExceptions) => [data, ...currentExceptions])
+    setSettingsError('')
+
+    return { success: true }
+  }
+
+  async function handleDeleteCalendarException(
+    exceptionId: CalendarExceptionId,
+  ) {
+    if (isDemoMode) {
+      setCalendarExceptions((currentExceptions) =>
+        currentExceptions.filter((exception) => exception.id !== exceptionId),
+      )
+      setSettingsError('')
+
+      return { success: true }
+    }
+
+    if (!currentClinic?.id) {
+      return {
+        error: 'No hay consultorio activo para eliminar excepciones.',
+        success: false,
+      }
+    }
+
+    const { error } = await deleteCalendarException(
+      currentClinic.id,
+      exceptionId,
+    )
+
+    if (error) {
+      setSettingsError(error)
+      return { error, success: false }
+    }
+
+    setCalendarExceptions((currentExceptions) =>
+      currentExceptions.filter((exception) => exception.id !== exceptionId),
+    )
+    setSettingsError('')
+
+    return { success: true }
+  }
+
   function handleViewPatient(patientId: PatientId) {
     setSelectedPatientId(patientId)
     setActiveSection('patient-detail')
@@ -635,11 +983,18 @@ function App() {
       return (
         <SettingsView
           businessHours={businessHours}
+          businessHoursError={businessHoursError}
           calendarExceptions={calendarExceptions}
-          onCalendarExceptionsChange={setCalendarExceptions}
-          onBusinessHoursChange={setBusinessHours}
+          isBusinessHoursConfigured={isBusinessHoursConfigured}
+          onBusinessHoursChange={handleSaveBusinessHours}
+          onCreateCalendarException={handleCreateCalendarException}
+          onCreateTreatment={handleCreateTreatment}
+          onDeleteCalendarException={handleDeleteCalendarException}
+          onSetTreatmentActive={handleSetTreatmentActive}
+          onUpdateTreatment={handleUpdateTreatment}
+          settingsError={settingsError}
           treatments={treatments}
-          onTreatmentsChange={setTreatments}
+          treatmentsError={treatmentsError}
         />
       )
     }
@@ -681,6 +1036,35 @@ function getNextNumericAppointmentId(appointments: Appointment[]) {
         .filter(
           (appointmentId): appointmentId is number =>
             typeof appointmentId === 'number',
+        ),
+    ) + 1
+  )
+}
+
+function getNextNumericTreatmentId(treatments: Treatment[]) {
+  return (
+    Math.max(
+      0,
+      ...treatments
+        .map((treatment) => treatment.id)
+        .filter(
+          (treatmentId): treatmentId is number => typeof treatmentId === 'number',
+        ),
+    ) + 1
+  )
+}
+
+function getNextNumericCalendarExceptionId(
+  calendarExceptions: CalendarException[],
+) {
+  return (
+    Math.max(
+      0,
+      ...calendarExceptions
+        .map((calendarException) => calendarException.id)
+        .filter(
+          (calendarExceptionId): calendarExceptionId is number =>
+            typeof calendarExceptionId === 'number',
         ),
     ) + 1
   )
