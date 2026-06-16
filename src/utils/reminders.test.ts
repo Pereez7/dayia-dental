@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Appointment } from '../types/Appointment'
 import type { Patient } from '../types/Patient'
 import {
+  buildWhatsAppReminderUrl,
   canMarkReminderAsSent,
   createWhatsAppReminderMessage,
   filterRemindersByAppointmentDate,
@@ -12,6 +13,7 @@ import {
   groupRemindersByAppointmentDate,
   getReminderDateOptions,
   getScheduledFor,
+  normalizeWhatsAppPhone,
   summarizeRemindersByStatus,
   updateReminderStatus,
 } from './reminders'
@@ -138,6 +140,7 @@ describe('generateAppointmentReminders', () => {
     expect(reminders[0]).toMatchObject({
       patientId: null,
       phone: 'Sin teléfono registrado',
+      status: 'skipped',
     })
   })
 
@@ -376,10 +379,12 @@ describe('summarizeRemindersByStatus', () => {
     )
 
     expect(summarizeRemindersByStatus(reminders)).toEqual({
+      cancelled: 0,
       failed: 0,
       pending: 2,
       scheduled: 2,
       sent: 0,
+      skipped: 0,
     })
   })
 
@@ -402,11 +407,30 @@ describe('summarizeRemindersByStatus', () => {
     )
 
     expect(summarizeRemindersByStatus(reminders)).toEqual({
+      cancelled: 0,
       failed: 0,
       pending: 2,
       scheduled: 2,
       sent: 0,
+      skipped: 0,
     })
+  })
+})
+
+describe('WhatsApp manual link helpers', () => {
+  it('normalizes phone numbers for wa.me links', () => {
+    expect(normalizeWhatsAppPhone('+591 700-12345')).toBe('59170012345')
+    expect(normalizeWhatsAppPhone('(+591) 700 12345')).toBe('59170012345')
+  })
+
+  it('builds a wa.me URL with an encoded message', () => {
+    expect(buildWhatsAppReminderUrl('+591 700-12345', 'Hola Ana')).toBe(
+      'https://wa.me/59170012345?text=Hola%20Ana',
+    )
+  })
+
+  it('returns an empty URL when phone is missing', () => {
+    expect(buildWhatsAppReminderUrl('Sin teléfono registrado', 'Hola')).toBe('')
   })
 })
 

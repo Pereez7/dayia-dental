@@ -5,7 +5,11 @@ import { RemindersList } from '../components/RemindersList'
 import { Toast } from '../components/Toast'
 import type { Appointment } from '../types/Appointment'
 import type { Patient } from '../types/Patient'
-import type { ReminderStatus, ReminderStatusFilter } from '../types/Reminder'
+import type {
+  Reminder,
+  ReminderStatus,
+  ReminderStatusFilter,
+} from '../types/Reminder'
 import {
   canMarkReminderAsSent,
   filterRemindersByAppointmentDate,
@@ -19,12 +23,31 @@ import {
 
 interface WhatsAppRemindersViewProps {
   appointments: Appointment[]
+  errorMessage?: string
+  isLoading?: boolean
   patients: Patient[]
+  reminders?: Reminder[]
+  onMarkReminderFailed?: (
+    reminderId: string,
+  ) => Promise<ReminderActionResult> | ReminderActionResult
+  onMarkReminderSent?: (
+    reminderId: string,
+  ) => Promise<ReminderActionResult> | ReminderActionResult
+}
+
+interface ReminderActionResult {
+  error?: string
+  success: boolean
 }
 
 export function WhatsAppRemindersView({
   appointments,
+  errorMessage = '',
+  isLoading = false,
   patients,
+  reminders: persistedReminders,
+  onMarkReminderFailed,
+  onMarkReminderSent,
 }: WhatsAppRemindersViewProps) {
   const [statusOverrides, setStatusOverrides] = useState<
     Record<string, ReminderStatus>
@@ -40,17 +63,19 @@ export function WhatsAppRemindersView({
   const [toastMessage, setToastMessage] = useState('')
   const [toastTone, setToastTone] = useState<'error' | 'success'>('success')
   const [isToastVisible, setIsToastVisible] = useState(false)
+  const [actionError, setActionError] = useState('')
   const generatedReminders = useMemo(
     () => generateAppointmentReminders(appointments, patients),
     [appointments, patients],
   )
+  const sourceReminders = persistedReminders ?? generatedReminders
   const reminders = useMemo(
     () =>
-      generatedReminders.map((reminder) => ({
+      sourceReminders.map((reminder) => ({
         ...reminder,
         status: statusOverrides[reminder.id] ?? reminder.status,
       })),
-    [generatedReminders, statusOverrides],
+    [sourceReminders, statusOverrides],
   )
   const summary = summarizeRemindersByStatus(reminders)
   const reminderDateOptions = useMemo(
@@ -105,7 +130,7 @@ export function WhatsAppRemindersView({
     return () => window.clearTimeout(timeoutId)
   }, [isToastVisible, toastMessage])
 
-  function updateReminderStatus(reminderId: string, status: ReminderStatus) {
+  async function updateReminderStatus(reminderId: string, status: ReminderStatus) {
     const targetReminder = reminders.find((reminder) => reminder.id === reminderId)
 
     if (status === 'sent' && !canMarkReminderAsSent(targetReminder)) {
@@ -116,10 +141,29 @@ export function WhatsAppRemindersView({
       return
     }
 
-    setStatusOverrides((currentOverrides) => ({
-      ...currentOverrides,
-      [reminderId]: status,
-    }))
+    setActionError('')
+
+    if (persistedReminders) {
+      const result =
+        status === 'sent'
+          ? await onMarkReminderSent?.(reminderId)
+          : await onMarkReminderFailed?.(reminderId)
+
+      if (result && !result.success) {
+        setSelectedReminderId(reminderId)
+        setActionError(result.error ?? 'No pudimos actualizar el recordatorio.')
+        setToastTone('error')
+        setToastMessage(result.error ?? 'No pudimos actualizar el recordatorio.')
+        setIsToastVisible(true)
+        return
+      }
+    } else {
+      setStatusOverrides((currentOverrides) => ({
+        ...currentOverrides,
+        [reminderId]: status,
+      }))
+    }
+
     setSelectedReminderId(reminderId)
     setToastTone(status === 'sent' ? 'success' : 'error')
     setToastMessage(
@@ -140,8 +184,15 @@ export function WhatsAppRemindersView({
             Prepara y controla los mensajes de confirmacion para tus pacientes.
           </p>
           <p className="reminder-simulation-note">
-            Simulacion local: todavia no se envian mensajes reales por WhatsApp.
+            {persistedReminders
+              ? 'Recordatorios persistidos. El envio sigue siendo manual; WhatsApp API vendra despues.'
+              : 'Simulacion local: todavia no se envian mensajes reales por WhatsApp.'}
           </p>
+          {(errorMessage || actionError) && (
+            <p className="field-message field-message--error">
+              {actionError || errorMessage}
+            </p>
+          )}
         </div>
 
         <div className="reminder-kpi-grid">
@@ -186,7 +237,14 @@ export function WhatsAppRemindersView({
             <h2>Citas con recordatorios</h2>
           </div>
 
-          {reminderDateOptions.length > 0 && (
+          {isLoading && (
+            <div className="dashboard-empty-state reminder-empty-state">
+              <strong>Cargando recordatorios...</strong>
+              <span>Estamos preparando la cola del consultorio.</span>
+            </div>
+          )}
+
+          {!isLoading && reminderDateOptions.length > 0 && (
             <div
               className="reminder-date-nav"
               aria-label="Seleccionar fecha de cita"
@@ -236,22 +294,24 @@ export function WhatsAppRemindersView({
             ))}
           </div>
 
-          <RemindersList
-            dateGroups={reminderDateGroups}
-            emptyDescription={emptyListDescription}
-            emptyMessage={emptyListMessage}
-            selectedReminderId={selectedReminder?.id ?? null}
-            onMarkFailed={(reminderId) =>
-              updateReminderStatus(reminderId, 'failed')
-            }
-            onMarkSent={(reminderId) =>
-              updateReminderStatus(reminderId, 'sent')
-            }
-            onSelectReminder={(reminderId) => {
-              setSelectedReminderId(reminderId)
-              setIsToastVisible(false)
-            }}
-          />
+          {!isLoading && (
+            <RemindersList
+              dateGroups={reminderDateGroups}
+              emptyDescription={emptyListDescription}
+              emptyMessage={emptyListMessage}
+              selectedReminderId={selectedReminder?.id ?? null}
+              onMarkFailed={(reminderId) =>
+                updateReminderStatus(reminderId, 'failed')
+              }
+              onMarkSent={(reminderId) =>
+                updateReminderStatus(reminderId, 'sent')
+              }
+              onSelectReminder={(reminderId) => {
+                setSelectedReminderId(reminderId)
+                setIsToastVisible(false)
+              }}
+            />
+          )}
         </article>
 
         <ReminderMessagePreview reminder={selectedReminder} />
@@ -261,7 +321,7 @@ export function WhatsAppRemindersView({
 }
 
 function getReminderFilters(): ReminderStatusFilter[] {
-  return ['all', 'pending', 'scheduled', 'sent', 'failed']
+  return ['all', 'pending', 'scheduled', 'sent', 'failed', 'cancelled', 'skipped']
 }
 
 function getActiveAppointmentDate(

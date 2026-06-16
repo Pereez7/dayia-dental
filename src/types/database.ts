@@ -32,6 +32,8 @@ export type ReminderRecordStatus =
   | 'sent'
   | 'skipped'
 
+export type ReminderRecordType = '24h' | '2h' | 'immediate'
+
 export interface Clinic {
   country_code: string
   created_at: string
@@ -139,6 +141,7 @@ export interface ReminderRecord {
   id: string
   message: string
   patient_id: string
+  reminder_type: ReminderRecordType
   scheduled_at: string
   sent_at: string | null
   status: ReminderRecordStatus

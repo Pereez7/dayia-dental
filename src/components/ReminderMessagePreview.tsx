@@ -37,7 +37,7 @@ export function ReminderMessagePreview({
         {reminder.message}
       </blockquote>
       <p className="reminder-note">
-        Simulacion local. No se envia ningun mensaje real por WhatsApp.
+        Envio manual preparado. Todavia no hay envio automatico por WhatsApp API.
       </p>
     </aside>
   )

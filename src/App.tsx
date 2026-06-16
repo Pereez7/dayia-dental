@@ -34,6 +34,13 @@ import {
   setTreatmentActive,
   updateTreatment as updateTreatmentInSupabase,
 } from './services/settingsService'
+import {
+  cancelRemindersForAppointment,
+  getRemindersByClinic,
+  markReminderFailed,
+  markReminderSent,
+  upsertRemindersForAppointment,
+} from './services/remindersService'
 import type {
   Appointment,
   AppointmentFormValues,
@@ -55,6 +62,7 @@ import type {
   OdontogramFormValues,
 } from './types/Odontogram'
 import type { Patient, PatientFormValues, PatientId } from './types/Patient'
+import type { Reminder } from './types/Reminder'
 import type { Treatment, TreatmentId } from './types/Treatment'
 import { upsertOdontogramEntry } from './utils/odontogram'
 import { canRescheduleAppointment } from './utils/appointmentActions'
@@ -97,6 +105,9 @@ function App() {
   const [businessHoursError, setBusinessHoursError] = useState('')
   const [calendarExceptions, setCalendarExceptions] =
     useState<CalendarException[]>(initialCalendarExceptions)
+  const [reminders, setReminders] = useState<Reminder[]>([])
+  const [isRemindersLoading, setIsRemindersLoading] = useState(true)
+  const [remindersError, setRemindersError] = useState('')
   const [clinicalRecords, setClinicalRecords] =
     useState<ClinicalRecord[]>(initialClinicalRecords)
   const [odontogramEntries, setOdontogramEntries] =
@@ -149,6 +160,55 @@ function App() {
       isMounted = false
     }
   }, [currentClinic?.id, isDemoMode])
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadReminders() {
+      if (isDemoMode) {
+        setReminders([])
+        setIsRemindersLoading(false)
+        setRemindersError('')
+        return
+      }
+
+      if (!currentClinic?.id) {
+        setReminders([])
+        setIsRemindersLoading(false)
+        setRemindersError('No hay consultorio activo para cargar recordatorios.')
+        return
+      }
+
+      setIsRemindersLoading(true)
+      setRemindersError('')
+
+      const { data, error } = await getRemindersByClinic(
+        currentClinic.id,
+        appointments,
+        patients,
+      )
+
+      if (!isMounted) {
+        return
+      }
+
+      if (error) {
+        setReminders([])
+        setRemindersError(error)
+        setIsRemindersLoading(false)
+        return
+      }
+
+      setReminders(data ?? [])
+      setIsRemindersLoading(false)
+    }
+
+    loadReminders()
+
+    return () => {
+      isMounted = false
+    }
+  }, [appointments, currentClinic?.id, isDemoMode, patients])
 
   useEffect(() => {
     let isMounted = true
@@ -350,7 +410,27 @@ function App() {
         }
       }
 
-      setAppointments((currentAppointments) => [...currentAppointments, data])
+      const nextAppointments = [...appointments, data]
+      const patient = patients.find((item) => item.id === data.patientId)
+      const remindersResult = await upsertRemindersForAppointment(
+        currentClinic.id,
+        data,
+        patient,
+        nextAppointments,
+        patients,
+      )
+
+      if (remindersResult.error) {
+        setRemindersError(remindersResult.error)
+      } else {
+        setReminders((currentReminders) => [
+          ...currentReminders,
+          ...(remindersResult.data ?? []),
+        ])
+        setRemindersError('')
+      }
+
+      setAppointments(nextAppointments)
       setAppointmentsError('')
       setActiveSection('appointments-agenda')
 
@@ -420,6 +500,46 @@ function App() {
           appointment.id === appointmentId ? data : appointment,
         ),
       )
+
+      if (status === 'cancelled') {
+        await cancelRemindersForAppointment(currentClinic.id, appointmentId)
+        setReminders((currentReminders) =>
+          currentReminders.map((reminder) =>
+            reminder.appointmentId === appointmentId &&
+            (reminder.status === 'pending' || reminder.status === 'scheduled')
+              ? { ...reminder, status: 'cancelled' }
+              : reminder,
+          ),
+        )
+      } else {
+        const nextAppointments = appointments.map((appointment) =>
+          appointment.id === appointmentId ? data : appointment,
+        )
+        const patient = patients.find((item) => item.id === data.patientId)
+        const remindersResult = await upsertRemindersForAppointment(
+          currentClinic.id,
+          data,
+          patient,
+          nextAppointments,
+          patients,
+        )
+
+        if (remindersResult.error) {
+          setRemindersError(remindersResult.error)
+        } else {
+          setReminders((currentReminders) => [
+            ...currentReminders.filter(
+              (reminder) =>
+                reminder.appointmentId !== data.id ||
+                (reminder.status !== 'pending' &&
+                  reminder.status !== 'scheduled'),
+            ),
+            ...(remindersResult.data ?? []),
+          ])
+          setRemindersError('')
+        }
+      }
+
       setAppointmentsError('')
 
       return { success: true }
@@ -523,6 +643,34 @@ function App() {
           appointment.id === appointmentId ? data : appointment,
         ),
       )
+
+      const nextAppointments = appointments.map((appointment) =>
+        appointment.id === appointmentId ? data : appointment,
+      )
+      const patient = patients.find((item) => item.id === data.patientId)
+      const remindersResult = await upsertRemindersForAppointment(
+        currentClinic.id,
+        data,
+        patient,
+        nextAppointments,
+        patients,
+      )
+
+      if (remindersResult.error) {
+        setRemindersError(remindersResult.error)
+      } else {
+        setReminders((currentReminders) => [
+          ...currentReminders.filter(
+            (reminder) =>
+              reminder.appointmentId !== data.id ||
+              (reminder.status !== 'pending' &&
+                reminder.status !== 'scheduled'),
+          ),
+          ...(remindersResult.data ?? []),
+        ])
+        setRemindersError('')
+      }
+
       setAppointmentsError('')
 
       return { success: true }
@@ -807,6 +955,71 @@ function App() {
     return { success: true }
   }
 
+  async function handleMarkReminderSent(reminderId: string) {
+    if (!currentClinic?.id) {
+      return {
+        error: 'No hay consultorio activo para actualizar recordatorios.',
+        success: false,
+      }
+    }
+
+    const { data, error } = await markReminderSent(
+      currentClinic.id,
+      reminderId,
+      appointments,
+      patients,
+    )
+
+    if (error || !data) {
+      return {
+        error: error ?? 'No pudimos actualizar el recordatorio.',
+        success: false,
+      }
+    }
+
+    setReminders((currentReminders) =>
+      currentReminders.map((reminder) =>
+        reminder.id === reminderId ? data : reminder,
+      ),
+    )
+    setRemindersError('')
+
+    return { success: true }
+  }
+
+  async function handleMarkReminderFailed(reminderId: string) {
+    if (!currentClinic?.id) {
+      return {
+        error: 'No hay consultorio activo para actualizar recordatorios.',
+        success: false,
+      }
+    }
+
+    const { data, error } = await markReminderFailed(
+      currentClinic.id,
+      reminderId,
+      'Marcado manualmente como fallido.',
+      appointments,
+      patients,
+    )
+
+    if (error || !data) {
+      return {
+        error: error ?? 'No pudimos actualizar el recordatorio.',
+        success: false,
+      }
+    }
+
+    setReminders((currentReminders) =>
+      currentReminders.map((reminder) =>
+        reminder.id === reminderId ? data : reminder,
+      ),
+    )
+    setRemindersError('')
+
+    return { success: true }
+  }
+
   function handleViewPatient(patientId: PatientId) {
     setSelectedPatientId(patientId)
     setActiveSection('patient-detail')
@@ -974,7 +1187,12 @@ function App() {
       return (
         <WhatsAppRemindersView
           appointments={appointments}
+          errorMessage={remindersError}
+          isLoading={!isDemoMode && isRemindersLoading}
+          onMarkReminderFailed={handleMarkReminderFailed}
+          onMarkReminderSent={handleMarkReminderSent}
           patients={patients}
+          reminders={isDemoMode ? undefined : reminders}
         />
       )
     }

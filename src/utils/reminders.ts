@@ -29,10 +29,12 @@ const nearAppointmentReminderNote =
   'Recordatorios de 24h y 2h omitidos por cita cercana.'
 
 const initialReminderSummary: ReminderSummary = {
+  cancelled: 0,
   failed: 0,
   pending: 0,
   scheduled: 0,
   sent: 0,
+  skipped: 0,
 }
 
 const noPhoneReminderLabel = 'Sin teléfono registrado'
@@ -57,9 +59,24 @@ export function generateAppointmentReminders(
     .flatMap((appointment) => {
       const patient = findAppointmentPatient(appointment, patients)
 
-      return createAppointmentReminders(appointment, patient, referenceDate)
+      return generateRemindersForAppointment(appointment, patient, referenceDate)
     })
     .sort(compareRemindersByPriority)
+}
+
+export function generateRemindersForAppointment(
+  appointment: Appointment,
+  patient: Patient | undefined,
+  referenceDate = new Date(),
+) {
+  if (
+    !isActiveReminderAppointmentStatus(appointment.status) ||
+    !isFutureAppointmentDateTime(appointment, referenceDate)
+  ) {
+    return []
+  }
+
+  return createAppointmentReminders(appointment, patient, referenceDate)
 }
 
 export function summarizeRemindersByStatus(reminders: Reminder[]) {
@@ -193,10 +210,12 @@ export function getReminderTypeLabel(reminderType: ReminderType) {
 
 export function getReminderStatusLabel(status: ReminderStatus) {
   const labels: Record<ReminderStatus, string> = {
+    cancelled: 'Cancelado',
     failed: 'Fallido',
     pending: 'Pendiente',
     scheduled: 'Programado',
     sent: 'Enviado',
+    skipped: 'Omitido',
   }
 
   return labels[status]
@@ -204,6 +223,20 @@ export function getReminderStatusLabel(status: ReminderStatus) {
 
 export function getReminderStatusClassName(status: ReminderStatus) {
   return `reminder-status--${status}`
+}
+
+export function normalizeWhatsAppPhone(phone: string) {
+  return phone.replace(/[^\d+]/g, '').replace(/^\+/, '')
+}
+
+export function buildWhatsAppReminderUrl(phone: string, message: string) {
+  const normalizedPhone = normalizeWhatsAppPhone(phone)
+
+  if (!normalizedPhone || phone.trim() === noPhoneReminderLabel) {
+    return ''
+  }
+
+  return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`
 }
 
 export function getScheduledFor(
@@ -427,6 +460,7 @@ function createReminder(
   const appointmentStatus = isActiveReminderAppointmentStatus(appointment.status)
     ? appointment.status
     : 'pending'
+  const phone = patient?.phone ?? noPhoneReminderLabel
 
   return {
     appointmentDate: appointment.date,
@@ -446,12 +480,16 @@ function createReminder(
     omittedReminderNotes,
     patientId: patient?.id ?? appointment.patientId ?? null,
     patientName,
-    phone: patient?.phone ?? noPhoneReminderLabel,
+    phone,
     rescheduleReason: appointment.rescheduleReason,
     rescheduleReasonDetail: appointment.rescheduleReasonDetail,
     reminderType,
     scheduledFor,
-    status: reminderType === '24h' ? 'scheduled' : 'pending',
+    status: hasReminderPhone(phone)
+      ? reminderType === '24h'
+        ? 'scheduled'
+        : 'pending'
+      : 'skipped',
     treatment: appointment.treatment,
   }
 }

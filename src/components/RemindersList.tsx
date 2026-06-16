@@ -1,6 +1,7 @@
 import type { AppointmentStatus } from '../types/Appointment'
 import type { ReminderDateGroup } from '../types/Reminder'
 import {
+  buildWhatsAppReminderUrl,
   canMarkReminderAsSent,
   formatReminderScheduledDateTime,
   getReminderStatusClassName,
@@ -160,6 +161,31 @@ export function RemindersList({
                             >
                               Marcar enviado
                             </button>
+                            {buildWhatsAppReminderUrl(
+                              reminder.phone,
+                              reminder.message,
+                            ) ? (
+                              <a
+                                className="soft-action reminder-action-secondary"
+                                href={buildWhatsAppReminderUrl(
+                                  reminder.phone,
+                                  reminder.message,
+                                )}
+                                rel="noreferrer"
+                                target="_blank"
+                              >
+                                Abrir WhatsApp
+                              </a>
+                            ) : (
+                              <button
+                                className="soft-action reminder-action-secondary"
+                                disabled
+                                title="Agrega un teléfono para abrir WhatsApp."
+                                type="button"
+                              >
+                                Abrir WhatsApp
+                              </button>
+                            )}
                             <button
                               className="soft-action reminder-action-danger"
                               type="button"
@@ -183,12 +209,11 @@ export function RemindersList({
 }
 
 function getAppointmentStatusLabel(
-  appointmentStatus: Extract<
-    AppointmentStatus,
-    'confirmed' | 'pending' | 'rescheduled'
-  >,
+  appointmentStatus: AppointmentStatus,
 ) {
-  const labels = {
+  const labels: Record<AppointmentStatus, string> = {
+    cancelled: 'Cancelada',
+    completed: 'Completada',
     confirmed: 'Confirmada',
     pending: 'Pendiente',
     rescheduled: 'Reprogramada',

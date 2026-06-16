@@ -3,7 +3,13 @@ import type { PatientId } from './Patient'
 
 export type ReminderType = '24h' | '2h' | 'immediate'
 
-export type ReminderStatus = 'pending' | 'scheduled' | 'sent' | 'failed'
+export type ReminderStatus =
+  | 'cancelled'
+  | 'failed'
+  | 'pending'
+  | 'scheduled'
+  | 'sent'
+  | 'skipped'
 
 export type ReminderStatusFilter = 'all' | ReminderStatus
 
@@ -14,16 +20,15 @@ export interface Reminder {
   patientName: string
   phone: string
   appointmentDate: string
-  appointmentStatus: Extract<
-    AppointmentStatus,
-    'confirmed' | 'pending' | 'rescheduled'
-  >
+  appointmentStatus: AppointmentStatus
   appointmentTime: string
   treatment: string
   rescheduleReason?: string
   rescheduleReasonDetail?: string
   reminderType: ReminderType
   scheduledFor: string
+  sentAt?: string
+  failedReason?: string
   status: ReminderStatus
   message: string
   omittedReminderNotes?: string[]
@@ -34,10 +39,7 @@ export type ReminderSummary = Record<ReminderStatus, number>
 export interface ReminderAppointmentGroup {
   appointmentDate: string
   appointmentId: AppointmentId
-  appointmentStatus: Extract<
-    AppointmentStatus,
-    'confirmed' | 'pending' | 'rescheduled'
-  >
+  appointmentStatus: AppointmentStatus
   appointmentTime: string
   patientId: PatientId | null
   patientName: string
