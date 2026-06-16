@@ -87,6 +87,8 @@ Las migraciones actuales son:
   datos reales en el repositorio.
 - `004_patients_indexes.sql`: indice adicional para listar/buscar pacientes por
   consultorio y apellido.
+- `005_appointments_indexes.sql`: indice adicional para logs de citas por
+  consultorio/cita y comentarios del contrato de Agenda.
 
 ## Migracion por modulos
 
@@ -95,8 +97,8 @@ configurado. En modo real, los modulos se migraran gradualmente:
 
 1. Auth y perfiles de usuario por consultorio.
 2. Pacientes.
-3. Configuracion: tratamientos, horarios y excepciones.
-4. Citas y logs de cambios.
+3. Citas y logs de cambios.
+4. Configuracion: tratamientos, horarios y excepciones.
 5. Recordatorios generados desde citas reales.
 6. WhatsApp real mediante Edge Functions y webhooks.
 
@@ -124,9 +126,9 @@ Estados incompletos esperados:
 - Si no se puede cargar el consultorio, la app muestra un mensaje claro y evita
   dejar la pantalla en blanco.
 
-Esta etapa prepara la migracion por `clinic_id`. En modo real, Pacientes ya
-puede leer y crear registros en Supabase; Citas, Configuracion, Recordatorios,
-Historial clinico y Odontograma siguen usando datos mock/locales.
+Esta etapa prepara la migracion por `clinic_id`. En modo real, Pacientes y
+Citas ya pueden leer y crear/actualizar registros en Supabase; Configuracion,
+Recordatorios, Historial clinico y Odontograma siguen usando datos mock/locales.
 
 La migracion `supabase/migrations/002_auth_profiles_policies.sql` agrega una
 funcion `current_clinic_id()` y policies RLS basicas para que un usuario
@@ -170,8 +172,51 @@ documenta el contrato de Pacientes como tabla filtrada por consultorio. La app
 tambien filtra por `clinic_id` desde el frontend, pero la separacion de datos
 depende de RLS.
 
-El siguiente paso recomendado es migrar Citas para que `patient_id` use los UUID
-reales de Supabase y deje de depender de datos mock.
+## Migración de Citas
+
+Citas/Agenda consume Supabase en modo real y conserva datos mock/locales en modo
+demo. El modo real se activa solo cuando Supabase esta configurado, la app no
+esta en modo demo y existe `currentClinic.id`.
+
+En modo real, las citas se cargan desde `appointments` filtrando siempre por
+`clinic_id` del consultorio actual. Las operaciones de crear, confirmar,
+cancelar y reprogramar actualizan Supabase y registran eventos en
+`appointment_change_logs`, tambien filtrados por `clinic_id`.
+
+El frontend conserva su forma actual de datos:
+
+- `patientId` usa el UUID real de `patients.id` en modo Supabase y numeros en
+  modo demo.
+- `date` se guarda como `appointment_date`.
+- `time` se guarda como `start_time`.
+- `durationMinutes` se guarda como `duration_minutes`.
+- `treatment` se guarda temporalmente en `appointments.reason`.
+- `treatment_id` permanece `null` hasta migrar Tratamientos.
+
+Las reglas existentes de Agenda se mantienen en frontend: disponibilidad por
+duracion, validacion contra horarios del consultorio, excepciones del
+calendario, bloqueo de solapamientos, bloqueo de doble cita activa del mismo
+paciente en el mismo dia, citas canceladas que no bloquean horario y restriccion
+para no reprogramar citas canceladas.
+
+En modo demo/desarrollo, Citas no llama a Supabase: usa `initialAppointments` y
+las altas/cambios viven solo en memoria. No se mezclan citas mock con citas
+reales.
+
+Recordatorios, Historial clinico y Detalle de paciente consumen la lista de
+citas cargada en App. Por eso en modo real ven citas reales cargadas desde
+Supabase, mientras que en modo demo siguen viendo las citas mock.
+
+Las policies de `002_auth_profiles_policies.sql` ya cubren `appointments` y
+`appointment_change_logs` con separacion por consultorio. La migracion
+`005_appointments_indexes.sql` agrega el indice
+`appointment_change_logs(clinic_id, appointment_id)` para consultar el historial
+de cambios por cita y documenta que `reason` es el campo temporal para el
+tratamiento visible hasta migrar Tratamientos.
+
+El siguiente paso recomendado es migrar Configuracion para que tratamientos,
+horarios y excepciones tambien vivan en Supabase y dejen de depender de datos
+locales.
 
 ## WhatsApp real
 
@@ -196,10 +241,11 @@ La preparacion actual agrega:
 - Capa Auth en `src/auth` para login, sesion, perfil y consultorio actual.
 - Modo demo/desarrollo cuando faltan variables de Supabase.
 - Tipos backend base en `src/types/database.ts`.
-- Servicio real de Pacientes y servicios placeholder para el resto en
-  `src/services`.
+- Servicios reales de Pacientes y Citas, con placeholders pendientes para otros
+  modulos en `src/services`.
 - SQL inicial y policies Auth en `supabase/migrations`.
 
-Pacientes consume Supabase en modo real y conserva mocks en modo demo.
-Dashboard, Citas, Configuracion, Recordatorios, Historial clinico y Odontograma
-siguen usando estado local/mock actual.
+Pacientes y Citas consumen Supabase en modo real y conservan mocks en modo demo.
+Dashboard, Detalle de paciente y Recordatorios leen esos datos desde el estado
+central de App. Configuracion, Historial clinico y Odontograma siguen usando
+estado local/mock actual.
