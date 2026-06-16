@@ -93,6 +93,8 @@ Las migraciones actuales son:
   comentarios del contrato de Configuracion.
 - `007_reminders_indexes.sql`: tipo de recordatorio, indices por cita/estado y
   contrato de cola manual para WhatsApp.
+- `008_whatsapp_settings_and_delivery.sql`: metadatos de entrega WhatsApp,
+  comentarios de configuracion no secreta e indices para webhooks futuros.
 
 ## Migracion por modulos
 
@@ -309,6 +311,28 @@ WhatsApp real no debe implementarse desde el frontend. Cada consultorio tendra
 su propia configuracion en `whatsapp_settings`, pero tokens y secretos deberan
 guardarse de forma protegida en backend/Edge Functions.
 
+La arquitectura preparada usa:
+
+- `whatsapp_settings` para datos no secretos por consultorio: proveedor, numero,
+  `phone_number_id`, `business_account_id` e indicador `is_connected`.
+- Supabase Secrets para valores sensibles: `WHATSAPP_ACCESS_TOKEN`,
+  `WHATSAPP_SEND_ENABLED` y `WHATSAPP_VERIFY_TOKEN`.
+- Edge Function `send-whatsapp-reminder` para preparar un envio por
+  `reminderId`.
+- Edge Function `process-due-reminders` para el futuro job programado.
+- Edge Function `whatsapp-webhook` para verificacion y estados futuros.
+
+Por defecto, las funciones deben operar en modo dry-run. El envio real solo
+podra activarse explicitamente con `WHATSAPP_SEND_ENABLED=true` desde backend.
+No hay tokens ni service role key en frontend.
+
+La migracion `008_whatsapp_settings_and_delivery.sql` agrega metadatos de
+entrega a `reminders`: `provider_message_id`, `delivered_at`, `read_at` y
+`metadata`. Estos campos preparan webhooks futuros sin cambiar la UI actual.
+
+El boton manual "Abrir WhatsApp" sigue siendo el fallback operativo: abre
+`wa.me` con telefono normalizado y mensaje precargado, sin usar WhatsApp API.
+
 Las fases futuras deben incluir:
 
 - Conexion del numero propio del consultorio.
@@ -316,6 +340,8 @@ Las fases futuras deben incluir:
 - Webhooks para estados de entrega y respuestas.
 - Politicas de seguridad para que un consultorio no vea datos de otro.
 - Auditoria de intentos de envio.
+
+Mas detalle vive en `docs/whatsapp-plan.md`.
 
 ## Estado actual
 
