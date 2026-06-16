@@ -89,6 +89,8 @@ Las migraciones actuales son:
   consultorio y apellido.
 - `005_appointments_indexes.sql`: indice adicional para logs de citas por
   consultorio/cita y comentarios del contrato de Agenda.
+- `006_settings_indexes.sql`: indice/unique de horarios por consultorio/dia y
+  comentarios del contrato de Configuracion.
 
 ## Migracion por modulos
 
@@ -214,9 +216,52 @@ Las policies de `002_auth_profiles_policies.sql` ya cubren `appointments` y
 de cambios por cita y documenta que `reason` es el campo temporal para el
 tratamiento visible hasta migrar Tratamientos.
 
-El siguiente paso recomendado es migrar Configuracion para que tratamientos,
-horarios y excepciones tambien vivan en Supabase y dejen de depender de datos
-locales.
+## Migración de Configuración
+
+Configuracion consume Supabase en modo real para los datos que afectan Agenda y
+disponibilidad: tratamientos, horarios del consultorio y excepciones del
+calendario. En modo demo/desarrollo conserva los datos mock/locales y los
+cambios viven solo en memoria.
+
+En modo real, la app carga:
+
+- `treatments` filtrando siempre por `clinic_id`.
+- `business_hours` filtrando por `clinic_id` y ordenando por `weekday`.
+- `calendar_exceptions` filtrando por `clinic_id` y ordenando por `date`.
+
+Los tratamientos reales mantienen la forma de frontend `Treatment`, pero usan
+UUID como `id`. El mapeo principal es `durationMinutes` hacia
+`duration_minutes` e `isActive` hacia `is_active`. Crear, editar, activar y
+desactivar tratamientos escribe en Supabase asociado al consultorio actual.
+
+Los horarios reales guardan `weekday`, `is_open`, `start_time`, `end_time` y
+`slot_interval_minutes`. La app guarda los 7 dias mediante upsert por
+`clinic_id, weekday`. Si un consultorio real todavia no tiene horarios, la app
+no crea mocks en la base: muestra una configuracion cerrada editable y avisa que
+hay que configurar horarios para generar citas.
+
+Las excepciones reales guardan `date`, `type`, `start_time`, `end_time`,
+`reason` y `reason_detail`. El indice unico `calendar_exceptions(clinic_id,
+date)` evita duplicados por fecha dentro del mismo consultorio. La eliminacion
+de excepciones tambien filtra por `clinic_id`.
+
+Nueva Cita y Reprogramar no cambian sus reglas: consumen los tratamientos,
+horarios y excepciones desde el estado central de App. Por eso usan datos reales
+en modo Supabase y datos mock en modo demo. Siguen vigentes la disponibilidad
+por duracion, excepciones cerradas, horarios especiales, solapamientos por rango
+horario y la restriccion de una cita activa por paciente/dia.
+
+Las policies de `002_auth_profiles_policies.sql` ya cubren `treatments`,
+`business_hours` y `calendar_exceptions` para usuarios autenticados del mismo
+consultorio. La migracion `006_settings_indexes.sql` agrega el unique faltante
+`business_hours(clinic_id, weekday)` y documenta el contrato de Configuracion.
+
+Recordatorios y WhatsApp real todavia no estan migrados. Recordatorios siguen
+calculandose desde citas y pacientes cargados en App; WhatsApp debera ir por
+backend/Edge Functions en una fase posterior.
+
+El siguiente paso recomendado es preparar Recordatorios reales y la base segura
+para WhatsApp API.
 
 ## WhatsApp real
 
@@ -241,11 +286,11 @@ La preparacion actual agrega:
 - Capa Auth en `src/auth` para login, sesion, perfil y consultorio actual.
 - Modo demo/desarrollo cuando faltan variables de Supabase.
 - Tipos backend base en `src/types/database.ts`.
-- Servicios reales de Pacientes y Citas, con placeholders pendientes para otros
-  modulos en `src/services`.
+- Servicios reales de Pacientes, Citas y Configuracion, con placeholders
+  pendientes para otros modulos en `src/services`.
 - SQL inicial y policies Auth en `supabase/migrations`.
 
-Pacientes y Citas consumen Supabase en modo real y conservan mocks en modo demo.
-Dashboard, Detalle de paciente y Recordatorios leen esos datos desde el estado
-central de App. Configuracion, Historial clinico y Odontograma siguen usando
-estado local/mock actual.
+Pacientes, Citas y Configuracion consumen Supabase en modo real y conservan
+mocks en modo demo. Dashboard, Nueva Cita, Agenda, Detalle de paciente y
+Recordatorios leen esos datos desde el estado central de App. Historial clinico
+y Odontograma siguen usando estado local/mock actual.
