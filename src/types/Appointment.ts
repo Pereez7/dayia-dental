@@ -1,5 +1,7 @@
 import type { PatientId } from './Patient'
 
+export type AppointmentId = number | string
+
 export type AppointmentStatus =
   | 'confirmed'
   | 'pending'
@@ -14,7 +16,7 @@ export type AppointmentChangeLogType =
   | 'rescheduled'
 
 export interface AppointmentChangeLogEntry {
-  id: string
+  id: AppointmentId
   type: AppointmentChangeLogType
   createdAt: string
   description: string
@@ -22,7 +24,7 @@ export interface AppointmentChangeLogEntry {
 }
 
 export interface Appointment {
-  id: number
+  id: AppointmentId
   patientId?: PatientId
   cancellationReason?: string
   cancellationReasonDetail?: string

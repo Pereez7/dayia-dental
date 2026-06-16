@@ -1,4 +1,4 @@
-import type { AppointmentStatus } from '../types/Appointment'
+import type { AppointmentId, AppointmentStatus } from '../types/Appointment'
 
 export type AppointmentStatusAction = 'cancel' | 'confirm' | 'reschedule'
 
@@ -23,8 +23,8 @@ export function getAppointmentStatusActions(status: AppointmentStatus) {
 }
 
 export function shouldCloseReschedulePanelAfterStatusChange(
-  activeRescheduleAppointmentId: number | null,
-  appointmentId: number,
+  activeRescheduleAppointmentId: AppointmentId | null,
+  appointmentId: AppointmentId,
   status: AppointmentStatus,
 ) {
   return (
@@ -34,8 +34,8 @@ export function shouldCloseReschedulePanelAfterStatusChange(
 }
 
 export function shouldCloseReschedulePanelOnToggle(
-  activeRescheduleAppointmentId: number | null,
-  appointmentId: number,
+  activeRescheduleAppointmentId: AppointmentId | null,
+  appointmentId: AppointmentId,
 ) {
   return activeRescheduleAppointmentId === appointmentId
 }

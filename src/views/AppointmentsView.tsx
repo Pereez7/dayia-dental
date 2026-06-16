@@ -3,6 +3,7 @@ import { AppointmentsAgenda } from '../components/AppointmentsAgenda'
 import type {
   Appointment,
   AppointmentFormValues,
+  AppointmentId,
   AppointmentStatus,
 } from '../types/Appointment'
 import type {
@@ -17,28 +18,34 @@ interface AppointmentsViewProps {
   appointments: Appointment[]
   businessHours: BusinessHoursSettings
   calendarExceptions: CalendarException[]
+  errorMessage?: string
+  isLoading?: boolean
   patients: Patient[]
   treatments: Treatment[]
   mode?: 'agenda' | 'new'
-  onCreateAppointment?: (values: AppointmentFormValues) => void
+  onCreateAppointment?: (
+    values: AppointmentFormValues,
+  ) => Promise<{ error?: string; success: boolean }> | { error?: string; success: boolean } | void
   onNavigateToAgenda?: () => void
   onRescheduleAppointment?: (
-    appointmentId: number,
+    appointmentId: AppointmentId,
     date: string,
     time: string,
     reasonPayload?: AppointmentReasonPayload,
-  ) => void
+  ) => Promise<{ error?: string; success: boolean }> | { error?: string; success: boolean } | void
   onUpdateAppointmentStatus?: (
-    appointmentId: number,
+    appointmentId: AppointmentId,
     status: AppointmentStatus,
     reasonPayload?: AppointmentReasonPayload,
-  ) => void
+  ) => Promise<{ error?: string; success: boolean }> | { error?: string; success: boolean } | void
 }
 
 export function AppointmentsView({
   appointments,
   businessHours,
   calendarExceptions,
+  errorMessage = '',
+  isLoading = false,
   patients,
   treatments,
   mode = 'agenda',
@@ -48,7 +55,7 @@ export function AppointmentsView({
   onUpdateAppointmentStatus,
 }: AppointmentsViewProps) {
   function handleCreateAppointment(values: AppointmentFormValues) {
-    onCreateAppointment?.(values)
+    return onCreateAppointment?.(values)
   }
 
   if (mode === 'new') {
@@ -70,6 +77,8 @@ export function AppointmentsView({
       appointments={appointments}
       businessHours={businessHours}
       calendarExceptions={calendarExceptions}
+      errorMessage={errorMessage}
+      isLoading={isLoading}
       onRescheduleAppointment={onRescheduleAppointment}
       patients={patients}
       treatments={treatments}

@@ -58,7 +58,9 @@ interface AppointmentFormProps {
   patients: Patient[]
   treatments: Treatment[]
   onCancel: () => void
-  onCreateAppointment: (values: AppointmentFormValues) => void
+  onCreateAppointment: (
+    values: AppointmentFormValues,
+  ) => Promise<{ error?: string; success: boolean }> | { error?: string; success: boolean } | void
 }
 
 export function AppointmentForm({
@@ -74,6 +76,8 @@ export function AppointmentForm({
     useState<AppointmentFormValues>(initialFormValues)
   const [errors, setErrors] = useState<AppointmentFormErrors>({})
   const [patientSearch, setPatientSearch] = useState('')
+  const [submitError, setSubmitError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const minAppointmentDate = getTodayDateInputValue()
   const filteredPatients = filterPatients(patients, patientSearch).slice(0, 5)
@@ -253,8 +257,9 @@ export function AppointmentForm({
     }))
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    setSubmitError('')
 
     const validationErrors = validateAppointmentForm(
       formValues,
@@ -271,11 +276,20 @@ export function AppointmentForm({
       return
     }
 
-    onCreateAppointment({
+    setIsSubmitting(true)
+    const result = await onCreateAppointment({
       ...formValues,
       patient: formValues.patient.trim(),
       treatment: formValues.treatment.trim(),
     })
+
+    setIsSubmitting(false)
+
+    if (result && !result.success) {
+      setSubmitError(result.error ?? 'No pudimos guardar la cita.')
+      return
+    }
+
     setFormValues(initialFormValues)
     setPatientSearch('')
     setErrors({})
@@ -290,7 +304,7 @@ export function AppointmentForm({
         <p className="eyebrow">Agenda</p>
         <h2 id="appointment-form-title">Nueva cita</h2>
         <p className="section-description">
-          Registra una atencion programada usando los pacientes mock actuales.
+          Registra una atencion programada usando los pacientes actuales.
         </p>
       </div>
 
@@ -459,8 +473,11 @@ export function AppointmentForm({
         </div>
 
         <div className="form-actions">
-          <button className="primary-action" type="submit">
-            Guardar cita
+          {submitError && (
+            <p className="field-message field-message--error">{submitError}</p>
+          )}
+          <button className="primary-action" type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Guardando...' : 'Guardar cita'}
           </button>
           <button className="secondary-action" type="button" onClick={onCancel}>
             Ver agenda

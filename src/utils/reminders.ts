@@ -135,7 +135,10 @@ export function groupRemindersByAppointmentDate(
 }
 
 export function groupRemindersByAppointment(reminders: Reminder[]) {
-  const appointmentGroups = new Map<number, ReminderAppointmentGroup>()
+  const appointmentGroups = new Map<
+    Appointment['id'],
+    ReminderAppointmentGroup
+  >()
 
   for (const reminder of sortRemindersByAppointment(reminders)) {
     const currentGroup = appointmentGroups.get(reminder.appointmentId)

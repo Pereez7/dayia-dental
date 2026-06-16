@@ -1,4 +1,8 @@
-import type { Appointment, AppointmentStatus } from '../types/Appointment'
+import type {
+  Appointment,
+  AppointmentId,
+  AppointmentStatus,
+} from '../types/Appointment'
 import type {
   BusinessHoursSettings,
   CalendarException,
@@ -18,7 +22,7 @@ import {
 import { defaultTreatmentDurationMinutes } from './treatmentUtils'
 
 interface AvailableTimeOptionsConfig {
-  appointmentIdToIgnore?: number
+  appointmentIdToIgnore?: AppointmentId
   excludePastTimes?: boolean
   referenceDate?: Date
   treatments?: Treatment[]
@@ -43,7 +47,7 @@ export function hasAppointmentConflict(
   appointments: Appointment[],
   date: string,
   time: string,
-  appointmentIdToIgnore?: number,
+  appointmentIdToIgnore?: AppointmentId,
 ) {
   if (!date || !time) {
     return false
@@ -110,10 +114,11 @@ export function hasAppointmentDurationConflict(
   date: string,
   time: string,
   durationMinutes: number,
-  configOrAppointmentId?: AvailableTimeOptionsConfig | number,
+  configOrAppointmentId?: AvailableTimeOptionsConfig | AppointmentId,
 ) {
   const config =
-    typeof configOrAppointmentId === 'number'
+    typeof configOrAppointmentId === 'number' ||
+    typeof configOrAppointmentId === 'string'
       ? { appointmentIdToIgnore: configOrAppointmentId }
       : configOrAppointmentId
   const targetRange = getAppointmentTimeRange(date, time, durationMinutes)
@@ -150,7 +155,7 @@ export function hasPatientAppointmentOnDate(
   appointments: Appointment[],
   patientId: PatientId | null,
   date: string,
-  appointmentIdToIgnore?: number,
+  appointmentIdToIgnore?: AppointmentId,
 ) {
   if (patientId === null || !date) {
     return false
@@ -173,7 +178,7 @@ export function getAvailableTimeOptions(
   businessHours: BusinessHoursSettings,
   appointments: Appointment[],
   date: string,
-  configOrAppointmentId?: AvailableTimeOptionsConfig | number,
+  configOrAppointmentId?: AvailableTimeOptionsConfig | AppointmentId,
 ) {
   return getAvailableTimeOptionsByDuration(
     businessHours,
@@ -189,14 +194,15 @@ export function getAvailableTimeOptionsByDuration(
   appointments: Appointment[],
   date: string,
   durationMinutes: number,
-  configOrAppointmentId?: AvailableTimeOptionsConfig | number,
+  configOrAppointmentId?: AvailableTimeOptionsConfig | AppointmentId,
 ) {
   if (!date) {
     return []
   }
 
   const config =
-    typeof configOrAppointmentId === 'number'
+    typeof configOrAppointmentId === 'number' ||
+    typeof configOrAppointmentId === 'string'
       ? { appointmentIdToIgnore: configOrAppointmentId }
       : configOrAppointmentId
   const referenceDate = config?.referenceDate ?? new Date()

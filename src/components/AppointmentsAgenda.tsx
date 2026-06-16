@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { Appointment, AppointmentStatus } from '../types/Appointment'
+import type {
+  Appointment,
+  AppointmentId,
+  AppointmentStatus,
+} from '../types/Appointment'
 import type {
   BusinessHoursSettings,
   CalendarException,
@@ -50,19 +54,26 @@ interface AppointmentsAgendaProps {
   appointments: Appointment[]
   businessHours: BusinessHoursSettings
   calendarExceptions: CalendarException[]
+  errorMessage?: string
+  isLoading?: boolean
   patients: Patient[]
   treatments: Treatment[]
   onRescheduleAppointment?: (
-    appointmentId: number,
+    appointmentId: AppointmentId,
     date: string,
     time: string,
     reasonPayload?: AppointmentReasonPayload,
-  ) => void
+  ) => Promise<AppointmentActionResult> | AppointmentActionResult | void
   onUpdateAppointmentStatus?: (
-    appointmentId: number,
+    appointmentId: AppointmentId,
     status: AppointmentStatus,
     reasonPayload?: AppointmentReasonPayload,
-  ) => void
+  ) => Promise<AppointmentActionResult> | AppointmentActionResult | void
+}
+
+interface AppointmentActionResult {
+  error?: string
+  success: boolean
 }
 
 const emptyRescheduleValues: AppointmentRescheduleValues = {
@@ -82,6 +93,8 @@ export function AppointmentsAgenda({
   appointments,
   businessHours,
   calendarExceptions,
+  errorMessage = '',
+  isLoading = false,
   onRescheduleAppointment,
   onUpdateAppointmentStatus,
   patients,
@@ -89,7 +102,7 @@ export function AppointmentsAgenda({
 }: AppointmentsAgendaProps) {
   const [selectedDate, setSelectedDate] = useState(() => getDateInputValue())
   const [rescheduleAppointmentId, setRescheduleAppointmentId] = useState<
-    number | null
+    AppointmentId | null
   >(null)
   const [rescheduleValues, setRescheduleValues] =
     useState<AppointmentRescheduleValues>(emptyRescheduleValues)
@@ -100,8 +113,9 @@ export function AppointmentsAgenda({
   const [toastMessage, setToastMessage] = useState('')
   const [toastTone, setToastTone] = useState<ToastTone>('success')
   const [isToastVisible, setIsToastVisible] = useState(false)
+  const [actionError, setActionError] = useState('')
   const [appointmentIdPendingCancellation, setAppointmentIdPendingCancellation] =
-    useState<number | null>(null)
+    useState<AppointmentId | null>(null)
   const [cancellationReasonValues, setCancellationReasonValues] =
     useState<AppointmentReasonValues<AppointmentCancellationReason>>(
       emptyCancellationReasonValues,
@@ -146,12 +160,26 @@ export function AppointmentsAgenda({
     return () => window.clearTimeout(timeoutId)
   }, [isToastVisible, toastMessage])
 
-  function updateAppointmentStatus(
-    appointmentId: number,
+  async function updateAppointmentStatus(
+    appointmentId: AppointmentId,
     status: AppointmentStatus,
     reasonPayload?: AppointmentReasonPayload,
   ) {
-    onUpdateAppointmentStatus?.(appointmentId, status, reasonPayload)
+    setActionError('')
+    const result = await onUpdateAppointmentStatus?.(
+      appointmentId,
+      status,
+      reasonPayload,
+    )
+
+    if (result && !result.success) {
+      setActionError(result.error ?? 'No pudimos actualizar la cita.')
+      setToastMessage(result.error ?? 'No pudimos actualizar la cita.')
+      setToastTone('error')
+      setIsToastVisible(true)
+      return false
+    }
+
     if (
       shouldCloseReschedulePanelAfterStatusChange(
         rescheduleAppointmentId,
@@ -166,9 +194,11 @@ export function AppointmentsAgenda({
     )
     setToastTone(status === 'confirmed' ? 'success' : 'warning')
     setIsToastVisible(true)
+
+    return true
   }
 
-  function requestAppointmentCancellation(appointmentId: number) {
+  function requestAppointmentCancellation(appointmentId: AppointmentId) {
     closeReschedulePanel()
     setAppointmentIdPendingCancellation(appointmentId)
     setCancellationReasonValues(emptyCancellationReasonValues)
@@ -181,7 +211,7 @@ export function AppointmentsAgenda({
     setCancellationReasonErrors({})
   }
 
-  function confirmAppointmentCancellation() {
+  async function confirmAppointmentCancellation() {
     if (appointmentIdPendingCancellation === null) {
       return
     }
@@ -198,11 +228,16 @@ export function AppointmentsAgenda({
       appointmentCancellationReasonOptions,
     )
 
-    updateAppointmentStatus(
+    const wasUpdated = await updateAppointmentStatus(
       appointmentIdPendingCancellation,
       'cancelled',
       reasonPayload,
     )
+
+    if (!wasUpdated) {
+      return
+    }
+
     setAppointmentIdPendingCancellation(null)
     setCancellationReasonValues(emptyCancellationReasonValues)
     setCancellationReasonErrors({})
@@ -367,7 +402,7 @@ export function AppointmentsAgenda({
     }))
   }
 
-  function submitReschedule(appointment: Appointment) {
+  async function submitReschedule(appointment: Appointment) {
     const currentAppointment =
       appointments.find((item) => item.id === appointment.id) ?? appointment
     const errors = validateAppointmentReschedule(
@@ -393,7 +428,8 @@ export function AppointmentsAgenda({
       return
     }
 
-    onRescheduleAppointment?.(
+    setActionError('')
+    const result = await onRescheduleAppointment?.(
       appointment.id,
       rescheduleValues.date,
       rescheduleValues.time,
@@ -402,6 +438,15 @@ export function AppointmentsAgenda({
         appointmentRescheduleReasonOptions,
       ),
     )
+
+    if (result && !result.success) {
+      setActionError(result.error ?? 'No pudimos reprogramar la cita.')
+      setToastMessage(result.error ?? 'No pudimos reprogramar la cita.')
+      setToastTone('error')
+      setIsToastVisible(true)
+      return
+    }
+
     closeReschedulePanel()
     setToastMessage('Cita reprogramada.')
     setToastTone('warning')
@@ -521,6 +566,12 @@ export function AppointmentsAgenda({
         </div>
       </div>
 
+      {(errorMessage || actionError) && (
+        <p className="field-message field-message--error">
+          {actionError || errorMessage}
+        </p>
+      )}
+
       <div className="agenda-date-nav" aria-label="Seleccionar dia de agenda">
         {visibleDays.map((day) => (
           <button
@@ -559,7 +610,12 @@ export function AppointmentsAgenda({
         </div>
       </div>
 
-      {selectedAppointments.length > 0 ? (
+      {isLoading ? (
+        <div className="agenda-empty-state">
+          <h3>Cargando citas...</h3>
+          <p>Estamos preparando la agenda del consultorio.</p>
+        </div>
+      ) : selectedAppointments.length > 0 ? (
         <div className="agenda-list" aria-label="Citas del dia seleccionado">
           {selectedAppointments.map((appointment) => (
             <AppointmentAgendaCard

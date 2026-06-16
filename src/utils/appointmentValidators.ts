@@ -2,6 +2,7 @@ import type {
   Appointment,
   AppointmentFormErrors,
   AppointmentFormValues,
+  AppointmentId,
   AppointmentStatus,
 } from '../types/Appointment'
 import type {
@@ -36,7 +37,7 @@ export function validateAppointmentForm(
   treatments: Treatment[] = [],
   businessHours?: BusinessHoursSettings,
   appointments: Appointment[] = [],
-  appointmentIdToIgnore?: number,
+  appointmentIdToIgnore?: AppointmentId,
   calendarExceptions: CalendarException[] = [],
 ): AppointmentFormErrors {
   const errors: AppointmentFormErrors = {}

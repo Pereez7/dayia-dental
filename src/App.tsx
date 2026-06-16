@@ -15,9 +15,17 @@ import {
   getPatientsByClinic,
   mapPatientFormValuesToPatientInput,
 } from './services/patientsService'
+import {
+  createAppointment as createAppointmentInSupabase,
+  getAppointmentsByClinic,
+  mapAppointmentFormValuesToAppointmentInput,
+  rescheduleAppointment as rescheduleAppointmentInSupabase,
+  updateAppointmentStatus as updateAppointmentStatusInSupabase,
+} from './services/appointmentsService'
 import type {
   Appointment,
   AppointmentFormValues,
+  AppointmentId,
   AppointmentStatus,
 } from './types/Appointment'
 import type {
@@ -59,6 +67,8 @@ function App() {
   const [activeSection, setActiveSection] = useState<AppSection>('dashboard')
   const [appointments, setAppointments] =
     useState<Appointment[]>(initialAppointments)
+  const [isAppointmentsLoading, setIsAppointmentsLoading] = useState(true)
+  const [appointmentsError, setAppointmentsError] = useState('')
   const [patients, setPatients] = useState<Patient[]>([])
   const [isPatientsLoading, setIsPatientsLoading] = useState(true)
   const [patientsError, setPatientsError] = useState('')
@@ -121,6 +131,54 @@ function App() {
     }
   }, [currentClinic?.id, isDemoMode])
 
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadAppointments() {
+      if (isDemoMode) {
+        setAppointments(initialAppointments)
+        setIsAppointmentsLoading(false)
+        setAppointmentsError('')
+        return
+      }
+
+      if (!currentClinic?.id) {
+        setAppointments([])
+        setIsAppointmentsLoading(false)
+        setAppointmentsError('No hay consultorio activo para cargar citas.')
+        return
+      }
+
+      setIsAppointmentsLoading(true)
+      setAppointmentsError('')
+
+      const { data, error } = await getAppointmentsByClinic(
+        currentClinic.id,
+        patients,
+      )
+
+      if (!isMounted) {
+        return
+      }
+
+      if (error) {
+        setAppointments([])
+        setAppointmentsError(error)
+        setIsAppointmentsLoading(false)
+        return
+      }
+
+      setAppointments(data ?? [])
+      setIsAppointmentsLoading(false)
+    }
+
+    loadAppointments()
+
+    return () => {
+      isMounted = false
+    }
+  }, [currentClinic?.id, isDemoMode, patients])
+
   async function handleCreatePatient(values: PatientFormValues) {
     if (isDemoMode) {
       const patientInput = mapPatientFormValuesToPatientInput(values)
@@ -168,10 +226,48 @@ function App() {
     return { success: true }
   }
 
-  function handleCreateAppointment(values: AppointmentFormValues) {
+  async function handleCreateAppointment(values: AppointmentFormValues) {
+    if (!isDemoMode) {
+      if (!currentClinic?.id) {
+        return {
+          error: 'No hay consultorio activo para registrar citas.',
+          success: false,
+        }
+      }
+
+      const appointmentInput = mapAppointmentFormValuesToAppointmentInput(values)
+
+      if (!appointmentInput) {
+        return {
+          error: 'Selecciona un paciente registrado en Supabase.',
+          success: false,
+        }
+      }
+
+      const { data, error } = await createAppointmentInSupabase(
+        currentClinic.id,
+        appointmentInput,
+        patients,
+      )
+
+      if (error || !data) {
+        setAppointmentsError(error ?? 'No pudimos registrar la cita.')
+        return {
+          error: error ?? 'No pudimos registrar la cita.',
+          success: false,
+        }
+      }
+
+      setAppointments((currentAppointments) => [...currentAppointments, data])
+      setAppointmentsError('')
+      setActiveSection('appointments-agenda')
+
+      return { success: true }
+    }
+
     setAppointments((currentAppointments) => {
       const nextAppointment: Appointment = {
-        id: getNextNumericId(currentAppointments),
+        id: getNextNumericAppointmentId(currentAppointments),
         patientId: values.patientId ?? undefined,
         date: values.date,
         durationMinutes: getTreatmentDuration(treatments, values.treatment),
@@ -189,14 +285,54 @@ function App() {
         ),
       ]
     })
+    setAppointmentsError('')
     setActiveSection('appointments-agenda')
+
+    return { success: true }
   }
 
-  function handleUpdateAppointmentStatus(
-    appointmentId: number,
+  async function handleUpdateAppointmentStatus(
+    appointmentId: AppointmentId,
     status: AppointmentStatus,
     reasonPayload?: AppointmentReasonPayload,
   ) {
+    if (!isDemoMode) {
+      if (!currentClinic?.id) {
+        return {
+          error: 'No hay consultorio activo para actualizar citas.',
+          success: false,
+        }
+      }
+
+      const currentAppointment = appointments.find(
+        (appointment) => appointment.id === appointmentId,
+      )
+
+      const { data, error } = await updateAppointmentStatusInSupabase(
+        currentClinic.id,
+        appointmentId,
+        status,
+        reasonPayload,
+        currentAppointment,
+      )
+
+      if (error || !data) {
+        return {
+          error: error ?? 'No pudimos actualizar la cita.',
+          success: false,
+        }
+      }
+
+      setAppointments((currentAppointments) =>
+        currentAppointments.map((appointment) =>
+          appointment.id === appointmentId ? data : appointment,
+        ),
+      )
+      setAppointmentsError('')
+
+      return { success: true }
+    }
+
     setAppointments((currentAppointments) =>
       currentAppointments.map((appointment) => {
         if (appointment.id !== appointmentId) {
@@ -237,14 +373,69 @@ function App() {
         return updatedAppointment
       }),
     )
+
+    setAppointmentsError('')
+
+    return { success: true }
   }
 
-  function handleRescheduleAppointment(
-    appointmentId: number,
+  async function handleRescheduleAppointment(
+    appointmentId: AppointmentId,
     date: string,
     time: string,
     reasonPayload?: AppointmentReasonPayload,
   ) {
+    if (!isDemoMode) {
+      if (!currentClinic?.id) {
+        return {
+          error: 'No hay consultorio activo para reprogramar citas.',
+          success: false,
+        }
+      }
+
+      const currentAppointment = appointments.find(
+        (appointment) => appointment.id === appointmentId,
+      )
+
+      if (!currentAppointment) {
+        return {
+          error: 'No encontramos la cita seleccionada.',
+          success: false,
+        }
+      }
+
+      const { data, error } = await rescheduleAppointmentInSupabase(
+        currentClinic.id,
+        appointmentId,
+        {
+          date,
+          durationMinutes: getTreatmentDuration(
+            treatments,
+            currentAppointment.treatment,
+          ),
+          reasonPayload,
+          time,
+        },
+        currentAppointment,
+      )
+
+      if (error || !data) {
+        return {
+          error: error ?? 'No pudimos reprogramar la cita.',
+          success: false,
+        }
+      }
+
+      setAppointments((currentAppointments) =>
+        currentAppointments.map((appointment) =>
+          appointment.id === appointmentId ? data : appointment,
+        ),
+      )
+      setAppointmentsError('')
+
+      return { success: true }
+    }
+
     setAppointments((currentAppointments) =>
       currentAppointments.map((appointment) =>
         appointment.id === appointmentId &&
@@ -262,6 +453,10 @@ function App() {
           : appointment,
       ),
     )
+
+    setAppointmentsError('')
+
+    return { success: true }
   }
 
   function handleViewPatient(patientId: PatientId) {
@@ -385,6 +580,8 @@ function App() {
           appointments={appointments}
           businessHours={businessHours}
           calendarExceptions={calendarExceptions}
+          errorMessage={appointmentsError}
+          isLoading={isAppointmentsLoading}
           mode="agenda"
           patients={patients}
           treatments={treatments}
@@ -400,6 +597,8 @@ function App() {
           appointments={appointments}
           businessHours={businessHours}
           calendarExceptions={calendarExceptions}
+          errorMessage={appointmentsError}
+          isLoading={isAppointmentsLoading}
           mode="new"
           patients={patients}
           treatments={treatments}
@@ -469,6 +668,20 @@ function getNextNumericPatientId(patients: Patient[]) {
       ...patients
         .map((patient) => patient.id)
         .filter((patientId): patientId is number => typeof patientId === 'number'),
+    ) + 1
+  )
+}
+
+function getNextNumericAppointmentId(appointments: Appointment[]) {
+  return (
+    Math.max(
+      0,
+      ...appointments
+        .map((appointment) => appointment.id)
+        .filter(
+          (appointmentId): appointmentId is number =>
+            typeof appointmentId === 'number',
+        ),
     ) + 1
   )
 }

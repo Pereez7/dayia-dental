@@ -1,4 +1,4 @@
-import type { AppointmentStatus } from './Appointment'
+import type { AppointmentId, AppointmentStatus } from './Appointment'
 import type { PatientId } from './Patient'
 
 export type ReminderType = '24h' | '2h' | 'immediate'
@@ -9,7 +9,7 @@ export type ReminderStatusFilter = 'all' | ReminderStatus
 
 export interface Reminder {
   id: string
-  appointmentId: number
+  appointmentId: AppointmentId
   patientId: PatientId | null
   patientName: string
   phone: string
@@ -33,7 +33,7 @@ export type ReminderSummary = Record<ReminderStatus, number>
 
 export interface ReminderAppointmentGroup {
   appointmentDate: string
-  appointmentId: number
+  appointmentId: AppointmentId
   appointmentStatus: Extract<
     AppointmentStatus,
     'confirmed' | 'pending' | 'rescheduled'
