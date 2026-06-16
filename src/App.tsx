@@ -6,6 +6,7 @@ import { businessHours as initialBusinessHours } from './data/businessHours'
 import { calendarExceptions as initialCalendarExceptions } from './data/calendarExceptions'
 import { clinicalRecords as initialClinicalRecords } from './data/clinicalRecords'
 import { odontogramEntries as initialOdontogramEntries } from './data/odontogram'
+import { patients as initialPatients } from './data/patients'
 import { treatments as initialTreatments } from './data/treatments'
 import { AppLayout } from './layout/AppLayout'
 import type { AppSection } from './layout/navigation'
@@ -54,7 +55,7 @@ import { SettingsView } from './views/SettingsView'
 import { WhatsAppRemindersView } from './views/WhatsAppRemindersView'
 
 function App() {
-  const { currentClinic } = useAuth()
+  const { currentClinic, isDemoMode } = useAuth()
   const [activeSection, setActiveSection] = useState<AppSection>('dashboard')
   const [appointments, setAppointments] =
     useState<Appointment[]>(initialAppointments)
@@ -79,6 +80,13 @@ function App() {
     let isMounted = true
 
     async function loadPatients() {
+      if (isDemoMode) {
+        setPatients(initialPatients)
+        setIsPatientsLoading(false)
+        setPatientsError('')
+        return
+      }
+
       if (!currentClinic?.id) {
         setPatients([])
         setIsPatientsLoading(false)
@@ -111,9 +119,28 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [currentClinic?.id])
+  }, [currentClinic?.id, isDemoMode])
 
   async function handleCreatePatient(values: PatientFormValues) {
+    if (isDemoMode) {
+      setPatients((currentPatients) => [
+        {
+          id: getNextNumericPatientId(currentPatients),
+          fullName: `${values.firstName.trim()} ${values.lastName.trim()}`,
+          phone: `${values.countryCode}${values.localPhone.trim()}`,
+          email: values.email.trim() || undefined,
+          birthDate: values.birthDate || undefined,
+          lastVisit: 'Sin registro',
+          nextAppointment: null,
+          status: 'active',
+        },
+        ...currentPatients,
+      ])
+      setPatientsError('')
+
+      return { success: true }
+    }
+
     if (!currentClinic?.id) {
       return {
         error: 'No hay consultorio activo para registrar pacientes.',
@@ -431,6 +458,17 @@ function App() {
 
 function getNextNumericId(items: { id: number }[]) {
   return Math.max(0, ...items.map((item) => item.id)) + 1
+}
+
+function getNextNumericPatientId(patients: Patient[]) {
+  return (
+    Math.max(
+      0,
+      ...patients
+        .map((patient) => patient.id)
+        .filter((patientId): patientId is number => typeof patientId === 'number'),
+    ) + 1
+  )
 }
 
 function getTodayDateInputValue() {

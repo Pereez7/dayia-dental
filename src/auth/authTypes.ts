@@ -5,6 +5,7 @@ import type { Clinic, UserProfile } from '../types/database'
 export interface AuthState {
   authError: string
   currentClinic: Clinic | null
+  isDemoMode: boolean
   isLoading: boolean
   profile: UserProfile | null
   session: Session | null

@@ -16,6 +16,32 @@ Supabase cubre las necesidades del MVP comercial:
 No se usara service role key en frontend. Las claves secretas y tokens de
 WhatsApp deberan vivir en backend o Edge Functions.
 
+## Modo demo/desarrollo
+
+Supabase real sera necesario para el MVP comercial: login, base de datos,
+separacion por consultorio, RLS y WhatsApp real dependen de esa configuracion.
+
+Mientras falten `VITE_SUPABASE_URL` o `VITE_SUPABASE_ANON_KEY`, la app activa un
+modo demo/desarrollo en memoria. En ese modo no se muestra el login real, no se
+guardan credenciales y no se crea una sesion persistente. El objetivo es poder
+seguir trabajando sobre Dashboard, Pacientes, Citas, Configuracion,
+Recordatorios, Historial clinico y Odontograma sin bloquear el desarrollo por
+falta de `.env`.
+
+El modo demo usa:
+
+- `currentClinic.id = demo-clinic`
+- `currentClinic.name = Consultorio Demo`
+- Un perfil temporal `Usuario Demo` vinculado a `demo-clinic`
+- Datos mock/locales para Pacientes y el resto de modulos
+
+Cuando las variables de Supabase existan, el modo demo no se activa y la app usa
+el flujo real de Supabase Auth: pantalla de login, sesion, perfil y consultorio
+actual desde `profiles` y `clinics`.
+
+Este modo no debe interpretarse como seguridad real ni como sustituto de Auth.
+Solo existe como fallback de desarrollo cuando Supabase no esta configurado.
+
 ## Multi-consultorio
 
 Multi-consultorio significa que cada consultorio tiene sus propios pacientes,
@@ -161,6 +187,7 @@ La preparacion actual agrega:
 - Variables de entorno de ejemplo en `.env.example`.
 - Cliente Supabase seguro en `src/lib/supabaseClient.ts`.
 - Capa Auth en `src/auth` para login, sesion, perfil y consultorio actual.
+- Modo demo/desarrollo cuando faltan variables de Supabase.
 - Tipos backend base en `src/types/database.ts`.
 - Servicio real de Pacientes y servicios placeholder para el resto en
   `src/services`.

@@ -11,6 +11,7 @@ import {
 } from './authService'
 import { AuthContext } from './AuthContext'
 import type { AuthState } from './authTypes'
+import { demoClinic, demoProfile } from './demoAuth'
 
 interface AuthProviderProps {
   children: ReactNode
@@ -19,6 +20,7 @@ interface AuthProviderProps {
 const initialAuthState: AuthState = {
   authError: '',
   currentClinic: null,
+  isDemoMode: false,
   isLoading: true,
   profile: null,
   session: null,
@@ -64,6 +66,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setAuthState({
         authError: 'No pudimos cargar el perfil del usuario.',
         currentClinic: null,
+        isDemoMode: false,
         isLoading: false,
         profile: null,
         session,
@@ -76,6 +79,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setAuthState({
         authError: 'Tu usuario aún no está vinculado a un consultorio.',
         currentClinic: null,
+        isDemoMode: false,
         isLoading: false,
         profile: null,
         session,
@@ -88,6 +92,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setAuthState({
         authError: 'Tu usuario no tiene consultorio asignado.',
         currentClinic: null,
+        isDemoMode: false,
         isLoading: false,
         profile,
         session,
@@ -107,6 +112,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setAuthState({
         authError: 'No pudimos cargar el consultorio asignado.',
         currentClinic: null,
+        isDemoMode: false,
         isLoading: false,
         profile,
         session,
@@ -118,6 +124,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setAuthState({
       authError: '',
       currentClinic,
+      isDemoMode: false,
       isLoading: false,
       profile,
       session,
@@ -136,8 +143,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         setAuthState({
           ...initialAuthState,
-          authError: 'Configura Supabase para iniciar sesión.',
+          currentClinic: demoClinic,
+          isDemoMode: true,
           isLoading: false,
+          profile: demoProfile,
         })
         return
       }
@@ -212,6 +221,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   if (authState.isLoading) {
     return <AuthStatusScreen message="Preparando tu sesión..." />
+  }
+
+  if (authState.isDemoMode) {
+    return (
+      <AuthContext.Provider
+        value={{
+          ...authState,
+          signOut: handleSignOut,
+        }}
+      >
+        <div className="demo-mode-banner" role="status">
+          Modo demo: Supabase no está configurado.
+        </div>
+        {children}
+      </AuthContext.Provider>
+    )
   }
 
   if (!authState.session) {
