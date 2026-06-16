@@ -90,18 +90,18 @@ Las migraciones actuales son:
 
 ## Migracion por modulos
 
-La app seguira usando datos mock/locales en esta etapa. La migracion recomendada
-es gradual:
+La app conserva modo demo con datos mock/locales cuando Supabase no esta
+configurado. En modo real, los modulos se migraran gradualmente:
 
 1. Auth y perfiles de usuario por consultorio.
-2. Configuracion: tratamientos, horarios y excepciones.
-3. Pacientes.
+2. Pacientes.
+3. Configuracion: tratamientos, horarios y excepciones.
 4. Citas y logs de cambios.
 5. Recordatorios generados desde citas reales.
 6. WhatsApp real mediante Edge Functions y webhooks.
 
 Este orden reduce riesgo porque primero estabiliza el contexto del consultorio y
-la configuracion que despues consume Agenda.
+el primer CRUD real antes de mover Agenda y sus dependencias.
 
 ## Auth y consultorio actual
 
@@ -124,9 +124,9 @@ Estados incompletos esperados:
 - Si no se puede cargar el consultorio, la app muestra un mensaje claro y evita
   dejar la pantalla en blanco.
 
-Esta etapa prepara la migracion por `clinic_id`, pero Dashboard, Pacientes,
-Citas, Configuracion, Recordatorios, Historial clinico y Odontograma siguen
-usando datos mock/locales despues del login.
+Esta etapa prepara la migracion por `clinic_id`. En modo real, Pacientes ya
+puede leer y crear registros en Supabase; Citas, Configuracion, Recordatorios,
+Historial clinico y Odontograma siguen usando datos mock/locales.
 
 La migracion `supabase/migrations/002_auth_profiles_policies.sql` agrega una
 funcion `current_clinic_id()` y policies RLS basicas para que un usuario
@@ -144,10 +144,14 @@ tenants arbitrariamente antes de definir roles y administracion.
 
 ## Migración de Pacientes
 
-Pacientes es el primer modulo conectado a Supabase. Despues del login, la app
-carga pacientes desde `patients` filtrando siempre por `clinic_id` del
-consultorio actual. La busqueda visible sigue siendo local sobre los pacientes
-cargados.
+Pacientes es el primer modulo conectado a Supabase en modo real. Despues del
+login real, la app carga pacientes desde `patients` filtrando siempre por
+`clinic_id` del consultorio actual. La busqueda visible sigue siendo local sobre
+los pacientes cargados.
+
+En modo demo/desarrollo, Pacientes no llama a Supabase: usa los datos mock
+locales y las altas nuevas viven solo en memoria. No se mezclan pacientes mock
+con pacientes reales y no se crean pacientes demo en la base de datos.
 
 Al registrar un paciente, el formulario mantiene las validaciones actuales,
 normaliza nombre y apellido, conserva el prefijo telefonico y crea el registro
@@ -160,8 +164,11 @@ y recordatorios no se migran todavia. En esta etapa pueden seguir usando datos
 mock/locales y fallbacks por nombre cuando corresponda.
 
 Las policies de `002_auth_profiles_policies.sql` ya permiten que un usuario
-autenticado gestione solo pacientes de su consultorio. La app tambien filtra por
-`clinic_id` desde el frontend, pero la separacion de datos depende de RLS.
+autenticado gestione solo pacientes de su consultorio. La migracion
+`004_patients_indexes.sql` agrega el indice `patients(clinic_id, last_name)` y
+documenta el contrato de Pacientes como tabla filtrada por consultorio. La app
+tambien filtra por `clinic_id` desde el frontend, pero la separacion de datos
+depende de RLS.
 
 El siguiente paso recomendado es migrar Citas para que `patient_id` use los UUID
 reales de Supabase y deje de depender de datos mock.
@@ -193,5 +200,6 @@ La preparacion actual agrega:
   `src/services`.
 - SQL inicial y policies Auth en `supabase/migrations`.
 
-Pacientes ya consume Supabase. Dashboard, Citas, Configuracion, Recordatorios,
-Historial clinico y Odontograma siguen usando estado local/mock actual.
+Pacientes consume Supabase en modo real y conserva mocks en modo demo.
+Dashboard, Citas, Configuracion, Recordatorios, Historial clinico y Odontograma
+siguen usando estado local/mock actual.
