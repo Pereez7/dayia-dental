@@ -91,6 +91,8 @@ Las migraciones actuales son:
   consultorio/cita y comentarios del contrato de Agenda.
 - `006_settings_indexes.sql`: indice/unique de horarios por consultorio/dia y
   comentarios del contrato de Configuracion.
+- `007_reminders_indexes.sql`: tipo de recordatorio, indices por cita/estado y
+  contrato de cola manual para WhatsApp.
 
 ## Migracion por modulos
 
@@ -256,12 +258,50 @@ Las policies de `002_auth_profiles_policies.sql` ya cubren `treatments`,
 consultorio. La migracion `006_settings_indexes.sql` agrega el unique faltante
 `business_hours(clinic_id, weekday)` y documenta el contrato de Configuracion.
 
-Recordatorios y WhatsApp real todavia no estan migrados. Recordatorios siguen
-calculandose desde citas y pacientes cargados en App; WhatsApp debera ir por
-backend/Edge Functions en una fase posterior.
+## Migración de Recordatorios
 
-El siguiente paso recomendado es preparar Recordatorios reales y la base segura
-para WhatsApp API.
+Recordatorios consume Supabase en modo real y conserva la generacion mock/local
+en modo demo. En modo real, la app carga la cola desde `reminders` filtrando
+siempre por `clinic_id`, y en modo demo la vista sigue calculando recordatorios
+desde las citas y pacientes en memoria.
+
+La generacion mantiene las reglas actuales:
+
+- No genera recordatorios para citas canceladas.
+- Genera recordatorios para citas pendientes, confirmadas y reprogramadas.
+- Usa recordatorios de 24h y 2h cuando aplican.
+- Usa recordatorio inmediato cuando la cita esta demasiado cerca.
+- Si no hay telefono valido, el recordatorio queda como `skipped`.
+
+Cuando se crea una cita real, la app crea sus recordatorios en Supabase. Cuando
+se confirma una cita, actualiza/reemplaza los recordatorios pendientes para que
+el mensaje refleje el estado confirmado. Cuando se reprograma una cita, cancela
+recordatorios pendientes/programados anteriores y crea una nueva cola para la
+fecha/hora vigente. Cuando se cancela una cita, no borra registros: marca como
+`cancelled` los recordatorios pendientes/programados de esa cita.
+
+Los estados reales de la cola son `pending`, `scheduled`, `sent`, `failed`,
+`cancelled` y `skipped`. Marcar enviado actualiza `status = 'sent'` y
+`sent_at = now()` en Supabase. Marcar fallido actualiza `status = 'failed'` y
+`failed_reason` con un motivo manual.
+
+El boton "Abrir WhatsApp" usa un enlace manual `https://wa.me/...` con telefono
+normalizado y mensaje precargado. Esto no es envio automatico ni WhatsApp API:
+solo prepara el flujo manual para validar el MVP antes de incorporar backend de
+mensajeria.
+
+Las policies de `002_auth_profiles_policies.sql` ya cubren `reminders` para
+usuarios autenticados del mismo consultorio. La migracion
+`007_reminders_indexes.sql` agrega `reminder_type`, indices por
+`clinic_id/appointment_id` y `clinic_id/status`, y evita duplicados activos por
+consultorio, cita y tipo.
+
+WhatsApp API automatica todavia no esta implementada. El siguiente paso de
+backend debera usar Edge Functions, jobs programados, webhooks de estado y
+configuracion propia de WhatsApp por consultorio. Ningun token o secreto debe
+vivir en frontend.
+
+El siguiente paso recomendado es preparar WhatsApp API real con backend seguro.
 
 ## WhatsApp real
 
@@ -286,11 +326,11 @@ La preparacion actual agrega:
 - Capa Auth en `src/auth` para login, sesion, perfil y consultorio actual.
 - Modo demo/desarrollo cuando faltan variables de Supabase.
 - Tipos backend base en `src/types/database.ts`.
-- Servicios reales de Pacientes, Citas y Configuracion, con placeholders
-  pendientes para otros modulos en `src/services`.
+- Servicios reales de Pacientes, Citas, Configuracion y Recordatorios, con
+  placeholders pendientes para otros modulos en `src/services`.
 - SQL inicial y policies Auth en `supabase/migrations`.
 
-Pacientes, Citas y Configuracion consumen Supabase en modo real y conservan
-mocks en modo demo. Dashboard, Nueva Cita, Agenda, Detalle de paciente y
-Recordatorios leen esos datos desde el estado central de App. Historial clinico
-y Odontograma siguen usando estado local/mock actual.
+Pacientes, Citas, Configuracion y Recordatorios consumen Supabase en modo real
+y conservan mocks en modo demo. Dashboard, Nueva Cita, Agenda, Detalle de
+paciente y Recordatorios leen esos datos desde el estado central de App.
+Historial clinico y Odontograma siguen usando estado local/mock actual.
