@@ -62,9 +62,13 @@ export function mapReminderInputToInsert(
     appointment_id: input.appointmentId,
     channel: input.channel ?? 'whatsapp',
     clinic_id: clinicId,
+    delivered_at: null,
     failed_reason: input.failedReason ?? null,
     message: input.message,
+    metadata: {},
     patient_id: input.patientId,
+    provider_message_id: null,
+    read_at: null,
     reminder_type: input.reminderType,
     scheduled_at: input.scheduledAt,
     sent_at: input.sentAt ?? null,
@@ -275,6 +279,25 @@ export function markReminderFailed(
     appointments,
     patients,
   )
+}
+
+export async function sendReminderNow(reminderId: string) {
+  if (!supabase) {
+    return { data: null, error: 'Supabase is not configured yet.' }
+  }
+
+  const { data, error } = await supabase.functions.invoke(
+    'send-whatsapp-reminder',
+    {
+      body: { reminderId },
+    },
+  )
+
+  if (error) {
+    return { data: null, error: getRemindersServiceErrorMessage() }
+  }
+
+  return { data, error: null }
 }
 
 export async function cancelRemindersForAppointment(

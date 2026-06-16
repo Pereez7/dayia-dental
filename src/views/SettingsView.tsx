@@ -1,5 +1,6 @@
 import { BusinessHoursSettings } from '../components/BusinessHoursSettings'
 import { TreatmentsSettings } from '../components/TreatmentsSettings'
+import { WhatsappSettingsPanel } from '../components/WhatsappSettingsPanel'
 import type {
   BusinessHoursSettings as BusinessHoursSettingsType,
   CalendarException,
@@ -7,6 +8,10 @@ import type {
   CalendarExceptionId,
 } from '../types/BusinessHours'
 import type { Treatment, TreatmentId } from '../types/Treatment'
+import type {
+  WhatsappSettings,
+  WhatsappSettingsFormValues,
+} from '../types/WhatsApp'
 
 interface SettingsActionResult {
   error?: string
@@ -38,9 +43,14 @@ interface SettingsViewProps {
     treatmentId: TreatmentId,
     treatment: Omit<Treatment, 'id'>,
   ) => Promise<SettingsActionResult> | SettingsActionResult
+  onWhatsappSettingsChange: (
+    values: WhatsappSettingsFormValues,
+  ) => Promise<SettingsActionResult> | SettingsActionResult
   settingsError?: string
   treatmentsError?: string
   treatments: Treatment[]
+  whatsappSettings: WhatsappSettings | null
+  whatsappSettingsError?: string
 }
 
 export function SettingsView({
@@ -53,10 +63,13 @@ export function SettingsView({
   onDeleteCalendarException,
   onSetTreatmentActive,
   onUpdateTreatment,
+  onWhatsappSettingsChange,
   isBusinessHoursConfigured = true,
   settingsError = '',
   treatmentsError = '',
   treatments,
+  whatsappSettings,
+  whatsappSettingsError = '',
 }: SettingsViewProps) {
   const businessHoursKey = [
     businessHours.appointmentInterval,
@@ -65,6 +78,14 @@ export function SettingsView({
         `${day.day}:${day.isOpen ? 'open' : 'closed'}:${day.startTime}-${day.endTime}`,
     ),
   ].join('|')
+  const whatsappSettingsKey = whatsappSettings
+    ? [
+        whatsappSettings.phoneNumber,
+        whatsappSettings.phoneNumberId,
+        whatsappSettings.businessAccountId,
+        whatsappSettings.isConnected ? 'connected' : 'pending',
+      ].join('|')
+    : 'not-configured'
 
   return (
     <section className="view-stack settings-grid">
@@ -84,6 +105,12 @@ export function SettingsView({
         onCreateTreatment={onCreateTreatment}
         onSetTreatmentActive={onSetTreatmentActive}
         onUpdateTreatment={onUpdateTreatment}
+      />
+      <WhatsappSettingsPanel
+        key={whatsappSettingsKey}
+        errorMessage={whatsappSettingsError || settingsError}
+        settings={whatsappSettings}
+        onSaveSettings={onWhatsappSettingsChange}
       />
     </section>
   )

@@ -41,6 +41,10 @@ import {
   markReminderSent,
   upsertRemindersForAppointment,
 } from './services/remindersService'
+import {
+  getWhatsappSettingsByClinic,
+  upsertWhatsappSettings,
+} from './services/whatsappSettingsService'
 import type {
   Appointment,
   AppointmentFormValues,
@@ -64,6 +68,10 @@ import type {
 import type { Patient, PatientFormValues, PatientId } from './types/Patient'
 import type { Reminder } from './types/Reminder'
 import type { Treatment, TreatmentId } from './types/Treatment'
+import type {
+  WhatsappSettings,
+  WhatsappSettingsFormValues,
+} from './types/WhatsApp'
 import { upsertOdontogramEntry } from './utils/odontogram'
 import { canRescheduleAppointment } from './utils/appointmentActions'
 import {
@@ -108,6 +116,9 @@ function App() {
   const [reminders, setReminders] = useState<Reminder[]>([])
   const [isRemindersLoading, setIsRemindersLoading] = useState(true)
   const [remindersError, setRemindersError] = useState('')
+  const [whatsappSettings, setWhatsappSettings] =
+    useState<WhatsappSettings | null>(null)
+  const [whatsappSettingsError, setWhatsappSettingsError] = useState('')
   const [clinicalRecords, setClinicalRecords] =
     useState<ClinicalRecord[]>(initialClinicalRecords)
   const [odontogramEntries, setOdontogramEntries] =
@@ -266,10 +277,12 @@ function App() {
         setTreatments(initialTreatments)
         setBusinessHours(initialBusinessHours)
         setCalendarExceptions(initialCalendarExceptions)
+        setWhatsappSettings(null)
         setIsBusinessHoursConfigured(true)
         setSettingsError('')
         setTreatmentsError('')
         setBusinessHoursError('')
+        setWhatsappSettingsError('')
         return
       }
 
@@ -277,6 +290,7 @@ function App() {
         setTreatments([])
         setBusinessHours(getClosedBusinessHoursSettings())
         setCalendarExceptions([])
+        setWhatsappSettings(null)
         setIsBusinessHoursConfigured(false)
         setSettingsError('No hay consultorio activo para cargar configuración.')
         return
@@ -285,15 +299,18 @@ function App() {
       setSettingsError('')
       setTreatmentsError('')
       setBusinessHoursError('')
+      setWhatsappSettingsError('')
 
       const [
         treatmentsResult,
         businessHoursResult,
         calendarExceptionsResult,
+        whatsappSettingsResult,
       ] = await Promise.all([
         getTreatmentsByClinic(currentClinic.id),
         getBusinessHoursByClinic(currentClinic.id),
         getCalendarExceptionsByClinic(currentClinic.id),
+        getWhatsappSettingsByClinic(currentClinic.id),
       ])
 
       if (!isMounted) {
@@ -321,6 +338,13 @@ function App() {
         setSettingsError(calendarExceptionsResult.error)
       } else {
         setCalendarExceptions(calendarExceptionsResult.data ?? [])
+      }
+
+      if (whatsappSettingsResult.error) {
+        setWhatsappSettings(null)
+        setWhatsappSettingsError(whatsappSettingsResult.error)
+      } else {
+        setWhatsappSettings(whatsappSettingsResult.data ?? null)
       }
     }
 
@@ -955,6 +979,48 @@ function App() {
     return { success: true }
   }
 
+  async function handleSaveWhatsappSettings(
+    values: WhatsappSettingsFormValues,
+  ) {
+    if (isDemoMode) {
+      setWhatsappSettings({
+        businessAccountId: values.businessAccountId,
+        isConnected: values.isConnected,
+        phoneNumber: values.phoneNumber,
+        phoneNumberId: values.phoneNumberId,
+        provider: values.provider,
+      })
+      setWhatsappSettingsError('')
+
+      return { success: true }
+    }
+
+    if (!currentClinic?.id) {
+      return {
+        error: 'No hay consultorio activo para guardar WhatsApp.',
+        success: false,
+      }
+    }
+
+    const { data, error } = await upsertWhatsappSettings(
+      currentClinic.id,
+      values,
+    )
+
+    if (error || !data) {
+      setWhatsappSettingsError(error ?? 'No pudimos guardar WhatsApp.')
+      return {
+        error: error ?? 'No pudimos guardar WhatsApp.',
+        success: false,
+      }
+    }
+
+    setWhatsappSettings(data)
+    setWhatsappSettingsError('')
+
+    return { success: true }
+  }
+
   async function handleMarkReminderSent(reminderId: string) {
     if (!currentClinic?.id) {
       return {
@@ -1210,9 +1276,12 @@ function App() {
           onDeleteCalendarException={handleDeleteCalendarException}
           onSetTreatmentActive={handleSetTreatmentActive}
           onUpdateTreatment={handleUpdateTreatment}
+          onWhatsappSettingsChange={handleSaveWhatsappSettings}
           settingsError={settingsError}
           treatments={treatments}
           treatmentsError={treatmentsError}
+          whatsappSettings={whatsappSettings}
+          whatsappSettingsError={whatsappSettingsError}
         />
       )
     }

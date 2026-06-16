@@ -137,10 +137,14 @@ export interface ReminderRecord {
   channel: ReminderRecordChannel
   clinic_id: string
   created_at: string
+  delivered_at: string | null
   failed_reason: string | null
   id: string
   message: string
+  metadata: Json | null
   patient_id: string
+  provider_message_id: string | null
+  read_at: string | null
   reminder_type: ReminderRecordType
   scheduled_at: string
   sent_at: string | null
