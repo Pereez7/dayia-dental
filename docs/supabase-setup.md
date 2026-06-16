@@ -1,0 +1,200 @@
+# Supabase Setup
+
+Esta guia prepara DayIA Dental para probar el MVP con datos reales en Supabase.
+No reemplaza el modo demo: si faltan variables `.env`, la app sigue entrando en
+modo demo/desarrollo.
+
+## 1. Crear proyecto Supabase
+
+1. Crea un proyecto en Supabase.
+2. En Project Settings > API copia:
+   - `Project URL`
+   - `anon public key`
+3. Crea un archivo `.env` local en la raiz del proyecto:
+
+```env
+VITE_SUPABASE_URL=REEMPLAZAR_CON_PROJECT_URL
+VITE_SUPABASE_ANON_KEY=REEMPLAZAR_CON_ANON_KEY
+```
+
+4. Reinicia Vite despues de crear o cambiar `.env`:
+
+```bash
+npm run dev
+```
+
+`VITE_SUPABASE_ANON_KEY` puede existir en frontend porque trabaja junto con RLS.
+Nunca pongas `service_role` en frontend. Los tokens de WhatsApp tampoco van en
+React ni en variables `VITE_`.
+
+## 2. Ejecutar migraciones
+
+Ejecuta en Supabase SQL Editor, en orden, los archivos de
+`supabase/migrations`:
+
+1. `001_initial_mvp_schema.sql`
+2. `002_auth_profiles_policies.sql`
+3. `003_initial_clinic_setup_template.sql` solo como referencia, no automatico
+4. `004_patients_indexes.sql`
+5. `005_appointments_indexes.sql`
+6. `006_settings_indexes.sql`
+7. `007_reminders_indexes.sql`
+8. `008_whatsapp_settings_and_delivery.sql`
+
+Si usas Supabase CLI en el futuro, puedes adaptar este flujo a `supabase db
+push`, pero esta guia asume SQL Editor para una primera prueba controlada.
+
+## 3. Crear usuario real
+
+1. En Supabase Dashboard ve a Authentication > Users.
+2. Crea un usuario con email y contraseña.
+3. Copia el `User UID`. Ese valor es el `auth.users.id` real.
+4. No guardes contraseñas en el repositorio ni en documentos.
+
+## 4. Crear consultorio y perfil
+
+Usa la plantilla:
+
+- `supabase/seed/001_initial_clinic_seed.sql`
+
+Pasos:
+
+1. Copia el contenido del seed al SQL Editor.
+2. Reemplaza:
+   - `REEMPLAZAR_CON_AUTH_USER_ID`
+   - `REEMPLAZAR_CON_NOMBRE_CONSULTORIO`
+   - `REEMPLAZAR_CON_TELEFONO_CONSULTORIO`
+   - `REEMPLAZAR_CON_NOMBRE_USUARIO`
+3. Ejecuta el bloque principal.
+4. Opcionalmente ejecuta los bloques de tratamientos y horarios iniciales.
+
+El perfil en `profiles.id` debe tener exactamente el mismo UUID que el usuario
+de Supabase Auth. `profiles.clinic_id` vincula ese usuario al consultorio.
+
+## 5. Probar login
+
+1. Asegurate de que `.env` existe y Vite fue reiniciado.
+2. Abre la app.
+3. Debe aparecer la pantalla de login real.
+4. Ingresa con el usuario creado en Supabase Auth.
+
+Si el usuario no tiene perfil, la app debe mostrar:
+`Tu usuario aún no está vinculado a un consultorio.`
+
+Si el perfil no tiene consultorio, la app debe mostrar:
+`Tu usuario no tiene consultorio asignado.`
+
+## Checklist de prueba
+
+### A. Auth
+
+- Login funciona con usuario real.
+- Usuario sin perfil muestra mensaje claro.
+- Usuario sin consultorio muestra mensaje claro.
+- Cerrar sesion vuelve al login.
+
+### B. Pacientes
+
+- Crear paciente.
+- Listar pacientes.
+- Buscar paciente.
+- Ver detalle del paciente.
+
+### C. Citas
+
+- Crear cita.
+- Confirmar cita.
+- Cancelar cita.
+- Reprogramar cita.
+- Validar que una cita cancelada no bloquea horario.
+- Validar solapamientos por rango horario.
+- Validar duracion del tratamiento.
+- Validar horario de cierre.
+
+### D. Configuracion
+
+- Crear tratamiento.
+- Editar duracion.
+- Desactivar tratamiento.
+- Guardar horarios.
+- Crear excepcion del calendario.
+- Eliminar excepcion del calendario.
+- Guardar configuracion no secreta de WhatsApp.
+
+### E. Recordatorios
+
+- Crear una cita futura y verificar que genera recordatorios.
+- Ver recordatorios persistidos.
+- Abrir WhatsApp manual con mensaje precargado.
+- Marcar recordatorio como enviado.
+- Marcar recordatorio como fallido.
+
+### F. WhatsApp API dry-run
+
+- Verificar que `whatsapp_settings` existe para el consultorio.
+- Configurar Supabase Secrets de prueba, sin valores reales en repo:
+  - `WHATSAPP_ACCESS_TOKEN`
+  - `WHATSAPP_SEND_ENABLED=false`
+  - `WHATSAPP_VERIFY_TOKEN`
+- Invocar `send-whatsapp-reminder` con un `reminderId`.
+- Confirmar que responde en modo dry-run.
+- Confirmar que no se envia ningun mensaje real.
+- Confirmar que no hay tokens en frontend.
+
+## Troubleshooting
+
+### “Configura Supabase para iniciar sesión”
+
+La app entra en modo demo cuando faltan `VITE_SUPABASE_URL` o
+`VITE_SUPABASE_ANON_KEY`. Crea `.env` y reinicia:
+
+```bash
+npm run dev
+```
+
+### Login no funciona
+
+Verifica que el usuario exista en Supabase Auth, que el password sea correcto y
+que `.env` apunte al proyecto correcto.
+
+### Usuario sin perfil
+
+Crea un registro en `profiles` con `id = auth.users.id`.
+
+### Usuario sin consultorio
+
+Verifica que `profiles.clinic_id` tenga el UUID de un registro existente en
+`clinics`.
+
+### RLS bloquea datos
+
+Confirma que ejecutaste `002_auth_profiles_policies.sql` y que el usuario tiene
+perfil vinculado al consultorio. RLS separa datos por `clinic_id`.
+
+### No aparecen pacientes
+
+Verifica que los pacientes se hayan creado con el mismo `clinic_id` del perfil
+del usuario autenticado.
+
+### No aparecen citas
+
+Verifica que las citas tengan `clinic_id` correcto y `patient_id` de un paciente
+real del mismo consultorio.
+
+### Edge Function no responde
+
+Confirma que la funcion fue desplegada en Supabase, que el nombre coincide y que
+las variables de Supabase Secrets existen. Por defecto debe operar en dry-run.
+
+### Variables `.env` no se leen
+
+Vite solo lee variables `VITE_` al iniciar. Reinicia `npm run dev`.
+
+## Seguridad
+
+- `.env` real no se sube al repositorio.
+- `.env.example` si se versiona y no debe contener claves reales.
+- `VITE_SUPABASE_ANON_KEY` puede estar en frontend.
+- `service_role` nunca va en frontend.
+- Tokens de WhatsApp nunca van en frontend.
+- RLS protege los datos por consultorio usando `profiles.clinic_id`.

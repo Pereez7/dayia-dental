@@ -360,3 +360,14 @@ Pacientes, Citas, Configuracion y Recordatorios consumen Supabase en modo real
 y conservan mocks en modo demo. Dashboard, Nueva Cita, Agenda, Detalle de
 paciente y Recordatorios leen esos datos desde el estado central de App.
 Historial clinico y Odontograma siguen usando estado local/mock actual.
+
+## Setup real
+
+La guia para probar el MVP con un proyecto Supabase real vive en
+`docs/supabase-setup.md`. Incluye pasos para crear `.env`, ejecutar
+migraciones, crear usuario en Supabase Auth, vincular el perfil con un
+consultorio inicial mediante `supabase/seed/001_initial_clinic_seed.sql` y
+validar Pacientes, Citas, Configuracion, Recordatorios y WhatsApp dry-run.
+
+El seed es una plantilla comentada con placeholders. No contiene contrasenas,
+tokens, `service_role` ni datos reales.

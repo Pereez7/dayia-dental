@@ -1,0 +1,92 @@
+-- DayIA Dental initial real clinic seed.
+--
+-- This file is a commented setup template for local/manual execution.
+-- Do not commit real Auth user IDs, phone numbers, passwords, or secrets.
+--
+-- Before running:
+-- 1. Create a real user in Supabase Auth.
+-- 2. Copy that user's auth.users.id.
+-- 3. Replace the placeholders below.
+-- 4. Run the customized SQL in Supabase SQL Editor.
+
+-- Required first tenant setup:
+--
+-- with created_clinic as (
+--   insert into public.clinics (name, phone, country_code)
+--   values (
+--     'REEMPLAZAR_CON_NOMBRE_CONSULTORIO',
+--     'REEMPLAZAR_CON_TELEFONO_CONSULTORIO',
+--     '+591'
+--   )
+--   returning id
+-- )
+-- insert into public.profiles (id, clinic_id, full_name, role)
+-- select
+--   'REEMPLAZAR_CON_AUTH_USER_ID'::uuid,
+--   created_clinic.id,
+--   'REEMPLAZAR_CON_NOMBRE_USUARIO',
+--   'admin'
+-- from created_clinic;
+
+-- Optional: copy the created clinic id and replace REEMPLAZAR_CON_CLINIC_ID
+-- in the blocks below if you want starter configuration.
+
+-- Optional starter treatments:
+--
+-- insert into public.treatments (
+--   clinic_id,
+--   name,
+--   duration_minutes,
+--   is_active
+-- )
+-- values
+--   ('REEMPLAZAR_CON_CLINIC_ID'::uuid, 'Evaluación inicial', 30, true),
+--   ('REEMPLAZAR_CON_CLINIC_ID'::uuid, 'Limpieza dental', 45, true),
+--   ('REEMPLAZAR_CON_CLINIC_ID'::uuid, 'Consulta de emergencia', 30, true),
+--   ('REEMPLAZAR_CON_CLINIC_ID'::uuid, 'Extracción simple', 45, true),
+--   ('REEMPLAZAR_CON_CLINIC_ID'::uuid, 'Restauración / resina', 60, true);
+
+-- Optional starter business hours:
+--
+-- insert into public.business_hours (
+--   clinic_id,
+--   weekday,
+--   is_open,
+--   start_time,
+--   end_time,
+--   slot_interval_minutes
+-- )
+-- values
+--   ('REEMPLAZAR_CON_CLINIC_ID'::uuid, 0, false, null, null, 30),
+--   ('REEMPLAZAR_CON_CLINIC_ID'::uuid, 1, true, '08:00'::time, '18:00'::time, 30),
+--   ('REEMPLAZAR_CON_CLINIC_ID'::uuid, 2, true, '08:00'::time, '18:00'::time, 30),
+--   ('REEMPLAZAR_CON_CLINIC_ID'::uuid, 3, true, '08:00'::time, '18:00'::time, 30),
+--   ('REEMPLAZAR_CON_CLINIC_ID'::uuid, 4, true, '08:00'::time, '18:00'::time, 30),
+--   ('REEMPLAZAR_CON_CLINIC_ID'::uuid, 5, true, '08:00'::time, '18:00'::time, 30),
+--   ('REEMPLAZAR_CON_CLINIC_ID'::uuid, 6, true, '08:00'::time, '12:00'::time, 30)
+-- on conflict (clinic_id, weekday) do update
+-- set
+--   is_open = excluded.is_open,
+--   start_time = excluded.start_time,
+--   end_time = excluded.end_time,
+--   slot_interval_minutes = excluded.slot_interval_minutes;
+
+-- Optional WhatsApp non-secret settings:
+--
+-- insert into public.whatsapp_settings (
+--   clinic_id,
+--   provider,
+--   phone_number,
+--   phone_number_id,
+--   business_account_id,
+--   is_connected
+-- )
+-- values (
+--   'REEMPLAZAR_CON_CLINIC_ID'::uuid,
+--   'whatsapp_cloud_api',
+--   null,
+--   null,
+--   null,
+--   false
+-- )
+-- on conflict (clinic_id) do nothing;
