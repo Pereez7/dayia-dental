@@ -123,13 +123,15 @@ function App() {
 
   async function handleCreatePatient(values: PatientFormValues) {
     if (isDemoMode) {
+      const patientInput = mapPatientFormValuesToPatientInput(values)
+
       setPatients((currentPatients) => [
         {
           id: getNextNumericPatientId(currentPatients),
-          fullName: `${values.firstName.trim()} ${values.lastName.trim()}`,
-          phone: `${values.countryCode}${values.localPhone.trim()}`,
-          email: values.email.trim() || undefined,
-          birthDate: values.birthDate || undefined,
+          fullName: `${patientInput.firstName} ${patientInput.lastName}`,
+          phone: `${patientInput.countryCode}${patientInput.localPhone}`,
+          email: patientInput.email,
+          birthDate: patientInput.birthDate,
           lastVisit: 'Sin registro',
           nextAppointment: null,
           status: 'active',

@@ -1,9 +1,10 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import type { PatientFormErrors, PatientFormValues } from '../types/Patient'
 import {
   hasPatientFormErrors,
   validatePatientForm,
 } from '../utils/patientValidators'
+import { Toast } from './Toast'
 
 const initialFormValues: PatientFormValues = {
   firstName: '',
@@ -36,6 +37,16 @@ export function PatientForm({ onCreatePatient }: PatientFormProps) {
   const [submitError, setSubmitError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!successMessage) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => setSuccessMessage(''), 3200)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [successMessage])
 
   function updateField(field: keyof PatientFormValues, value: string) {
     setFormValues((currentValues) => ({
@@ -170,11 +181,11 @@ export function PatientForm({ onCreatePatient }: PatientFormProps) {
         </button>
       </form>
 
-      {successMessage && (
-        <p className="success-message" role="status">
-          {successMessage}
-        </p>
-      )}
+      <Toast
+        message={successMessage}
+        tone="success"
+        visible={Boolean(successMessage)}
+      />
     </section>
   )
 }
