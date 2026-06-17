@@ -20,6 +20,8 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
         </div>
       </div>
 
+      <SessionSummary />
+
       <section className="sidebar-section" aria-label="Acciones rapidas">
         <p className="sidebar-section-label">Acciones</p>
         <div className="quick-actions">
@@ -52,8 +54,6 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
           ))}
         </nav>
       </section>
-
-      <SessionSummary />
     </aside>
   )
 }

@@ -22,6 +22,7 @@
 }
 
 .sidebar-brand-card {
+  order: 0;
   border: 1px solid #cbe8f2;
   border-radius: var(--radius-lg);
   background:
@@ -70,6 +71,7 @@
   display: grid;
   gap: 8px;
   min-width: 0;
+  order: 1;
 }
 
 .sidebar-section-label {
@@ -166,6 +168,7 @@
   gap: 10px;
   margin-top: auto;
   min-width: 0;
+  order: 4;
   border: 1px solid #cbe8f2;
   border-radius: var(--radius-md);
   background:
@@ -174,49 +177,65 @@
   padding: 11px;
 }
 
-.session-card-copy {
+.session-identity,
+.session-meta-row,
+.session-details {
   display: grid;
-  gap: 2px;
   min-width: 0;
 }
 
-.session-card-copy strong,
-.session-card-copy span,
-.session-card-copy small {
+.session-identity {
+  gap: 2px;
+}
+
+.session-meta-row {
+  align-items: center;
+  gap: 8px;
+}
+
+.session-details {
+  align-items: center;
+  gap: 5px;
+}
+
+.session-identity strong,
+.session-details span,
+.session-meta-row small {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.session-card-copy strong {
+.session-identity strong {
   color: var(--color-heading);
   font-family: var(--font-heading);
   font-size: var(--text-sm);
   font-weight: 700;
 }
 
-.session-card-copy span {
+.session-details span {
   color: var(--color-primary-dark);
   font-size: var(--text-xs);
   font-weight: 600;
 }
 
-.session-card-copy small {
+.session-meta-row small {
   color: var(--color-text-muted);
   font-size: var(--text-xs);
 }
 
 .session-signout {
-  min-height: 34px;
-  border: 1px solid #d2e8f0;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.76);
+  justify-self: start;
+  min-height: 32px;
+  border: 1px solid #cbe8f2;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.72);
   color: var(--color-primary-dark);
   cursor: pointer;
   font-family: var(--font-heading);
   font-size: var(--text-xs);
-  font-weight: 700;
-  padding: 8px 10px;
+  font-weight: 600;
+  padding: 6px 8px;
   transition:
     background var(--transition-base),
     border-color var(--transition-base),
@@ -5138,15 +5157,83 @@
 
   .sidebar {
     position: static;
-    gap: 10px;
+    gap: 7px;
     min-height: auto;
     border-right: 0;
     border-bottom: 1px solid var(--color-border);
-    padding: 12px 16px 14px;
+    padding: 9px 14px 10px;
   }
 
   .sidebar-brand-card {
-    padding: 8px;
+    border-radius: 9px;
+    padding: 7px;
+  }
+
+  .brand-mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+  }
+
+  .session-card {
+    grid-template-columns: minmax(0, 1fr);
+    order: 1;
+    column-gap: 8px;
+    row-gap: 4px;
+    margin-top: 0;
+    border-color: rgba(203, 232, 242, 0.58);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.5);
+    padding: 6px 8px;
+  }
+
+  .session-identity {
+    line-height: 1.18;
+  }
+
+  .session-identity strong {
+    font-size: var(--text-xs);
+    font-weight: 700;
+    max-width: 100%;
+  }
+
+  .session-details {
+    display: flex;
+    gap: 5px;
+    min-width: 0;
+  }
+
+  .session-details span,
+  .session-details small {
+    font-size: 0.68rem;
+  }
+
+  .session-details span:first-child {
+    flex: 0 1 auto;
+    max-width: 105px;
+  }
+
+  .session-details span[aria-hidden='true'] {
+    flex: 0 0 auto;
+    color: #8aa7b8;
+  }
+
+  .session-meta-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    line-height: 1.2;
+  }
+
+  .session-meta-row small {
+    flex: 1 1 auto;
+    max-width: 100%;
+  }
+
+  .session-signout {
+    justify-self: end;
+    min-height: 30px;
+    padding: 5px 8px;
+    white-space: nowrap;
   }
 
   .sidebar-brand {
@@ -5154,43 +5241,52 @@
   }
 
   .sidebar-section {
-    gap: 6px;
+    gap: 4px;
+    order: 2;
   }
 
   .sidebar-section-label {
     padding-inline: 2px;
+    font-size: 0.62rem;
+    letter-spacing: 0.07em;
   }
 
   .quick-actions {
     display: flex;
-    gap: 8px;
+    gap: 7px;
     overflow-x: auto;
     border-bottom: 0;
-    padding-bottom: 2px;
+    padding-bottom: 1px;
+    overscroll-behavior-inline: contain;
     scrollbar-width: thin;
   }
 
   .quick-action {
     flex: 0 0 auto;
-    min-height: 38px;
+    min-height: 36px;
+    padding: 8px 10px;
     white-space: nowrap;
   }
 
   .sidebar-nav {
     display: flex;
-    gap: 8px;
+    gap: 7px;
     overflow-x: auto;
-    border-top: 1px solid var(--color-border);
-    padding-top: 8px;
-    padding-bottom: 2px;
+    max-width: 100%;
+    border-top: 1px solid rgba(217, 232, 239, 0.82);
+    padding-top: 6px;
+    padding-bottom: 1px;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+    mask-image: linear-gradient(90deg, #000 calc(100% - 26px), transparent);
     scrollbar-width: thin;
   }
 
   .sidebar-link {
     flex: 0 0 auto;
     width: auto;
-    min-height: 38px;
-    padding: 9px 12px;
+    min-height: 36px;
+    padding: 8px 11px;
     white-space: nowrap;
   }
 
@@ -5198,18 +5294,26 @@
     box-shadow: inset 0 -3px 0 var(--color-primary);
   }
 
-  .session-card {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    margin-top: 0;
-  }
-
-  .session-signout {
-    white-space: nowrap;
-  }
-
   .app-header {
     display: grid;
+  }
+
+  .top-header {
+    padding: 14px 16px 12px;
+  }
+
+  .top-header h1 {
+    font-size: clamp(1.45rem, 6vw, 1.8rem);
+  }
+
+  .top-header p:last-child {
+    margin-top: 5px;
+    font-size: var(--text-sm);
+  }
+
+  .view-shell {
+    width: min(1180px, calc(100% - 24px));
+    padding-top: 18px;
   }
 
   .dashboard-grid {
@@ -5252,7 +5356,7 @@
   }
 
   .sidebar {
-    padding-inline: 12px;
+    padding: 8px 12px 9px;
   }
 
   .sidebar-brand-card {
@@ -5260,7 +5364,35 @@
   }
 
   .session-card {
-    grid-template-columns: 1fr;
+    padding-inline: 8px;
+  }
+
+  .session-identity strong {
+    max-width: 100%;
+  }
+
+  .session-meta-row small {
+    max-width: 100%;
+  }
+
+  .session-signout {
+    justify-self: end;
+    min-height: 28px;
+    padding-inline: 4px;
+  }
+
+  .quick-action,
+  .sidebar-link {
+    min-height: 34px;
+  }
+
+  .top-header {
+    padding: 12px 12px 10px;
+  }
+
+  .view-shell {
+    width: min(1180px, calc(100% - 20px));
+    padding-top: 16px;
   }
 
   .app-header {
