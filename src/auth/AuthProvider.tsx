@@ -12,6 +12,7 @@ import {
 import { AuthContext } from './AuthContext'
 import type { AuthState } from './authTypes'
 import { demoClinic, demoProfile } from './demoAuth'
+import { normalizeUserRole } from './permissions'
 
 interface AuthProviderProps {
   children: ReactNode
@@ -25,6 +26,53 @@ const initialAuthState: AuthState = {
   profile: null,
   session: null,
   user: null,
+}
+
+const demoAuthState: AuthState = {
+  ...initialAuthState,
+  currentClinic: demoClinic,
+  isDemoMode: true,
+  isLoading: false,
+  profile: demoProfile,
+}
+
+type LoginFieldErrors = {
+  email?: string
+  password?: string
+}
+
+function getProfileWithNormalizedRole(profile: AuthState['profile']) {
+  if (!profile) {
+    return null
+  }
+
+  return {
+    ...profile,
+    role: normalizeUserRole(profile.role),
+  }
+}
+
+function validateLoginForm(email: string, password: string) {
+  const errors: LoginFieldErrors = {}
+  const emailValue = email.trim()
+
+  if (!emailValue) {
+    errors.email = 'Ingresa tu email.'
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) {
+    errors.email = 'Ingresa un email válido.'
+  }
+
+  if (!password) {
+    errors.password = 'Ingresa tu contraseña.'
+  } else if (password.length < 6) {
+    errors.password = 'La contraseña debe tener al menos 6 caracteres.'
+  }
+
+  return errors
+}
+
+function hasLoginErrors(errors: LoginFieldErrors) {
+  return Boolean(errors.email || errors.password)
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
@@ -88,13 +136,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return
     }
 
-    if (!profile.clinic_id) {
+    const normalizedProfile = getProfileWithNormalizedRole(profile)
+
+    if (!normalizedProfile?.clinic_id) {
       setAuthState({
         authError: 'Tu usuario no tiene consultorio asignado.',
         currentClinic: null,
         isDemoMode: false,
         isLoading: false,
-        profile,
+        profile: normalizedProfile,
         session,
         user: session.user,
       })
@@ -102,7 +152,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     const { data: currentClinic, error: clinicError } =
-      await getCurrentClinicForProfile(profile)
+      await getCurrentClinicForProfile(normalizedProfile)
 
     if (!isMounted) {
       return
@@ -114,7 +164,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         currentClinic: null,
         isDemoMode: false,
         isLoading: false,
-        profile,
+        profile: normalizedProfile,
         session,
         user: session.user,
       })
@@ -126,7 +176,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       currentClinic,
       isDemoMode: false,
       isLoading: false,
-      profile,
+      profile: normalizedProfile,
       session,
       user: session.user,
     })
@@ -142,11 +192,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
 
         setAuthState({
-          ...initialAuthState,
-          currentClinic: demoClinic,
-          isDemoMode: true,
-          isLoading: false,
-          profile: demoProfile,
+          ...demoAuthState,
         })
         return
       }
@@ -211,8 +257,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   async function handleSignOut() {
-    await signOutFromSupabase()
     setLoginError('')
+
+    if (authState.isDemoMode || !isSupabaseConfigured || !supabase) {
+      setAuthState({
+        ...demoAuthState,
+      })
+      return
+    }
+
+    setAuthState((currentState) => ({
+      ...currentState,
+      authError: '',
+      isLoading: true,
+    }))
+
+    const { error } = await signOutFromSupabase()
+
+    if (error) {
+      setAuthState((currentState) => ({
+        ...currentState,
+        authError: 'No pudimos cerrar sesión. Intenta nuevamente.',
+        isLoading: false,
+      }))
+      return
+    }
+
     setAuthState({
       ...initialAuthState,
       isLoading: false,
@@ -281,11 +351,19 @@ function LoginScreen({
   onSignIn: (email: string, password: string) => Promise<void>
 }) {
   const [email, setEmail] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({})
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    const nextErrors = validateLoginForm(email, password)
+    setFieldErrors(nextErrors)
+
+    if (hasLoginErrors(nextErrors)) {
+      return
+    }
+
     setIsSubmitting(true)
     await onSignIn(email, password)
     setIsSubmitting(false)
@@ -303,28 +381,64 @@ function LoginScreen({
           </p>
         </div>
 
-        <form className="auth-form" onSubmit={handleSubmit}>
+        <form className="auth-form" noValidate onSubmit={handleSubmit}>
           <label>
             <span>Email</span>
             <input
+              aria-describedby={fieldErrors.email ? 'login-email-error' : undefined}
+              aria-invalid={Boolean(fieldErrors.email)}
               autoComplete="email"
               disabled={!isSupabaseConfigured || isSubmitting}
               inputMode="email"
               type="email"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) => {
+                const nextEmail = event.target.value
+                setEmail(nextEmail)
+
+                if (fieldErrors.email) {
+                  setFieldErrors(validateLoginForm(nextEmail, password))
+                }
+              }}
             />
+            {fieldErrors.email && (
+              <small
+                className="field-message field-message--error"
+                id="login-email-error"
+              >
+                {fieldErrors.email}
+              </small>
+            )}
           </label>
 
           <label>
             <span>Contraseña</span>
             <input
+              aria-describedby={
+                fieldErrors.password ? 'login-password-error' : undefined
+              }
+              aria-invalid={Boolean(fieldErrors.password)}
               autoComplete="current-password"
               disabled={!isSupabaseConfigured || isSubmitting}
               type="password"
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              onChange={(event) => {
+                const nextPassword = event.target.value
+                setPassword(nextPassword)
+
+                if (fieldErrors.password) {
+                  setFieldErrors(validateLoginForm(email, nextPassword))
+                }
+              }}
             />
+            {fieldErrors.password && (
+              <small
+                className="field-message field-message--error"
+                id="login-password-error"
+              >
+                {fieldErrors.password}
+              </small>
+            )}
           </label>
 
           {errorMessage && (

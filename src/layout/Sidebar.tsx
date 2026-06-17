@@ -1,5 +1,6 @@
 import type { AppSection } from './navigation'
 import { navigationItems, quickActions } from './navigation'
+import { SessionSummary } from './SessionSummary'
 
 interface SidebarProps {
   activeSection: AppSection
@@ -51,6 +52,8 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
           ))}
         </nav>
       </section>
+
+      <SessionSummary />
     </aside>
   )
 }

@@ -17,6 +17,6 @@ export const demoProfile: UserProfile = {
   created_at: demoTimestamp,
   full_name: 'Usuario Demo',
   id: 'demo-user',
-  role: 'demo',
+  role: 'clinic_admin',
   updated_at: demoTimestamp,
 }

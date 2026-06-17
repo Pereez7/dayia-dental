@@ -6,7 +6,11 @@ export type Json =
   | Json[]
   | { [key: string]: Json | undefined }
 
-export type ClinicRole = 'admin' | 'dentist' | 'reception'
+export type UserRole =
+  | 'clinic_admin'
+  | 'doctor'
+  | 'receptionist'
+  | 'super_admin'
 
 export type AppointmentRecordStatus =
   | 'cancelled'
@@ -48,7 +52,7 @@ export interface UserProfile {
   created_at: string
   full_name: string | null
   id: string
-  role: ClinicRole | string | null
+  role: UserRole | null
   updated_at: string
 }
 

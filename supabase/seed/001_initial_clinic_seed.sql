@@ -25,7 +25,7 @@
 --   'REEMPLAZAR_CON_AUTH_USER_ID'::uuid,
 --   created_clinic.id,
 --   'REEMPLAZAR_CON_NOMBRE_USUARIO',
---   'admin'
+--   'clinic_admin'
 -- from created_clinic;
 
 -- Optional: copy the created clinic id and replace REEMPLAZAR_CON_CLINIC_ID
