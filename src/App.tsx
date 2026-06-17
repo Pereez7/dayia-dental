@@ -83,6 +83,10 @@ import {
 import type { AppointmentReasonPayload } from './utils/appointmentReasons'
 import { rescheduleAppointment } from './utils/appointmentReschedule'
 import { getTreatmentDuration } from './utils/treatmentUtils'
+import {
+  getStoredActiveSection,
+  saveActiveSection,
+} from './utils/activeSectionStorage'
 import { AppointmentsView } from './views/AppointmentsView'
 import { ClinicalHistoryView } from './views/ClinicalHistoryView'
 import { DashboardView } from './views/DashboardView'
@@ -94,7 +98,9 @@ import { WhatsAppRemindersView } from './views/WhatsAppRemindersView'
 
 function App() {
   const { currentClinic, isDemoMode } = useAuth()
-  const [activeSection, setActiveSection] = useState<AppSection>('dashboard')
+  const [activeSection, setActiveSection] = useState<AppSection>(() =>
+    getStoredActiveSection(),
+  )
   const [appointments, setAppointments] =
     useState<Appointment[]>(initialAppointments)
   const [isAppointmentsLoading, setIsAppointmentsLoading] = useState(true)
@@ -126,6 +132,10 @@ function App() {
   const [selectedPatientId, setSelectedPatientId] = useState<PatientId | null>(
     null,
   )
+
+  useEffect(() => {
+    saveActiveSection(activeSection)
+  }, [activeSection])
 
   useEffect(() => {
     let isMounted = true

@@ -1,7 +1,15 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from 'react'
 
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient'
 import { getCurrentClinicForProfile } from '../services/clinicContext'
+import { clearStoredActiveSection } from '../utils/activeSectionStorage'
 import {
   getCurrentSession,
   getCurrentUserProfile,
@@ -77,28 +85,38 @@ function hasLoginErrors(errors: LoginFieldErrors) {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [authState, setAuthState] = useState<AuthState>(initialAuthState)
+  const [hasCompletedInitialLoad, setHasCompletedInitialLoad] = useState(false)
+  const hasCompletedInitialLoadRef = useRef(false)
   const [loginError, setLoginError] = useState('')
 
-  async function loadSessionContext(
+  const markInitialLoadComplete = useCallback(() => {
+    hasCompletedInitialLoadRef.current = true
+    setHasCompletedInitialLoad(true)
+  }, [])
+
+  const loadSessionContext = useCallback(async (
     session: AuthState['session'],
     isMounted: boolean,
-  ) {
+  ) => {
     if (!isMounted) {
       return
     }
 
     if (!session) {
+      clearStoredActiveSection()
       setAuthState({
         ...initialAuthState,
         isLoading: false,
       })
+      markInitialLoadComplete()
       return
     }
 
     setAuthState((currentState) => ({
       ...currentState,
       authError: '',
-      isLoading: true,
+      isLoading:
+        !hasCompletedInitialLoadRef.current && !currentState.session,
       session,
       user: session.user,
     }))
@@ -120,6 +138,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         session,
         user: session.user,
       })
+      markInitialLoadComplete()
       return
     }
 
@@ -133,6 +152,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         session,
         user: session.user,
       })
+      markInitialLoadComplete()
       return
     }
 
@@ -148,6 +168,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         session,
         user: session.user,
       })
+      markInitialLoadComplete()
       return
     }
 
@@ -168,6 +189,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         session,
         user: session.user,
       })
+      markInitialLoadComplete()
       return
     }
 
@@ -180,7 +202,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       session,
       user: session.user,
     })
-  }
+    markInitialLoadComplete()
+  }, [markInitialLoadComplete])
 
   useEffect(() => {
     let isMounted = true
@@ -194,6 +217,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setAuthState({
           ...demoAuthState,
         })
+        markInitialLoadComplete()
         return
       }
 
@@ -209,6 +233,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           authError: 'No pudimos revisar la sesión actual.',
           isLoading: false,
         })
+        markInitialLoadComplete()
         return
       }
 
@@ -233,7 +258,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       isMounted = false
       subscription.unsubscribe()
     }
-  }, [])
+  }, [loadSessionContext, markInitialLoadComplete])
 
   async function handleSignIn(email: string, password: string) {
     setLoginError('')
@@ -258,6 +283,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   async function handleSignOut() {
     setLoginError('')
+    clearStoredActiveSection()
 
     if (authState.isDemoMode || !isSupabaseConfigured || !supabase) {
       setAuthState({
@@ -289,7 +315,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     })
   }
 
-  if (authState.isLoading) {
+  if (authState.isLoading && !hasCompletedInitialLoad) {
     return <AuthStatusScreen message="Preparando tu sesión..." />
   }
 
