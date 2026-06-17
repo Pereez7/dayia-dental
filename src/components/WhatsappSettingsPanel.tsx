@@ -111,8 +111,14 @@ export function WhatsappSettingsPanel({
         </p>
       </div>
 
-      <div className="settings-note">
-        Estado: <strong>{getWhatsappStatusLabel(status)}</strong>
+      <div className="whatsapp-connection-status" aria-live="polite">
+        <span>Estado de conexión</span>
+        <strong
+          className={`whatsapp-status-badge whatsapp-status-badge--${status}`}
+        >
+          {getWhatsappStatusLabel(status)}
+        </strong>
+        <p>{getWhatsappStatusDescription(status)}</p>
       </div>
 
       {(errorMessage || actionError) && (
@@ -121,75 +127,62 @@ export function WhatsappSettingsPanel({
         </p>
       )}
 
-      <form className="treatment-form" onSubmit={handleSubmit}>
-        <label>
-          <span>Proveedor</span>
-          <select
-            value={formValues.provider}
-            onChange={(event) =>
-              updateField('provider', event.target.value)
-            }
-          >
-            <option value="whatsapp_cloud_api">WhatsApp Cloud API</option>
-          </select>
-        </label>
+      <form className="whatsapp-settings-form" onSubmit={handleSubmit}>
+        <div className="whatsapp-form-section">
+          <label className="whatsapp-field">
+            <span>Número de WhatsApp</span>
+            <input
+              type="text"
+              placeholder="Ej. +59170012345"
+              value={formValues.phoneNumber}
+              onChange={(event) =>
+                updateField('phoneNumber', event.target.value)
+              }
+            />
+          </label>
+        </div>
 
-        <label>
-          <span>Número de WhatsApp</span>
-          <input
-            type="text"
-            placeholder="+59170012345"
-            value={formValues.phoneNumber}
-            onChange={(event) =>
-              updateField('phoneNumber', event.target.value)
-            }
-          />
-        </label>
+        <fieldset className="whatsapp-technical-fields">
+          <legend>Datos técnicos de conexión</legend>
+          <p>
+            Estos datos se completan al conectar el número de WhatsApp
+            Business.
+          </p>
+          <div className="whatsapp-technical-grid">
+            <label className="whatsapp-field">
+              <span>Phone Number ID</span>
+              <input
+                type="text"
+                value={formValues.phoneNumberId}
+                onChange={(event) =>
+                  updateField('phoneNumberId', event.target.value)
+                }
+              />
+            </label>
 
-        <label>
-          <span>Phone Number ID</span>
-          <input
-            type="text"
-            value={formValues.phoneNumberId}
-            onChange={(event) =>
-              updateField('phoneNumberId', event.target.value)
-            }
-          />
-        </label>
+            <label className="whatsapp-field">
+              <span>Business Account ID</span>
+              <input
+                type="text"
+                value={formValues.businessAccountId}
+                onChange={(event) =>
+                  updateField('businessAccountId', event.target.value)
+                }
+              />
+            </label>
+          </div>
+        </fieldset>
 
-        <label>
-          <span>Business Account ID</span>
-          <input
-            type="text"
-            value={formValues.businessAccountId}
-            onChange={(event) =>
-              updateField('businessAccountId', event.target.value)
-            }
-          />
-        </label>
-
-        <label className="business-day-toggle">
-          <input
-            type="checkbox"
-            checked={formValues.isConnected}
-            onChange={(event) =>
-              updateField('isConnected', event.target.checked)
-            }
-          />
-          <span className="business-switch" aria-hidden="true" />
-          <span className="business-switch-label">
-            Marcar como conectado
-          </span>
-        </label>
-
-        <p className="settings-note">
-          El token de acceso no se guarda en el frontend. Se configurará de
-          forma segura en backend mediante Supabase Secrets.
+        <p className="whatsapp-info-note">
+          Cuando el número esté conectado, los recordatorios podrán enviarse
+          desde el WhatsApp autorizado del consultorio.
         </p>
 
-        <button className="primary-action" type="submit">
-          Guardar configuración
-        </button>
+        <div className="whatsapp-settings-actions">
+          <button className="primary-action" type="submit">
+            Guardar configuración
+          </button>
+        </div>
       </form>
 
       <Toast
@@ -216,10 +209,21 @@ function mapSettingsToFormValues(
 function getWhatsappStatusLabel(status: WhatsappConnectionStatus) {
   const labels: Record<WhatsappConnectionStatus, string> = {
     connected: 'Conectado',
-    error: 'Error',
+    error: 'Revisar configuración',
     'not-configured': 'No configurado',
     pending: 'Pendiente de configuración',
   }
 
   return labels[status]
+}
+
+function getWhatsappStatusDescription(status: WhatsappConnectionStatus) {
+  const descriptions: Record<WhatsappConnectionStatus, string> = {
+    connected: 'El número está listo para usar recordatorios del consultorio.',
+    error: 'Revisa los datos antes de continuar con la conexión.',
+    'not-configured': 'Agrega el número autorizado para iniciar la configuración.',
+    pending: 'Hay datos guardados, pero la conexión aún no está completa.',
+  }
+
+  return descriptions[status]
 }

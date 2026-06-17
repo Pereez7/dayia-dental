@@ -89,29 +89,34 @@ export function SettingsView({
 
   return (
     <section className="view-stack settings-grid">
-      <BusinessHoursSettings
-        key={businessHoursKey}
-        calendarExceptions={calendarExceptions}
-        errorMessage={businessHoursError || settingsError}
-        isBusinessHoursConfigured={isBusinessHoursConfigured}
-        settings={businessHours}
-        onCreateCalendarException={onCreateCalendarException}
-        onDeleteCalendarException={onDeleteCalendarException}
-        onSettingsChange={onBusinessHoursChange}
-      />
-      <TreatmentsSettings
-        errorMessage={treatmentsError || settingsError}
-        treatments={treatments}
-        onCreateTreatment={onCreateTreatment}
-        onSetTreatmentActive={onSetTreatmentActive}
-        onUpdateTreatment={onUpdateTreatment}
-      />
-      <WhatsappSettingsPanel
-        key={whatsappSettingsKey}
-        errorMessage={whatsappSettingsError || settingsError}
-        settings={whatsappSettings}
-        onSaveSettings={onWhatsappSettingsChange}
-      />
+      <div className="settings-column settings-column--left">
+        <BusinessHoursSettings
+          key={businessHoursKey}
+          calendarExceptions={calendarExceptions}
+          errorMessage={businessHoursError || settingsError}
+          isBusinessHoursConfigured={isBusinessHoursConfigured}
+          settings={businessHours}
+          onCreateCalendarException={onCreateCalendarException}
+          onDeleteCalendarException={onDeleteCalendarException}
+          onSettingsChange={onBusinessHoursChange}
+        />
+        <WhatsappSettingsPanel
+          key={whatsappSettingsKey}
+          errorMessage={whatsappSettingsError || settingsError}
+          settings={whatsappSettings}
+          onSaveSettings={onWhatsappSettingsChange}
+        />
+      </div>
+
+      <div className="settings-column settings-column--right">
+        <TreatmentsSettings
+          errorMessage={treatmentsError || settingsError}
+          treatments={treatments}
+          onCreateTreatment={onCreateTreatment}
+          onSetTreatmentActive={onSetTreatmentActive}
+          onUpdateTreatment={onUpdateTreatment}
+        />
+      </div>
     </section>
   )
 }
