@@ -21,7 +21,7 @@
 --   '00000000-0000-0000-0000-000000000000'::uuid,
 --   created_clinic.id,
 --   'Nombre del usuario',
---   'admin'
+--   'clinic_admin'
 -- from created_clinic;
 --
 -- Optional default settings for that clinic:

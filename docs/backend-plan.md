@@ -95,6 +95,8 @@ Las migraciones actuales son:
   contrato de cola manual para WhatsApp.
 - `008_whatsapp_settings_and_delivery.sql`: metadatos de entrega WhatsApp,
   comentarios de configuracion no secreta e indices para webhooks futuros.
+- `009_profiles_roles.sql`: normalizacion de roles de usuario y constraint para
+  `super_admin`, `clinic_admin`, `doctor` y `receptionist`.
 
 ## Migracion por modulos
 
@@ -149,6 +151,35 @@ crear un registro en `clinics` y vincular ese usuario en `profiles`.
 Por ahora no hay registro publico, invitaciones ni creacion de consultorios
 desde el frontend. Esa decision evita que usuarios autenticados puedan crear
 tenants arbitrariamente antes de definir roles y administracion.
+
+## Sesion, logout y roles
+
+La sesion visible muestra el usuario actual, su rol legible, el consultorio
+activo y la accion "Cerrar sesion" desde el layout principal. En modo demo se
+muestra `Usuario Demo`, `Modo demo` y `Consultorio Demo` para no confundir ese
+contexto con una sesion real.
+
+El cierre de sesion real usa Supabase Auth y, si falla, muestra el mensaje
+`No pudimos cerrar sesión. Intenta nuevamente.` sin exponer errores tecnicos.
+En modo demo no se persiste una sesion real ni credenciales; el fallback vuelve
+a dejar activo el contexto demo para no bloquear el desarrollo sin `.env`.
+
+Los roles preparados para el MVP son:
+
+- `super_admin`: administracion global futura.
+- `clinic_admin`: administracion del consultorio.
+- `doctor`: atencion clinica, pacientes, citas e historial.
+- `receptionist`: recepcion, pacientes, citas y recordatorios operativos.
+
+El frontend expone helpers de permisos en `src/auth/permissions.ts` para
+preparar controles futuros sin ocultar modulos agresivamente todavia. Tambien
+normaliza valores historicos: `owner` y `admin` pasan a `clinic_admin`,
+`dentist` pasa a `doctor` y `reception` pasa a `receptionist`.
+
+La migracion `009_profiles_roles.sql` aplica esa normalizacion en base de datos
+y agrega un constraint para evitar nuevos roles fuera del contrato MVP. No se
+implementan invitaciones, registro, recuperacion de contrasena ni policies RLS
+complejas por rol en esta etapa.
 
 ## Migración de Pacientes
 
@@ -350,6 +381,7 @@ La preparacion actual agrega:
 - Variables de entorno de ejemplo en `.env.example`.
 - Cliente Supabase seguro en `src/lib/supabaseClient.ts`.
 - Capa Auth en `src/auth` para login, sesion, perfil y consultorio actual.
+- Sesion visible, cierre de sesion y helpers de permisos por rol MVP.
 - Modo demo/desarrollo cuando faltan variables de Supabase.
 - Tipos backend base en `src/types/database.ts`.
 - Servicios reales de Pacientes, Citas, Configuracion y Recordatorios, con
