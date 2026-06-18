@@ -2198,6 +2198,16 @@
   width: 100%;
 }
 
+.auth-demo-action {
+  justify-self: center;
+  min-height: 38px;
+  border-color: rgba(185, 221, 236, 0.88);
+  color: var(--color-primary-dark);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  padding: 8px 12px;
+}
+
 .demo-mode-banner {
   position: sticky;
   top: 0;

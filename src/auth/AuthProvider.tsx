@@ -44,6 +44,9 @@ const demoAuthState: AuthState = {
   profile: demoProfile,
 }
 
+const isDemoModeEnabled =
+  import.meta.env.VITE_ENABLE_DEMO_MODE?.trim().toLowerCase() === 'true'
+
 type LoginFieldErrors = {
   email?: string
   password?: string
@@ -215,7 +218,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
 
         setAuthState({
-          ...demoAuthState,
+          ...initialAuthState,
+          isLoading: false,
         })
         markInitialLoadComplete()
         return
@@ -281,13 +285,35 @@ export function AuthProvider({ children }: AuthProviderProps) {
     await loadSessionContext(data.session, true)
   }
 
+  function handleEnterDemoMode() {
+    if (!isDemoModeEnabled || authState.session) {
+      return
+    }
+
+    clearStoredActiveSection()
+    setLoginError('')
+    setAuthState({
+      ...demoAuthState,
+    })
+    markInitialLoadComplete()
+  }
+
   async function handleSignOut() {
     setLoginError('')
     clearStoredActiveSection()
 
-    if (authState.isDemoMode || !isSupabaseConfigured || !supabase) {
+    if (authState.isDemoMode || !authState.session) {
       setAuthState({
-        ...demoAuthState,
+        ...initialAuthState,
+        isLoading: false,
+      })
+      return
+    }
+
+    if (!isSupabaseConfigured || !supabase) {
+      setAuthState({
+        ...initialAuthState,
+        isLoading: false,
       })
       return
     }
@@ -328,7 +354,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }}
       >
         <div className="demo-mode-banner" role="status">
-          Modo demo: Supabase no está configurado.
+          Modo demo: estás usando datos locales de desarrollo.
         </div>
         {children}
       </AuthContext.Provider>
@@ -339,7 +365,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return (
       <LoginScreen
         errorMessage={loginError || authState.authError}
+        isDemoModeEnabled={isDemoModeEnabled}
         isSupabaseConfigured={isSupabaseConfigured}
+        onEnterDemoMode={handleEnterDemoMode}
         onSignIn={handleSignIn}
       />
     )
@@ -369,11 +397,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
 function LoginScreen({
   errorMessage,
+  isDemoModeEnabled,
   isSupabaseConfigured,
+  onEnterDemoMode,
   onSignIn,
 }: {
   errorMessage: string
+  isDemoModeEnabled: boolean
   isSupabaseConfigured: boolean
+  onEnterDemoMode: () => void
   onSignIn: (email: string, password: string) => Promise<void>
 }) {
   const [email, setEmail] = useState('')
@@ -471,6 +503,12 @@ function LoginScreen({
             <p className="field-message field-message--error">{errorMessage}</p>
           )}
 
+          {!isSupabaseConfigured && !isDemoModeEnabled && (
+            <p className="field-message field-message--error">
+              Configura Supabase para iniciar sesión.
+            </p>
+          )}
+
           <button
             className="primary-action"
             disabled={!isSupabaseConfigured || isSubmitting}
@@ -479,6 +517,16 @@ function LoginScreen({
             {isSubmitting ? 'Ingresando...' : 'Ingresar'}
           </button>
         </form>
+
+        {isDemoModeEnabled && (
+          <button
+            className="secondary-action auth-demo-action"
+            type="button"
+            onClick={onEnterDemoMode}
+          >
+            Entrar en modo demo
+          </button>
+        )}
       </section>
     </main>
   )
