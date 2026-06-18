@@ -97,6 +97,9 @@ Las migraciones actuales son:
   comentarios de configuracion no secreta e indices para webhooks futuros.
 - `009_profiles_roles.sql`: normalizacion de roles de usuario y constraint para
   `super_admin`, `clinic_admin`, `doctor` y `receptionist`.
+- `010_profiles_email_and_user_management.sql`: campos publicos para usuarios
+  del consultorio, indice por consultorio y lectura RLS de perfiles del mismo
+  consultorio.
 
 ## Migracion por modulos
 
@@ -177,9 +180,38 @@ normaliza valores historicos: `owner` y `admin` pasan a `clinic_admin`,
 `dentist` pasa a `doctor` y `reception` pasa a `receptionist`.
 
 La migracion `009_profiles_roles.sql` aplica esa normalizacion en base de datos
-y agrega un constraint para evitar nuevos roles fuera del contrato MVP. No se
-implementan invitaciones, registro, recuperacion de contrasena ni policies RLS
-complejas por rol en esta etapa.
+y agrega un constraint para evitar nuevos roles fuera del contrato MVP. La
+migracion `010_profiles_email_and_user_management.sql` agrega `email`,
+`is_active` y una policy para que un usuario autenticado pueda leer perfiles
+del mismo consultorio sin ver usuarios de otros consultorios.
+
+## Gestión de usuarios del consultorio
+
+Configuracion incluye una seccion basica de "Usuarios del consultorio". Es
+opcional para consultorios de una sola persona: si el usuario trabaja solo, no
+necesita agregar mas usuarios.
+
+En modo real, la lista lee `profiles` filtrado por `clinic_id` del consultorio
+actual y muestra datos no secretos: nombre completo, email, rol, fecha de
+creacion y estado. El usuario conectado se marca como "Tú" para evitar
+confusion. La lectura queda protegida por RLS de mismo consultorio.
+
+El frontend no crea usuarios directamente con la anon key y nunca usa
+`service_role`. El formulario solo captura nombre completo, email y rol
+operativo (`clinic_admin`, `doctor` o `receptionist`). La creacion segura queda
+preparada en la Edge Function `create-clinic-user`, que valida la sesion del
+solicitante, confirma que sea `clinic_admin` o `super_admin`, toma el
+`clinic_id` desde el perfil del solicitante, crea el usuario en Supabase Auth
+con Admin API y registra su perfil dentro del mismo consultorio.
+
+No se guardan contrasenas en frontend, base de datos ni repositorio. Las claves
+secretas necesarias para Admin API pertenecen al entorno seguro de Supabase
+Functions. En modo demo, la seccion usa usuarios mock en memoria para mantener
+el desarrollo fluido sin configurar credenciales reales.
+
+Esta etapa no implementa recuperacion de contrasena, edicion de usuarios,
+desactivacion ni roles granulares por modulo. Es una base MVP para listar
+usuarios del consultorio y preparar altas seguras desde backend.
 
 ## Migración de Pacientes
 
@@ -352,6 +384,8 @@ La arquitectura preparada usa:
   `reminderId`.
 - Edge Function `process-due-reminders` para el futuro job programado.
 - Edge Function `whatsapp-webhook` para verificacion y estados futuros.
+- Edge Function `create-clinic-user` para crear usuarios del consultorio sin
+  exponer `service_role` en frontend.
 
 Por defecto, las funciones deben operar en modo dry-run. El envio real solo
 podra activarse explicitamente con `WHATSAPP_SEND_ENABLED=true` desde backend.
@@ -386,6 +420,8 @@ La preparacion actual agrega:
 - Tipos backend base en `src/types/database.ts`.
 - Servicios reales de Pacientes, Citas, Configuracion y Recordatorios, con
   placeholders pendientes para otros modulos en `src/services`.
+- Gestion basica de usuarios del consultorio en Configuracion, con lectura de
+  perfiles del mismo consultorio y Edge Function preparada para altas seguras.
 - SQL inicial y policies Auth en `supabase/migrations`.
 
 Pacientes, Citas, Configuracion y Recordatorios consumen Supabase en modo real
