@@ -1,4 +1,5 @@
 import type {
+  ClinicUser,
   ClinicUserFormErrors,
   ClinicUserFormValues,
   ClinicUserRole,
@@ -65,4 +66,11 @@ export function validateClinicUserForm(values: ClinicUserFormValues) {
 
 export function hasClinicUserFormErrors(errors: ClinicUserFormErrors) {
   return Boolean(errors.fullName || errors.email || errors.role)
+}
+
+export function isOnlyCurrentClinicUser(
+  users: ClinicUser[],
+  currentUserId: string | null | undefined,
+) {
+  return users.length === 1 && Boolean(currentUserId) && users[0].id === currentUserId
 }

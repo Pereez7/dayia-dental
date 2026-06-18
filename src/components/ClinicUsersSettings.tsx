@@ -1,5 +1,6 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 
+import { Toast, type ToastTone } from './Toast'
 import type {
   ClinicUser,
   ClinicUserFormErrors,
@@ -9,6 +10,7 @@ import {
   clinicUserRoleOptions,
   getClinicUserRoleLabel,
   hasClinicUserFormErrors,
+  isOnlyCurrentClinicUser,
   normalizeClinicUserEmail,
   normalizeClinicUserFullName,
   validateClinicUserForm,
@@ -46,6 +48,9 @@ export function ClinicUsersSettings({
     useState<ClinicUserFormValues>(initialFormValues)
   const [formMessage, setFormMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isToastVisible, setIsToastVisible] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
+  const [toastTone, setToastTone] = useState<ToastTone>('success')
 
   const sortedUsers = useMemo(
     () =>
@@ -55,7 +60,25 @@ export function ClinicUsersSettings({
     [users],
   )
   const isCurrentUserOnly =
-    sortedUsers.length === 1 && sortedUsers[0]?.id === currentUserId
+    isOnlyCurrentClinicUser(sortedUsers, currentUserId)
+
+  useEffect(() => {
+    if (!isToastVisible) {
+      return undefined
+    }
+
+    const timeoutId = window.setTimeout(() => setIsToastVisible(false), 3200)
+    return () => window.clearTimeout(timeoutId)
+  }, [isToastVisible, toastMessage])
+
+  useEffect(() => {
+    if (isToastVisible || !toastMessage) {
+      return undefined
+    }
+
+    const timeoutId = window.setTimeout(() => setToastMessage(''), 220)
+    return () => window.clearTimeout(timeoutId)
+  }, [isToastVisible, toastMessage])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -77,13 +100,20 @@ export function ClinicUsersSettings({
     setIsSubmitting(false)
 
     if (!result.success) {
-      setFormMessage(result.error ?? 'No pudimos crear el usuario.')
+      const message = result.error ?? 'No pudimos crear el usuario.'
+      setFormMessage(message)
+      setToastMessage(message)
+      setToastTone('error')
+      setIsToastVisible(true)
       return
     }
 
     setFormValues(initialFormValues)
     setFieldErrors({})
-    setFormMessage('Usuario preparado correctamente.')
+    setFormMessage('')
+    setToastMessage('Usuario agregado.')
+    setToastTone('success')
+    setIsToastVisible(true)
   }
 
   return (
@@ -117,7 +147,7 @@ export function ClinicUsersSettings({
                     <span className="clinic-user-you">Tú</span>
                   )}
                 </div>
-                <p>{user.email || 'Email pendiente'}</p>
+                <p>{user.email || 'Email no disponible'}</p>
                 <span>
                   {user.createdAt
                     ? `Creado el ${formatClinicUserDate(user.createdAt)}`
@@ -251,6 +281,7 @@ export function ClinicUsersSettings({
           Solo un administrador del consultorio puede agregar usuarios.
         </p>
       )}
+      <Toast message={toastMessage} tone={toastTone} visible={isToastVisible} />
     </section>
   )
 }

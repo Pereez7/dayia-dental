@@ -20,6 +20,8 @@ describe('auth permissions', () => {
   it('allows only admin roles to manage sensitive clinic areas', () => {
     expect(canManageClinicSettings('clinic_admin')).toBe(true)
     expect(canManageUsers('super_admin')).toBe(true)
+    expect(canManageUsers('doctor')).toBe(false)
+    expect(canManageUsers('receptionist')).toBe(false)
     expect(canManageWhatsapp('doctor')).toBe(false)
     expect(canManageClinicSettings('receptionist')).toBe(false)
   })

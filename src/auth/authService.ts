@@ -53,9 +53,38 @@ export async function getCurrentUserProfile(session: Session | null) {
     .eq('id', session.user.id)
     .maybeSingle()
 
+  if (error || !data) {
+    return {
+      data: data as UserProfile | null,
+      error,
+    }
+  }
+
+  const profile = data as UserProfile
+  const userEmail = session.user.email?.trim().toLowerCase()
+
+  if (!profile.email && userEmail) {
+    const { data: updatedProfile, error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        email: userEmail,
+        updated_at: new Date().toISOString(),
+      } as never)
+      .eq('id', session.user.id)
+      .select('*')
+      .maybeSingle()
+
+    if (!updateError && updatedProfile) {
+      return {
+        data: updatedProfile as UserProfile,
+        error: null,
+      }
+    }
+  }
+
   return {
-    data: data as UserProfile | null,
-    error,
+    data: profile,
+    error: null,
   }
 }
 

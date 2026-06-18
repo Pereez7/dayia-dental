@@ -196,7 +196,11 @@ function App() {
         return
       }
 
-      setClinicUsers(data ?? [])
+      if ((data?.length ?? 0) === 0 && profile?.clinic_id === currentClinic.id) {
+        setClinicUsers([mapProfileToClinicUser(profile)])
+      } else {
+        setClinicUsers(data ?? [])
+      }
       setIsClinicUsersLoading(false)
     }
 
