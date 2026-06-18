@@ -98,8 +98,8 @@ Las migraciones actuales son:
 - `009_profiles_roles.sql`: normalizacion de roles de usuario y constraint para
   `super_admin`, `clinic_admin`, `doctor` y `receptionist`.
 - `010_profiles_email_and_user_management.sql`: campos publicos para usuarios
-  del consultorio, indice por consultorio y lectura RLS de perfiles del mismo
-  consultorio.
+  del consultorio, `email`, `is_active`, indices por consultorio/email y lectura
+  RLS de perfiles del mismo consultorio.
 
 ## Migracion por modulos
 
@@ -182,8 +182,10 @@ normaliza valores historicos: `owner` y `admin` pasan a `clinic_admin`,
 La migracion `009_profiles_roles.sql` aplica esa normalizacion en base de datos
 y agrega un constraint para evitar nuevos roles fuera del contrato MVP. La
 migracion `010_profiles_email_and_user_management.sql` agrega `email`,
-`is_active` y una policy para que un usuario autenticado pueda leer perfiles
-del mismo consultorio sin ver usuarios de otros consultorios.
+`is_active`, indices de soporte y una policy para que un usuario autenticado
+pueda leer perfiles del mismo consultorio sin ver usuarios de otros
+consultorios. Tambien deja una nota SQL para completar manualmente el email de
+perfiles existentes si fueron creados antes de esta etapa.
 
 ## Gestión de usuarios del consultorio
 
@@ -209,9 +211,33 @@ secretas necesarias para Admin API pertenecen al entorno seguro de Supabase
 Functions. En modo demo, la seccion usa usuarios mock en memoria para mantener
 el desarrollo fluido sin configurar credenciales reales.
 
+## Creación segura de usuarios
+
+La creacion real de usuarios se hace mediante la Edge Function
+`create-clinic-user`. El frontend invoca la funcion con la sesion actual y solo
+envia `fullName`, `email` y `role`; nunca envia contrasenas, tokens ni
+`service_role`.
+
+La Edge Function usa `SUPABASE_SERVICE_ROLE_KEY` desde Supabase Secrets, valida
+el JWT del solicitante, carga su perfil, confirma que el rol sea
+`clinic_admin` o `super_admin` y obtiene el `clinic_id` desde ese perfil. Con
+ese `clinic_id` crea el usuario en Supabase Auth mediante invitacion por email
+y luego crea `profiles` con el mismo consultorio, `email`, `full_name`, `role`
+e `is_active = true`.
+
+El formulario del consultorio no permite crear `super_admin`. Los roles
+permitidos son `clinic_admin`, `doctor` y `receptionist`. Si el email ya existe,
+si faltan datos o si el solicitante no tiene permiso, la funcion devuelve
+codigos seguros que el frontend convierte en mensajes amables.
+
+Para perfiles existentes sin `profiles.email`, hay dos caminos seguros:
+completar el email con una actualizacion SQL puntual durante el setup, o dejar
+que la Edge Function sincronice el email del administrador solicitante cuando
+Auth lo tenga disponible. El frontend no lee `auth.users` ni usa Admin API.
+
 Esta etapa no implementa recuperacion de contrasena, edicion de usuarios,
-desactivacion ni roles granulares por modulo. Es una base MVP para listar
-usuarios del consultorio y preparar altas seguras desde backend.
+desactivacion ni roles granulares por modulo. El caso de un solo doctor dueño
+sigue siendo valido y no requiere agregar usuarios.
 
 ## Migración de Pacientes
 

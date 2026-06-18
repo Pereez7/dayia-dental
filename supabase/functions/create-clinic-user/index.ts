@@ -8,6 +8,11 @@ interface CreateClinicUserPayload {
   role?: string
 }
 
+interface PublicError {
+  code: string
+  error: string
+}
+
 const allowedRoles: AllowedClinicRole[] = [
   'clinic_admin',
   'doctor',
@@ -25,48 +30,126 @@ Deno.serve(async (request) => {
   }
 
   if (request.method !== 'POST') {
-    return jsonResponse({ error: 'Method not allowed.' }, 405)
+    return errorResponse(
+      {
+        code: 'method_not_allowed',
+        error: 'Method not allowed.',
+      },
+      405,
+    )
   }
 
   const authHeader = request.headers.get('Authorization')
   const token = authHeader?.replace('Bearer ', '').trim()
 
   if (!token) {
-    return jsonResponse({ error: 'Missing authorization token.' }, 401)
+    return errorResponse(
+      {
+        code: 'unauthorized',
+        error: 'Missing authorization token.',
+      },
+      401,
+    )
   }
 
   const payload = await readPayload(request)
   const validationError = validatePayload(payload)
 
   if (validationError) {
-    return jsonResponse({ error: validationError }, 400)
+    return errorResponse(
+      {
+        code: 'invalid_payload',
+        error: validationError,
+      },
+      400,
+    )
   }
 
-  const supabase = createAdminClient()
+  const adminClientResult = createAdminClient()
+
+  if ('error' in adminClientResult) {
+    return errorResponse(adminClientResult.error, 500)
+  }
+
+  const supabase = adminClientResult.supabase
   const { data: callerData, error: callerError } =
     await supabase.auth.getUser(token)
 
   if (callerError || !callerData.user) {
-    return jsonResponse({ error: 'Invalid session.' }, 401)
+    return errorResponse(
+      {
+        code: 'unauthorized',
+        error: 'Invalid session.',
+      },
+      401,
+    )
   }
 
   const { data: callerProfile, error: callerProfileError } = await supabase
     .from('profiles')
-    .select('id, clinic_id, role')
+    .select('id, clinic_id, email, role')
     .eq('id', callerData.user.id)
     .maybeSingle()
 
   if (callerProfileError || !callerProfile?.clinic_id) {
-    return jsonResponse({ error: 'Caller profile is not linked to a clinic.' }, 403)
+    return errorResponse(
+      {
+        code: 'forbidden',
+        error: 'Caller profile is not linked to a clinic.',
+      },
+      403,
+    )
   }
 
   if (!['clinic_admin', 'super_admin'].includes(callerProfile.role)) {
-    return jsonResponse({ error: 'Only clinic admins can create users.' }, 403)
+    return errorResponse(
+      {
+        code: 'forbidden',
+        error: 'Only clinic admins can create users.',
+      },
+      403,
+    )
   }
 
   const email = payload.email?.trim().toLowerCase() ?? ''
   const fullName = payload.fullName?.trim() ?? ''
   const role = payload.role as AllowedClinicRole
+
+  if (!callerProfile.email && callerData.user.email) {
+    await supabase
+      .from('profiles')
+      .update({
+        email: callerData.user.email.toLowerCase(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', callerData.user.id)
+  }
+
+  const { data: existingProfile, error: existingProfileError } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('email', email)
+    .maybeSingle()
+
+  if (existingProfileError) {
+    return errorResponse(
+      {
+        code: 'unknown',
+        error: 'Could not validate email availability.',
+      },
+      400,
+    )
+  }
+
+  if (existingProfile) {
+    return errorResponse(
+      {
+        code: 'email_exists',
+        error: 'A user with this email already exists.',
+      },
+      409,
+    )
+  }
 
   const { data: createdUserData, error: inviteError } =
     await supabase.auth.admin.inviteUserByEmail(email, {
@@ -78,7 +161,13 @@ Deno.serve(async (request) => {
     })
 
   if (inviteError || !createdUserData.user) {
-    return jsonResponse({ error: 'Could not create auth user.' }, 400)
+    return errorResponse(
+      {
+        code: getInviteErrorCode(inviteError?.message),
+        error: 'Could not create auth user.',
+      },
+      getInviteErrorCode(inviteError?.message) === 'email_exists' ? 409 : 400,
+    )
   }
 
   const now = new Date().toISOString()
@@ -99,7 +188,13 @@ Deno.serve(async (request) => {
 
   if (profileError || !createdProfile) {
     await supabase.auth.admin.deleteUser(createdUserData.user.id)
-    return jsonResponse({ error: 'Could not create clinic profile.' }, 400)
+    return errorResponse(
+      {
+        code: 'unknown',
+        error: 'Could not create clinic profile.',
+      },
+      400,
+    )
   }
 
   return jsonResponse({
@@ -142,20 +237,47 @@ function validatePayload(payload: CreateClinicUserPayload) {
   return ''
 }
 
-function createAdminClient() {
+function createAdminClient():
+  | { supabase: ReturnType<typeof createClient> }
+  | { error: PublicError } {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
   if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error('Supabase admin environment is not configured.')
+    return {
+      error: {
+        code: 'server_not_configured',
+        error: 'Supabase admin environment is not configured.',
+      },
+    }
   }
 
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  })
+  return {
+    supabase: createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    }),
+  }
+}
+
+function getInviteErrorCode(message = '') {
+  const normalizedMessage = message.toLowerCase()
+
+  if (
+    normalizedMessage.includes('already') ||
+    normalizedMessage.includes('registered') ||
+    normalizedMessage.includes('exists')
+  ) {
+    return 'email_exists'
+  }
+
+  return 'unknown'
+}
+
+function errorResponse(body: PublicError, status: number) {
+  return jsonResponse(body, status)
 }
 
 function jsonResponse(body: unknown, status = 200) {
