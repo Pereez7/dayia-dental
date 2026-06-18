@@ -1,4 +1,5 @@
 import { BusinessHoursSettings } from '../components/BusinessHoursSettings'
+import { ClinicUsersSettings } from '../components/ClinicUsersSettings'
 import { TreatmentsSettings } from '../components/TreatmentsSettings'
 import { WhatsappSettingsPanel } from '../components/WhatsappSettingsPanel'
 import type {
@@ -8,6 +9,7 @@ import type {
   CalendarExceptionId,
 } from '../types/BusinessHours'
 import type { Treatment, TreatmentId } from '../types/Treatment'
+import type { ClinicUser, ClinicUserFormValues } from '../types/ClinicUser'
 import type {
   WhatsappSettings,
   WhatsappSettingsFormValues,
@@ -21,10 +23,18 @@ interface SettingsActionResult {
 interface SettingsViewProps {
   businessHours: BusinessHoursSettingsType
   calendarExceptions: CalendarException[]
+  canManageUsers: boolean
   businessHoursError?: string
+  clinicUsers: ClinicUser[]
+  clinicUsersError?: string
+  currentUserId?: string | null
+  isClinicUsersLoading?: boolean
   isBusinessHoursConfigured?: boolean
   onBusinessHoursChange: (
     settings: BusinessHoursSettingsType,
+  ) => Promise<SettingsActionResult> | SettingsActionResult
+  onCreateClinicUser: (
+    values: ClinicUserFormValues,
   ) => Promise<SettingsActionResult> | SettingsActionResult
   onCreateCalendarException: (
     values: CalendarExceptionFormValues,
@@ -56,8 +66,14 @@ interface SettingsViewProps {
 export function SettingsView({
   businessHours,
   calendarExceptions,
+  canManageUsers,
   businessHoursError = '',
+  clinicUsers,
+  clinicUsersError = '',
+  currentUserId,
+  isClinicUsersLoading = false,
   onBusinessHoursChange,
+  onCreateClinicUser,
   onCreateCalendarException,
   onCreateTreatment,
   onDeleteCalendarException,
@@ -115,6 +131,14 @@ export function SettingsView({
           onCreateTreatment={onCreateTreatment}
           onSetTreatmentActive={onSetTreatmentActive}
           onUpdateTreatment={onUpdateTreatment}
+        />
+        <ClinicUsersSettings
+          canManageUsers={canManageUsers}
+          currentUserId={currentUserId}
+          errorMessage={clinicUsersError}
+          isLoading={isClinicUsersLoading}
+          users={clinicUsers}
+          onCreateUser={onCreateClinicUser}
         />
       </div>
     </section>

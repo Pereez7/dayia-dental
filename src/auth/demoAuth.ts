@@ -15,8 +15,10 @@ export const demoClinic: Clinic = {
 export const demoProfile: UserProfile = {
   clinic_id: demoClinic.id,
   created_at: demoTimestamp,
+  email: null,
   full_name: 'Usuario Demo',
   id: 'demo-user',
+  is_active: true,
   role: 'clinic_admin',
   updated_at: demoTimestamp,
 }

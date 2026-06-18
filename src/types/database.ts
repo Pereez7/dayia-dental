@@ -50,8 +50,10 @@ export interface Clinic {
 export interface UserProfile {
   clinic_id: string | null
   created_at: string
+  email: string | null
   full_name: string | null
   id: string
+  is_active: boolean
   role: UserRole | null
   updated_at: string
 }

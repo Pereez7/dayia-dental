@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import './App.css'
 import { useAuth } from './auth/AuthContext'
+import { canManageUsers } from './auth/permissions'
 import { appointments as initialAppointments } from './data/appointments'
 import { businessHours as initialBusinessHours } from './data/businessHours'
 import { calendarExceptions as initialCalendarExceptions } from './data/calendarExceptions'
@@ -45,6 +46,11 @@ import {
   getWhatsappSettingsByClinic,
   upsertWhatsappSettings,
 } from './services/whatsappSettingsService'
+import {
+  createClinicUser,
+  getClinicUsers,
+  mapProfileToClinicUser,
+} from './services/usersService'
 import type {
   Appointment,
   AppointmentFormValues,
@@ -68,6 +74,7 @@ import type {
 import type { Patient, PatientFormValues, PatientId } from './types/Patient'
 import type { Reminder } from './types/Reminder'
 import type { Treatment, TreatmentId } from './types/Treatment'
+import type { ClinicUser, ClinicUserFormValues } from './types/ClinicUser'
 import type {
   WhatsappSettings,
   WhatsappSettingsFormValues,
@@ -97,7 +104,7 @@ import { SettingsView } from './views/SettingsView'
 import { WhatsAppRemindersView } from './views/WhatsAppRemindersView'
 
 function App() {
-  const { currentClinic, isDemoMode } = useAuth()
+  const { currentClinic, isDemoMode, profile, user } = useAuth()
   const [activeSection, setActiveSection] = useState<AppSection>(() =>
     getStoredActiveSection(),
   )
@@ -132,6 +139,13 @@ function App() {
   const [whatsappSettings, setWhatsappSettings] =
     useState<WhatsappSettings | null>(null)
   const [whatsappSettingsError, setWhatsappSettingsError] = useState('')
+  const [clinicUsers, setClinicUsers] = useState<ClinicUser[]>(() =>
+    isDemoMode && profile ? [mapProfileToClinicUser(profile)] : [],
+  )
+  const [isClinicUsersLoading, setIsClinicUsersLoading] = useState(
+    () => !isDemoMode,
+  )
+  const [clinicUsersError, setClinicUsersError] = useState('')
   const [clinicalRecords, setClinicalRecords] =
     useState<ClinicalRecord[]>(initialClinicalRecords)
   const [odontogramEntries, setOdontogramEntries] =
@@ -145,6 +159,53 @@ function App() {
   useEffect(() => {
     saveActiveSection(activeSection)
   }, [activeSection])
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadClinicUsers() {
+      if (isDemoMode) {
+        setClinicUsers(profile ? [mapProfileToClinicUser(profile)] : [])
+        setIsClinicUsersLoading(false)
+        setClinicUsersError('')
+        return
+      }
+
+      if (!currentClinic?.id) {
+        setClinicUsers([])
+        setIsClinicUsersLoading(false)
+        setClinicUsersError(
+          'No hay consultorio activo para cargar usuarios.',
+        )
+        return
+      }
+
+      setIsClinicUsersLoading(true)
+      setClinicUsersError('')
+
+      const { data, error } = await getClinicUsers(currentClinic.id)
+
+      if (!isMounted) {
+        return
+      }
+
+      if (error) {
+        setClinicUsers([])
+        setClinicUsersError(error)
+        setIsClinicUsersLoading(false)
+        return
+      }
+
+      setClinicUsers(data ?? [])
+      setIsClinicUsersLoading(false)
+    }
+
+    loadClinicUsers()
+
+    return () => {
+      isMounted = false
+    }
+  }, [currentClinic?.id, isDemoMode, profile])
 
   useEffect(() => {
     let isMounted = true
@@ -1040,6 +1101,55 @@ function App() {
     return { success: true }
   }
 
+  async function handleCreateClinicUser(values: ClinicUserFormValues) {
+    if (!canManageUsers(profile?.role)) {
+      return {
+        error: 'Solo un administrador puede agregar usuarios.',
+        success: false,
+      }
+    }
+
+    if (isDemoMode) {
+      setClinicUsers((currentUsers) => [
+        ...currentUsers,
+        {
+          clinicId: currentClinic?.id ?? 'demo-clinic',
+          createdAt: new Date().toISOString(),
+          email: values.email,
+          fullName: values.fullName,
+          id: `demo-user-${currentUsers.length + 1}`,
+          isActive: true,
+          role: values.role,
+        },
+      ])
+      setClinicUsersError('')
+
+      return { success: true }
+    }
+
+    if (!currentClinic?.id) {
+      return {
+        error: 'No hay consultorio activo para agregar usuarios.',
+        success: false,
+      }
+    }
+
+    const { data, error } = await createClinicUser(values)
+
+    if (error || !data) {
+      setClinicUsersError(error ?? 'No pudimos agregar el usuario.')
+      return {
+        error: error ?? 'No pudimos agregar el usuario.',
+        success: false,
+      }
+    }
+
+    setClinicUsers((currentUsers) => [data, ...currentUsers])
+    setClinicUsersError('')
+
+    return { success: true }
+  }
+
   async function handleMarkReminderSent(reminderId: string) {
     if (!currentClinic?.id) {
       return {
@@ -1288,9 +1398,15 @@ function App() {
           businessHours={businessHours}
           businessHoursError={businessHoursError}
           calendarExceptions={calendarExceptions}
+          canManageUsers={canManageUsers(profile?.role)}
+          clinicUsers={clinicUsers}
+          clinicUsersError={clinicUsersError}
+          currentUserId={profile?.id ?? user?.id}
           isBusinessHoursConfigured={isBusinessHoursConfigured}
+          isClinicUsersLoading={!isDemoMode && isClinicUsersLoading}
           onBusinessHoursChange={handleSaveBusinessHours}
           onCreateCalendarException={handleCreateCalendarException}
+          onCreateClinicUser={handleCreateClinicUser}
           onCreateTreatment={handleCreateTreatment}
           onDeleteCalendarException={handleDeleteCalendarException}
           onSetTreatmentActive={handleSetTreatmentActive}
