@@ -7,6 +7,7 @@ export interface AuthState {
   currentClinic: Clinic | null
   isDemoMode: boolean
   isLoading: boolean
+  isSessionContextLoading: boolean
   profile: UserProfile | null
   session: Session | null
   user: User | null

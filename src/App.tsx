@@ -101,12 +101,19 @@ function App() {
   const [activeSection, setActiveSection] = useState<AppSection>(() =>
     getStoredActiveSection(),
   )
-  const [appointments, setAppointments] =
-    useState<Appointment[]>(initialAppointments)
-  const [isAppointmentsLoading, setIsAppointmentsLoading] = useState(true)
+  const [appointments, setAppointments] = useState<Appointment[]>(() =>
+    isDemoMode ? initialAppointments : [],
+  )
+  const [isAppointmentsLoading, setIsAppointmentsLoading] = useState(
+    () => !isDemoMode,
+  )
   const [appointmentsError, setAppointmentsError] = useState('')
-  const [patients, setPatients] = useState<Patient[]>([])
-  const [isPatientsLoading, setIsPatientsLoading] = useState(true)
+  const [patients, setPatients] = useState<Patient[]>(() =>
+    isDemoMode ? initialPatients : [],
+  )
+  const [isPatientsLoading, setIsPatientsLoading] = useState(
+    () => !isDemoMode,
+  )
   const [patientsError, setPatientsError] = useState('')
   const [treatments, setTreatments] =
     useState<Treatment[]>(initialTreatments)
@@ -132,6 +139,8 @@ function App() {
   const [selectedPatientId, setSelectedPatientId] = useState<PatientId | null>(
     null,
   )
+  const isDashboardDataLoading =
+    !isDemoMode && (isPatientsLoading || isAppointmentsLoading)
 
   useEffect(() => {
     saveActiveSection(activeSection)
@@ -1296,7 +1305,13 @@ function App() {
       )
     }
 
-    return <DashboardView appointments={appointments} patients={patients} />
+    return (
+      <DashboardView
+        appointments={appointments}
+        isLoading={isDashboardDataLoading}
+        patients={patients}
+      />
+    )
   }
 
   return (

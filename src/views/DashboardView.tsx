@@ -17,10 +17,15 @@ import {
 
 interface DashboardViewProps {
   appointments: Appointment[]
+  isLoading?: boolean
   patients: Patient[]
 }
 
-export function DashboardView({ appointments, patients }: DashboardViewProps) {
+export function DashboardView({
+  appointments,
+  isLoading = false,
+  patients,
+}: DashboardViewProps) {
   const summary = getDashboardSummary(appointments, patients)
   const upcomingAppointments = getUpcomingAppointments(appointments, 5)
   const recentPatients = getRecentPatients(patients, 4)
@@ -42,31 +47,37 @@ export function DashboardView({ appointments, patients }: DashboardViewProps) {
 
         <div className="dashboard-kpi-grid">
           <DashboardKpiCard
+            isLoading={isLoading}
             label="Citas de hoy"
             tone="blue"
             value={summary.todayAppointments}
           />
           <DashboardKpiCard
+            isLoading={isLoading}
             label="Pendientes de hoy"
             tone="amber"
             value={summary.todayPendingAppointments}
           />
           <DashboardKpiCard
+            isLoading={isLoading}
             label="Confirmadas de hoy"
             tone="green"
             value={summary.todayConfirmedAppointments}
           />
           <DashboardKpiCard
+            isLoading={isLoading}
             label="Reprogramadas del mes"
             tone="indigo"
             value={summary.monthlyRescheduledAppointments}
           />
           <DashboardKpiCard
+            isLoading={isLoading}
             label="Canceladas del mes"
             tone="red"
             value={summary.monthlyCancelledAppointments}
           />
           <DashboardKpiCard
+            isLoading={isLoading}
             label="Pacientes registrados"
             tone="slate"
             value={summary.registeredPatients}
