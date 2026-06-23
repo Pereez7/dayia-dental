@@ -10,6 +10,8 @@ import { normalizeUserRole } from '../auth/permissions'
 interface CreateClinicUserResponse {
   code?: string
   error?: string
+  details?: string
+  message?: string
   user?: {
     clinicId?: string | null
     createdAt?: string | null
@@ -19,6 +21,14 @@ interface CreateClinicUserResponse {
     isActive?: boolean
     role?: string | null
   }
+}
+
+interface EdgeFunctionErrorDiagnostics {
+  code?: string
+  details?: string
+  message?: string
+  rawMessage?: string
+  status?: number
 }
 
 type ProfileSelectRecord = Pick<
@@ -133,6 +143,18 @@ function getUsersServiceErrorMessage() {
 }
 
 async function getCreateUserServiceErrorMessage(error: unknown) {
+  const diagnostics = await getCreateUserErrorDiagnostics(error)
+
+  if (import.meta.env.DEV) {
+    console.info('create-clinic-user failed', diagnostics)
+  }
+
+  return getCreateUserResponseErrorMessage(diagnostics.code, diagnostics.status)
+}
+
+async function getCreateUserErrorDiagnostics(
+  error: unknown,
+): Promise<EdgeFunctionErrorDiagnostics> {
   const functionsError = error as {
     context?: Response
     message?: string
@@ -141,17 +163,27 @@ async function getCreateUserServiceErrorMessage(error: unknown) {
   const context = functionsError.context
   const message = functionsError.message?.toLowerCase() ?? ''
   const name = functionsError.name?.toLowerCase() ?? ''
+  const diagnostics: EdgeFunctionErrorDiagnostics = {
+    rawMessage: functionsError.message,
+  }
 
   if (context) {
+    diagnostics.status = context.status
+
     if (context.status === 404) {
-      return 'No pudimos conectar con el servicio de creación de usuarios.'
+      diagnostics.code = 'function_not_found'
+      return diagnostics
     }
 
     try {
-      const body = (await context.json()) as CreateClinicUserResponse
-      return getCreateUserResponseErrorMessage(body.code)
+      const body = (await context.clone().json()) as CreateClinicUserResponse
+      diagnostics.code = body.code
+      diagnostics.details = body.details ?? body.error
+      diagnostics.message = body.message
+      return diagnostics
     } catch {
-      return 'No pudimos crear el usuario del consultorio.'
+      diagnostics.code = getCreateUserCodeFromMessage(message)
+      return diagnostics
     }
   }
 
@@ -161,13 +193,26 @@ async function getCreateUserServiceErrorMessage(error: unknown) {
     message.includes('network') ||
     message.includes('failed to send')
   ) {
+    diagnostics.code = 'function_unreachable'
+    return diagnostics
+  }
+
+  diagnostics.code = getCreateUserCodeFromMessage(message)
+  return diagnostics
+}
+
+export function getCreateUserResponseErrorMessage(
+  code: string | undefined,
+  status?: number,
+) {
+  if (code === 'function_not_found') {
+    return 'La función de creación de usuarios no está desplegada.'
+  }
+
+  if (code === 'function_unreachable') {
     return 'No pudimos conectar con el servicio de creación de usuarios.'
   }
 
-  return 'No pudimos crear el usuario del consultorio.'
-}
-
-export function getCreateUserResponseErrorMessage(code: string | undefined) {
   if (code === 'email_exists') {
     return 'Este correo ya está registrado.'
   }
@@ -180,13 +225,49 @@ export function getCreateUserResponseErrorMessage(code: string | undefined) {
     return 'Revisa el nombre, email y rol antes de continuar.'
   }
 
+  if (code === 'invalid_role') {
+    return 'El rol seleccionado no es válido.'
+  }
+
   if (code === 'server_not_configured') {
-    return 'La creación de usuarios no está configurada todavía.'
+    return 'La creación de usuarios no está configurada en el servidor.'
   }
 
   if (code === 'unauthorized') {
-    return 'Tu sesión no está activa. Vuelve a iniciar sesión.'
+    return 'Tu sesión expiró o no tienes permiso.'
+  }
+
+  if (code === 'auth_admin_error') {
+    return 'No pudimos crear el usuario en Supabase Auth.'
+  }
+
+  if (code === 'profile_create_error') {
+    return 'El usuario se creó, pero no pudimos guardar su perfil del consultorio.'
+  }
+
+  if (status === 401) {
+    return 'Tu sesión expiró o no tienes permiso.'
+  }
+
+  if (status === 403) {
+    return 'No tienes permiso para crear usuarios.'
   }
 
   return 'No pudimos crear el usuario del consultorio.'
+}
+
+function getCreateUserCodeFromMessage(message: string) {
+  if (
+    message.includes('not found') ||
+    message.includes('404') ||
+    message.includes('function')
+  ) {
+    return 'function_not_found'
+  }
+
+  if (message.includes('unauthorized') || message.includes('jwt')) {
+    return 'unauthorized'
+  }
+
+  return undefined
 }

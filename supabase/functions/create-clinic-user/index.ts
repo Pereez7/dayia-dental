@@ -10,7 +10,8 @@ interface CreateClinicUserPayload {
 
 interface PublicError {
   code: string
-  error: string
+  details?: string
+  message: string
 }
 
 const allowedRoles: AllowedClinicRole[] = [
@@ -21,19 +22,39 @@ const allowedRoles: AllowedClinicRole[] = [
 
 const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Origin': '*',
+  'Access-Control-Max-Age': '86400',
 }
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', {
+      headers: corsHeaders,
+      status: 200,
+    })
   }
 
+  try {
+    return await handleCreateClinicUser(request)
+  } catch (error) {
+    return errorResponse(
+      {
+        code: 'unexpected_error',
+        details: getDebugDetails(error instanceof Error ? error.message : undefined),
+        message: 'Unexpected server error.',
+      },
+      500,
+    )
+  }
+})
+
+async function handleCreateClinicUser(request: Request) {
   if (request.method !== 'POST') {
     return errorResponse(
       {
         code: 'method_not_allowed',
-        error: 'Method not allowed.',
+        message: 'Method not allowed.',
       },
       405,
     )
@@ -46,7 +67,7 @@ Deno.serve(async (request) => {
     return errorResponse(
       {
         code: 'unauthorized',
-        error: 'Missing authorization token.',
+        message: 'Missing authorization token.',
       },
       401,
     )
@@ -58,8 +79,8 @@ Deno.serve(async (request) => {
   if (validationError) {
     return errorResponse(
       {
-        code: 'invalid_payload',
-        error: validationError,
+        code: validationError.code,
+        message: validationError.message,
       },
       400,
     )
@@ -79,7 +100,7 @@ Deno.serve(async (request) => {
     return errorResponse(
       {
         code: 'unauthorized',
-        error: 'Invalid session.',
+        message: 'Invalid session.',
       },
       401,
     )
@@ -95,7 +116,7 @@ Deno.serve(async (request) => {
     return errorResponse(
       {
         code: 'forbidden',
-        error: 'Caller profile is not linked to a clinic.',
+        message: 'Caller profile is not linked to a clinic.',
       },
       403,
     )
@@ -105,7 +126,7 @@ Deno.serve(async (request) => {
     return errorResponse(
       {
         code: 'forbidden',
-        error: 'Only clinic admins can create users.',
+        message: 'Only clinic admins can create users.',
       },
       403,
     )
@@ -134,8 +155,9 @@ Deno.serve(async (request) => {
   if (existingProfileError) {
     return errorResponse(
       {
-        code: 'unknown',
-        error: 'Could not validate email availability.',
+        code: 'profile_lookup_error',
+        details: getDebugDetails(existingProfileError.message),
+        message: 'Could not validate email availability.',
       },
       400,
     )
@@ -145,7 +167,7 @@ Deno.serve(async (request) => {
     return errorResponse(
       {
         code: 'email_exists',
-        error: 'A user with this email already exists.',
+        message: 'A user with this email already exists.',
       },
       409,
     )
@@ -164,7 +186,8 @@ Deno.serve(async (request) => {
     return errorResponse(
       {
         code: getInviteErrorCode(inviteError?.message),
-        error: 'Could not create auth user.',
+        details: getDebugDetails(inviteError?.message),
+        message: 'Could not create auth user.',
       },
       getInviteErrorCode(inviteError?.message) === 'email_exists' ? 409 : 400,
     )
@@ -190,8 +213,9 @@ Deno.serve(async (request) => {
     await supabase.auth.admin.deleteUser(createdUserData.user.id)
     return errorResponse(
       {
-        code: 'unknown',
-        error: 'Could not create clinic profile.',
+        code: 'profile_create_error',
+        details: getDebugDetails(profileError?.message),
+        message: 'Could not create clinic profile.',
       },
       400,
     )
@@ -208,7 +232,7 @@ Deno.serve(async (request) => {
       role: createdProfile.role,
     },
   })
-})
+}
 
 async function readPayload(request: Request): Promise<CreateClinicUserPayload> {
   try {
@@ -223,18 +247,27 @@ function validatePayload(payload: CreateClinicUserPayload) {
   const fullName = payload.fullName?.trim() ?? ''
 
   if (!fullName || fullName.length < 3) {
-    return 'Full name is required.'
+    return {
+      code: 'invalid_payload',
+      message: 'Full name is required.',
+    }
   }
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return 'Valid email is required.'
+    return {
+      code: 'invalid_payload',
+      message: 'Valid email is required.',
+    }
   }
 
   if (!allowedRoles.includes(payload.role as AllowedClinicRole)) {
-    return 'Invalid role.'
+    return {
+      code: 'invalid_role',
+      message: 'Invalid role.',
+    }
   }
 
-  return ''
+  return null
 }
 
 function createAdminClient():
@@ -247,7 +280,7 @@ function createAdminClient():
     return {
       error: {
         code: 'server_not_configured',
-        error: 'Supabase admin environment is not configured.',
+        message: 'Supabase admin environment is not configured.',
       },
     }
   }
@@ -273,7 +306,11 @@ function getInviteErrorCode(message = '') {
     return 'email_exists'
   }
 
-  return 'unknown'
+  return 'auth_admin_error'
+}
+
+function getDebugDetails(details: string | undefined) {
+  return Deno.env.get('DAYIA_FUNCTION_DEBUG') === 'true' ? details : undefined
 }
 
 function errorResponse(body: PublicError, status: number) {

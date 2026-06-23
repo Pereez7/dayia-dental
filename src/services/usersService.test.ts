@@ -35,7 +35,16 @@ describe('users service mapping', () => {
       'No tienes permiso para crear usuarios.',
     )
     expect(getCreateUserResponseErrorMessage('server_not_configured')).toBe(
-      'La creación de usuarios no está configurada todavía.',
+      'La creación de usuarios no está configurada en el servidor.',
+    )
+    expect(getCreateUserResponseErrorMessage('invalid_role')).toBe(
+      'El rol seleccionado no es válido.',
+    )
+    expect(getCreateUserResponseErrorMessage('function_not_found')).toBe(
+      'La función de creación de usuarios no está desplegada.',
+    )
+    expect(getCreateUserResponseErrorMessage('auth_admin_error')).toBe(
+      'No pudimos crear el usuario en Supabase Auth.',
     )
   })
 })
