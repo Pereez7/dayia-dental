@@ -13,11 +13,13 @@ interface CreateClinicUserResponse {
   details?: string
   message?: string
   user?: {
+    activatedAt?: string | null
     clinicId?: string | null
     createdAt?: string | null
     email?: string | null
     fullName?: string | null
     id?: string
+    invitedAt?: string | null
     isActive?: boolean
     role?: string | null
   }
@@ -35,15 +37,17 @@ type ProfileSelectRecord = Pick<
   UserProfile,
   'clinic_id' | 'created_at' | 'full_name' | 'id' | 'role' | 'updated_at'
 > &
-  Partial<Pick<UserProfile, 'email' | 'is_active'>>
+  Partial<Pick<UserProfile, 'activated_at' | 'email' | 'invited_at' | 'is_active'>>
 
 export function mapProfileToClinicUser(profile: UserProfile): ClinicUser {
   return {
+    activatedAt: profile.activated_at ?? null,
     clinicId: profile.clinic_id,
     createdAt: profile.created_at,
     email: profile.email ?? null,
     fullName: profile.full_name?.trim() || 'Usuario sin nombre',
     id: profile.id,
+    invitedAt: profile.invited_at ?? null,
     isActive: profile.is_active ?? true,
     role: normalizeUserRole(profile.role),
   }
@@ -56,7 +60,7 @@ export async function getClinicUsers(clinicId: string) {
 
   const fullResult = await supabase
     .from('profiles')
-    .select('id, clinic_id, full_name, email, role, is_active, created_at, updated_at')
+    .select('id, clinic_id, full_name, email, role, is_active, invited_at, activated_at, created_at, updated_at')
     .eq('clinic_id', clinicId)
     .order('full_name', { ascending: true })
 
@@ -124,15 +128,32 @@ export async function createClinicUser(values: ClinicUserFormValues) {
   }
 }
 
+export async function resendClinicUserInvitation(userId: string) {
+  if (!supabase) {
+    return { data: null, error: 'Supabase is not configured yet.' }
+  }
+
+  if (!userId.trim()) {
+    return { data: null, error: 'Selecciona un usuario válido.' }
+  }
+
+  return {
+    data: null,
+    error: 'El reenvío de invitaciones se conectará en una siguiente fase.',
+  }
+}
+
 function mapCreatedClinicUser(
   user: NonNullable<CreateClinicUserResponse['user']>,
 ): ClinicUser {
   return {
+    activatedAt: user.activatedAt ?? null,
     clinicId: user.clinicId ?? null,
     createdAt: user.createdAt ?? null,
     email: user.email ?? null,
     fullName: user.fullName?.trim() || 'Usuario sin nombre',
     id: user.id ?? '',
+    invitedAt: user.invitedAt ?? null,
     isActive: user.isActive ?? true,
     role: normalizeUserRole(user.role),
   }
@@ -253,6 +274,10 @@ export function getCreateUserResponseErrorMessage(
 
   if (normalizedCode === 'AUTH_ADMIN_ERROR') {
     return 'No pudimos crear el usuario en Supabase Auth.'
+  }
+
+  if (normalizedCode === 'INVITATION_SEND_ERROR') {
+    return 'No pudimos enviar la invitación del nuevo usuario.'
   }
 
   if (normalizedCode === 'AUTH_ADMIN_PERMISSION_ERROR') {

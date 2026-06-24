@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 
+import { ConfirmDialog } from './ConfirmDialog'
 import { Toast, type ToastTone } from './Toast'
 import type {
   ClinicUser,
@@ -18,12 +19,16 @@ import {
 
 interface ClinicUsersSettingsProps {
   canManageUsers: boolean
+  canMigrateOwnerEmail?: boolean
   currentUserId?: string | null
   errorMessage?: string
   isLoading?: boolean
   onCreateUser: (
     values: ClinicUserFormValues,
   ) =>
+    | Promise<{ error?: string; success: boolean }>
+    | { error?: string; success: boolean }
+  onMigrateOwnerEmail?: () =>
     | Promise<{ error?: string; success: boolean }>
     | { error?: string; success: boolean }
   users: ClinicUser[]
@@ -37,10 +42,12 @@ const initialFormValues: ClinicUserFormValues = {
 
 export function ClinicUsersSettings({
   canManageUsers,
+  canMigrateOwnerEmail = false,
   currentUserId,
   errorMessage = '',
   isLoading = false,
   onCreateUser,
+  onMigrateOwnerEmail,
   users,
 }: ClinicUsersSettingsProps) {
   const [fieldErrors, setFieldErrors] = useState<ClinicUserFormErrors>({})
@@ -48,6 +55,10 @@ export function ClinicUsersSettings({
     useState<ClinicUserFormValues>(initialFormValues)
   const [formMessage, setFormMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isMigratingOwnerEmail, setIsMigratingOwnerEmail] = useState(false)
+  const [isOwnerEmailDialogOpen, setIsOwnerEmailDialogOpen] = useState(false)
+  const [isOwnerEmailActionHidden, setIsOwnerEmailActionHidden] =
+    useState(false)
   const [isToastVisible, setIsToastVisible] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
   const [toastTone, setToastTone] = useState<ToastTone>('success')
@@ -111,9 +122,35 @@ export function ClinicUsersSettings({
     setFormValues(initialFormValues)
     setFieldErrors({})
     setFormMessage('')
-    setToastMessage('Usuario agregado.')
+    setToastMessage(
+      'Usuario agregado. Se envió una invitación para activar su acceso.',
+    )
     setToastTone('success')
     setIsToastVisible(true)
+  }
+
+  async function handleConfirmOwnerEmailMigration() {
+    if (!onMigrateOwnerEmail || isMigratingOwnerEmail) {
+      return
+    }
+
+    setIsMigratingOwnerEmail(true)
+    const result = await onMigrateOwnerEmail()
+    setIsMigratingOwnerEmail(false)
+
+    if (!result.success) {
+      const message =
+        result.error ?? 'No pudimos actualizar el correo de acceso.'
+      setFormMessage(message)
+      setToastMessage(message)
+      setToastTone('error')
+      setIsToastVisible(true)
+      setIsOwnerEmailDialogOpen(false)
+      return
+    }
+
+    setIsOwnerEmailActionHidden(true)
+    setIsOwnerEmailDialogOpen(false)
   }
 
   return (
@@ -138,38 +175,64 @@ export function ClinicUsersSettings({
         )}
 
         {!isLoading &&
-          sortedUsers.map((user) => (
-            <article className="clinic-user-row" key={user.id}>
-              <div className="clinic-user-main">
-                <div className="clinic-user-title-row">
-                  <h3>{user.fullName}</h3>
-                  {user.id === currentUserId && (
-                    <span className="clinic-user-you">Tú</span>
-                  )}
+          sortedUsers.map((user) => {
+            const isInvitationPending = Boolean(
+              user.invitedAt && !user.activatedAt,
+            )
+            const shouldShowOwnerEmailMigration =
+              canMigrateOwnerEmail &&
+              !isOwnerEmailActionHidden &&
+              user.id === currentUserId &&
+              user.email === 'charles@test.com'
+
+            return (
+              <article className="clinic-user-row" key={user.id}>
+                <div className="clinic-user-main">
+                  <div className="clinic-user-title-row">
+                    <h3>{user.fullName}</h3>
+                    {user.id === currentUserId && (
+                      <span className="clinic-user-you">Tú</span>
+                    )}
+                  </div>
+                  <p>{user.email || 'Email no disponible'}</p>
+                  <span>
+                    {user.createdAt
+                      ? `Creado el ${formatClinicUserDate(user.createdAt)}`
+                      : 'Fecha de creación pendiente'}
+                  </span>
                 </div>
-                <p>{user.email || 'Email no disponible'}</p>
-                <span>
-                  {user.createdAt
-                    ? `Creado el ${formatClinicUserDate(user.createdAt)}`
-                    : 'Fecha de creación pendiente'}
-                </span>
-              </div>
-              <div className="clinic-user-badges">
-                <span className="clinic-user-role">
-                  {getClinicUserRoleLabel(user.role)}
-                </span>
-                <span
-                  className={`clinic-user-status ${
-                    user.isActive
-                      ? 'clinic-user-status--active'
-                      : 'clinic-user-status--inactive'
-                  }`}
-                >
-                  {user.isActive ? 'Activo' : 'Inactivo'}
-                </span>
-              </div>
-            </article>
-          ))}
+                <div className="clinic-user-badges">
+                  <span className="clinic-user-role">
+                    {getClinicUserRoleLabel(user.role)}
+                  </span>
+                  <span
+                    className={`clinic-user-status ${
+                      isInvitationPending
+                        ? 'clinic-user-status--invited'
+                        : user.isActive
+                          ? 'clinic-user-status--active'
+                          : 'clinic-user-status--inactive'
+                    }`}
+                  >
+                    {isInvitationPending
+                      ? 'Invitación enviada'
+                      : user.isActive
+                        ? 'Activo'
+                        : 'Inactivo'}
+                  </span>
+                </div>
+                {shouldShowOwnerEmailMigration && (
+                  <button
+                    className="secondary-action clinic-user-temporary-action"
+                    type="button"
+                    onClick={() => setIsOwnerEmailDialogOpen(true)}
+                  >
+                    Actualizar correo de acceso
+                  </button>
+                )}
+              </article>
+            )
+          })}
       </div>
 
       {isCurrentUserOnly && (
@@ -282,6 +345,22 @@ export function ClinicUsersSettings({
         </p>
       )}
       <Toast message={toastMessage} tone={toastTone} visible={isToastVisible} />
+      <ConfirmDialog
+        cancelLabel="Cancelar"
+        confirmLabel={
+          isMigratingOwnerEmail ? 'Actualizando...' : 'Actualizar correo'
+        }
+        isOpen={isOwnerEmailDialogOpen}
+        message="Esta acción temporal cambiará el correo de acceso del usuario administrador actual a pereezcharles@gmail.com sin cambiar su UID ni sus datos del consultorio."
+        title="Actualizar correo de acceso"
+        variant="warning"
+        onCancel={() => {
+          if (!isMigratingOwnerEmail) {
+            setIsOwnerEmailDialogOpen(false)
+          }
+        }}
+        onConfirm={handleConfirmOwnerEmailMigration}
+      />
     </section>
   )
 }

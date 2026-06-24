@@ -35,6 +35,21 @@ export async function signOut() {
   return supabase.auth.signOut()
 }
 
+export async function sendPasswordResetEmail(email: string) {
+  if (!supabase) {
+    return { data: null, error: new Error('Supabase is not configured.') }
+  }
+
+  const configuredAppUrl = import.meta.env.VITE_APP_URL?.trim()
+  const appUrl = configuredAppUrl
+    ? configuredAppUrl.replace(/\/+$/, '')
+    : window.location.origin
+
+  return supabase.auth.resetPasswordForEmail(email.trim(), {
+    redirectTo: `${appUrl}/activar-cuenta`,
+  })
+}
+
 export async function getCurrentUserProfile(session: Session | null) {
   if (!supabase) {
     return {

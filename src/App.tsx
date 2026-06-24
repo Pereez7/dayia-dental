@@ -51,6 +51,10 @@ import {
   getClinicUsers,
   mapProfileToClinicUser,
 } from './services/usersService'
+import {
+  legacyOwnerEmail,
+  migrateCurrentOwnerEmail,
+} from './services/ownerEmailMigrationService'
 import type {
   Appointment,
   AppointmentFormValues,
@@ -94,6 +98,10 @@ import {
   getStoredActiveSection,
   saveActiveSection,
 } from './utils/activeSectionStorage'
+import {
+  canManageTeam as canManageTeamWithPlan,
+  getPlanFeatures,
+} from './utils/planFeatures'
 import { AppointmentsView } from './views/AppointmentsView'
 import { ClinicalHistoryView } from './views/ClinicalHistoryView'
 import { DashboardView } from './views/DashboardView'
@@ -104,7 +112,7 @@ import { SettingsView } from './views/SettingsView'
 import { WhatsAppRemindersView } from './views/WhatsAppRemindersView'
 
 function App() {
-  const { currentClinic, isDemoMode, profile, user } = useAuth()
+  const { currentClinic, isDemoMode, profile, signOut, user } = useAuth()
   const [activeSection, setActiveSection] = useState<AppSection>(() =>
     getStoredActiveSection(),
   )
@@ -155,6 +163,14 @@ function App() {
   )
   const isDashboardDataLoading =
     !isDemoMode && (isPatientsLoading || isAppointmentsLoading)
+  // Plan loading from Supabase will be connected after the new memberships
+  // architecture is adopted by the auth context. Until then, Basic keeps team
+  // management hidden and avoids more user-invitation patches.
+  const currentPlanFeatures = getPlanFeatures('basic')
+  const canUseTeamManagement = canManageTeamWithPlan(
+    profile?.role,
+    currentPlanFeatures,
+  )
 
   useEffect(() => {
     saveActiveSection(activeSection)
@@ -1106,6 +1122,14 @@ function App() {
   }
 
   async function handleCreateClinicUser(values: ClinicUserFormValues) {
+    if (!canUseTeamManagement) {
+      return {
+        error:
+          'La gestión de usuarios está pausada mientras se completa la nueva arquitectura de planes.',
+        success: false,
+      }
+    }
+
     if (!canManageUsers(profile?.role)) {
       return {
         error: 'Solo un administrador puede agregar usuarios.',
@@ -1117,11 +1141,13 @@ function App() {
       setClinicUsers((currentUsers) => [
         ...currentUsers,
         {
+          activatedAt: null,
           clinicId: currentClinic?.id ?? 'demo-clinic',
           createdAt: new Date().toISOString(),
           email: values.email,
           fullName: values.fullName,
           id: `demo-user-${currentUsers.length + 1}`,
+          invitedAt: new Date().toISOString(),
           isActive: true,
           role: values.role,
         },
@@ -1150,6 +1176,30 @@ function App() {
 
     setClinicUsers((currentUsers) => [data, ...currentUsers])
     setClinicUsersError('')
+
+    return { success: true }
+  }
+
+  async function handleMigrateOwnerEmail() {
+    if (isDemoMode || profile?.email !== legacyOwnerEmail) {
+      return {
+        error: 'Esta acción temporal no está disponible para este usuario.',
+        success: false,
+      }
+    }
+
+    const result = await migrateCurrentOwnerEmail()
+
+    if (!result.success) {
+      return result
+    }
+
+    window.history.replaceState(
+      null,
+      '',
+      '/?authMessage=owner-email-updated',
+    )
+    await signOut()
 
     return { success: true }
   }
@@ -1402,7 +1452,14 @@ function App() {
           businessHours={businessHours}
           businessHoursError={businessHoursError}
           calendarExceptions={calendarExceptions}
+          canMigrateOwnerEmail={
+            !isDemoMode &&
+            canUseTeamManagement &&
+            profile?.id === user?.id &&
+            profile?.email === legacyOwnerEmail
+          }
           canManageUsers={canManageUsers(profile?.role)}
+          canUseTeamManagement={canUseTeamManagement}
           clinicUsers={clinicUsers}
           clinicUsersError={clinicUsersError}
           currentUserId={profile?.id ?? user?.id}
@@ -1411,6 +1468,7 @@ function App() {
           onBusinessHoursChange={handleSaveBusinessHours}
           onCreateCalendarException={handleCreateCalendarException}
           onCreateClinicUser={handleCreateClinicUser}
+          onMigrateOwnerEmail={handleMigrateOwnerEmail}
           onCreateTreatment={handleCreateTreatment}
           onDeleteCalendarException={handleDeleteCalendarException}
           onSetTreatmentActive={handleSetTreatmentActive}

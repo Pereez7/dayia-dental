@@ -2221,6 +2221,33 @@
   width: 100%;
 }
 
+.auth-link-action {
+  justify-self: center;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary-dark);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  padding: 4px 8px;
+}
+
+.auth-link-action:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.auth-link-action:focus-visible {
+  border-radius: var(--radius-sm);
+  outline: 3px solid var(--color-focus);
+}
+
+.auth-link-action:disabled {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
 .auth-demo-action {
   justify-self: center;
   min-height: 38px;
@@ -2961,6 +2988,19 @@
   border-color: #d1d5db;
   background: #f3f4f6;
   color: #4b5563;
+}
+
+.clinic-user-status--invited {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.clinic-user-temporary-action {
+  justify-self: end;
+  min-height: 34px;
+  font-size: var(--text-xs);
+  padding: 7px 10px;
 }
 
 .clinic-user-form {

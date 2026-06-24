@@ -254,35 +254,33 @@ async function handleCreateClinicUser(request: Request) {
     )
   }
 
-  // This creates the Auth user without asking for or showing a manual password.
-  // A later phase should add the initial access flow through invite email or password recovery.
-  const { data: createdUserData, error: authAdminError } =
-    await supabaseAdmin.auth.admin.createUser({
-      email,
-      email_confirm: true,
-      user_metadata: {
+  const activationRedirectUrl = getActivationRedirectUrl(request)
+  const { data: createdUserData, error: invitationError } =
+    await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+      data: {
         full_name: fullName,
       },
+      redirectTo: activationRedirectUrl,
     })
 
-  if (authAdminError || !createdUserData.user?.id) {
-    console.log('create-clinic-user auth admin failure', {
-      authErrorCode: authAdminError?.code ?? null,
-      authErrorMessage: authAdminError?.message ?? null,
-      authErrorName: authAdminError?.name ?? null,
-      authErrorStatus: authAdminError?.status ?? null,
+  if (invitationError || !createdUserData.user?.id) {
+    console.log('create-clinic-user invitation failure', {
+      authErrorCode: invitationError?.code ?? null,
+      authErrorMessage: invitationError?.message ?? null,
+      authErrorName: invitationError?.name ?? null,
+      authErrorStatus: invitationError?.status ?? null,
+      redirectHost: getUrlHost(activationRedirectUrl),
       requestedEmail: email,
     })
 
+    const errorCode = getAuthAdminErrorCode(invitationError)
     return errorResponse(
       {
-        code: getAuthAdminErrorCode(authAdminError),
-        details: getDebugDetails(authAdminError?.message),
-        message: getAuthAdminErrorMessage(getAuthAdminErrorCode(authAdminError)),
+        code: errorCode,
+        details: getDebugDetails(invitationError?.message),
+        message: getAuthAdminErrorMessage(errorCode),
       },
-      getAuthAdminErrorCode(authAdminError) === 'EMAIL_ALREADY_EXISTS'
-        ? 409
-        : 400,
+      errorCode === 'EMAIL_ALREADY_EXISTS' ? 409 : 400,
     )
   }
 
@@ -296,10 +294,11 @@ async function handleCreateClinicUser(request: Request) {
       full_name: fullName,
       id: createdUserData.user.id,
       is_active: true,
+      invited_at: now,
       role,
       updated_at: now,
     })
-    .select('id, clinic_id, full_name, email, role, is_active, created_at')
+    .select('id, clinic_id, full_name, email, role, is_active, invited_at, activated_at, created_at')
     .single()
 
   if (profileError || !createdProfile) {
@@ -332,6 +331,8 @@ async function handleCreateClinicUser(request: Request) {
       fullName: createdProfile.full_name,
       id: createdProfile.id,
       isActive: createdProfile.is_active,
+      activatedAt: createdProfile.activated_at,
+      invitedAt: createdProfile.invited_at,
       role: createdProfile.role,
     },
   })
@@ -428,6 +429,25 @@ function createSupabaseRequesterClient(
   })
 }
 
+function getActivationRedirectUrl(request: Request) {
+  const configuredAppUrl =
+    Deno.env.get('DAYIA_APP_URL') ??
+    Deno.env.get('VITE_APP_URL') ??
+    request.headers.get('Origin') ??
+    'http://localhost:5173'
+  const appUrl = configuredAppUrl.replace(/\/+$/, '')
+
+  return `${appUrl}/activar-cuenta`
+}
+
+function getUrlHost(value: string) {
+  try {
+    return new URL(value).host
+  } catch {
+    return null
+  }
+}
+
 function getAuthAdminErrorCode(
   error: { code?: string; message?: string; name?: string; status?: number } | null,
 ) {
@@ -454,7 +474,7 @@ function getAuthAdminErrorCode(
     return 'AUTH_ADMIN_PERMISSION_ERROR'
   }
 
-  return 'AUTH_ADMIN_ERROR'
+  return 'INVITATION_SEND_ERROR'
 }
 
 function getAuthAdminErrorMessage(code: string) {
@@ -466,7 +486,7 @@ function getAuthAdminErrorMessage(code: string) {
     return 'No fue posible crear el acceso del nuevo usuario.'
   }
 
-  return 'No pudimos crear el acceso del nuevo usuario.'
+  return 'No pudimos enviar la invitación del nuevo usuario.'
 }
 
 function getDebugDetails(details: string | undefined) {

@@ -7,8 +7,10 @@ export type Json =
   | { [key: string]: Json | undefined }
 
 export type UserRole =
+  | 'clinic_owner'
   | 'clinic_admin'
   | 'doctor'
+  | 'platform_admin'
   | 'receptionist'
   | 'super_admin'
 
@@ -26,6 +28,23 @@ export type AppointmentChangeLogRecordType =
 
 export type CalendarExceptionRecordType = 'closed' | 'special-hours'
 
+export type ClinicMembershipRecordRole =
+  | 'clinic_admin'
+  | 'clinic_owner'
+  | 'doctor'
+  | 'receptionist'
+
+export type ClinicMembershipRecordStatus = 'active' | 'inactive' | 'pending'
+
+export type PlanRecordId = 'basic' | 'medium' | 'pro' | string
+
+export type ClinicSubscriptionRecordStatus =
+  | 'active'
+  | 'cancelled'
+  | 'past_due'
+  | 'suspended'
+  | 'trial'
+
 export type ReminderRecordChannel = 'whatsapp'
 
 export type ReminderRecordStatus =
@@ -38,6 +57,38 @@ export type ReminderRecordStatus =
 
 export type ReminderRecordType = '24h' | '2h' | 'immediate'
 
+export interface PlanRecord {
+  can_manage_team: boolean
+  can_use_advanced_reports: boolean
+  can_use_whatsapp_automation: boolean
+  id: PlanRecordId
+  is_active: boolean
+  max_users: number
+  name: string
+}
+
+export interface ClinicSubscriptionRecord {
+  clinic_id: string
+  created_at: string
+  ends_at: string | null
+  plan_id: string
+  starts_at: string
+  status: ClinicSubscriptionRecordStatus
+  updated_at: string
+}
+
+export interface ClinicMembershipRecord {
+  activated_at: string | null
+  clinic_id: string
+  created_at: string
+  id: string
+  invited_at: string | null
+  role: ClinicMembershipRecordRole
+  status: ClinicMembershipRecordStatus
+  updated_at: string
+  user_id: string
+}
+
 export interface Clinic {
   country_code: string
   created_at: string
@@ -48,11 +99,14 @@ export interface Clinic {
 }
 
 export interface UserProfile {
+  activated_at?: string | null
   clinic_id: string | null
   created_at: string
   email?: string | null
   full_name: string | null
   id: string
+  invited_at?: string | null
+  is_platform_admin?: boolean | null
   is_active?: boolean | null
   role: UserRole | null
   updated_at: string
@@ -175,20 +229,26 @@ export type TableRowMap = {
   appointments: AppointmentRecord
   business_hours: BusinessHourRecord
   calendar_exceptions: CalendarExceptionRecord
+  clinic_memberships: ClinicMembershipRecord
+  clinic_subscriptions: ClinicSubscriptionRecord
   clinics: Clinic
   patients: PatientRecord
+  plans: PlanRecord
   profiles: UserProfile
   reminders: ReminderRecord
   treatments: TreatmentRecord
   whatsapp_settings: WhatsAppSettingsRecord
 }
 
-type Insertable<T extends { created_at: string; id: string; updated_at?: string }> =
-  Omit<T, 'created_at' | 'id' | 'updated_at'> & {
-    created_at?: string
-    id?: string
-    updated_at?: string
-  }
+type Insertable<T> =
+  Omit<T, 'created_at' | 'id' | 'updated_at'> &
+    (T extends { created_at: infer CreatedAt }
+      ? { created_at?: CreatedAt }
+      : object) &
+    (T extends { id: infer Id } ? { id?: Id } : object) &
+    (T extends { updated_at: infer UpdatedAt }
+      ? { updated_at?: UpdatedAt }
+      : object)
 
 type Updatable<T> = Partial<Omit<T, 'created_at' | 'id'>>
 

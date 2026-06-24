@@ -6,6 +6,7 @@ import type {
 } from '../types/ClinicUser'
 import type { UserRole } from '../types/database'
 import { normalizeUserRole } from '../auth/permissions'
+import { getVisibleClinicRoleLabel } from './planFeatures'
 import { normalizeSentenceText } from './textNormalizers'
 
 export const clinicUserRoleOptions: Array<{
@@ -18,10 +19,12 @@ export const clinicUserRoleOptions: Array<{
 ]
 
 const clinicUserRoleLabels: Record<UserRole, string> = {
-  clinic_admin: 'Administrador',
+  clinic_admin: 'Administrador del consultorio',
+  clinic_owner: 'Propietario del consultorio',
   doctor: 'Doctor',
+  platform_admin: 'Administrador del consultorio',
   receptionist: 'Recepción',
-  super_admin: 'Super administrador',
+  super_admin: 'Administrador del consultorio',
 }
 
 const allowedClinicUserRoles = clinicUserRoleOptions.map(
@@ -29,7 +32,9 @@ const allowedClinicUserRoles = clinicUserRoleOptions.map(
 )
 
 export function getClinicUserRoleLabel(role: string | null | undefined) {
-  return clinicUserRoleLabels[normalizeUserRole(role)]
+  const normalizedRole = normalizeUserRole(role)
+
+  return clinicUserRoleLabels[normalizedRole] ?? getVisibleClinicRoleLabel(role)
 }
 
 export function normalizeClinicUserEmail(email: string) {

@@ -19,9 +19,16 @@ describe('clinic users helpers', () => {
   })
 
   it('returns compact readable role labels', () => {
-    expect(getClinicUserRoleLabel('clinic_admin')).toBe('Administrador')
+    expect(getClinicUserRoleLabel('clinic_owner')).toBe(
+      'Propietario del consultorio',
+    )
+    expect(getClinicUserRoleLabel('clinic_admin')).toBe(
+      'Administrador del consultorio',
+    )
     expect(getClinicUserRoleLabel('receptionist')).toBe('Recepción')
-    expect(getClinicUserRoleLabel('super_admin')).toBe('Super administrador')
+    expect(getClinicUserRoleLabel('super_admin')).toBe(
+      'Administrador del consultorio',
+    )
   })
 
   it('normalizes email before sending it to the backend', () => {
@@ -47,11 +54,13 @@ describe('clinic users helpers', () => {
       isOnlyCurrentClinicUser(
         [
           {
+            activatedAt: null,
             clinicId: 'clinic-1',
             createdAt: '2026-01-01T00:00:00.000Z',
             email: null,
             fullName: 'Charles Pérez',
             id: 'user-1',
+            invitedAt: null,
             isActive: true,
             role: 'clinic_admin',
           },

@@ -23,7 +23,9 @@ interface SettingsActionResult {
 interface SettingsViewProps {
   businessHours: BusinessHoursSettingsType
   calendarExceptions: CalendarException[]
+  canMigrateOwnerEmail?: boolean
   canManageUsers: boolean
+  canUseTeamManagement?: boolean
   businessHoursError?: string
   clinicUsers: ClinicUser[]
   clinicUsersError?: string
@@ -42,6 +44,8 @@ interface SettingsViewProps {
   onCreateTreatment: (
     treatment: Omit<Treatment, 'id'>,
   ) => Promise<SettingsActionResult> | SettingsActionResult
+  onMigrateOwnerEmail?: () =>
+    Promise<SettingsActionResult> | SettingsActionResult
   onDeleteCalendarException: (
     exceptionId: CalendarExceptionId,
   ) => Promise<SettingsActionResult> | SettingsActionResult
@@ -66,7 +70,9 @@ interface SettingsViewProps {
 export function SettingsView({
   businessHours,
   calendarExceptions,
+  canMigrateOwnerEmail = false,
   canManageUsers,
+  canUseTeamManagement = false,
   businessHoursError = '',
   clinicUsers,
   clinicUsersError = '',
@@ -76,6 +82,7 @@ export function SettingsView({
   onCreateClinicUser,
   onCreateCalendarException,
   onCreateTreatment,
+  onMigrateOwnerEmail,
   onDeleteCalendarException,
   onSetTreatmentActive,
   onUpdateTreatment,
@@ -132,14 +139,18 @@ export function SettingsView({
           onSetTreatmentActive={onSetTreatmentActive}
           onUpdateTreatment={onUpdateTreatment}
         />
-        <ClinicUsersSettings
-          canManageUsers={canManageUsers}
-          currentUserId={currentUserId}
-          errorMessage={clinicUsersError}
-          isLoading={isClinicUsersLoading}
-          users={clinicUsers}
-          onCreateUser={onCreateClinicUser}
-        />
+        {canUseTeamManagement && (
+          <ClinicUsersSettings
+            canMigrateOwnerEmail={canMigrateOwnerEmail}
+            canManageUsers={canManageUsers}
+            currentUserId={currentUserId}
+            errorMessage={clinicUsersError}
+            isLoading={isClinicUsersLoading}
+            users={clinicUsers}
+            onCreateUser={onCreateClinicUser}
+            onMigrateOwnerEmail={onMigrateOwnerEmail}
+          />
+        )}
       </div>
     </section>
   )

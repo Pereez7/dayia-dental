@@ -3,6 +3,8 @@
 
 alter table public.profiles
   add column if not exists email text,
+  add column if not exists invited_at timestamptz,
+  add column if not exists activated_at timestamptz,
   add column if not exists is_active boolean not null default true;
 
 update public.profiles
@@ -29,6 +31,12 @@ comment on column public.profiles.email is
 
 comment on column public.profiles.is_active is
   'Operational status for clinic users. Auth still controls login access.';
+
+comment on column public.profiles.invited_at is
+  'Timestamp when a clinic user invitation was sent through create-clinic-user.';
+
+comment on column public.profiles.activated_at is
+  'Timestamp when an invited clinic user completed password activation.';
 
 drop policy if exists "clinic members can read clinic profiles" on public.profiles;
 drop policy if exists "profiles_select_same_clinic" on public.profiles;

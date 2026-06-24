@@ -17,11 +17,13 @@ describe('users service mapping', () => {
         updated_at: '2026-01-01T00:00:00.000Z',
       }),
     ).toEqual({
+      activatedAt: null,
       clinicId: 'clinic-1',
       createdAt: '2026-01-01T00:00:00.000Z',
       email: null,
       fullName: 'Charles Pérez',
       id: 'user-1',
+      invitedAt: null,
       isActive: true,
       role: 'clinic_admin',
     })
@@ -48,6 +50,9 @@ describe('users service mapping', () => {
     )
     expect(getCreateUserResponseErrorMessage('AUTH_ADMIN_PERMISSION_ERROR')).toBe(
       'No fue posible crear el acceso del nuevo usuario.',
+    )
+    expect(getCreateUserResponseErrorMessage('INVITATION_SEND_ERROR')).toBe(
+      'No pudimos enviar la invitación del nuevo usuario.',
     )
     expect(getCreateUserResponseErrorMessage('PROFILE_NOT_FOUND')).toBe(
       'No encontramos tu perfil de administrador.',

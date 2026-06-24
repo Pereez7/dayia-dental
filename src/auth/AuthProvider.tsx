@@ -10,10 +10,13 @@ import {
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient'
 import { getCurrentClinicForProfile } from '../services/clinicContext'
 import { clearStoredActiveSection } from '../utils/activeSectionStorage'
+import { isAccountActivationRoute } from '../utils/accountActivation'
+import { ActivateAccountView } from '../views/ActivateAccountView'
 import {
   getCurrentSession,
   getCurrentUserProfile,
   getPublicAuthErrorMessage,
+  sendPasswordResetEmail,
   signInWithEmail,
   signOut as signOutFromSupabase,
 } from './authService'
@@ -53,6 +56,9 @@ type LoginFieldErrors = {
   password?: string
 }
 
+const ownerEmailUpdatedMessage =
+  'Tu correo de acceso fue actualizado. Solicita una recuperación de contraseña para ingresar con tu nuevo correo.'
+
 function getProfileWithNormalizedRole(profile: AuthState['profile']) {
   if (!profile) {
     return null
@@ -87,9 +93,26 @@ function hasLoginErrors(errors: LoginFieldErrors) {
   return Boolean(errors.email || errors.password)
 }
 
+function getInitialLoginNotice() {
+  if (typeof window === 'undefined') {
+    return ''
+  }
+
+  const searchParams = new URLSearchParams(window.location.search)
+
+  if (searchParams.get('authMessage') === 'owner-email-updated') {
+    return ownerEmailUpdatedMessage
+  }
+
+  return ''
+}
+
 export function AuthProvider({ children }: AuthProviderProps) {
   const [authState, setAuthState] = useState<AuthState>(initialAuthState)
   const [hasCompletedInitialLoad, setHasCompletedInitialLoad] = useState(false)
+  const [isActivationRoute, setIsActivationRoute] = useState(() =>
+    isAccountActivationRoute(),
+  )
   const hasCompletedInitialLoadRef = useRef(false)
   const [loginError, setLoginError] = useState('')
 
@@ -214,6 +237,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
     })
     markInitialLoadComplete()
   }, [markInitialLoadComplete])
+
+  useEffect(() => {
+    function updateActivationRoute() {
+      setIsActivationRoute(isAccountActivationRoute())
+    }
+
+    window.addEventListener('popstate', updateActivationRoute)
+    window.addEventListener('hashchange', updateActivationRoute)
+
+    return () => {
+      window.removeEventListener('popstate', updateActivationRoute)
+      window.removeEventListener('hashchange', updateActivationRoute)
+    }
+  }, [])
 
   useEffect(() => {
     let isMounted = true
@@ -348,6 +385,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
     })
   }
 
+  async function handleAccountActivated() {
+    setLoginError('')
+    clearStoredActiveSection()
+
+    if (isSupabaseConfigured && supabase) {
+      await signOutFromSupabase()
+    }
+
+    window.history.replaceState(null, '', '/')
+    setIsActivationRoute(false)
+    setAuthState({
+      ...initialAuthState,
+      isLoading: false,
+    })
+    markInitialLoadComplete()
+  }
+
+  if (isActivationRoute) {
+    return <ActivateAccountView onActivated={handleAccountActivated} />
+  }
+
   if (authState.isLoading && !hasCompletedInitialLoad) {
     return <AuthStatusScreen message="Preparando tu sesión..." />
   }
@@ -417,11 +475,14 @@ function LoginScreen({
 }) {
   const [email, setEmail] = useState('')
   const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({})
+  const [formNotice, setFormNotice] = useState(getInitialLoginNotice)
   const [password, setPassword] = useState('')
+  const [isResetSubmitting, setIsResetSubmitting] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    setFormNotice('')
     const nextErrors = validateLoginForm(email, password)
     setFieldErrors(nextErrors)
 
@@ -432,6 +493,48 @@ function LoginScreen({
     setIsSubmitting(true)
     await onSignIn(email, password)
     setIsSubmitting(false)
+  }
+
+  async function handlePasswordReset() {
+    setFormNotice('')
+    const emailValue = email.trim()
+
+    if (!emailValue) {
+      setFieldErrors((currentErrors) => ({
+        ...currentErrors,
+        email: 'Ingresa tu email para recuperar la contraseña.',
+      }))
+      return
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) {
+      setFieldErrors((currentErrors) => ({
+        ...currentErrors,
+        email: 'Ingresa un email válido.',
+      }))
+      return
+    }
+
+    setIsResetSubmitting(true)
+    const { error } = await sendPasswordResetEmail(emailValue)
+    setIsResetSubmitting(false)
+
+    if (error) {
+      setFormNotice('')
+      setFieldErrors((currentErrors) => ({
+        ...currentErrors,
+        email: getPublicAuthErrorMessage(error.message),
+      }))
+      return
+    }
+
+    setFieldErrors((currentErrors) => ({
+      ...currentErrors,
+      email: undefined,
+    }))
+    setFormNotice(
+      'Si el correo existe en Supabase, recibirás un enlace para definir una nueva contraseña.',
+    )
   }
 
   return (
@@ -460,6 +563,7 @@ function LoginScreen({
               onChange={(event) => {
                 const nextEmail = event.target.value
                 setEmail(nextEmail)
+                setFormNotice('')
 
                 if (fieldErrors.email) {
                   setFieldErrors(validateLoginForm(nextEmail, password))
@@ -510,6 +614,12 @@ function LoginScreen({
             <p className="field-message field-message--error">{errorMessage}</p>
           )}
 
+          {formNotice && (
+            <p className="field-message field-message--success">
+              {formNotice}
+            </p>
+          )}
+
           {!isSupabaseConfigured && !isDemoModeEnabled && (
             <p className="field-message field-message--error">
               Configura Supabase para iniciar sesión.
@@ -522,6 +632,17 @@ function LoginScreen({
             type="submit"
           >
             {isSubmitting ? 'Ingresando...' : 'Ingresar'}
+          </button>
+
+          <button
+            className="auth-link-action"
+            disabled={!isSupabaseConfigured || isSubmitting || isResetSubmitting}
+            type="button"
+            onClick={handlePasswordReset}
+          >
+            {isResetSubmitting
+              ? 'Enviando recuperación...'
+              : '¿Olvidaste tu contraseña?'}
           </button>
         </form>
 

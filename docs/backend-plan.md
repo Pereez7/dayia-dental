@@ -98,8 +98,11 @@ Las migraciones actuales son:
 - `009_profiles_roles.sql`: normalizacion de roles de usuario y constraint para
   `super_admin`, `clinic_admin`, `doctor` y `receptionist`.
 - `010_profiles_email_and_user_management.sql`: campos publicos para usuarios
-  del consultorio, `email`, `is_active`, indices por consultorio/email y lectura
-  RLS de perfiles del mismo consultorio.
+  del consultorio, `email`, `is_active`, `invited_at`, `activated_at`, indices
+  por consultorio/email y lectura RLS de perfiles del mismo consultorio.
+- `011_memberships_plans_architecture.sql`: base multi-consultorio nueva con
+  `clinic_memberships`, `plans`, `clinic_subscriptions`, helpers SQL de rol/plan
+  y RLS inicial para esas tablas sin reemplazar todavia las policies clinicas.
 
 ## Migracion por modulos
 
@@ -167,10 +170,12 @@ El cierre de sesion real usa Supabase Auth y, si falla, muestra el mensaje
 En modo demo no se persiste una sesion real ni credenciales; el fallback vuelve
 a dejar activo el contexto demo para no bloquear el desarrollo sin `.env`.
 
-Los roles preparados para el MVP son:
+Los roles preparados para el MVP comercial son:
 
-- `super_admin`: administracion global futura.
-- `clinic_admin`: administracion del consultorio.
+- `platform_admin`: administracion interna de DayIA Dental. No representa al
+  doctor dueño y no debe aparecer como opcion en UI clinica.
+- `clinic_owner`: doctor dueño del consultorio y rol principal para Basic.
+- `clinic_admin`: administracion delegada del consultorio.
 - `doctor`: atencion clinica, pacientes, citas e historial.
 - `receptionist`: recepcion, pacientes, citas y recordatorios operativos.
 
@@ -179,32 +184,33 @@ preparar controles futuros sin ocultar modulos agresivamente todavia. Tambien
 normaliza valores historicos: `owner` y `admin` pasan a `clinic_admin`,
 `dentist` pasa a `doctor` y `reception` pasa a `receptionist`.
 
-La migracion `009_profiles_roles.sql` aplica esa normalizacion en base de datos
-y agrega un constraint para evitar nuevos roles fuera del contrato MVP. La
-migracion `010_profiles_email_and_user_management.sql` agrega `email`,
-`is_active`, indices de soporte y una policy para que un usuario autenticado
-pueda leer perfiles del mismo consultorio sin ver usuarios de otros
-consultorios. Tambien deja una nota SQL para completar manualmente el email de
-perfiles existentes si fueron creados antes de esta etapa.
+La migracion `009_profiles_roles.sql` aplica la normalizacion legacy anterior.
+La migracion `010_profiles_email_and_user_management.sql` agrega `email`,
+`is_active`, `invited_at`, `activated_at`, indices de soporte y una policy para
+que un usuario autenticado pueda leer perfiles del mismo consultorio sin ver
+usuarios de otros consultorios. La migracion
+`011_memberships_plans_architecture.sql` separa el nuevo modelo:
+`profiles` queda como identidad personal y `clinic_memberships` guarda rol,
+estado y pertenencia al consultorio. `profiles.clinic_id` y `profiles.role`
+siguen vivos como legacy para no romper el MVP actual.
 
 ## Gestión de usuarios del consultorio
 
-Configuracion incluye una seccion basica de "Usuarios del consultorio". Es
-opcional para consultorios de una sola persona: si el usuario trabaja solo, no
-necesita agregar mas usuarios.
+Configuracion incluia una seccion basica de "Usuarios del consultorio". Mientras
+se completa la nueva arquitectura de memberships, planes e invitaciones, esa
+gestion queda oculta para plan Basic y la creacion/invitacion desde la UI actual
+queda pausada.
 
-En modo real, la lista lee `profiles` filtrado por `clinic_id` del consultorio
-actual y muestra datos no secretos: nombre completo, email, rol, fecha de
-creacion y estado. El usuario conectado se marca como "Tú" para evitar
-confusion. La lectura queda protegida por RLS de mismo consultorio.
+En modo real, el flujo legacy podia leer `profiles` filtrado por `clinic_id` del
+consultorio actual y mostrar datos no secretos: nombre completo, email, rol,
+fecha de creacion y estado. Ese flujo no se elimina todavia, pero la nueva
+fuente de permisos para equipo sera `clinic_memberships` y el plan activo del
+consultorio.
 
-El frontend no crea usuarios directamente con la anon key y nunca usa
-`service_role`. El formulario solo captura nombre completo, email y rol
-operativo (`clinic_admin`, `doctor` o `receptionist`). La creacion segura queda
-preparada en la Edge Function `create-clinic-user`, que valida la sesion del
-solicitante, confirma que sea `clinic_admin` o `super_admin`, toma el
-`clinic_id` desde el perfil del solicitante, crea el usuario en Supabase Auth
-con Admin API y registra su perfil dentro del mismo consultorio.
+El frontend no debe crear usuarios directamente con la anon key y nunca usa
+`service_role`. La Function legacy `create-clinic-user` queda como referencia
+transitoria, pero el siguiente flujo real debe ser `invite-clinic-member`, usando
+`clinic_memberships`, plan activo, limites de usuarios e invitacion segura.
 
 No se guardan contrasenas en frontend, base de datos ni repositorio. Las claves
 secretas necesarias para Admin API pertenecen al entorno seguro de Supabase
@@ -213,23 +219,36 @@ el desarrollo fluido sin configurar credenciales reales.
 
 ## Creación segura de usuarios
 
-La creacion real de usuarios se hace mediante la Edge Function
-`create-clinic-user`. El frontend invoca la funcion con la sesion actual y solo
-envia `fullName`, `email` y `role`; nunca envia contrasenas, tokens ni
-`service_role`.
+La creacion/invitacion de usuarios desde la UI actual queda pausada hasta que el
+flujo nuevo use memberships, planes y limites de usuarios. En plan Basic no se
+muestra gestion de usuarios: el doctor dueño puede operar pacientes, citas,
+agenda, configuracion y recordatorios sin equipo adicional.
 
-La Edge Function usa `SUPABASE_SERVICE_ROLE_KEY` desde Supabase Secrets, valida
-el JWT del solicitante, carga su perfil, confirma que el rol sea
-`clinic_admin` o `super_admin` y obtiene el `clinic_id` desde ese perfil. Con
-ese `clinic_id` crea el usuario en Supabase Auth mediante invitacion por email
-y luego crea `profiles` con el mismo consultorio, `email`, `full_name`, `role`
-e `is_active = true`.
+La Function futura recomendada es `invite-clinic-member`. El frontend debera
+invocarla con la sesion actual y solo enviar datos de invitacion; nunca enviara
+contrasenas, tokens, `service_role`, `clinic_id` confiado ni roles de plataforma.
 
-Para que esa funcion pueda leer el perfil del solicitante y crear el perfil del
-nuevo usuario, la migracion `010_profiles_email_and_user_management.sql` otorga
-al rol `service_role` permisos `select`, `insert` y `update` sobre
-`public.profiles`. Estos permisos son solo para backend/Edge Functions y no se
-exponen al frontend.
+La Edge Function debera usar `SUPABASE_SERVICE_ROLE_KEY` desde Supabase Secrets,
+validar el JWT del solicitante, resolver la membresia activa, confirmar que el
+rol sea `clinic_owner` o `clinic_admin`, validar que el plan permita
+`can_manage_team`, respetar `max_users` y crear una membership `pending`.
+
+La invitacion redirige a `/activar-cuenta`, donde el usuario invitado define su
+contrasena con `supabase.auth.updateUser({ password })`. Esa pantalla es
+publica dentro del frontend y tiene prioridad sobre el flujo normal de Auth
+para evitar enviar al usuario al dashboard antes de terminar su contrasena. Al
+activarse, la app intenta marcar `activated_at` en el propio perfil y luego
+cierra la sesion temporal del enlace para volver al login.
+
+La URL base del frontend puede definirse con `VITE_APP_URL`, por ejemplo
+`http://localhost:5173` en desarrollo local. En Supabase Auth tambien debe
+permitirse esa URL de redireccion. En produccion, la Edge Function puede recibir
+una URL publica equivalente mediante secrets de entorno del backend si no se
+desea depender del `Origin` de la solicitud.
+
+Para que las Edge Functions puedan leer identidad y memberships, las migraciones
+otorgan al rol `service_role` permisos sobre tablas necesarias. Estos permisos
+son solo para backend/Edge Functions y no se exponen al frontend.
 
 El formulario del consultorio no permite crear `super_admin`. Los roles
 permitidos son `clinic_admin`, `doctor` y `receptionist`. Si el email ya existe,
@@ -241,9 +260,10 @@ completar el email con una actualizacion SQL puntual durante el setup, o dejar
 que la Edge Function sincronice el email del administrador solicitante cuando
 Auth lo tenga disponible. El frontend no lee `auth.users` ni usa Admin API.
 
-Esta etapa no implementa recuperacion de contrasena, edicion de usuarios,
+Esta etapa no implementa invitaciones completas, edicion de usuarios,
 desactivacion ni roles granulares por modulo. El caso de un solo doctor dueño
-sigue siendo valido y no requiere agregar usuarios.
+sigue siendo valido y no requiere agregar usuarios. Mas detalle vive en
+`docs/auth-architecture.md`.
 
 ## Migración de Pacientes
 
@@ -399,6 +419,48 @@ configuracion propia de WhatsApp por consultorio. Ningun token o secreto debe
 vivir en frontend.
 
 El siguiente paso recomendado es preparar WhatsApp API real con backend seguro.
+
+## Recuperación temporal del administrador principal
+
+Si el administrador inicial quedo con un correo inventado y no puede iniciar
+sesion ni recibir recuperacion de contrasena, existe una Edge Function temporal:
+`migrate-owner-email`.
+
+Esta funcion no crea ni borra usuarios. Usa un UID fijo de rescate
+(`87f2b938-f6ea-4564-a3f3-8e7233fc6184`) y un email destino fijo
+(`pereezcharles@gmail.com`) para actualizar ese mismo usuario de Auth mediante
+Admin API dentro de Supabase Functions. Despues actualiza `profiles.email` del
+mismo `id`. No recibe `userId` ni email desde el frontend, no cambia `role`,
+`clinic_id`, `is_active` ni datos clinicos, y no usa SQL directo sobre
+`auth.users`.
+
+Como el usuario puede no poder iniciar sesion, la funcion tambien acepta un
+header temporal `x-owner-migration-token`. Ese token debe configurarse como
+secret en Supabase Functions (`OWNER_EMAIL_MIGRATION_TOKEN`), no en frontend ni
+en el repositorio.
+
+Uso previsto:
+
+1. Crear un token temporal largo y configurarlo como secret:
+   `supabase secrets set OWNER_EMAIL_MIGRATION_TOKEN=valor-largo-temporal`.
+2. Desplegar `migrate-owner-email`.
+3. Ejecutar una sola llamada `POST` a la Function con el header
+   `x-owner-migration-token`.
+4. Verificar en Supabase Auth que el mismo UID ahora tenga
+   `pereezcharles@gmail.com`. Si el correo sigue como `charles@test.com`, la
+   Function no fue desplegada, no se ejecuto o fallo.
+5. En Login, usar "¿Olvidaste tu contraseña?" con `pereezcharles@gmail.com`.
+6. Abrir el enlace recibido y definir la nueva contrasena en `/activar-cuenta`.
+
+Supabase puede responder exito al solicitar recuperacion aunque el correo no
+exista, para evitar enumeracion de usuarios. Por eso la recuperacion solo
+llegara despues de que `migrate-owner-email` haya cambiado realmente el correo
+del usuario en Supabase Auth.
+
+Despues de completar la recuperacion, la funcion temporal debe eliminarse,
+deshabilitarse o dejar de desplegarse, y el secret temporal debe retirarse, para
+que no forme parte del flujo normal del MVP. Esta herramienta es solo para
+rescatar el primer administrador sin perder el UID vinculado al consultorio.
 
 ## WhatsApp real
 

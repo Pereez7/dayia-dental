@@ -1,0 +1,114 @@
+# Arquitectura de Auth, Consultorios, Roles y Planes
+
+DayIA Dental separa identidad personal, pertenencia a consultorios y permisos
+comerciales. Esta base permite que el MVP funcione bien para un doctor dueño
+solo y tambien prepara consultorios con equipo sin mezclar conceptos.
+
+## Roles
+
+- `platform_admin`: rol interno de DayIA Dental para soporte, clientes y planes.
+  No es un doctor dueño y no debe aparecer como opcion en la UI clinica.
+- `clinic_owner`: doctor dueño del consultorio. Es el caso principal del plan
+  Basic y tiene control completo del consultorio.
+- `clinic_admin`: administrador delegado del consultorio.
+- `doctor`: usuario clinico.
+- `receptionist`: recepcion/asistente.
+
+En UI clinica, un rol historico como `super_admin` no debe mostrarse como
+"Super administrador". Para evitar confundir plataforma con consultorio, se
+muestra como administrador del consultorio mientras se completa la migracion.
+
+## Identidad vs membresia
+
+`profiles` queda como identidad personal:
+
+- `id`
+- `full_name`
+- `email`
+- `is_platform_admin`
+- timestamps
+
+`profiles.clinic_id` y `profiles.role` se mantienen como campos legacy para no
+romper login ni policies existentes. Las nuevas funciones y futuras invitaciones
+deben usar `clinic_memberships`.
+
+`clinic_memberships` modela pertenencia a consultorios:
+
+- `clinic_id`
+- `user_id`
+- `role`
+- `status`
+- `invited_at`
+- `activated_at`
+
+Esto permite que un usuario pertenezca a mas de un consultorio en fases futuras.
+
+## Planes
+
+Los planes internos iniciales son:
+
+- `basic`: un owner, sin gestion de equipo.
+- `medium`: equipo pequeno, hasta 4 usuarios, gestion de usuarios.
+- `pro`: hasta 10 usuarios, gestion de usuarios, WhatsApp automatizado y
+  reportes avanzados futuros.
+
+`plans` guarda capacidades. `clinic_subscriptions` asigna el plan activo a cada
+consultorio.
+
+## Caso doctor dueño con Basic
+
+El doctor dueño trabaja solo:
+
+- registra pacientes;
+- agenda citas;
+- gestiona recordatorios manuales;
+- configura horarios, tratamientos y WhatsApp;
+- no ve gestion de usuarios.
+
+La UI oculta "Usuarios del consultorio" mientras el plan no permita equipo.
+
+## Caso consultorio con equipo
+
+Un consultorio con plan `medium` o `pro` podra agregar equipo. Esa invitacion
+debe pasar por una Edge Function futura que valide:
+
+- rol `clinic_owner` o `clinic_admin`;
+- plan con `can_manage_team = true`;
+- limite de usuarios;
+- membership activa;
+- que no se acepte `platform_admin` desde UI clinica;
+- que `clinic_id` no venga como dato confiable desde React.
+
+## Invitaciones
+
+La Function actual `create-clinic-user` queda como flujo transitorio. La nueva
+Function futura recomendada es `invite-clinic-member`.
+
+Reglas esperadas:
+
+- no usar `service_role` en React;
+- crear o actualizar `profiles`;
+- crear `clinic_memberships` en estado `pending`;
+- enviar invitacion segura;
+- activar membership cuando el usuario complete acceso.
+
+## Migracion temporal
+
+La migracion `011_memberships_plans_architecture.sql` crea:
+
+- `clinic_memberships`;
+- `plans`;
+- `clinic_subscriptions`;
+- funciones SQL de consulta de consultorio activo, rol, plan y permisos de
+  equipo;
+- RLS base para las tablas nuevas;
+- seed idempotente de planes.
+
+Tambien migra perfiles existentes con `profiles.clinic_id` a memberships sin
+borrar usuarios ni datos clinicos. Un `clinic_admin` legacy se convierte en
+`clinic_owner` dentro de `clinic_memberships`; `doctor` y `receptionist` se
+mantienen como roles clinicos.
+
+Las policies de pacientes, citas, configuracion y recordatorios todavia usan
+`current_clinic_id()` basado en `profiles.clinic_id`. Esa migracion completa se
+hara en un paso posterior para reducir riesgo.

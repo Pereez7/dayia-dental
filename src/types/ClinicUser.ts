@@ -1,13 +1,15 @@
 import type { UserRole } from './database'
 
-export type ClinicUserRole = Exclude<UserRole, 'super_admin'>
+export type ClinicUserRole = 'clinic_admin' | 'doctor' | 'receptionist'
 
 export interface ClinicUser {
+  activatedAt: string | null
   clinicId: string | null
   createdAt: string | null
   email: string | null
   fullName: string
   id: string
+  invitedAt: string | null
   isActive: boolean
   role: UserRole
 }

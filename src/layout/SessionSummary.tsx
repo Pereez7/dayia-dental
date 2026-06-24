@@ -5,9 +5,11 @@ import { normalizeUserRole } from '../auth/permissions'
 
 const compactRoleLabels = {
   clinic_admin: 'Administrador',
+  clinic_owner: 'Propietario',
   doctor: 'Doctor',
+  platform_admin: 'Administrador',
   receptionist: 'Recepción',
-  super_admin: 'Super administrador',
+  super_admin: 'Administrador',
 } as const
 
 export function SessionSummary() {
