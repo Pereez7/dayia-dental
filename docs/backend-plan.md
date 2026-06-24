@@ -225,6 +225,12 @@ ese `clinic_id` crea el usuario en Supabase Auth mediante invitacion por email
 y luego crea `profiles` con el mismo consultorio, `email`, `full_name`, `role`
 e `is_active = true`.
 
+Para que esa funcion pueda leer el perfil del solicitante y crear el perfil del
+nuevo usuario, la migracion `010_profiles_email_and_user_management.sql` otorga
+al rol `service_role` permisos `select`, `insert` y `update` sobre
+`public.profiles`. Estos permisos son solo para backend/Edge Functions y no se
+exponen al frontend.
+
 El formulario del consultorio no permite crear `super_admin`. Los roles
 permitidos son `clinic_admin`, `doctor` y `receptionist`. Si el email ya existe,
 si faltan datos o si el solicitante no tiene permiso, la funcion devuelve

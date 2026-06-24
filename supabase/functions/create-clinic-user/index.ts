@@ -14,6 +14,12 @@ interface PublicError {
   message: string
 }
 
+interface SupabaseClientConfig {
+  anonKey: string
+  serviceRoleKey: string
+  supabaseUrl: string
+}
+
 const allowedRoles: AllowedClinicRole[] = [
   'clinic_admin',
   'doctor',
@@ -40,7 +46,7 @@ Deno.serve(async (request) => {
   } catch (error) {
     return errorResponse(
       {
-        code: 'unexpected_error',
+        code: 'UNEXPECTED_ERROR',
         details: getDebugDetails(error instanceof Error ? error.message : undefined),
         message: 'Unexpected server error.',
       },
@@ -50,10 +56,12 @@ Deno.serve(async (request) => {
 })
 
 async function handleCreateClinicUser(request: Request) {
+  console.log('create-clinic-user version', 'profile-query-debug-v2')
+
   if (request.method !== 'POST') {
     return errorResponse(
       {
-        code: 'method_not_allowed',
+        code: 'METHOD_NOT_ALLOWED',
         message: 'Method not allowed.',
       },
       405,
@@ -61,13 +69,15 @@ async function handleCreateClinicUser(request: Request) {
   }
 
   const authHeader = request.headers.get('Authorization')
-  const token = authHeader?.replace('Bearer ', '').trim()
+  const token = authHeader?.replace(/^Bearer\s+/i, '').trim()
 
-  if (!token) {
+  console.info('create-clinic-user authorization received', Boolean(authHeader))
+
+  if (!authHeader || !token) {
     return errorResponse(
       {
-        code: 'unauthorized',
-        message: 'Missing authorization token.',
+        code: 'UNAUTHORIZED',
+        message: 'No se encontró una sesión válida.',
       },
       401,
     )
@@ -86,47 +96,116 @@ async function handleCreateClinicUser(request: Request) {
     )
   }
 
-  const adminClientResult = createAdminClient()
+  const configResult = getSupabaseClientConfig()
 
-  if ('error' in adminClientResult) {
-    return errorResponse(adminClientResult.error, 500)
+  if ('error' in configResult) {
+    return errorResponse(configResult.error, 500)
   }
 
-  const supabase = adminClientResult.supabase
-  const { data: callerData, error: callerError } =
-    await supabase.auth.getUser(token)
+  const { anonKey, serviceRoleKey, supabaseUrl } = configResult.config
+  console.log('create-clinic-user environment', {
+    hasServiceRoleKey: Boolean(serviceRoleKey),
+    supabaseHost: supabaseUrl ? new URL(supabaseUrl).host : null,
+  })
 
-  if (callerError || !callerData.user) {
+  const supabaseAdmin = createSupabaseAdminClient(supabaseUrl, serviceRoleKey)
+  const supabaseRequester = createSupabaseRequesterClient(
+    supabaseUrl,
+    anonKey,
+    authHeader,
+  )
+  const { data: requesterData, error: requesterError } =
+    await supabaseRequester.auth.getUser(token)
+
+  if (requesterError || !requesterData.user) {
     return errorResponse(
       {
-        code: 'unauthorized',
-        message: 'Invalid session.',
+        code: 'UNAUTHORIZED',
+        message: 'Tu sesión expiró. Vuelve a iniciar sesión.',
       },
       401,
     )
   }
 
-  const { data: callerProfile, error: callerProfileError } = await supabase
-    .from('profiles')
-    .select('id, clinic_id, email, role')
-    .eq('id', callerData.user.id)
-    .maybeSingle()
+  const requesterUserId = requesterData.user.id
+  console.info('create-clinic-user requester id', requesterUserId)
+  console.log('create-clinic-user project check', {
+    hasServiceRoleKey: Boolean(serviceRoleKey),
+    requesterUserId,
+    supabaseHost: new URL(supabaseUrl).host,
+  })
 
-  if (callerProfileError || !callerProfile?.clinic_id) {
+  const { data: requesterProfile, error: requesterProfileError } =
+    await supabaseAdmin
+      .from('profiles')
+      .select('id, clinic_id, email, role, is_active')
+      .eq('id', requesterUserId)
+      .maybeSingle()
+
+  console.log('create-clinic-user profile query', {
+    profileErrorCode: requesterProfileError?.code ?? null,
+    profileErrorDetails: requesterProfileError?.details ?? null,
+    profileErrorHint: requesterProfileError?.hint ?? null,
+    profileErrorMessage: requesterProfileError?.message ?? null,
+    profileFound: Boolean(requesterProfile),
+  })
+
+  console.log('create-clinic-user authorization', {
+    hasClinicId: Boolean(requesterProfile?.clinic_id),
+    profileFound: Boolean(requesterProfile),
+    requesterRole: requesterProfile?.role ?? null,
+    requesterUserId,
+  })
+
+  if (requesterProfileError) {
+    console.log('create-clinic-user profile query failure', {
+      errorCode: requesterProfileError.code ?? null,
+      errorDetails: requesterProfileError.details ?? null,
+      errorHint: requesterProfileError.hint ?? null,
+      errorMessage: requesterProfileError.message ?? null,
+      hasServiceRoleKey: Boolean(serviceRoleKey),
+      requesterUserId,
+      supabaseHost: supabaseUrl ? new URL(supabaseUrl).host : null,
+    })
+
     return errorResponse(
       {
-        code: 'forbidden',
-        message: 'Caller profile is not linked to a clinic.',
+        code: 'PROFILE_QUERY_FAILED',
+        details: getDebugDetails(requesterProfileError.message),
+        message: 'No pudimos validar el perfil del administrador.',
+      },
+      500,
+    )
+  }
+
+  if (!requesterProfile) {
+    return errorResponse(
+      {
+        code: 'PROFILE_NOT_FOUND',
+        message: 'No encontramos el perfil del usuario solicitante.',
+      },
+      404,
+    )
+  }
+
+  if (!requesterProfile.clinic_id) {
+    return errorResponse(
+      {
+        code: 'CLINIC_NOT_LINKED',
+        message: 'Tu perfil no está vinculado a un consultorio.',
       },
       403,
     )
   }
 
-  if (!['clinic_admin', 'super_admin'].includes(callerProfile.role)) {
+  if (
+    requesterProfile.is_active === false ||
+    !['clinic_admin', 'super_admin'].includes(requesterProfile.role)
+  ) {
     return errorResponse(
       {
-        code: 'forbidden',
-        message: 'Only clinic admins can create users.',
+        code: 'FORBIDDEN',
+        message: 'No tienes permiso para crear usuarios.',
       },
       403,
     )
@@ -135,27 +214,29 @@ async function handleCreateClinicUser(request: Request) {
   const email = payload.email?.trim().toLowerCase() ?? ''
   const fullName = payload.fullName?.trim() ?? ''
   const role = payload.role as AllowedClinicRole
+  const clinicId = requesterProfile.clinic_id
 
-  if (!callerProfile.email && callerData.user.email) {
-    await supabase
+  if (!requesterProfile.email && requesterData.user.email) {
+    await supabaseAdmin
       .from('profiles')
       .update({
-        email: callerData.user.email.toLowerCase(),
+        email: requesterData.user.email.toLowerCase(),
         updated_at: new Date().toISOString(),
       })
-      .eq('id', callerData.user.id)
+      .eq('id', requesterData.user.id)
   }
 
-  const { data: existingProfile, error: existingProfileError } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('email', email)
-    .maybeSingle()
+  const { data: existingProfile, error: existingProfileError } =
+    await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle()
 
   if (existingProfileError) {
     return errorResponse(
       {
-        code: 'profile_lookup_error',
+        code: 'PROFILE_LOOKUP_ERROR',
         details: getDebugDetails(existingProfileError.message),
         message: 'Could not validate email availability.',
       },
@@ -166,38 +247,50 @@ async function handleCreateClinicUser(request: Request) {
   if (existingProfile) {
     return errorResponse(
       {
-        code: 'email_exists',
+        code: 'EMAIL_ALREADY_EXISTS',
         message: 'A user with this email already exists.',
       },
       409,
     )
   }
 
-  const { data: createdUserData, error: inviteError } =
-    await supabase.auth.admin.inviteUserByEmail(email, {
-      data: {
-        clinic_id: callerProfile.clinic_id,
+  // This creates the Auth user without asking for or showing a manual password.
+  // A later phase should add the initial access flow through invite email or password recovery.
+  const { data: createdUserData, error: authAdminError } =
+    await supabaseAdmin.auth.admin.createUser({
+      email,
+      email_confirm: true,
+      user_metadata: {
         full_name: fullName,
-        role,
       },
     })
 
-  if (inviteError || !createdUserData.user) {
+  if (authAdminError || !createdUserData.user?.id) {
+    console.log('create-clinic-user auth admin failure', {
+      authErrorCode: authAdminError?.code ?? null,
+      authErrorMessage: authAdminError?.message ?? null,
+      authErrorName: authAdminError?.name ?? null,
+      authErrorStatus: authAdminError?.status ?? null,
+      requestedEmail: email,
+    })
+
     return errorResponse(
       {
-        code: getInviteErrorCode(inviteError?.message),
-        details: getDebugDetails(inviteError?.message),
-        message: 'Could not create auth user.',
+        code: getAuthAdminErrorCode(authAdminError),
+        details: getDebugDetails(authAdminError?.message),
+        message: getAuthAdminErrorMessage(getAuthAdminErrorCode(authAdminError)),
       },
-      getInviteErrorCode(inviteError?.message) === 'email_exists' ? 409 : 400,
+      getAuthAdminErrorCode(authAdminError) === 'EMAIL_ALREADY_EXISTS'
+        ? 409
+        : 400,
     )
   }
 
   const now = new Date().toISOString()
-  const { data: createdProfile, error: profileError } = await supabase
+  const { data: createdProfile, error: profileError } = await supabaseAdmin
     .from('profiles')
     .insert({
-      clinic_id: callerProfile.clinic_id,
+      clinic_id: clinicId,
       created_at: now,
       email,
       full_name: fullName,
@@ -210,10 +303,20 @@ async function handleCreateClinicUser(request: Request) {
     .single()
 
   if (profileError || !createdProfile) {
-    await supabase.auth.admin.deleteUser(createdUserData.user.id)
+    console.log('create-clinic-user profile create failure', {
+      createdAuthUserId: createdUserData.user.id,
+      profileErrorCode: profileError?.code ?? null,
+      profileErrorDetails: profileError?.details ?? null,
+      profileErrorHint: profileError?.hint ?? null,
+      profileErrorMessage: profileError?.message ?? null,
+    })
+
+    // Compensating action: remove only the Auth user created in this request
+    // so a failed profile insert does not leave an orphan login account.
+    await supabaseAdmin.auth.admin.deleteUser(createdUserData.user.id)
     return errorResponse(
       {
-        code: 'profile_create_error',
+        code: 'PROFILE_CREATE_ERROR',
         details: getDebugDetails(profileError?.message),
         message: 'Could not create clinic profile.',
       },
@@ -248,21 +351,21 @@ function validatePayload(payload: CreateClinicUserPayload) {
 
   if (!fullName || fullName.length < 3) {
     return {
-      code: 'invalid_payload',
+      code: 'INVALID_PAYLOAD',
       message: 'Full name is required.',
     }
   }
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return {
-      code: 'invalid_payload',
+      code: 'INVALID_PAYLOAD',
       message: 'Valid email is required.',
     }
   }
 
   if (!allowedRoles.includes(payload.role as AllowedClinicRole)) {
     return {
-      code: 'invalid_role',
+      code: 'INVALID_ROLE',
       message: 'Invalid role.',
     }
   }
@@ -270,43 +373,100 @@ function validatePayload(payload: CreateClinicUserPayload) {
   return null
 }
 
-function createAdminClient():
-  | { supabase: ReturnType<typeof createClient> }
+function getSupabaseClientConfig():
+  | { config: SupabaseClientConfig }
   | { error: PublicError } {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
-  if (!supabaseUrl || !serviceRoleKey) {
+  if (!supabaseUrl || !anonKey || !serviceRoleKey) {
     return {
       error: {
-        code: 'server_not_configured',
+        code: 'SERVER_CONFIGURATION_ERROR',
         message: 'Supabase admin environment is not configured.',
       },
     }
   }
 
   return {
-    supabase: createClient(supabaseUrl, serviceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }),
+    config: {
+      anonKey,
+      serviceRoleKey,
+      supabaseUrl,
+    },
   }
 }
 
-function getInviteErrorCode(message = '') {
-  const normalizedMessage = message.toLowerCase()
+function createSupabaseAdminClient(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+) {
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
+}
+
+function createSupabaseRequesterClient(
+  supabaseUrl: string,
+  anonKey: string,
+  authHeader: string,
+) {
+  return createClient(supabaseUrl, anonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+    global: {
+      headers: {
+        Authorization: authHeader,
+      },
+    },
+  })
+}
+
+function getAuthAdminErrorCode(
+  error: { code?: string; message?: string; name?: string; status?: number } | null,
+) {
+  const normalizedMessage = error?.message?.toLowerCase() ?? ''
+  const normalizedCode = error?.code?.toLowerCase() ?? ''
 
   if (
+    normalizedCode.includes('already') ||
+    normalizedCode.includes('exists') ||
     normalizedMessage.includes('already') ||
     normalizedMessage.includes('registered') ||
     normalizedMessage.includes('exists')
   ) {
-    return 'email_exists'
+    return 'EMAIL_ALREADY_EXISTS'
   }
 
-  return 'auth_admin_error'
+  if (
+    error?.status === 401 ||
+    error?.status === 403 ||
+    normalizedMessage.includes('not authorized') ||
+    normalizedMessage.includes('permission') ||
+    normalizedMessage.includes('service role')
+  ) {
+    return 'AUTH_ADMIN_PERMISSION_ERROR'
+  }
+
+  return 'AUTH_ADMIN_ERROR'
+}
+
+function getAuthAdminErrorMessage(code: string) {
+  if (code === 'EMAIL_ALREADY_EXISTS') {
+    return 'Este correo ya está registrado.'
+  }
+
+  if (code === 'AUTH_ADMIN_PERMISSION_ERROR') {
+    return 'No fue posible crear el acceso del nuevo usuario.'
+  }
+
+  return 'No pudimos crear el acceso del nuevo usuario.'
 }
 
 function getDebugDetails(details: string | undefined) {

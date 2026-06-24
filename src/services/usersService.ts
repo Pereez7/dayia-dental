@@ -205,43 +205,61 @@ export function getCreateUserResponseErrorMessage(
   code: string | undefined,
   status?: number,
 ) {
-  if (code === 'function_not_found') {
+  const normalizedCode = normalizeCreateUserErrorCode(code)
+
+  if (normalizedCode === 'FUNCTION_NOT_FOUND') {
     return 'La función de creación de usuarios no está desplegada.'
   }
 
-  if (code === 'function_unreachable') {
+  if (normalizedCode === 'FUNCTION_UNREACHABLE') {
     return 'No pudimos conectar con el servicio de creación de usuarios.'
   }
 
-  if (code === 'email_exists') {
+  if (normalizedCode === 'EMAIL_ALREADY_EXISTS') {
     return 'Este correo ya está registrado.'
   }
 
-  if (code === 'forbidden') {
+  if (normalizedCode === 'FORBIDDEN') {
     return 'No tienes permiso para crear usuarios.'
   }
 
-  if (code === 'invalid_payload') {
+  if (normalizedCode === 'PROFILE_NOT_FOUND') {
+    return 'No encontramos tu perfil de administrador.'
+  }
+
+  if (normalizedCode === 'PROFILE_QUERY_FAILED') {
+    return 'No pudimos validar el perfil del administrador.'
+  }
+
+  if (normalizedCode === 'CLINIC_NOT_LINKED') {
+    return 'Tu perfil no está vinculado a un consultorio.'
+  }
+
+  if (normalizedCode === 'INVALID_PAYLOAD') {
     return 'Revisa el nombre, email y rol antes de continuar.'
   }
 
-  if (code === 'invalid_role') {
+  if (normalizedCode === 'INVALID_ROLE') {
     return 'El rol seleccionado no es válido.'
   }
 
-  if (code === 'server_not_configured') {
+  if (normalizedCode === 'SERVER_CONFIGURATION_ERROR') {
     return 'La creación de usuarios no está configurada en el servidor.'
   }
 
-  if (code === 'unauthorized') {
+  if (normalizedCode === 'UNAUTHORIZED') {
     return 'Tu sesión expiró o no tienes permiso.'
   }
 
-  if (code === 'auth_admin_error') {
+  if (normalizedCode === 'AUTH_ADMIN_ERROR') {
     return 'No pudimos crear el usuario en Supabase Auth.'
   }
 
-  if (code === 'profile_create_error') {
+  if (normalizedCode === 'AUTH_ADMIN_PERMISSION_ERROR') {
+    return 'No fue posible crear el acceso del nuevo usuario.'
+  }
+
+  if (normalizedCode === 'PROFILE_CREATE_ERROR') {
     return 'El usuario se creó, pero no pudimos guardar su perfil del consultorio.'
   }
 
@@ -254,6 +272,32 @@ export function getCreateUserResponseErrorMessage(
   }
 
   return 'No pudimos crear el usuario del consultorio.'
+}
+
+function normalizeCreateUserErrorCode(code: string | undefined) {
+  if (!code) {
+    return undefined
+  }
+
+  const normalizedCode = code.toUpperCase()
+
+  if (normalizedCode === 'EMAIL_EXISTS') {
+    return 'EMAIL_ALREADY_EXISTS'
+  }
+
+  if (normalizedCode === 'SERVER_NOT_CONFIGURED') {
+    return 'SERVER_CONFIGURATION_ERROR'
+  }
+
+  if (normalizedCode === 'FUNCTION_NOT_FOUND') {
+    return 'FUNCTION_NOT_FOUND'
+  }
+
+  if (normalizedCode === 'FUNCTION_UNREACHABLE') {
+    return 'FUNCTION_UNREACHABLE'
+  }
+
+  return normalizedCode
 }
 
 function getCreateUserCodeFromMessage(message: string) {

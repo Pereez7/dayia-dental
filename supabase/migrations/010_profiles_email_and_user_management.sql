@@ -18,6 +18,12 @@ create index if not exists profiles_clinic_email_idx
 
 grant select on public.profiles to authenticated;
 
+grant usage on schema public to service_role;
+
+grant select, insert, update
+  on table public.profiles
+  to service_role;
+
 comment on column public.profiles.email is
   'Contact email for clinic user listings. Auth remains the credential source.';
 

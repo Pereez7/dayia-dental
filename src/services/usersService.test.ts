@@ -28,23 +28,35 @@ describe('users service mapping', () => {
   })
 
   it('maps create user error codes to public messages', () => {
-    expect(getCreateUserResponseErrorMessage('email_exists')).toBe(
+    expect(getCreateUserResponseErrorMessage('EMAIL_ALREADY_EXISTS')).toBe(
       'Este correo ya está registrado.',
     )
-    expect(getCreateUserResponseErrorMessage('forbidden')).toBe(
+    expect(getCreateUserResponseErrorMessage('FORBIDDEN')).toBe(
       'No tienes permiso para crear usuarios.',
     )
-    expect(getCreateUserResponseErrorMessage('server_not_configured')).toBe(
+    expect(getCreateUserResponseErrorMessage('SERVER_CONFIGURATION_ERROR')).toBe(
       'La creación de usuarios no está configurada en el servidor.',
     )
-    expect(getCreateUserResponseErrorMessage('invalid_role')).toBe(
+    expect(getCreateUserResponseErrorMessage('INVALID_ROLE')).toBe(
       'El rol seleccionado no es válido.',
     )
     expect(getCreateUserResponseErrorMessage('function_not_found')).toBe(
       'La función de creación de usuarios no está desplegada.',
     )
-    expect(getCreateUserResponseErrorMessage('auth_admin_error')).toBe(
+    expect(getCreateUserResponseErrorMessage('AUTH_ADMIN_ERROR')).toBe(
       'No pudimos crear el usuario en Supabase Auth.',
+    )
+    expect(getCreateUserResponseErrorMessage('AUTH_ADMIN_PERMISSION_ERROR')).toBe(
+      'No fue posible crear el acceso del nuevo usuario.',
+    )
+    expect(getCreateUserResponseErrorMessage('PROFILE_NOT_FOUND')).toBe(
+      'No encontramos tu perfil de administrador.',
+    )
+    expect(getCreateUserResponseErrorMessage('PROFILE_QUERY_FAILED')).toBe(
+      'No pudimos validar el perfil del administrador.',
+    )
+    expect(getCreateUserResponseErrorMessage('CLINIC_NOT_LINKED')).toBe(
+      'Tu perfil no está vinculado a un consultorio.',
     )
   })
 })
