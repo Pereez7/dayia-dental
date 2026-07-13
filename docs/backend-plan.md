@@ -265,6 +265,22 @@ desactivacion ni roles granulares por modulo. El caso de un solo doctor dueño
 sigue siendo valido y no requiere agregar usuarios. Mas detalle vive en
 `docs/auth-architecture.md`.
 
+## Listado de consultorios de plataforma
+
+La Edge Function `list-platform-clinics` implementa la primera lectura real de
+`Administración DayIA`. Valida el JWT y exige
+`profiles.is_platform_admin = true`; solo entonces usa `service_role` dentro de
+la Function para leer `clinics`, `clinic_subscriptions`, `plans`,
+`clinic_memberships` y los perfiles de propietarios activos.
+
+El contrato no incluye información clínica. Devuelve nombre y fecha del
+consultorio, plan y suscripción, propietario, email y cantidad de miembros
+activos. Como `clinics` todavía no tiene una columna `status`, el estado se
+expone como `unknown` sin inferirlo desde pacientes, citas u otra actividad.
+
+Esta fase es solo lectura. La creación, edición y eliminación de consultorios
+siguen pendientes y deshabilitadas; no existe `create-platform-clinic`.
+
 ## Migración de Pacientes
 
 Pacientes es el primer modulo conectado a Supabase en modo real. Despues del

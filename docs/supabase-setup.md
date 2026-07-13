@@ -40,6 +40,9 @@ Ejecuta en Supabase SQL Editor, en orden, los archivos de
 6. `006_settings_indexes.sql`
 7. `007_reminders_indexes.sql`
 8. `008_whatsapp_settings_and_delivery.sql`
+9. `009_profiles_roles.sql`
+10. `010_profiles_email_and_user_management.sql`
+11. `011_memberships_plans_architecture.sql`
 
 Si usas Supabase CLI en el futuro, puedes adaptar este flujo a `supabase db
 push`, pero esta guia asume SQL Editor para una primera prueba controlada.
@@ -83,6 +86,23 @@ Si el usuario no tiene perfil, la app debe mostrar:
 
 Si el perfil no tiene consultorio, la app debe mostrar:
 `Tu usuario no tiene consultorio asignado.`
+
+## 6. Desplegar el listado de Administración DayIA
+
+Despliega la Function de lectura administrativa:
+
+```bash
+npx supabase functions deploy list-platform-clinics
+```
+
+Supabase Functions proporciona `SUPABASE_URL`, `SUPABASE_ANON_KEY` y
+`SUPABASE_SERVICE_ROLE_KEY` en el entorno del proyecto. Esta Function no
+necesita un secret personalizado. La `service_role` permanece en backend y no
+debe copiarse a `.env` ni a variables `VITE_`.
+
+Para acceder, el usuario autenticado debe tener
+`profiles.is_platform_admin = true`. Un usuario clínico sin esa bandera recibe
+`403`, incluso si intenta invocar la Function directamente.
 
 ## Checklist de prueba
 

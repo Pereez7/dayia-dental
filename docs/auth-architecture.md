@@ -52,6 +52,19 @@ deben usar `clinic_memberships`.
 
 Esto permite que un usuario pertenezca a mas de un consultorio en fases futuras.
 
+## Acceso a Administración DayIA
+
+La administración interna usa `profiles.is_platform_admin` como autorización
+de servidor. La UI aplica `canAccessPlatformAdministration` para navegación y
+defensa de la vista, pero la decisión final vive en la Edge Function
+`list-platform-clinics`, que vuelve a validar JWT y perfil antes de usar
+`service_role`.
+
+El listado devuelve solo identidad del consultorio, plan, suscripción,
+propietario activo, cantidad de miembros activos y fecha de creación. No accede
+a módulos ni tablas clínicas. Un `clinic_owner`, `clinic_admin`, `doctor`,
+`receptionist` o rol desconocido sin la bandera de plataforma recibe `403`.
+
 ## Planes
 
 Los planes internos iniciales son:
