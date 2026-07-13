@@ -1,18 +1,21 @@
-export type PlatformClinicStatus = 'active' | 'inactive' | 'unknown'
+export type PlatformClinicStatus =
+  | 'active'
+  | 'pending_activation'
+  | 'suspended'
+  | 'unknown'
 
 export type PlatformSubscriptionStatus =
   | 'active'
-  | 'cancelled'
+  | 'canceled'
   | 'past_due'
-  | 'suspended'
-  | 'trial'
+  | 'trialing'
   | 'unknown'
 
 export interface PlatformClinicSummary {
   activeMembersCount: number
   clinicId: string
   clinicName: string
-  clinicStatus: PlatformClinicStatus
+  clinicStatus: PlatformClinicStatus | null
   createdAt: string
   ownerEmail: string | null
   ownerName: string | null

@@ -28,16 +28,16 @@ interface PlatformAdminFunctionClient {
 
 const clinicStatuses = new Set<PlatformClinicStatus>([
   'active',
-  'inactive',
+  'pending_activation',
+  'suspended',
   'unknown',
 ])
 
 const subscriptionStatuses = new Set<PlatformSubscriptionStatus>([
   'active',
-  'cancelled',
+  'canceled',
   'past_due',
-  'suspended',
-  'trial',
+  'trialing',
   'unknown',
 ])
 
@@ -96,14 +96,14 @@ export function mapPlatformClinicSummary(
       : 0,
     clinicId: clinic.clinicId,
     clinicName: clinic.clinicName.trim() || 'Consultorio sin nombre',
-    clinicStatus: clinicStatuses.has(clinic.clinicStatus)
+    clinicStatus: clinic.clinicStatus && clinicStatuses.has(clinic.clinicStatus)
       ? clinic.clinicStatus
       : 'unknown',
     createdAt: clinic.createdAt,
     ownerEmail: clinic.ownerEmail?.trim() || null,
     ownerName: clinic.ownerName?.trim() || null,
     planId: clinic.planId?.trim() || null,
-    planName: clinic.planName?.trim() || null,
+    planName: getPlatformPlanName(clinic.planId, clinic.planName),
     subscriptionStatus:
       clinic.subscriptionStatus &&
       subscriptionStatuses.has(clinic.subscriptionStatus)
@@ -112,6 +112,19 @@ export function mapPlatformClinicSummary(
           ? null
           : 'unknown',
   }
+}
+
+function getPlatformPlanName(planId: string | null, planName: string | null) {
+  const knownPlanNames: Record<string, string> = {
+    basic: 'Basic',
+    medium: 'Medium',
+    pro: 'Pro',
+  }
+  const normalizedPlanId = planId?.trim().toLowerCase()
+
+  return normalizedPlanId
+    ? knownPlanNames[normalizedPlanId] ?? planName?.trim() ?? null
+    : planName?.trim() || null
 }
 
 export function getPlatformAdminErrorMessage(error: unknown) {

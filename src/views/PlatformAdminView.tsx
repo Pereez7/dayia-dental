@@ -6,10 +6,12 @@ import {
   type PlatformAdminServiceResult,
 } from '../services/platformAdminService'
 import type {
-  PlatformClinicStatus,
   PlatformClinicSummary,
-  PlatformSubscriptionStatus,
 } from '../types/platform'
+import {
+  getPlatformClinicStatusLabel,
+  getPlatformSubscriptionStatusLabel,
+} from '../utils/platformStatusLabels'
 
 interface PlatformAdminViewProps {
   canAccessPlatformAdmin: boolean
@@ -21,21 +23,6 @@ interface PlatformClinicsContentProps {
   errorMessage: string
   isLoading: boolean
   onRetry?: () => void
-}
-
-const clinicStatusLabels: Record<PlatformClinicStatus, string> = {
-  active: 'Activo',
-  inactive: 'Inactivo',
-  unknown: 'Sin estado',
-}
-
-const subscriptionStatusLabels: Record<PlatformSubscriptionStatus, string> = {
-  active: 'Activa',
-  cancelled: 'Cancelada',
-  past_due: 'Pago pendiente',
-  suspended: 'Suspendida',
-  trial: 'Prueba',
-  unknown: 'Sin estado',
 }
 
 export function PlatformAdminView({
@@ -180,22 +167,28 @@ export function PlatformClinicsContent({
               <td data-label="Consultorio">
                 <strong>{clinic.clinicName}</strong>
                 <span
-                  className={`platform-status platform-status--${clinic.clinicStatus}`}
+                  className={`platform-status platform-status--${clinic.clinicStatus ?? 'unknown'}`}
                 >
-                  {clinicStatusLabels[clinic.clinicStatus]}
+                  {getPlatformClinicStatusLabel(clinic.clinicStatus)}
                 </span>
               </td>
               <td data-label="Plan">
                 <strong>{clinic.planName ?? 'Sin plan'}</strong>
                 <span>
-                  {clinic.subscriptionStatus
-                    ? subscriptionStatusLabels[clinic.subscriptionStatus]
-                    : 'Sin suscripción'}
+                  {getPlatformSubscriptionStatusLabel(
+                    clinic.subscriptionStatus,
+                  )}
                 </span>
               </td>
               <td data-label="Propietario">
-                <strong>{clinic.ownerName ?? 'Sin propietario asignado'}</strong>
-                <span>{clinic.ownerEmail ?? 'Sin email registrado'}</span>
+                {clinic.ownerName || clinic.ownerEmail ? (
+                  <>
+                    <strong>{clinic.ownerName ?? 'Propietario sin nombre'}</strong>
+                    <span>{clinic.ownerEmail ?? 'Sin email registrado'}</span>
+                  </>
+                ) : (
+                  <strong>Sin propietario</strong>
+                )}
               </td>
               <td data-label="Miembros">
                 <strong>{clinic.activeMembersCount}</strong>

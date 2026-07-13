@@ -1,5 +1,11 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+import {
+  normalizeSubscriptionStatus,
+  resolveClinicStatus,
+  selectPrimaryOwner,
+} from '../_shared/platformAdmin.ts'
+
 interface PublicError {
   code: string
   message: string
@@ -113,7 +119,7 @@ async function handleListPlatformClinics(request: Request) {
 
   const { data: clinics, error: clinicsError } = await adminClient
     .from('clinics')
-    .select('id, name, created_at')
+    .select('id, name, status, created_at')
     .order('created_at', { ascending: false })
 
   if (clinicsError) {
@@ -133,10 +139,11 @@ async function handleListPlatformClinics(request: Request) {
         .in('clinic_id', clinicIds),
       adminClient
         .from('clinic_memberships')
-        .select('clinic_id, user_id, role, status, created_at')
+        .select('clinic_id, user_id, role, status, activated_at, created_at')
         .in('clinic_id', clinicIds)
         .eq('status', 'active')
-        .order('created_at', { ascending: true }),
+        .order('activated_at', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false }),
       adminClient.from('plans').select('id, name'),
     ])
 
@@ -184,6 +191,24 @@ async function handleListPlatformClinics(request: Request) {
   const ownerProfilesById = new Map(
     ownerProfiles.map((profile) => [profile.id, profile]),
   )
+  const activeMembersCountByClinic = new Map<string, number>()
+  const ownerMembershipsByClinic = new Map<
+    string,
+    typeof ownerMemberships
+  >()
+
+  for (const membership of activeMemberships) {
+    activeMembersCountByClinic.set(
+      membership.clinic_id,
+      (activeMembersCountByClinic.get(membership.clinic_id) ?? 0) + 1,
+    )
+  }
+
+  for (const membership of ownerMemberships) {
+    const clinicOwners = ownerMembershipsByClinic.get(membership.clinic_id) ?? []
+    clinicOwners.push(membership)
+    ownerMembershipsByClinic.set(membership.clinic_id, clinicOwners)
+  }
 
   return jsonResponse({
     clinics: clinics.map((clinic) => {
@@ -191,27 +216,25 @@ async function handleListPlatformClinics(request: Request) {
       const plan = subscription
         ? plansById.get(subscription.plan_id)
         : undefined
-      const ownerMembership = ownerMemberships.find(
-        (membership) => membership.clinic_id === clinic.id,
+      const primaryOwner = selectPrimaryOwner(
+        ownerMembershipsByClinic.get(clinic.id) ?? [],
+        ownerProfilesById,
       )
-      const ownerProfile = ownerMembership
-        ? ownerProfilesById.get(ownerMembership.user_id)
-        : undefined
 
       return {
-        activeMembersCount: activeMemberships.filter(
-          (membership) => membership.clinic_id === clinic.id,
-        ).length,
+        activeMembersCount: activeMembersCountByClinic.get(clinic.id) ?? 0,
         clinicId: clinic.id,
         clinicName: clinic.name,
-        // The current schema has no clinics.status column.
-        clinicStatus: 'unknown',
+        clinicStatus: resolveClinicStatus(
+          clinic.status,
+          subscription?.status,
+        ),
         createdAt: clinic.created_at,
-        ownerEmail: ownerProfile?.email ?? null,
-        ownerName: ownerProfile?.full_name ?? null,
+        ownerEmail: primaryOwner?.email ?? null,
+        ownerName: primaryOwner?.fullName ?? null,
         planId: subscription?.plan_id ?? null,
         planName: plan?.name ?? null,
-        subscriptionStatus: subscription?.status ?? null,
+        subscriptionStatus: normalizeSubscriptionStatus(subscription?.status),
       }
     }),
   })
