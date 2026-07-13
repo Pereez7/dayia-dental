@@ -14,6 +14,15 @@ solo y tambien prepara consultorios con equipo sin mezclar conceptos.
 - `doctor`: usuario clinico.
 - `receptionist`: recepcion/asistente.
 
+La normalizacion de roles usa denegacion por defecto. `clinic_owner` solo se
+asigna cuando el perfil contiene ese rol de forma explicita o cuando un valor
+legacy controlado contiene `owner`. `admin` se convierte en `clinic_admin`.
+Valores nulos, vacios, desconocidos o mal escritos se normalizan como
+`unknown`, no reciben permisos y bloquean el acceso con un mensaje controlado.
+`super_admin` solo se convierte en `platform_admin` cuando Auth o un adaptador
+de perfiles habilita explicitamente el contexto legacy; fuera de ese contexto
+tambien se trata como `unknown`.
+
 En UI clinica, un rol historico como `super_admin` no debe mostrarse como
 "Super administrador". Para evitar confundir plataforma con consultorio, se
 muestra como administrador del consultorio mientras se completa la migracion.
