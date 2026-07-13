@@ -14,7 +14,7 @@ La Edge Function valida el JWT, obtiene el usuario actual y comprueba
 `profiles.is_platform_admin` antes de realizar cualquier lectura privilegiada.
 Después consulta únicamente:
 
-- `clinics` para identidad y fecha de alta;
+- `clinics` para identidad, estado administrativo y fecha de alta;
 - `clinic_subscriptions` y `plans` para plan y estado comercial;
 - `clinic_memberships` para contar miembros activos y ubicar al
   `clinic_owner` activo;
@@ -25,9 +25,58 @@ resumen administrativo definido por `PlatformClinicSummary`. No consulta ni
 devuelve pacientes, citas, historiales, odontogramas, recordatorios,
 configuración clínica o WhatsApp.
 
-El esquema actual no contiene `clinics.status`. Por esa razón
-`clinicStatus` se devuelve como `unknown` y la interfaz muestra `Sin estado`.
-No se infiere estado clínico a partir de actividad o datos asistenciales.
+Los campos visibles son: consultorio, estado administrativo, plan, estado de
+suscripción, propietario, email del propietario, miembros activos y fecha de
+creación. La migración `012_clinics_status.sql` agrega `clinics.status` como
+campo nullable sin modificar filas existentes.
+
+Si `clinics.status` es null o vacío, la Function usa `active` cuando la
+suscripción está activa y `pending_activation` en los demás casos. Un valor no
+vacío fuera del contrato se devuelve como `unknown` y la UI muestra
+`Estado no definido`. No se infiere estado desde actividad o datos clínicos.
+
+El propietario principal siempre sale de una membresía `clinic_owner` activa.
+Si hay varios owners activos, se prioriza un perfil con email no temporal;
+después se ordena por `activated_at DESC NULLS LAST`, `created_at DESC` y
+`user_id` como desempate estable. Si no hay owner activo, nombre y email son
+null y la UI muestra `Sin propietario`.
+
+## Auditoría manual de owners
+
+Los owners duplicados son una inconsistencia de datos y deben revisarse
+manualmente antes de producción. El listado no modifica membresías ni perfiles.
+
+Consulta para detectar clínicas con más de un owner activo:
+
+```sql
+select
+  m.clinic_id,
+  c.name as clinic_name,
+  count(*) filter (where m.role = 'clinic_owner' and m.status = 'active') as active_owners
+from public.clinic_memberships m
+join public.clinics c on c.id = m.clinic_id
+group by m.clinic_id, c.name
+having count(*) filter (where m.role = 'clinic_owner' and m.status = 'active') > 1;
+```
+
+Consulta para revisar los owners del consultorio demo:
+
+```sql
+select
+  c.name as clinic_name,
+  p.full_name,
+  p.email,
+  m.role,
+  m.status,
+  m.activated_at,
+  m.created_at
+from public.clinic_memberships m
+join public.profiles p on p.id = m.user_id
+join public.clinics c on c.id = m.clinic_id
+where c.name = 'DayIA Dental Demo'
+  and m.role = 'clinic_owner'
+order by m.activated_at desc nulls last, m.created_at desc;
+```
 
 ## Defensa de acceso
 
@@ -49,5 +98,6 @@ La Function requiere las variables estándar del entorno de Supabase Functions:
 secret personalizado ni una clave nueva en React.
 
 ```bash
+npx supabase db push
 npx supabase functions deploy list-platform-clinics
 ```

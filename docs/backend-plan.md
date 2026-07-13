@@ -273,10 +273,12 @@ La Edge Function `list-platform-clinics` implementa la primera lectura real de
 la Function para leer `clinics`, `clinic_subscriptions`, `plans`,
 `clinic_memberships` y los perfiles de propietarios activos.
 
-El contrato no incluye información clínica. Devuelve nombre y fecha del
+El contrato no incluye información clínica. Devuelve nombre, estado y fecha del
 consultorio, plan y suscripción, propietario, email y cantidad de miembros
-activos. Como `clinics` todavía no tiene una columna `status`, el estado se
-expone como `unknown` sin inferirlo desde pacientes, citas u otra actividad.
+activos. La migración `012_clinics_status.sql` agrega el estado administrativo
+nullable. Las filas legacy usan suscripción activa como fallback a `active` y
+en otro caso quedan `pending_activation`, sin inferir nada desde pacientes,
+citas u otra actividad.
 
 Esta fase es solo lectura. La creación, edición y eliminación de consultorios
 siguen pendientes y deshabilitadas; no existe `create-platform-clinic`.

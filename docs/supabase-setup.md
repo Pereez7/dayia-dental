@@ -43,6 +43,7 @@ Ejecuta en Supabase SQL Editor, en orden, los archivos de
 9. `009_profiles_roles.sql`
 10. `010_profiles_email_and_user_management.sql`
 11. `011_memberships_plans_architecture.sql`
+12. `012_clinics_status.sql`
 
 Si usas Supabase CLI en el futuro, puedes adaptar este flujo a `supabase db
 push`, pero esta guia asume SQL Editor para una primera prueba controlada.
@@ -89,9 +90,11 @@ Si el perfil no tiene consultorio, la app debe mostrar:
 
 ## 6. Desplegar el listado de Administración DayIA
 
-Despliega la Function de lectura administrativa:
+Aplica primero la migración `012_clinics_status.sql` y despliega la Function de
+lectura administrativa:
 
 ```bash
+npx supabase db push
 npx supabase functions deploy list-platform-clinics
 ```
 
