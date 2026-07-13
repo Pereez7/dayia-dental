@@ -69,7 +69,9 @@ export function ClinicOnboardingForm() {
             habilitar una cuenta.
           </p>
         </div>
-        <span className="validation-mode-badge">Modo de validación</span>
+        <span className="validation-mode-badge">
+          Modo de validación: la creación real está deshabilitada.
+        </span>
       </div>
 
       <form className="clinic-onboarding-form" noValidate onSubmit={handleSubmit}>

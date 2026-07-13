@@ -1,9 +1,1 @@
-import { ClinicOnboardingForm } from '../components/ClinicOnboardingForm'
-
-export function AdministrationView() {
-  return (
-    <div className="administration-view">
-      <ClinicOnboardingForm />
-    </div>
-  )
-}
+export { PlatformAdminView as AdministrationView } from './PlatformAdminView'

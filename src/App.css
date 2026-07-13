@@ -3047,7 +3047,9 @@
 }
 
 .administration-view {
-  width: min(100%, 900px);
+  display: grid;
+  gap: 20px;
+  width: min(100%, 1120px);
 }
 
 .administration-panel {
@@ -3191,6 +3193,231 @@
 .clinic-onboarding-result {
   max-width: 62ch;
   margin-top: 5px;
+}
+
+.platform-admin-access-denied {
+  display: grid;
+  gap: 8px;
+  width: min(100%, 620px);
+  border: 1px solid #f1c7d2;
+  border-radius: var(--radius-lg);
+  background: #fffafb;
+  padding: 22px;
+}
+
+.platform-admin-access-denied h2,
+.platform-admin-access-denied p,
+.platform-clinics-feedback p {
+  margin: 0;
+}
+
+.platform-admin-access-denied p,
+.platform-clinics-feedback p {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.platform-clinics-panel {
+  min-width: 0;
+}
+
+.platform-clinics-table-wrap {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.platform-clinics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  text-align: left;
+}
+
+.platform-clinics-table th {
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  padding: 0 12px 11px;
+}
+
+.platform-clinics-table td {
+  min-width: 116px;
+  border-bottom: 1px solid rgba(217, 232, 239, 0.72);
+  padding: 14px 12px;
+  vertical-align: top;
+}
+
+.platform-clinics-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.platform-clinics-table td:first-child,
+.platform-clinics-table td:nth-child(3) {
+  min-width: 190px;
+}
+
+.platform-clinics-table td strong,
+.platform-clinics-table td span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.platform-clinics-table td strong {
+  color: var(--color-heading);
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.platform-clinics-table td > span:not(.platform-status) {
+  margin-top: 4px;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+}
+
+.platform-status {
+  width: fit-content;
+  margin-top: 7px;
+  border-radius: 999px;
+  background: #edf2f5;
+  color: #52606d;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 5px 7px;
+}
+
+.platform-status--active {
+  background: var(--color-soft-green);
+  color: var(--color-success);
+}
+
+.platform-status--inactive {
+  background: #fff4e5;
+  color: #9a5b13;
+}
+
+.platform-clinics-feedback {
+  display: grid;
+  justify-items: start;
+  gap: 7px;
+  border-radius: var(--radius-md);
+  background: #f6fafc;
+  padding: 18px;
+}
+
+.platform-clinics-feedback strong {
+  color: var(--color-heading);
+}
+
+.platform-clinics-feedback .secondary-action {
+  margin-top: 5px;
+}
+
+.platform-clinics-loading {
+  display: grid;
+  gap: 1px;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--color-border);
+}
+
+.platform-clinic-skeleton {
+  display: grid;
+  grid-template-columns: 1.2fr 0.7fr 1fr 0.45fr;
+  gap: 18px;
+  min-height: 65px;
+  align-items: center;
+  background: var(--color-surface);
+  padding: 14px 12px;
+}
+
+.platform-clinic-skeleton span {
+  display: block;
+  height: 12px;
+  border-radius: 4px;
+  background: #e7eff3;
+  animation: platform-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes platform-skeleton-pulse {
+  50% {
+    background: #f2f6f8;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .platform-clinic-skeleton span {
+    animation: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .platform-clinics-table-wrap {
+    overflow: visible;
+  }
+
+  .platform-clinics-table,
+  .platform-clinics-table tbody,
+  .platform-clinics-table tr,
+  .platform-clinics-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .platform-clinics-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .platform-clinics-table tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border-bottom: 1px solid var(--color-border);
+    padding: 10px 0;
+  }
+
+  .platform-clinics-table tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .platform-clinics-table td,
+  .platform-clinics-table td:first-child,
+  .platform-clinics-table td:nth-child(3) {
+    min-width: 0;
+    border: 0;
+    padding: 9px 10px;
+  }
+
+  .platform-clinics-table td::before {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--color-text-muted);
+    content: attr(data-label);
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+
+  .platform-clinics-table td:first-child,
+  .platform-clinics-table td:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+
+  .platform-clinic-skeleton {
+    grid-template-columns: 1fr 0.65fr;
+  }
+
+  .platform-clinic-skeleton span:nth-child(3),
+  .platform-clinic-skeleton span:nth-child(4) {
+    display: none;
+  }
 }
 
 .whatsapp-connection-status {

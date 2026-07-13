@@ -105,7 +105,7 @@ import {
   canManageTeam as canManageTeamWithPlan,
   getPlanFeatures,
 } from './utils/planFeatures'
-import { AdministrationView } from './views/AdministrationView'
+import { PlatformAdminView } from './views/PlatformAdminView'
 import { AppointmentsView } from './views/AppointmentsView'
 import { ClinicalHistoryView } from './views/ClinicalHistoryView'
 import { DashboardView } from './views/DashboardView'
@@ -1505,7 +1505,11 @@ function App() {
     }
 
     if (effectiveActiveSection === 'administration') {
-      return <AdministrationView />
+      return (
+        <PlatformAdminView
+          canAccessPlatformAdmin={canAccessAdministration}
+        />
+      )
     }
 
     if (effectiveActiveSection === 'settings') {
