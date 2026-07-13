@@ -24,7 +24,7 @@ const clinicUserRoleLabels: Record<UserRole, string> = {
   doctor: 'Doctor',
   platform_admin: 'Administrador del consultorio',
   receptionist: 'Recepción',
-  super_admin: 'Administrador del consultorio',
+  unknown: 'Rol no válido',
 }
 
 const allowedClinicUserRoles = clinicUserRoleOptions.map(
@@ -32,7 +32,9 @@ const allowedClinicUserRoles = clinicUserRoleOptions.map(
 )
 
 export function getClinicUserRoleLabel(role: string | null | undefined) {
-  const normalizedRole = normalizeUserRole(role)
+  const normalizedRole = normalizeUserRole(role, {
+    allowLegacyPlatformAdmin: true,
+  })
 
   return clinicUserRoleLabels[normalizedRole] ?? getVisibleClinicRoleLabel(role)
 }

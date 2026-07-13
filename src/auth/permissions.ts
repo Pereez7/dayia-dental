@@ -1,16 +1,24 @@
-import type { UserProfile, UserRole } from '../types/database'
+import type {
+  KnownUserRole,
+  LegacyUserRole,
+  UserProfile,
+  UserRole,
+} from '../types/database'
 
-const legacyRoleMap: Record<string, UserRole> = {
+const knownUserRoles = new Set<KnownUserRole>([
+  'clinic_admin',
+  'clinic_owner',
+  'doctor',
+  'platform_admin',
+  'receptionist',
+])
+
+const legacyClinicRoleMap: Record<
+  Exclude<LegacyUserRole, 'super_admin'>,
+  KnownUserRole
+> = {
   admin: 'clinic_admin',
-  clinic_admin: 'clinic_admin',
-  clinic_owner: 'clinic_owner',
-  dentist: 'doctor',
-  doctor: 'doctor',
   owner: 'clinic_owner',
-  platform_admin: 'platform_admin',
-  reception: 'receptionist',
-  receptionist: 'receptionist',
-  super_admin: 'platform_admin',
 }
 
 const roleLabels: Record<UserRole, string> = {
@@ -19,15 +27,41 @@ const roleLabels: Record<UserRole, string> = {
   doctor: 'Doctor',
   platform_admin: 'Administrador del consultorio',
   receptionist: 'Recepcionista',
-  super_admin: 'Administrador del consultorio',
+  unknown: 'Rol no válido',
 }
 
-export function normalizeUserRole(role: string | null | undefined): UserRole {
-  if (!role) {
-    return 'clinic_owner'
+interface NormalizeUserRoleOptions {
+  allowLegacyPlatformAdmin?: boolean
+}
+
+export function isKnownUserRole(
+  role: string | null | undefined,
+): role is KnownUserRole {
+  return Boolean(role && knownUserRoles.has(role as KnownUserRole))
+}
+
+export function normalizeUserRole(
+  role: string | null | undefined,
+  options: NormalizeUserRoleOptions = {},
+): UserRole {
+  const normalizedRole = role?.trim()
+
+  if (isKnownUserRole(normalizedRole)) {
+    return normalizedRole
   }
 
-  return legacyRoleMap[role] ?? 'clinic_owner'
+  if (normalizedRole === 'owner' || normalizedRole === 'admin') {
+    return legacyClinicRoleMap[normalizedRole]
+  }
+
+  if (
+    normalizedRole === 'super_admin' &&
+    options.allowLegacyPlatformAdmin === true
+  ) {
+    return 'platform_admin'
+  }
+
+  return 'unknown'
 }
 
 export function getUserRoleLabel(role: string | null | undefined) {

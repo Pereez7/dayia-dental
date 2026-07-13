@@ -6,13 +6,18 @@ export type Json =
   | Json[]
   | { [key: string]: Json | undefined }
 
-export type UserRole =
+export type KnownUserRole =
   | 'clinic_owner'
   | 'clinic_admin'
   | 'doctor'
   | 'platform_admin'
   | 'receptionist'
-  | 'super_admin'
+
+export type UnknownRole = 'unknown'
+
+export type UserRole = KnownUserRole | UnknownRole
+
+export type LegacyUserRole = 'admin' | 'owner' | 'super_admin'
 
 export type AppointmentRecordStatus =
   | 'cancelled'
@@ -108,7 +113,7 @@ export interface UserProfile {
   invited_at?: string | null
   is_platform_admin?: boolean | null
   is_active?: boolean | null
-  role: UserRole | null
+  role: string | null
   updated_at: string
 }
 

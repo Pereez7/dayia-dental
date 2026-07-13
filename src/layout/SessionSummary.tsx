@@ -5,15 +5,16 @@ import {
   canAccessPlatformAdministration,
   normalizeUserRole,
 } from '../auth/permissions'
+import type { UserRole } from '../types/database'
 
-const compactRoleLabels = {
+const compactRoleLabels: Record<UserRole, string> = {
   clinic_admin: 'Administrador',
   clinic_owner: 'Propietario',
   doctor: 'Doctor',
   platform_admin: 'Administrador',
   receptionist: 'Recepción',
-  super_admin: 'Administrador',
-} as const
+  unknown: 'Rol no válido',
+}
 
 export function SessionSummary() {
   const {
@@ -34,13 +35,12 @@ export function SessionSummary() {
       (!currentClinic && !isPlatformAdministration))
   const userName =
     profile?.full_name?.trim() || (isDemoMode ? 'Usuario demo' : 'Usuario')
+  const normalizedRole = normalizeUserRole(profile?.role)
   const roleLabel = isPlatformAdministration
     ? 'Administrador DayIA'
     : isDemoMode
     ? 'Modo demo'
-    : profile?.role
-      ? compactRoleLabels[normalizeUserRole(profile.role)]
-      : 'Rol no definido'
+    : compactRoleLabels[normalizedRole]
   const clinicName = isPlatformAdministration
     ? 'Plataforma DayIA'
     : currentClinic?.name || 'Consultorio'

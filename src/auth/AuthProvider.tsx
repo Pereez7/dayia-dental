@@ -69,7 +69,9 @@ function getProfileWithNormalizedRole(profile: AuthState['profile']) {
 
   return {
     ...profile,
-    role: normalizeUserRole(profile.role),
+    role: normalizeUserRole(profile.role, {
+      allowLegacyPlatformAdmin: true,
+    }),
   }
 }
 
@@ -194,6 +196,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (canAccessPlatformAdministration(normalizedProfile)) {
       setAuthState({
         authError: '',
+        currentClinic: null,
+        isDemoMode: false,
+        isLoading: false,
+        isSessionContextLoading: false,
+        profile: normalizedProfile,
+        session,
+        user: session.user,
+      })
+      markInitialLoadComplete()
+      return
+    }
+
+    if (normalizedProfile?.role === 'unknown') {
+      setAuthState({
+        authError:
+          'Tu perfil no tiene un rol válido. Contacta al administrador.',
         currentClinic: null,
         isDemoMode: false,
         isLoading: false,

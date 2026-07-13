@@ -1,3 +1,5 @@
+import { normalizeUserRole } from '../auth/permissions'
+
 export type ClinicRole =
   | 'clinic_admin'
   | 'clinic_owner'
@@ -94,21 +96,29 @@ export function isWithinUserLimit(currentUsers: number, plan: PlanFeatures) {
 export function getVisibleClinicRoleLabel(
   role: ClinicRole | string | null | undefined,
 ) {
-  if (role === 'clinic_owner' || role === 'owner') {
+  const normalizedRole = normalizeUserRole(role, {
+    allowLegacyPlatformAdmin: true,
+  })
+
+  if (normalizedRole === 'clinic_owner') {
     return clinicRoleLabels.clinic_owner
   }
 
-  if (role === 'doctor') {
+  if (normalizedRole === 'doctor') {
     return clinicRoleLabels.doctor
   }
 
-  if (role === 'receptionist' || role === 'reception') {
+  if (normalizedRole === 'receptionist') {
     return clinicRoleLabels.receptionist
   }
 
-  if (role === 'platform_admin' || role === 'super_admin') {
+  if (normalizedRole === 'platform_admin') {
     return clinicRoleLabels.clinic_admin
   }
 
-  return clinicRoleLabels.clinic_admin
+  if (normalizedRole === 'clinic_admin') {
+    return clinicRoleLabels.clinic_admin
+  }
+
+  return 'Rol no válido'
 }
