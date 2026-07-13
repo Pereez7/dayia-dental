@@ -23,7 +23,10 @@ import {
 import { AuthContext } from './AuthContext'
 import type { AuthState } from './authTypes'
 import { demoClinic, demoProfile } from './demoAuth'
-import { normalizeUserRole } from './permissions'
+import {
+  canAccessPlatformAdministration,
+  normalizeUserRole,
+} from './permissions'
 
 interface AuthProviderProps {
   children: ReactNode
@@ -187,6 +190,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     const normalizedProfile = getProfileWithNormalizedRole(profile)
+
+    if (canAccessPlatformAdministration(normalizedProfile)) {
+      setAuthState({
+        authError: '',
+        currentClinic: null,
+        isDemoMode: false,
+        isLoading: false,
+        isSessionContextLoading: false,
+        profile: normalizedProfile,
+        session,
+        user: session.user,
+      })
+      markInitialLoadComplete()
+      return
+    }
 
     if (!normalizedProfile?.clinic_id) {
       setAuthState({

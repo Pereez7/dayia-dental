@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  canAccessPlatformAdministration,
   canManageClinicSettings,
   canManageUsers,
   canManageWhatsapp,
@@ -10,6 +11,27 @@ import {
 } from './permissions'
 
 describe('auth permissions', () => {
+  it('limits DayIA administration to platform administrators', () => {
+    expect(
+      canAccessPlatformAdministration({
+        is_platform_admin: true,
+        role: 'clinic_owner',
+      }),
+    ).toBe(true)
+    expect(
+      canAccessPlatformAdministration({
+        is_platform_admin: false,
+        role: 'platform_admin',
+      }),
+    ).toBe(true)
+    expect(
+      canAccessPlatformAdministration({
+        is_platform_admin: false,
+        role: 'clinic_admin',
+      }),
+    ).toBe(false)
+  })
+
   it('normalizes legacy roles to the current MVP roles', () => {
     expect(normalizeUserRole('owner')).toBe('clinic_owner')
     expect(normalizeUserRole('admin')).toBe('clinic_admin')

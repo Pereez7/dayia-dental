@@ -1,4 +1,4 @@
-import type { UserRole } from '../types/database'
+import type { UserProfile, UserRole } from '../types/database'
 
 const legacyRoleMap: Record<string, UserRole> = {
   admin: 'clinic_admin',
@@ -75,5 +75,14 @@ export function canManagePatients(role: string | null | undefined) {
 export function canViewClinicalRecords(role: string | null | undefined) {
   return ['clinic_owner', 'clinic_admin', 'doctor', 'platform_admin'].includes(
     normalizeUserRole(role),
+  )
+}
+
+export function canAccessPlatformAdministration(
+  profile: Pick<UserProfile, 'is_platform_admin' | 'role'> | null | undefined,
+) {
+  return Boolean(
+    profile?.is_platform_admin ||
+      normalizeUserRole(profile?.role) === 'platform_admin',
   )
 }

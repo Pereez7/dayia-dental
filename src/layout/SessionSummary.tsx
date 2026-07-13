@@ -1,7 +1,10 @@
 import { useState } from 'react'
 
 import { useAuth } from '../auth/AuthContext'
-import { normalizeUserRole } from '../auth/permissions'
+import {
+  canAccessPlatformAdministration,
+  normalizeUserRole,
+} from '../auth/permissions'
 
 const compactRoleLabels = {
   clinic_admin: 'Administrador',
@@ -21,17 +24,26 @@ export function SessionSummary() {
     signOut,
   } = useAuth()
   const [isSigningOut, setIsSigningOut] = useState(false)
+  const isPlatformAdministration =
+    canAccessPlatformAdministration(profile)
 
   const isRealSessionLoading =
-    !isDemoMode && (isSessionContextLoading || !profile || !currentClinic)
+    !isDemoMode &&
+    (isSessionContextLoading ||
+      !profile ||
+      (!currentClinic && !isPlatformAdministration))
   const userName =
     profile?.full_name?.trim() || (isDemoMode ? 'Usuario demo' : 'Usuario')
-  const roleLabel = isDemoMode
+  const roleLabel = isPlatformAdministration
+    ? 'Administrador DayIA'
+    : isDemoMode
     ? 'Modo demo'
     : profile?.role
       ? compactRoleLabels[normalizeUserRole(profile.role)]
       : 'Rol no definido'
-  const clinicName = currentClinic?.name || 'Consultorio'
+  const clinicName = isPlatformAdministration
+    ? 'Plataforma DayIA'
+    : currentClinic?.name || 'Consultorio'
 
   async function handleSignOut() {
     setIsSigningOut(true)

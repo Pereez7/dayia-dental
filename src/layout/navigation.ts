@@ -8,6 +8,7 @@ export type AppSection =
   | 'clinical-history'
   | 'odontogram'
   | 'whatsapp-reminders'
+  | 'administration'
   | 'settings'
 
 export interface NavigationItem {
@@ -24,6 +25,11 @@ export const navigationItems: NavigationItem[] = [
   { id: 'whatsapp-reminders', label: 'Recordatorios' },
   { id: 'settings', label: 'Configuracion' },
 ]
+
+export const administrationNavigationItem: NavigationItem = {
+  id: 'administration',
+  label: 'Administracion DayIA',
+}
 
 export const quickActions: NavigationItem[] = [
   { id: 'patient-new', label: '+ Paciente' },

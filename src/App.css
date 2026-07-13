@@ -3046,6 +3046,153 @@
   padding: 9px 13px;
 }
 
+.administration-view {
+  width: min(100%, 900px);
+}
+
+.administration-panel {
+  display: grid;
+  gap: 22px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  padding: clamp(18px, 3vw, 24px);
+}
+
+.administration-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(217, 232, 239, 0.82);
+}
+
+.administration-panel-header h2 {
+  font-size: 1.18rem;
+}
+
+.administration-panel-header p {
+  max-width: 62ch;
+  margin: 7px 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.validation-mode-badge {
+  flex: 0 0 auto;
+  border: 1px solid #b9ddec;
+  border-radius: 999px;
+  background: var(--color-soft-blue);
+  color: var(--color-primary-dark);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1;
+  padding: 7px 10px;
+  white-space: nowrap;
+}
+
+.clinic-onboarding-form {
+  display: grid;
+  gap: 20px;
+  width: min(100%, 780px);
+}
+
+.clinic-onboarding-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 20px;
+}
+
+.clinic-onboarding-field {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-width: 0;
+  color: var(--color-heading);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.clinic-onboarding-field input,
+.clinic-onboarding-field select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  padding: 10px 12px;
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base),
+    box-shadow var(--transition-base);
+}
+
+.clinic-onboarding-field input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.clinic-onboarding-field input:hover:not(:disabled),
+.clinic-onboarding-field select:hover:not(:disabled) {
+  border-color: #b9ddec;
+  background: #fbfdfe;
+}
+
+.clinic-onboarding-field input:focus,
+.clinic-onboarding-field select:focus {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.clinic-onboarding-field input[aria-invalid='true'],
+.clinic-onboarding-field select[aria-invalid='true'] {
+  border-color: #e88aa1;
+  background: #fffafb;
+}
+
+.clinic-onboarding-field input[aria-invalid='true']:focus,
+.clinic-onboarding-field select[aria-invalid='true']:focus {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 3px rgba(190, 18, 60, 0.15);
+}
+
+.clinic-onboarding-field input:disabled,
+.clinic-onboarding-field select:disabled {
+  border-color: #e2e8ec;
+  background: #f3f7f9;
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.clinic-onboarding-actions {
+  display: grid;
+  justify-items: start;
+  gap: 7px;
+  padding-top: 2px;
+}
+
+.clinic-onboarding-actions .primary-action {
+  min-height: 44px;
+}
+
+.clinic-onboarding-help {
+  max-width: 52ch;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.45;
+}
+
+.clinic-onboarding-result {
+  max-width: 62ch;
+  margin-top: 5px;
+}
+
 .whatsapp-connection-status {
   display: grid;
   gap: 6px;
@@ -5789,6 +5936,32 @@
   .view-shell {
     width: min(1180px, calc(100% - 20px));
     padding-top: 16px;
+  }
+
+  .administration-panel {
+    gap: 18px;
+    padding: 16px;
+  }
+
+  .administration-panel-header {
+    display: grid;
+    gap: 12px;
+    padding-bottom: 15px;
+  }
+
+  .validation-mode-badge {
+    justify-self: start;
+    white-space: normal;
+  }
+
+  .clinic-onboarding-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .clinic-onboarding-actions,
+  .clinic-onboarding-actions .primary-action {
+    width: 100%;
   }
 
   .app-header {

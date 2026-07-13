@@ -37,6 +37,10 @@ const sectionContent: Record<AppSection, { title: string; description: string }>
     title: 'Recordatorios WhatsApp',
     description: 'Mensajes y seguimiento automatizado de citas.',
   },
+  administration: {
+    title: 'Administracion DayIA',
+    description: 'Gestion interna de consultorios y planes.',
+  },
   settings: {
     title: 'Configuracion',
     description: 'Preferencias generales de DayIA Dental.',

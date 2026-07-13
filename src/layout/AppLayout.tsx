@@ -5,12 +5,14 @@ import { Sidebar } from './Sidebar'
 
 interface AppLayoutProps {
   activeSection: AppSection
+  canAccessAdministration?: boolean
   children: ReactNode
   onSectionChange: (section: AppSection) => void
 }
 
 export function AppLayout({
   activeSection,
+  canAccessAdministration = false,
   children,
   onSectionChange,
 }: AppLayoutProps) {
@@ -18,6 +20,7 @@ export function AppLayout({
     <div className="app-layout" data-section={activeSection}>
       <Sidebar
         activeSection={activeSection}
+        canAccessAdministration={canAccessAdministration}
         onSectionChange={onSectionChange}
       />
       <div className="main-area">

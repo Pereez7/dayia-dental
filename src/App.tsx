@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import './App.css'
 import { useAuth } from './auth/AuthContext'
-import { canManageUsers } from './auth/permissions'
+import {
+  canAccessPlatformAdministration,
+  canManageUsers,
+} from './auth/permissions'
 import { appointments as initialAppointments } from './data/appointments'
 import { businessHours as initialBusinessHours } from './data/businessHours'
 import { calendarExceptions as initialCalendarExceptions } from './data/calendarExceptions'
@@ -102,6 +105,7 @@ import {
   canManageTeam as canManageTeamWithPlan,
   getPlanFeatures,
 } from './utils/planFeatures'
+import { AdministrationView } from './views/AdministrationView'
 import { AppointmentsView } from './views/AppointmentsView'
 import { ClinicalHistoryView } from './views/ClinicalHistoryView'
 import { DashboardView } from './views/DashboardView'
@@ -113,8 +117,9 @@ import { WhatsAppRemindersView } from './views/WhatsAppRemindersView'
 
 function App() {
   const { currentClinic, isDemoMode, profile, signOut, user } = useAuth()
-  const [activeSection, setActiveSection] = useState<AppSection>(() =>
-    getStoredActiveSection(),
+  const canAccessAdministration = canAccessPlatformAdministration(profile)
+  const [activeSection, setActiveSection] = useState<AppSection>(
+    getStoredActiveSection,
   )
   const [appointments, setAppointments] = useState<Appointment[]>(() =>
     isDemoMode ? initialAppointments : [],
@@ -161,6 +166,12 @@ function App() {
   const [selectedPatientId, setSelectedPatientId] = useState<PatientId | null>(
     null,
   )
+  const effectiveActiveSection =
+    canAccessAdministration
+      ? 'administration'
+      : activeSection === 'administration'
+      ? 'dashboard'
+      : activeSection
   const isDashboardDataLoading =
     !isDemoMode && (isPatientsLoading || isAppointmentsLoading)
   // Plan loading from Supabase will be connected after the new memberships
@@ -173,13 +184,20 @@ function App() {
   )
 
   useEffect(() => {
-    saveActiveSection(activeSection)
-  }, [activeSection])
+    saveActiveSection(effectiveActiveSection)
+  }, [effectiveActiveSection])
 
   useEffect(() => {
     let isMounted = true
 
     async function loadClinicUsers() {
+      if (canAccessAdministration) {
+        setClinicUsers([])
+        setIsClinicUsersLoading(false)
+        setClinicUsersError('')
+        return
+      }
+
       if (isDemoMode) {
         setClinicUsers(profile ? [mapProfileToClinicUser(profile)] : [])
         setIsClinicUsersLoading(false)
@@ -225,12 +243,19 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [currentClinic?.id, isDemoMode, profile])
+  }, [canAccessAdministration, currentClinic?.id, isDemoMode, profile])
 
   useEffect(() => {
     let isMounted = true
 
     async function loadPatients() {
+      if (canAccessAdministration) {
+        setPatients([])
+        setIsPatientsLoading(false)
+        setPatientsError('')
+        return
+      }
+
       if (isDemoMode) {
         setPatients(initialPatients)
         setIsPatientsLoading(false)
@@ -270,12 +295,19 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [currentClinic?.id, isDemoMode])
+  }, [canAccessAdministration, currentClinic?.id, isDemoMode])
 
   useEffect(() => {
     let isMounted = true
 
     async function loadReminders() {
+      if (canAccessAdministration) {
+        setReminders([])
+        setIsRemindersLoading(false)
+        setRemindersError('')
+        return
+      }
+
       if (isDemoMode) {
         setReminders([])
         setIsRemindersLoading(false)
@@ -319,12 +351,25 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [appointments, currentClinic?.id, isDemoMode, patients])
+  }, [
+    appointments,
+    canAccessAdministration,
+    currentClinic?.id,
+    isDemoMode,
+    patients,
+  ])
 
   useEffect(() => {
     let isMounted = true
 
     async function loadAppointments() {
+      if (canAccessAdministration) {
+        setAppointments([])
+        setIsAppointmentsLoading(false)
+        setAppointmentsError('')
+        return
+      }
+
       if (isDemoMode) {
         setAppointments(initialAppointments)
         setIsAppointmentsLoading(false)
@@ -367,12 +412,25 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [currentClinic?.id, isDemoMode, patients])
+  }, [canAccessAdministration, currentClinic?.id, isDemoMode, patients])
 
   useEffect(() => {
     let isMounted = true
 
     async function loadSettings() {
+      if (canAccessAdministration) {
+        setTreatments([])
+        setBusinessHours(getClosedBusinessHoursSettings())
+        setCalendarExceptions([])
+        setWhatsappSettings(null)
+        setIsBusinessHoursConfigured(false)
+        setSettingsError('')
+        setTreatmentsError('')
+        setBusinessHoursError('')
+        setWhatsappSettingsError('')
+        return
+      }
+
       if (isDemoMode) {
         setTreatments(initialTreatments)
         setBusinessHours(initialBusinessHours)
@@ -453,7 +511,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [currentClinic?.id, isDemoMode])
+  }, [canAccessAdministration, currentClinic?.id, isDemoMode])
 
   async function handleCreatePatient(values: PatientFormValues) {
     if (isDemoMode) {
@@ -1320,7 +1378,7 @@ function App() {
   }
 
   function renderActiveView() {
-    if (activeSection === 'patients-list') {
+    if (effectiveActiveSection === 'patients-list') {
       return (
         <PatientsView
           emptyMessage="No hay pacientes registrados en este consultorio."
@@ -1334,7 +1392,7 @@ function App() {
       )
     }
 
-    if (activeSection === 'patient-new') {
+    if (effectiveActiveSection === 'patient-new') {
       return (
         <PatientsView
           emptyMessage="No hay pacientes registrados en este consultorio."
@@ -1348,7 +1406,7 @@ function App() {
       )
     }
 
-    if (activeSection === 'patient-detail') {
+    if (effectiveActiveSection === 'patient-detail') {
       const selectedPatient = patients.find(
         (patient) => patient.id === selectedPatientId,
       )
@@ -1384,7 +1442,7 @@ function App() {
       )
     }
 
-    if (activeSection === 'appointments-agenda') {
+    if (effectiveActiveSection === 'appointments-agenda') {
       return (
         <AppointmentsView
           appointments={appointments}
@@ -1401,7 +1459,7 @@ function App() {
       )
     }
 
-    if (activeSection === 'appointment-new') {
+    if (effectiveActiveSection === 'appointment-new') {
       return (
         <AppointmentsView
           appointments={appointments}
@@ -1418,7 +1476,7 @@ function App() {
       )
     }
 
-    if (activeSection === 'clinical-history') {
+    if (effectiveActiveSection === 'clinical-history') {
       return (
         <ClinicalHistoryView
           clinicalRecords={clinicalRecords}
@@ -1428,11 +1486,11 @@ function App() {
       )
     }
 
-    if (activeSection === 'odontogram') {
+    if (effectiveActiveSection === 'odontogram') {
       return <OdontogramView />
     }
 
-    if (activeSection === 'whatsapp-reminders') {
+    if (effectiveActiveSection === 'whatsapp-reminders') {
       return (
         <WhatsAppRemindersView
           appointments={appointments}
@@ -1446,7 +1504,11 @@ function App() {
       )
     }
 
-    if (activeSection === 'settings') {
+    if (effectiveActiveSection === 'administration') {
+      return <AdministrationView />
+    }
+
+    if (effectiveActiveSection === 'settings') {
       return (
         <SettingsView
           businessHours={businessHours}
@@ -1494,7 +1556,8 @@ function App() {
 
   return (
     <AppLayout
-      activeSection={activeSection}
+      activeSection={effectiveActiveSection}
+      canAccessAdministration={canAccessAdministration}
       onSectionChange={setActiveSection}
     >
       {renderActiveView()}
