@@ -3294,9 +3294,14 @@
   color: var(--color-success);
 }
 
-.platform-status--inactive {
+.platform-status--pending_activation {
   background: #fff4e5;
   color: #9a5b13;
+}
+
+.platform-status--suspended {
+  background: #fff0f3;
+  color: var(--color-danger);
 }
 
 .platform-clinics-feedback {

@@ -11,7 +11,7 @@ const clinic: PlatformClinicSummary = {
   activeMembersCount: 2,
   clinicId: 'clinic-1',
   clinicName: 'Clínica Central',
-  clinicStatus: 'unknown',
+  clinicStatus: 'active',
   createdAt: '2026-07-01T10:00:00.000Z',
   ownerEmail: 'ana@clinic.test',
   ownerName: 'Dra. Ana Pérez',
@@ -58,10 +58,25 @@ describe('PlatformAdminView', () => {
     expect(markup).toContain('Dra. Ana Pérez')
     expect(markup).toContain('ana@clinic.test')
     expect(markup).toContain('Medium')
+    expect(markup).toContain('Activa')
     expect(markup).toContain('2')
+    expect(markup).not.toContain('Sin estado')
     expect(markup).not.toContain('Pacientes')
     expect(markup).not.toContain('Citas')
     expect(markup).not.toContain('Historial clínico')
+  })
+
+  it('renders a clinic without an active owner', () => {
+    const markup = renderToStaticMarkup(
+      <PlatformClinicsContent
+        clinics={[{ ...clinic, ownerEmail: null, ownerName: null }]}
+        errorMessage=""
+        isLoading={false}
+      />,
+    )
+
+    expect(markup).toContain('Sin propietario')
+    expect(markup).not.toContain('Sin email registrado')
   })
 
   it('denies access without starting the platform loader', () => {

@@ -15,7 +15,7 @@ const clinicResponse = {
   ownerName: '  Dra. Ana  ',
   planId: 'pro',
   planName: 'Pro',
-  subscriptionStatus: 'trial' as const,
+  subscriptionStatus: 'trialing' as const,
 }
 
 function createClient(
@@ -104,5 +104,15 @@ describe('platform admin service', () => {
       planName: null,
       subscriptionStatus: 'unknown',
     })
+  })
+
+  it('uses canonical labels for known plans', () => {
+    expect(
+      mapPlatformClinicSummary({
+        ...clinicResponse,
+        planId: 'basic',
+        planName: 'basic',
+      }).planName,
+    ).toBe('Basic')
   })
 })
