@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import {
+  createPlatformClinicWithClient,
   listPlatformClinicsWithClient,
   mapPlatformClinicSummary,
 } from './platformAdminService'
@@ -114,5 +115,65 @@ describe('platform admin service', () => {
         planName: 'basic',
       }).planName,
     ).toBe('Basic')
+  })
+
+  it('creates a clinic through the Function and sends the current JWT', async () => {
+    const response = {
+      activation: { status: 'pending' },
+      clinic: {
+        clinicId: 'clinic-new',
+        clinicName: 'Clínica Norte',
+        clinicStatus: 'pending_activation',
+        ownerEmail: 'owner@example.com',
+        ownerName: 'Dra. Andrea',
+        planId: 'basic',
+      },
+    }
+    const client = createClient({ data: response, error: null })
+    const input = {
+      clinicName: 'Clínica Norte',
+      ownerEmail: 'owner@example.com',
+      ownerName: 'Dra. Andrea',
+      planId: 'basic' as const,
+    }
+
+    await expect(createPlatformClinicWithClient(client, input)).resolves.toEqual({
+      data: response,
+      error: null,
+    })
+    expect(client.functions.invoke).toHaveBeenCalledWith(
+      'create-platform-clinic',
+      {
+        body: input,
+        headers: { Authorization: 'Bearer valid-token' },
+        method: 'POST',
+      },
+    )
+  })
+
+  it('maps the disabled creation response without technical text', async () => {
+    const response = new Response(
+      JSON.stringify({
+        code: 'PLATFORM_CREATE_DISABLED',
+        message: 'La creación real de consultorios está deshabilitada.',
+      }),
+      { status: 409 },
+    )
+    const client = createClient({
+      data: null,
+      error: { context: response, status: 409 },
+    })
+
+    await expect(
+      createPlatformClinicWithClient(client, {
+        clinicName: 'Clínica Norte',
+        ownerEmail: 'owner@example.com',
+        ownerName: 'Dra. Andrea',
+        planId: 'basic',
+      }),
+    ).resolves.toEqual({
+      data: null,
+      error: 'La creación real de consultorios está deshabilitada.',
+    })
   })
 })

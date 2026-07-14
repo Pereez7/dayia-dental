@@ -5,6 +5,10 @@ import type {
   ClinicOnboardingFormValues,
 } from '../types/ClinicOnboarding'
 import type { PlanId } from '../utils/planFeatures'
+import type {
+  CreatePlatformClinicInput,
+  CreatePlatformClinicResponse,
+} from '../types/platform'
 import {
   hasClinicOnboardingErrors,
   validateClinicOnboardingForm,
@@ -23,12 +27,24 @@ const planOptions: { label: string; value: PlanId }[] = [
   { label: 'Pro', value: 'pro' },
 ]
 
-export function ClinicOnboardingForm() {
+interface ClinicOnboardingFormProps {
+  creationEnabled?: boolean
+  onCreate?: (
+    input: CreatePlatformClinicInput,
+  ) => Promise<{ data: CreatePlatformClinicResponse | null; error: string | null }>
+}
+
+export function ClinicOnboardingForm({
+  creationEnabled = false,
+  onCreate,
+}: ClinicOnboardingFormProps) {
   const [formValues, setFormValues] =
     useState<ClinicOnboardingFormValues>(initialValues)
   const [fieldErrors, setFieldErrors] =
     useState<ClinicOnboardingFormErrors>({})
   const [validationMessage, setValidationMessage] = useState('')
+  const [submissionError, setSubmissionError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   function updateField<Field extends keyof ClinicOnboardingFormValues>(
     field: Field,
@@ -37,13 +53,14 @@ export function ClinicOnboardingForm() {
     const nextValues = { ...formValues, [field]: value }
     setFormValues(nextValues)
     setValidationMessage('')
+    setSubmissionError('')
 
     if (fieldErrors[field]) {
       setFieldErrors(validateClinicOnboardingForm(nextValues))
     }
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const errors = validateClinicOnboardingForm(formValues)
@@ -51,11 +68,39 @@ export function ClinicOnboardingForm() {
 
     if (hasClinicOnboardingErrors(errors)) {
       setValidationMessage('')
+      setSubmissionError('')
       return
     }
 
+    if (!creationEnabled || !onCreate) {
+      setSubmissionError('')
+      setValidationMessage(
+        'Los datos están completos y listos para el alta cuando se habilite la creación.',
+      )
+      return
+    }
+
+    setIsSubmitting(true)
+    setSubmissionError('')
+    setValidationMessage('')
+
+    const result = await onCreate({
+      clinicName: formValues.clinicName,
+      ownerEmail: formValues.ownerEmail,
+      ownerName: formValues.ownerName,
+      planId: formValues.initialPlan,
+    })
+
+    setIsSubmitting(false)
+
+    if (result.error || !result.data) {
+      setSubmissionError(result.error ?? 'No pudimos preparar el consultorio.')
+      return
+    }
+
+    setFormValues(initialValues)
     setValidationMessage(
-      'Los datos están completos y listos para el alta cuando se habilite la creación.',
+      'Consultorio preparado correctamente.',
     )
   }
 
@@ -69,9 +114,11 @@ export function ClinicOnboardingForm() {
             habilitar una cuenta.
           </p>
         </div>
-        <span className="validation-mode-badge">
-          Modo de validación: la creación real está deshabilitada.
-        </span>
+        {!creationEnabled && (
+          <span className="validation-mode-badge">
+            Modo de validación: la creación real está deshabilitada.
+          </span>
+        )}
       </div>
 
       <form className="clinic-onboarding-form" noValidate onSubmit={handleSubmit}>
@@ -168,12 +215,26 @@ export function ClinicOnboardingForm() {
         </div>
 
         <div className="clinic-onboarding-actions">
-          <button className="primary-action" type="submit">
-            Validar alta
+          <button className="primary-action" disabled={isSubmitting} type="submit">
+            {isSubmitting
+              ? 'Preparando consultorio…'
+              : creationEnabled
+                ? 'Preparar consultorio'
+                : 'Validar alta'}
           </button>
           <p className="clinic-onboarding-help">
-            Validar alta revisa los datos sin crear consultorios.
+            {creationEnabled
+              ? 'La creación requiere autorización de plataforma y el permiso del servidor.'
+              : 'Validar alta revisa los datos sin crear consultorios.'}
           </p>
+          {submissionError && (
+            <p
+              className="field-message field-message--error clinic-onboarding-result"
+              role="alert"
+            >
+              {submissionError}
+            </p>
+          )}
           {validationMessage && (
             <p
               className="field-message field-message--success clinic-onboarding-result"

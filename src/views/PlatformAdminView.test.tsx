@@ -2,6 +2,8 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { PlatformClinicSummary } from '../types/platform'
+import { ClinicOnboardingForm } from '../components/ClinicOnboardingForm'
+import { createPlatformClinicAndRefresh } from '../utils/platformClinicCreation'
 import {
   PlatformAdminView,
   PlatformClinicsContent,
@@ -91,5 +93,65 @@ describe('PlatformAdminView', () => {
     expect(markup).toContain('Acceso no autorizado')
     expect(markup).not.toContain('Alta segura de consultorios')
     expect(loadClinics).not.toHaveBeenCalled()
+  })
+
+  it('keeps the onboarding form in validation mode by default', () => {
+    const markup = renderToStaticMarkup(<ClinicOnboardingForm />)
+
+    expect(markup).toContain('Modo de validación')
+    expect(markup).toContain('Validar alta')
+    expect(markup).not.toContain('Preparar consultorio')
+  })
+
+  it('refreshes the list only after a successful creation', async () => {
+    const createClinic = vi.fn().mockResolvedValue({
+      data: {
+        activation: { status: 'pending' },
+        clinic: {
+          clinicId: 'clinic-new',
+          clinicName: 'Clínica Norte',
+          clinicStatus: 'pending_activation',
+          ownerEmail: 'owner@example.com',
+          ownerName: 'Dra. Andrea',
+          planId: 'basic',
+        },
+      },
+      error: null,
+    })
+    const refreshClinics = vi.fn().mockResolvedValue({ data: [], error: null })
+    const input = {
+      clinicName: 'Clínica Norte',
+      ownerEmail: 'owner@example.com',
+      ownerName: 'Dra. Andrea',
+      planId: 'basic' as const,
+    }
+
+    await createPlatformClinicAndRefresh(input, createClinic, refreshClinics)
+
+    expect(refreshClinics).toHaveBeenCalledOnce()
+  })
+
+  it('preserves the disabled error and does not refresh the list', async () => {
+    const createClinic = vi.fn().mockResolvedValue({
+      data: null,
+      error: 'La creación real de consultorios está deshabilitada.',
+    })
+    const refreshClinics = vi.fn()
+
+    const result = await createPlatformClinicAndRefresh(
+      {
+        clinicName: 'Clínica Norte',
+        ownerEmail: 'owner@example.com',
+        ownerName: 'Dra. Andrea',
+        planId: 'basic',
+      },
+      createClinic,
+      refreshClinics,
+    )
+
+    expect(result.error).toBe(
+      'La creación real de consultorios está deshabilitada.',
+    )
+    expect(refreshClinics).not.toHaveBeenCalled()
   })
 })

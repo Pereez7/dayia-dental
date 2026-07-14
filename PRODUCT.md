@@ -131,6 +131,9 @@ de backend antes de validar la experiencia local.
   `15 jun, 10:00`, evitando `a. m.` y `p. m.` en la cola visible.
 - Disenar mobile-first: cada flujo importante debe ser usable en pantallas
   pequenas sin perder legibilidad ni area tactil.
+- Mantener las altas de plataforma detrás de autorización de servidor y feature
+  flags deshabilitados por defecto; una validación local nunca debe aparentar
+  que creó un consultorio real.
 
 Cuando exista integracion real con WhatsApp, se evaluaran estados intermedios
 como `Solicitud de cancelacion` para evitar cancelaciones accidentales antes de
