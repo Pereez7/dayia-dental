@@ -2,19 +2,27 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { ClinicOnboardingForm } from '../components/ClinicOnboardingForm'
 import {
+  createPlatformClinic,
   listPlatformClinics,
+  type CreatePlatformClinicServiceResult,
   type PlatformAdminServiceResult,
 } from '../services/platformAdminService'
 import type {
+  CreatePlatformClinicInput,
   PlatformClinicSummary,
 } from '../types/platform'
 import {
   getPlatformClinicStatusLabel,
   getPlatformSubscriptionStatusLabel,
 } from '../utils/platformStatusLabels'
+import { createPlatformClinicAndRefresh } from '../utils/platformClinicCreation'
 
 interface PlatformAdminViewProps {
   canAccessPlatformAdmin: boolean
+  createClinic?: (
+    input: CreatePlatformClinicInput,
+  ) => Promise<CreatePlatformClinicServiceResult>
+  creationEnabled?: boolean
   loadClinics?: () => Promise<PlatformAdminServiceResult>
 }
 
@@ -27,6 +35,10 @@ interface PlatformClinicsContentProps {
 
 export function PlatformAdminView({
   canAccessPlatformAdmin,
+  createClinic = createPlatformClinic,
+  creationEnabled =
+    import.meta.env.VITE_DAYIA_PLATFORM_CREATE_ENABLED?.trim().toLowerCase() ===
+    'true',
   loadClinics = listPlatformClinics,
 }: PlatformAdminViewProps) {
   const [clinics, setClinics] = useState<PlatformClinicSummary[]>([])
@@ -43,6 +55,12 @@ export function PlatformAdminView({
     setErrorMessage(result.error ?? '')
     setIsLoading(false)
   }, [loadClinics])
+
+  const createClinicAndRefresh = useCallback(
+    (input: CreatePlatformClinicInput) =>
+      createPlatformClinicAndRefresh(input, createClinic, loadPlatformClinics),
+    [createClinic, loadPlatformClinics],
+  )
 
   useEffect(() => {
     if (!canAccessPlatformAdmin) {
@@ -96,7 +114,10 @@ export function PlatformAdminView({
         />
       </section>
 
-      <ClinicOnboardingForm />
+      <ClinicOnboardingForm
+        creationEnabled={creationEnabled}
+        onCreate={createClinicAndRefresh}
+      />
     </div>
   )
 }

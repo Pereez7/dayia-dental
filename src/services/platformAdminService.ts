@@ -1,5 +1,7 @@
 import { supabase } from '../lib/supabaseClient'
 import type {
+  CreatePlatformClinicInput,
+  CreatePlatformClinicResponse,
   ListPlatformClinicsResponse,
   PlatformClinicStatus,
   PlatformClinicSummary,
@@ -8,6 +10,11 @@ import type {
 
 export interface PlatformAdminServiceResult {
   data: PlatformClinicSummary[] | null
+  error: string | null
+}
+
+export interface CreatePlatformClinicServiceResult {
+  data: CreatePlatformClinicResponse | null
   error: string | null
 }
 
@@ -21,7 +28,11 @@ interface PlatformAdminFunctionClient {
   functions: {
     invoke: (
       functionName: string,
-      options: { headers: { Authorization: string }; method: 'POST' },
+      options: {
+        body?: CreatePlatformClinicInput
+        headers: { Authorization: string }
+        method: 'POST'
+      },
     ) => Promise<{ data: unknown; error: unknown }>
   }
 }
@@ -45,6 +56,54 @@ export async function listPlatformClinics(): Promise<PlatformAdminServiceResult>
   return listPlatformClinicsWithClient(
     supabase as PlatformAdminFunctionClient | null,
   )
+}
+
+export async function createPlatformClinic(
+  input: CreatePlatformClinicInput,
+): Promise<CreatePlatformClinicServiceResult> {
+  return createPlatformClinicWithClient(
+    supabase as PlatformAdminFunctionClient | null,
+    input,
+  )
+}
+
+export async function createPlatformClinicWithClient(
+  client: PlatformAdminFunctionClient | null,
+  input: CreatePlatformClinicInput,
+): Promise<CreatePlatformClinicServiceResult> {
+  if (!client) {
+    return { data: null, error: 'Supabase no está configurado.' }
+  }
+
+  const { data: sessionData, error: sessionError } =
+    await client.auth.getSession()
+  const accessToken = sessionData.session?.access_token
+
+  if (sessionError || !accessToken) {
+    return {
+      data: null,
+      error: 'Tu sesión no es válida. Vuelve a iniciar sesión.',
+    }
+  }
+
+  const { data, error } = await client.functions.invoke(
+    'create-platform-clinic',
+    {
+      body: input,
+      headers: { Authorization: `Bearer ${accessToken}` },
+      method: 'POST',
+    },
+  )
+
+  if (error) {
+    return { data: null, error: await getCreateClinicErrorMessage(error) }
+  }
+
+  if (!isCreatePlatformClinicResponse(data)) {
+    return { data: null, error: 'No pudimos preparar el consultorio.' }
+  }
+
+  return { data, error: null }
 }
 
 export async function listPlatformClinicsWithClient(
@@ -152,6 +211,72 @@ function getFunctionErrorStatus(error: unknown) {
   }
 
   return candidate.context?.status ?? candidate.status ?? null
+}
+
+async function getCreateClinicErrorMessage(error: unknown) {
+  const status = getFunctionErrorStatus(error)
+  const responseMessage = await getFunctionResponseMessage(error)
+
+  if (status === 400) {
+    return responseMessage ?? 'Revisa los datos del consultorio.'
+  }
+
+  if (status === 401) {
+    return 'Tu sesión no es válida. Vuelve a iniciar sesión.'
+  }
+
+  if (status === 403) {
+    return 'No tienes permiso para crear consultorios.'
+  }
+
+  if (status === 409) {
+    return responseMessage ?? 'No pudimos crear el consultorio por un conflicto.'
+  }
+
+  return 'No pudimos preparar el consultorio. Intenta nuevamente.'
+}
+
+async function getFunctionResponseMessage(error: unknown) {
+  if (!error || typeof error !== 'object') {
+    return null
+  }
+
+  const context = (error as { context?: unknown }).context
+
+  if (!(context instanceof Response)) {
+    return null
+  }
+
+  try {
+    const payload = await context.clone().json() as { message?: unknown }
+    return typeof payload.message === 'string' ? payload.message : null
+  } catch {
+    return null
+  }
+}
+
+function isCreatePlatformClinicResponse(
+  value: unknown,
+): value is CreatePlatformClinicResponse {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const candidate = value as Partial<CreatePlatformClinicResponse>
+  const activationStatuses = new Set([
+    'pending',
+    'already_active',
+    'not_sent',
+  ])
+
+  return Boolean(
+    candidate.clinic &&
+      typeof candidate.clinic.clinicId === 'string' &&
+      typeof candidate.clinic.clinicName === 'string' &&
+      candidate.clinic.clinicStatus === 'pending_activation' &&
+      candidate.activation &&
+      activationStatuses.has(candidate.activation.status ?? ''),
+  )
 }
 
 function isListPlatformClinicsResponse(

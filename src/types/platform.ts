@@ -27,3 +27,32 @@ export interface PlatformClinicSummary {
 export interface ListPlatformClinicsResponse {
   clinics: PlatformClinicSummary[]
 }
+
+export type PlatformClinicPlanId = 'basic' | 'medium' | 'pro'
+
+export type PlatformClinicActivationStatus =
+  | 'pending'
+  | 'already_active'
+  | 'not_sent'
+
+export interface CreatePlatformClinicInput {
+  clinicName: string
+  ownerEmail: string
+  ownerName: string
+  planId: PlatformClinicPlanId
+}
+
+export interface CreatePlatformClinicResponse {
+  activation: {
+    activationUrl?: string
+    status: PlatformClinicActivationStatus
+  }
+  clinic: {
+    clinicId: string
+    clinicName: string
+    clinicStatus: 'pending_activation'
+    ownerEmail: string | null
+    ownerName: string | null
+    planId: PlatformClinicPlanId
+  }
+}
