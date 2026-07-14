@@ -112,3 +112,27 @@ export function getAuthorizedSection(
 
   return 'dashboard'
 }
+
+export function isSensitiveSectionAccessDenied(
+  requestedSection: AppSection,
+  permissions: ClinicalPermissions,
+  canAccessAdministration: boolean,
+) {
+  if (requestedSection === 'clinical-history') {
+    return !permissions.canAccessClinicalHistory
+  }
+
+  if (requestedSection === 'odontogram') {
+    return !permissions.canAccessOdontogram
+  }
+
+  if (requestedSection === 'settings') {
+    return !permissions.canAccessSettings
+  }
+
+  if (requestedSection === 'administration') {
+    return !canAccessAdministration
+  }
+
+  return false
+}

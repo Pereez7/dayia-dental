@@ -39,6 +39,15 @@ function renderSettings({
 }
 
 describe('SettingsView permissions', () => {
+  it('does not mount clinic users for reception permissions', () => {
+    const markup = renderSettings({
+      canManageClinicUsers: false,
+      canManageWhatsapp: false,
+    })
+
+    expect(markup).not.toContain('Usuarios del consultorio')
+  })
+
   it('does not mount users or WhatsApp for a Basic owner', () => {
     const markup = renderSettings({
       canManageClinicUsers: false,

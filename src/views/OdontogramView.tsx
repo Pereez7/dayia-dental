@@ -8,6 +8,12 @@ import type {
 } from '../types/Odontogram'
 import type { Patient, PatientId } from '../types/Patient'
 import { getOdontogramEntriesByPatient } from '../utils/odontogram'
+import {
+  filterOdontogramPatients,
+  findOdontogramPatientById,
+  syncOdontogramPatientSelection,
+} from '../utils/odontogramPatientSearch'
+import { normalizeSearchText } from '../utils/textNormalizers'
 
 interface OdontogramViewProps {
   entries: OdontogramEntry[]
@@ -24,6 +30,48 @@ interface OdontogramViewProps {
   selectedPatientId: PatientId | null
 }
 
+interface OdontogramSearchResultsProps {
+  onSelectPatient: (patient: Patient) => void
+  patients: Patient[]
+  selectedPatientId: PatientId | null
+}
+
+export function OdontogramSearchResults({
+  onSelectPatient,
+  patients,
+  selectedPatientId,
+}: OdontogramSearchResultsProps) {
+  return (
+    <div
+      className="odontogram-search-results"
+      id="odontogram-search-results"
+      role="listbox"
+    >
+      {patients.length > 0 ? (
+        patients.map((patient) => (
+          <button
+            aria-selected={patient.id === selectedPatientId}
+            className="odontogram-search-result"
+            key={patient.id}
+            role="option"
+            type="button"
+            onClick={() => onSelectPatient(patient)}
+          >
+            <strong>{patient.fullName}</strong>
+            <span>
+              {[patient.phone, patient.email].filter(Boolean).join(' · ')}
+            </span>
+          </button>
+        ))
+      ) : (
+        <p className="odontogram-search-empty">
+          No se encontraron pacientes.
+        </p>
+      )}
+    </div>
+  )
+}
+
 export function OdontogramView({
   entries,
   errorMessage = '',
@@ -34,25 +82,48 @@ export function OdontogramView({
   patients,
   selectedPatientId,
 }: OdontogramViewProps) {
-  const [searchTerm, setSearchTerm] = useState('')
-  const normalizedSearch = searchTerm.trim().toLocaleLowerCase('es')
-  const filteredPatients = useMemo(
+  const [searchTerm, setSearchTerm] = useState(
     () =>
-      patients.filter((patient) =>
-        patient.fullName.toLocaleLowerCase('es').includes(normalizedSearch),
-      ),
-    [normalizedSearch, patients],
+      patients.find((patient) => patient.id === selectedPatientId)?.fullName ??
+      '',
+  )
+  const filteredPatients = useMemo(
+    () => filterOdontogramPatients(patients, searchTerm),
+    [patients, searchTerm],
   )
   const selectedPatient = patients.find(
     (patient) => patient.id === selectedPatientId,
   )
+  const hasSearchTerm = Boolean(searchTerm.trim())
+  const isSearchSynchronized = Boolean(
+    selectedPatient &&
+      normalizeSearchText(selectedPatient.fullName) ===
+        normalizeSearchText(searchTerm),
+  )
+  const showSearchResults = hasSearchTerm && !isSearchSynchronized
+  const selectPatients =
+    selectedPatient &&
+    !filteredPatients.some((patient) => patient.id === selectedPatient.id)
+      ? [selectedPatient, ...filteredPatients]
+      : filteredPatients
   const patientEntries = selectedPatient
     ? getOdontogramEntriesByPatient(entries, selectedPatient.id)
     : []
 
+  function selectPatient(patient: Patient) {
+    syncOdontogramPatientSelection(patient, setSearchTerm, onSelectPatient)
+  }
+
   function handlePatientChange(value: string) {
-    const patient = patients.find(({ id }) => String(id) === value)
-    onSelectPatient(patient?.id ?? null)
+    const patient = findOdontogramPatientById(patients, value)
+
+    if (patient) {
+      selectPatient(patient)
+      return
+    }
+
+    setSearchTerm('')
+    onSelectPatient(null)
   }
 
   return (
@@ -68,17 +139,32 @@ export function OdontogramView({
         <span className="status-pill">FDI adulto</span>
       </header>
 
-      <section className="odontogram-patient-selector" aria-label="Seleccionar paciente">
-        <label>
-          <span>Buscar paciente</span>
+      <section
+        className="odontogram-patient-selector"
+        aria-label="Seleccionar paciente"
+      >
+        <div className="odontogram-search-control">
+          <label htmlFor="odontogram-patient-search">Buscar paciente</label>
           <input
+            aria-controls="odontogram-search-results"
+            aria-expanded={showSearchResults}
+            autoComplete="off"
             disabled={isPatientsLoading}
-            placeholder="Nombre del paciente"
+            id="odontogram-patient-search"
+            placeholder="Nombre, teléfono o email"
             type="search"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
           />
-        </label>
+
+          {showSearchResults && (
+            <OdontogramSearchResults
+              onSelectPatient={selectPatient}
+              patients={filteredPatients}
+              selectedPatientId={selectedPatientId}
+            />
+          )}
+        </div>
 
         <label>
           <span>Paciente</span>
@@ -88,7 +174,7 @@ export function OdontogramView({
             onChange={(event) => handlePatientChange(event.target.value)}
           >
             <option value="">Seleccionar paciente</option>
-            {filteredPatients.map((patient) => (
+            {selectPatients.map((patient) => (
               <option key={patient.id} value={String(patient.id)}>
                 {patient.fullName}
               </option>
@@ -103,7 +189,9 @@ export function OdontogramView({
         </div>
       ) : !selectedPatient ? (
         <div className="odontogram-view-state">
-          <strong>Selecciona un paciente para registrar su odontograma.</strong>
+          <strong>
+            Selecciona un paciente de la lista para registrar su odontograma.
+          </strong>
           <span>Las piezas y observaciones se mantienen separadas por paciente.</span>
         </div>
       ) : isLoading ? (
@@ -114,7 +202,7 @@ export function OdontogramView({
         <section className="odontogram-workspace">
           <div className="odontogram-patient-context">
             <div>
-              <span>Paciente seleccionado</span>
+              <span>Paciente seleccionado:</span>
               <strong>{selectedPatient.fullName}</strong>
             </div>
             <span>{selectedPatient.phone}</span>

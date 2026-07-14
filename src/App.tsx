@@ -5,6 +5,10 @@ import {
   canAccessPlatformAdministration,
   getClinicalPermissions,
 } from './auth/permissions'
+import {
+  getSensitiveDataAccess,
+  runSensitiveLoader,
+} from './auth/sensitiveDataAccess'
 import { appointments as initialAppointments } from './data/appointments'
 import { businessHours as initialBusinessHours } from './data/businessHours'
 import { calendarExceptions as initialCalendarExceptions } from './data/calendarExceptions'
@@ -16,6 +20,7 @@ import { AppLayout } from './layout/AppLayout'
 import {
   canAccessAppSection,
   getAuthorizedSection,
+  isSensitiveSectionAccessDenied,
   type AppSection,
 } from './layout/navigation'
 import {
@@ -139,6 +144,7 @@ function App() {
   } = useAuth()
   const canAccessAdministration = canAccessPlatformAdministration(profile)
   const permissions = getClinicalPermissions(profile?.role, currentPlanId)
+  const sensitiveDataAccess = getSensitiveDataAccess(permissions)
   const canLoadOperationalSettings =
     permissions.canAccessAppointments || permissions.canAccessSettings
   const [activeSection, setActiveSection] = useState<AppSection>(
@@ -184,12 +190,12 @@ function App() {
     useState<WhatsappSettings | null>(null)
   const [whatsappSettingsError, setWhatsappSettingsError] = useState('')
   const [clinicUsers, setClinicUsers] = useState<ClinicUser[]>(() =>
-    isDemoMode && profile && permissions.canManageClinicUsers
+    isDemoMode && profile && sensitiveDataAccess.canLoadClinicUsers
       ? [mapProfileToClinicUser(profile)]
       : [],
   )
   const [isClinicUsersLoading, setIsClinicUsersLoading] = useState(
-    () => !isDemoMode && permissions.canManageClinicUsers,
+    () => !isDemoMode && sensitiveDataAccess.canLoadClinicUsers,
   )
   const [clinicUsersError, setClinicUsersError] = useState('')
   const [clinicMembersCount, setClinicMembersCount] = useState(
@@ -200,17 +206,17 @@ function App() {
   )
   const [clinicalRecords, setClinicalRecords] =
     useState<ClinicalRecord[]>(
-      isDemoMode && permissions.canAccessClinicalHistory
+      isDemoMode && sensitiveDataAccess.canLoadClinicalRecords
         ? initialClinicalRecords
         : [],
     )
   const [isClinicalRecordsLoading, setIsClinicalRecordsLoading] = useState(
-    () => !isDemoMode && permissions.canAccessClinicalHistory,
+    () => !isDemoMode && sensitiveDataAccess.canLoadClinicalRecords,
   )
   const [clinicalRecordsError, setClinicalRecordsError] = useState('')
   const [odontogramEntries, setOdontogramEntries] =
     useState<OdontogramEntry[]>(
-      isDemoMode && permissions.canAccessOdontogram
+      isDemoMode && sensitiveDataAccess.canLoadOdontogram
         ? initialOdontogramEntries
         : [],
     )
@@ -243,7 +249,7 @@ function App() {
     let isMounted = true
 
     async function loadClinicUsers() {
-      if (!permissions.canManageClinicUsers) {
+      if (!sensitiveDataAccess.canLoadClinicUsers) {
         setClinicUsers([])
         setClinicMembersCount(0)
         setClinicMembersMaxUsers(getPlanFeatures(currentPlanId).maxUsers)
@@ -275,7 +281,16 @@ function App() {
       setIsClinicUsersLoading(true)
       setClinicUsersError('')
 
-      const { data, error } = await listClinicMembers()
+      const loadResult = await runSensitiveLoader(
+        sensitiveDataAccess.canLoadClinicUsers,
+        listClinicMembers,
+      )
+
+      if (!loadResult.called) {
+        return
+      }
+
+      const { data, error } = loadResult.result
 
       if (!isMounted) {
         return
@@ -306,7 +321,7 @@ function App() {
     currentClinic?.id,
     currentPlanId,
     isDemoMode,
-    permissions.canManageClinicUsers,
+    sensitiveDataAccess.canLoadClinicUsers,
     profile,
   ])
 
@@ -314,7 +329,7 @@ function App() {
     let isMounted = true
 
     async function loadClinicalRecords() {
-      if (!permissions.canAccessClinicalHistory) {
+      if (!sensitiveDataAccess.canLoadClinicalRecords) {
         setClinicalRecords([])
         setIsClinicalRecordsLoading(false)
         setClinicalRecordsError('')
@@ -340,9 +355,16 @@ function App() {
       setIsClinicalRecordsLoading(true)
       setClinicalRecordsError('')
 
-      const { data, error } = await listClinicalRecordsByClinic(
-        currentClinic.id,
+      const loadResult = await runSensitiveLoader(
+        sensitiveDataAccess.canLoadClinicalRecords,
+        () => listClinicalRecordsByClinic(currentClinic.id),
       )
+
+      if (!loadResult.called) {
+        return
+      }
+
+      const { data, error } = loadResult.result
 
       if (!isMounted) {
         return
@@ -367,14 +389,14 @@ function App() {
   }, [
     currentClinic?.id,
     isDemoMode,
-    permissions.canAccessClinicalHistory,
+    sensitiveDataAccess.canLoadClinicalRecords,
   ])
 
   useEffect(() => {
     let isMounted = true
 
     async function loadPatientOdontogram() {
-      if (!permissions.canAccessOdontogram) {
+      if (!sensitiveDataAccess.canLoadOdontogram) {
         setOdontogramEntries([])
         setIsOdontogramLoading(false)
         setOdontogramError('')
@@ -404,10 +426,20 @@ function App() {
 
       setIsOdontogramLoading(true)
       setOdontogramError('')
-      const { data, error } = await listOdontogramEntries(
-        currentClinic.id,
-        activeOdontogramPatientId,
+      const loadResult = await runSensitiveLoader(
+        sensitiveDataAccess.canLoadOdontogram,
+        () =>
+          listOdontogramEntries(
+            currentClinic.id,
+            activeOdontogramPatientId,
+          ),
       )
+
+      if (!loadResult.called) {
+        return
+      }
+
+      const { data, error } = loadResult.result
 
       if (!isMounted) {
         return
@@ -438,7 +470,7 @@ function App() {
     activeOdontogramPatientId,
     currentClinic?.id,
     isDemoMode,
-    permissions.canAccessOdontogram,
+    sensitiveDataAccess.canLoadOdontogram,
   ])
 
   useEffect(() => {
@@ -669,7 +701,7 @@ function App() {
         getTreatmentsByClinic(currentClinic.id),
         getBusinessHoursByClinic(currentClinic.id),
         getCalendarExceptionsByClinic(currentClinic.id),
-        permissions.canManageWhatsapp
+        sensitiveDataAccess.canLoadWhatsappSettings
           ? getWhatsappSettingsByClinic(currentClinic.id)
           : Promise.resolve({ data: null, error: null }),
       ])
@@ -718,7 +750,7 @@ function App() {
     canLoadOperationalSettings,
     currentClinic?.id,
     isDemoMode,
-    permissions.canManageWhatsapp,
+    sensitiveDataAccess.canLoadWhatsappSettings,
   ])
 
   async function handleCreatePatient(values: PatientFormValues) {
@@ -1673,21 +1705,11 @@ function App() {
 
   function renderActiveView() {
     if (
-      activeSection === 'odontogram' &&
-      !permissions.canAccessOdontogram
-    ) {
-      return (
-        <section className="access-denied-view" role="alert">
-          <h2>Acceso restringido</h2>
-          <p>No tienes permiso para acceder a esta sección.</p>
-        </section>
+      isSensitiveSectionAccessDenied(
+        activeSection,
+        permissions,
+        canAccessAdministration,
       )
-    }
-
-    if (
-      activeSection === 'clinical-history' &&
-      !permissions.canAccessClinicalHistory &&
-      !canAccessAdministration
     ) {
       return (
         <section className="access-denied-view" role="alert">

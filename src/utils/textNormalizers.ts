@@ -16,6 +16,13 @@ export function normalizeSentenceText(value: string) {
   )}`
 }
 
+export function normalizeSearchText(value: string) {
+  return compactText(value)
+    .toLocaleLowerCase('es-BO')
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+}
+
 const lowercaseNameParticles = new Set([
   'da',
   'das',

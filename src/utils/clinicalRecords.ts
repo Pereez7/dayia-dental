@@ -5,7 +5,11 @@ import type {
 } from '../types/ClinicalRecord'
 import type { Patient, PatientId } from '../types/Patient'
 import { formatCompactDateWithYear } from './dateFormatters'
-import { compactText, normalizeSentenceText } from './textNormalizers'
+import {
+  compactText,
+  normalizeSearchText,
+  normalizeSentenceText,
+} from './textNormalizers'
 
 export type ClinicalHistoryPeriodFilter = 'all' | 'this-month' | 'last-30-days'
 
@@ -337,13 +341,6 @@ function isFutureDate(date: string, referenceDate: Date) {
   )
 
   return selectedDate.getTime() > today.getTime()
-}
-
-function normalizeSearchText(value: string) {
-  return compactText(value)
-    .toLocaleLowerCase('es-BO')
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
 }
 
 function getDateTime(date: string) {
