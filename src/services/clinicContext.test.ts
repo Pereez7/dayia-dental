@@ -32,7 +32,7 @@ describe('clinic session context', () => {
 
     expect(resolvedProfile.role).toBe('clinic_owner')
     expect(resolvedProfile.clinic_id).toBe('membership-clinic')
-    expect(canManageUsers(resolvedProfile.role)).toBe(true)
+    expect(canManageUsers(resolvedProfile.role, 'medium')).toBe(true)
   })
 
   it('keeps the legacy role only when no active membership exists', () => {
@@ -95,7 +95,7 @@ describe('clinic session context', () => {
     )
 
     expect(resolvedProfile.role).toBe('doctor')
-    expect(canManageUsers(resolvedProfile.role)).toBe(false)
+    expect(canManageUsers(resolvedProfile.role, 'pro')).toBe(false)
   })
 
   it('uses the real subscription plan id', () => {

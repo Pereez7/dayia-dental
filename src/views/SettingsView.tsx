@@ -24,13 +24,15 @@ interface SettingsViewProps {
   businessHours: BusinessHoursSettingsType
   calendarExceptions: CalendarException[]
   canMigrateOwnerEmail?: boolean
-  canManageUsers: boolean
-  canUseTeamManagement?: boolean
+  canManageClinicUsers: boolean
+  canManageWhatsapp: boolean
   businessHoursError?: string
   clinicUsers: ClinicUser[]
   clinicUsersError?: string
   currentUserId?: string | null
   isClinicUsersLoading?: boolean
+  clinicMembersMaxUsers: number
+  clinicMembersCount: number
   isBusinessHoursConfigured?: boolean
   onBusinessHoursChange: (
     settings: BusinessHoursSettingsType,
@@ -71,13 +73,15 @@ export function SettingsView({
   businessHours,
   calendarExceptions,
   canMigrateOwnerEmail = false,
-  canManageUsers,
-  canUseTeamManagement = false,
+  canManageClinicUsers,
+  canManageWhatsapp,
   businessHoursError = '',
   clinicUsers,
   clinicUsersError = '',
   currentUserId,
   isClinicUsersLoading = false,
+  clinicMembersMaxUsers,
+  clinicMembersCount,
   onBusinessHoursChange,
   onCreateClinicUser,
   onCreateCalendarException,
@@ -123,12 +127,14 @@ export function SettingsView({
           onDeleteCalendarException={onDeleteCalendarException}
           onSettingsChange={onBusinessHoursChange}
         />
-        <WhatsappSettingsPanel
-          key={whatsappSettingsKey}
-          errorMessage={whatsappSettingsError || settingsError}
-          settings={whatsappSettings}
-          onSaveSettings={onWhatsappSettingsChange}
-        />
+        {canManageWhatsapp && (
+          <WhatsappSettingsPanel
+            key={whatsappSettingsKey}
+            errorMessage={whatsappSettingsError || settingsError}
+            settings={whatsappSettings}
+            onSaveSettings={onWhatsappSettingsChange}
+          />
+        )}
       </div>
 
       <div className="settings-column settings-column--right">
@@ -139,13 +145,15 @@ export function SettingsView({
           onSetTreatmentActive={onSetTreatmentActive}
           onUpdateTreatment={onUpdateTreatment}
         />
-        {canUseTeamManagement && (
+        {canManageClinicUsers && (
           <ClinicUsersSettings
             canMigrateOwnerEmail={canMigrateOwnerEmail}
-            canManageUsers={canManageUsers}
+            canManageUsers
             currentUserId={currentUserId}
             errorMessage={clinicUsersError}
             isLoading={isClinicUsersLoading}
+            maxUsers={clinicMembersMaxUsers}
+            memberCount={clinicMembersCount}
             users={clinicUsers}
             onCreateUser={onCreateClinicUser}
             onMigrateOwnerEmail={onMigrateOwnerEmail}

@@ -3,7 +3,7 @@ import './App.css'
 import { useAuth } from './auth/AuthContext'
 import {
   canAccessPlatformAdministration,
-  canManageUsers,
+  getClinicalPermissions,
 } from './auth/permissions'
 import { appointments as initialAppointments } from './data/appointments'
 import { businessHours as initialBusinessHours } from './data/businessHours'
@@ -13,7 +13,11 @@ import { odontogramEntries as initialOdontogramEntries } from './data/odontogram
 import { patients as initialPatients } from './data/patients'
 import { treatments as initialTreatments } from './data/treatments'
 import { AppLayout } from './layout/AppLayout'
-import type { AppSection } from './layout/navigation'
+import {
+  canAccessAppSection,
+  getAuthorizedSection,
+  type AppSection,
+} from './layout/navigation'
 import {
   createPatient,
   getPatientsByClinic,
@@ -50,10 +54,12 @@ import {
   upsertWhatsappSettings,
 } from './services/whatsappSettingsService'
 import {
-  createClinicUser,
-  getClinicUsers,
   mapProfileToClinicUser,
 } from './services/usersService'
+import {
+  inviteClinicMember,
+  listClinicMembers,
+} from './services/clinicMembersService'
 import {
   legacyOwnerEmail,
   migrateCurrentOwnerEmail,
@@ -97,14 +103,11 @@ import {
 import type { AppointmentReasonPayload } from './utils/appointmentReasons'
 import { rescheduleAppointment } from './utils/appointmentReschedule'
 import { getTreatmentDuration } from './utils/treatmentUtils'
+import { getPlanFeatures } from './utils/planFeatures'
 import {
   getStoredActiveSection,
   saveActiveSection,
 } from './utils/activeSectionStorage'
-import {
-  canManageTeam as canManageTeamWithPlan,
-  getPlanFeatures,
-} from './utils/planFeatures'
 import { PlatformAdminView } from './views/PlatformAdminView'
 import { AppointmentsView } from './views/AppointmentsView'
 import { ClinicalHistoryView } from './views/ClinicalHistoryView'
@@ -125,67 +128,84 @@ function App() {
     user,
   } = useAuth()
   const canAccessAdministration = canAccessPlatformAdministration(profile)
+  const permissions = getClinicalPermissions(profile?.role, currentPlanId)
+  const canLoadOperationalSettings =
+    permissions.canAccessAppointments || permissions.canAccessSettings
   const [activeSection, setActiveSection] = useState<AppSection>(
     getStoredActiveSection,
   )
   const [appointments, setAppointments] = useState<Appointment[]>(() =>
-    isDemoMode ? initialAppointments : [],
+    isDemoMode && permissions.canAccessAppointments ? initialAppointments : [],
   )
   const [isAppointmentsLoading, setIsAppointmentsLoading] = useState(
-    () => !isDemoMode,
+    () => !isDemoMode && permissions.canAccessAppointments,
   )
   const [appointmentsError, setAppointmentsError] = useState('')
   const [patients, setPatients] = useState<Patient[]>(() =>
-    isDemoMode ? initialPatients : [],
+    isDemoMode && permissions.canAccessPatients ? initialPatients : [],
   )
   const [isPatientsLoading, setIsPatientsLoading] = useState(
-    () => !isDemoMode,
+    () => !isDemoMode && permissions.canAccessPatients,
   )
   const [patientsError, setPatientsError] = useState('')
   const [treatments, setTreatments] =
-    useState<Treatment[]>(initialTreatments)
+    useState<Treatment[]>(canLoadOperationalSettings ? initialTreatments : [])
   const [businessHours, setBusinessHours] =
-    useState<BusinessHoursSettings>(initialBusinessHours)
+    useState<BusinessHoursSettings>(
+      canLoadOperationalSettings
+        ? initialBusinessHours
+        : getClosedBusinessHoursSettings(),
+    )
   const [isBusinessHoursConfigured, setIsBusinessHoursConfigured] =
-    useState(true)
+    useState(canLoadOperationalSettings)
   const [settingsError, setSettingsError] = useState('')
   const [treatmentsError, setTreatmentsError] = useState('')
   const [businessHoursError, setBusinessHoursError] = useState('')
   const [calendarExceptions, setCalendarExceptions] =
-    useState<CalendarException[]>(initialCalendarExceptions)
+    useState<CalendarException[]>(
+      canLoadOperationalSettings ? initialCalendarExceptions : [],
+    )
   const [reminders, setReminders] = useState<Reminder[]>([])
-  const [isRemindersLoading, setIsRemindersLoading] = useState(true)
+  const [isRemindersLoading, setIsRemindersLoading] = useState(
+    permissions.canAccessReminders,
+  )
   const [remindersError, setRemindersError] = useState('')
   const [whatsappSettings, setWhatsappSettings] =
     useState<WhatsappSettings | null>(null)
   const [whatsappSettingsError, setWhatsappSettingsError] = useState('')
   const [clinicUsers, setClinicUsers] = useState<ClinicUser[]>(() =>
-    isDemoMode && profile ? [mapProfileToClinicUser(profile)] : [],
+    isDemoMode && profile && permissions.canManageClinicUsers
+      ? [mapProfileToClinicUser(profile)]
+      : [],
   )
   const [isClinicUsersLoading, setIsClinicUsersLoading] = useState(
-    () => !isDemoMode,
+    () => !isDemoMode && permissions.canManageClinicUsers,
   )
   const [clinicUsersError, setClinicUsersError] = useState('')
+  const [clinicMembersCount, setClinicMembersCount] = useState(
+    () => clinicUsers.filter((member) => member.status !== 'inactive').length,
+  )
+  const [clinicMembersMaxUsers, setClinicMembersMaxUsers] = useState(
+    () => getPlanFeatures(currentPlanId).maxUsers,
+  )
   const [clinicalRecords, setClinicalRecords] =
-    useState<ClinicalRecord[]>(initialClinicalRecords)
+    useState<ClinicalRecord[]>(
+      permissions.canAccessClinicalHistory ? initialClinicalRecords : [],
+    )
   const [odontogramEntries, setOdontogramEntries] =
-    useState<OdontogramEntry[]>(initialOdontogramEntries)
+    useState<OdontogramEntry[]>(
+      permissions.canAccessOdontogram ? initialOdontogramEntries : [],
+    )
   const [selectedPatientId, setSelectedPatientId] = useState<PatientId | null>(
     null,
   )
-  const effectiveActiveSection =
-    canAccessAdministration
-      ? 'administration'
-      : activeSection === 'administration'
-      ? 'dashboard'
-      : activeSection
+  const effectiveActiveSection = getAuthorizedSection(
+    activeSection,
+    permissions,
+    canAccessAdministration,
+  )
   const isDashboardDataLoading =
     !isDemoMode && (isPatientsLoading || isAppointmentsLoading)
-  const currentPlanFeatures = getPlanFeatures(currentPlanId)
-  const canUseTeamManagement = canManageTeamWithPlan(
-    profile?.role,
-    currentPlanFeatures,
-  )
 
   useEffect(() => {
     saveActiveSection(effectiveActiveSection)
@@ -195,15 +215,20 @@ function App() {
     let isMounted = true
 
     async function loadClinicUsers() {
-      if (canAccessAdministration) {
+      if (!permissions.canManageClinicUsers) {
         setClinicUsers([])
+        setClinicMembersCount(0)
+        setClinicMembersMaxUsers(getPlanFeatures(currentPlanId).maxUsers)
         setIsClinicUsersLoading(false)
         setClinicUsersError('')
         return
       }
 
       if (isDemoMode) {
-        setClinicUsers(profile ? [mapProfileToClinicUser(profile)] : [])
+        const demoUsers = profile ? [mapProfileToClinicUser(profile)] : []
+        setClinicUsers(demoUsers)
+        setClinicMembersCount(demoUsers.length)
+        setClinicMembersMaxUsers(getPlanFeatures(currentPlanId).maxUsers)
         setIsClinicUsersLoading(false)
         setClinicUsersError('')
         return
@@ -211,6 +236,7 @@ function App() {
 
       if (!currentClinic?.id) {
         setClinicUsers([])
+        setClinicMembersCount(0)
         setIsClinicUsersLoading(false)
         setClinicUsersError(
           'No hay consultorio activo para cargar usuarios.',
@@ -221,7 +247,7 @@ function App() {
       setIsClinicUsersLoading(true)
       setClinicUsersError('')
 
-      const { data, error } = await getClinicUsers(currentClinic.id)
+      const { data, error } = await listClinicMembers()
 
       if (!isMounted) {
         return
@@ -229,16 +255,17 @@ function App() {
 
       if (error) {
         setClinicUsers([])
+        setClinicMembersCount(0)
         setClinicUsersError(error)
         setIsClinicUsersLoading(false)
         return
       }
 
-      if ((data?.length ?? 0) === 0 && profile?.clinic_id === currentClinic.id) {
-        setClinicUsers([mapProfileToClinicUser(profile)])
-      } else {
-        setClinicUsers(data ?? [])
-      }
+      setClinicUsers(data?.members ?? [])
+      setClinicMembersCount(data?.memberCount ?? 0)
+      setClinicMembersMaxUsers(
+        data?.plan.maxUsers ?? getPlanFeatures(currentPlanId).maxUsers,
+      )
       setIsClinicUsersLoading(false)
     }
 
@@ -247,13 +274,19 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [canAccessAdministration, currentClinic?.id, isDemoMode, profile])
+  }, [
+    currentClinic?.id,
+    currentPlanId,
+    isDemoMode,
+    permissions.canManageClinicUsers,
+    profile,
+  ])
 
   useEffect(() => {
     let isMounted = true
 
     async function loadPatients() {
-      if (canAccessAdministration) {
+      if (!permissions.canAccessPatients) {
         setPatients([])
         setIsPatientsLoading(false)
         setPatientsError('')
@@ -299,13 +332,13 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [canAccessAdministration, currentClinic?.id, isDemoMode])
+  }, [currentClinic?.id, isDemoMode, permissions.canAccessPatients])
 
   useEffect(() => {
     let isMounted = true
 
     async function loadReminders() {
-      if (canAccessAdministration) {
+      if (!permissions.canAccessReminders) {
         setReminders([])
         setIsRemindersLoading(false)
         setRemindersError('')
@@ -357,17 +390,17 @@ function App() {
     }
   }, [
     appointments,
-    canAccessAdministration,
     currentClinic?.id,
     isDemoMode,
     patients,
+    permissions.canAccessReminders,
   ])
 
   useEffect(() => {
     let isMounted = true
 
     async function loadAppointments() {
-      if (canAccessAdministration) {
+      if (!permissions.canAccessAppointments) {
         setAppointments([])
         setIsAppointmentsLoading(false)
         setAppointmentsError('')
@@ -416,13 +449,18 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [canAccessAdministration, currentClinic?.id, isDemoMode, patients])
+  }, [
+    currentClinic?.id,
+    isDemoMode,
+    patients,
+    permissions.canAccessAppointments,
+  ])
 
   useEffect(() => {
     let isMounted = true
 
     async function loadSettings() {
-      if (canAccessAdministration) {
+      if (!canLoadOperationalSettings) {
         setTreatments([])
         setBusinessHours(getClosedBusinessHoursSettings())
         setCalendarExceptions([])
@@ -472,7 +510,9 @@ function App() {
         getTreatmentsByClinic(currentClinic.id),
         getBusinessHoursByClinic(currentClinic.id),
         getCalendarExceptionsByClinic(currentClinic.id),
-        getWhatsappSettingsByClinic(currentClinic.id),
+        permissions.canManageWhatsapp
+          ? getWhatsappSettingsByClinic(currentClinic.id)
+          : Promise.resolve({ data: null, error: null }),
       ])
 
       if (!isMounted) {
@@ -515,7 +555,12 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [canAccessAdministration, currentClinic?.id, isDemoMode])
+  }, [
+    canLoadOperationalSettings,
+    currentClinic?.id,
+    isDemoMode,
+    permissions.canManageWhatsapp,
+  ])
 
   async function handleCreatePatient(values: PatientFormValues) {
     if (isDemoMode) {
@@ -1144,6 +1189,13 @@ function App() {
   async function handleSaveWhatsappSettings(
     values: WhatsappSettingsFormValues,
   ) {
+    if (!permissions.canManageWhatsapp) {
+      return {
+        error: 'Tu rol o plan no permite configurar WhatsApp automático.',
+        success: false,
+      }
+    }
+
     if (isDemoMode) {
       setWhatsappSettings({
         businessAccountId: values.businessAccountId,
@@ -1184,17 +1236,9 @@ function App() {
   }
 
   async function handleCreateClinicUser(values: ClinicUserFormValues) {
-    if (!canUseTeamManagement) {
+    if (!permissions.canManageClinicUsers) {
       return {
-        error:
-          'La gestión de usuarios está pausada mientras se completa la nueva arquitectura de planes.',
-        success: false,
-      }
-    }
-
-    if (!canManageUsers(profile?.role)) {
-      return {
-        error: 'Solo un administrador puede agregar usuarios.',
+        error: 'Tu rol o plan no permite gestionar usuarios.',
         success: false,
       }
     }
@@ -1210,10 +1254,11 @@ function App() {
           fullName: values.fullName,
           id: `demo-user-${currentUsers.length + 1}`,
           invitedAt: new Date().toISOString(),
-          isActive: true,
           role: values.role,
+          status: 'pending_activation',
         },
       ])
+      setClinicMembersCount((currentCount) => currentCount + 1)
       setClinicUsersError('')
 
       return { success: true }
@@ -1226,7 +1271,14 @@ function App() {
       }
     }
 
-    const { data, error } = await createClinicUser(values)
+    if (clinicMembersCount >= clinicMembersMaxUsers) {
+      return {
+        error: 'Tu plan alcanzó el límite de usuarios.',
+        success: false,
+      }
+    }
+
+    const { data, error } = await inviteClinicMember(values)
 
     if (error || !data) {
       setClinicUsersError(error ?? 'No pudimos agregar el usuario.')
@@ -1236,7 +1288,10 @@ function App() {
       }
     }
 
-    setClinicUsers((currentUsers) => [data, ...currentUsers])
+    setClinicUsers((currentUsers) => [data.member, ...currentUsers])
+    if (data.member.status !== 'inactive') {
+      setClinicMembersCount((currentCount) => currentCount + 1)
+    }
     setClinicUsersError('')
 
     return { success: true }
@@ -1382,6 +1437,21 @@ function App() {
   }
 
   function renderActiveView() {
+    if (
+      !canAccessAppSection(
+        effectiveActiveSection,
+        permissions,
+        canAccessAdministration,
+      )
+    ) {
+      return (
+        <section className="access-denied-view" role="alert">
+          <h2>Acceso restringido</h2>
+          <p>No tienes permiso para acceder a esta sección.</p>
+        </section>
+      )
+    }
+
     if (effectiveActiveSection === 'patients-list') {
       return (
         <PatientsView
@@ -1432,6 +1502,8 @@ function App() {
       return (
         <PatientDetailView
           appointments={appointments}
+          canAccessClinicalHistory={permissions.canAccessClinicalHistory}
+          canAccessOdontogram={permissions.canAccessOdontogram}
           clinicalRecords={clinicalRecords}
           odontogramEntries={odontogramEntries}
           onCreateClinicalRecord={(values) =>
@@ -1524,14 +1596,16 @@ function App() {
           calendarExceptions={calendarExceptions}
           canMigrateOwnerEmail={
             !isDemoMode &&
-            canUseTeamManagement &&
+            permissions.canManageClinicUsers &&
             profile?.id === user?.id &&
             profile?.email === legacyOwnerEmail
           }
-          canManageUsers={canManageUsers(profile?.role)}
-          canUseTeamManagement={canUseTeamManagement}
+          canManageClinicUsers={permissions.canManageClinicUsers}
+          canManageWhatsapp={permissions.canManageWhatsapp}
           clinicUsers={clinicUsers}
           clinicUsersError={clinicUsersError}
+          clinicMembersCount={clinicMembersCount}
+          clinicMembersMaxUsers={clinicMembersMaxUsers}
           currentUserId={profile?.id ?? user?.id}
           isBusinessHoursConfigured={isBusinessHoursConfigured}
           isClinicUsersLoading={!isDemoMode && isClinicUsersLoading}
@@ -1567,6 +1641,7 @@ function App() {
       activeSection={effectiveActiveSection}
       canAccessAdministration={canAccessAdministration}
       onSectionChange={setActiveSection}
+      permissions={permissions}
     >
       {renderActiveView()}
     </AppLayout>

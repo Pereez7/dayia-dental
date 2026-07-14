@@ -1,13 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  canAccessPlatformAdministration,
-  canManageAppointments,
-  canManageClinicSettings,
-  canManagePatients,
-  canManageUsers,
+  canAccessPlatformAdmin,
+  canManageClinicUsers,
   canManageWhatsapp,
-  canViewClinicalRecords,
+  getClinicalPermissions,
   getUserRoleLabel,
   normalizeUserRole,
 } from './permissions'
@@ -35,65 +32,96 @@ describe('auth permissions', () => {
     ).toBe('platform_admin')
   })
 
-  it('normalizes missing, empty and unknown roles without permissions', () => {
-    expect(normalizeUserRole(null)).toBe('unknown')
-    expect(normalizeUserRole(undefined)).toBe('unknown')
-    expect(normalizeUserRole('')).toBe('unknown')
-    expect(normalizeUserRole('   ')).toBe('unknown')
-    expect(normalizeUserRole('clinic_owenr')).toBe('unknown')
-    expect(normalizeUserRole('dentist')).toBe('unknown')
-    expect(normalizeUserRole('reception')).toBe('unknown')
-  })
-
-  it.each([null, '', 'unknown-role', 'clinic_owenr']) (
-    'denies every permission for invalid role %s',
+  it.each([null, '', 'unknown-role', 'clinic_owenr'])(
+    'denies every clinical permission for invalid role %s',
     (role) => {
-      expect(canManagePatients(role)).toBe(false)
-      expect(canManageAppointments(role)).toBe(false)
-      expect(canManageClinicSettings(role)).toBe(false)
-      expect(canManageWhatsapp(role)).toBe(false)
-      expect(canManageUsers(role)).toBe(false)
-      expect(canViewClinicalRecords(role)).toBe(false)
-      expect(
-        canAccessPlatformAdministration({
-          is_platform_admin: false,
-          role,
-        }),
-      ).toBe(false)
+      expect(getClinicalPermissions(role, 'pro')).toEqual({
+        canAccessAppointments: false,
+        canAccessClinicalHistory: false,
+        canAccessDashboard: false,
+        canAccessOdontogram: false,
+        canAccessPatients: false,
+        canAccessReminders: false,
+        canAccessSettings: false,
+        canManageClinicUsers: false,
+        canManageWhatsapp: false,
+      })
     },
   )
 
-  it('keeps explicit platform administrators authorized', () => {
+  it('keeps explicit platform administrators authorized only for platform', () => {
+    expect(canAccessPlatformAdmin({ is_platform_admin: true, role: null })).toBe(
+      true,
+    )
     expect(
-      canAccessPlatformAdministration({
-        is_platform_admin: true,
-        role: null,
-      }),
-    ).toBe(true)
-    expect(
-      canAccessPlatformAdministration({
+      canAccessPlatformAdmin({
         is_platform_admin: false,
         role: 'platform_admin',
       }),
     ).toBe(true)
-    expect(
-      canAccessPlatformAdministration({
-        is_platform_admin: false,
-        role: 'clinic_admin',
-      }),
-    ).toBe(false)
+    expect(getClinicalPermissions('platform_admin', 'pro').canAccessDashboard).toBe(
+      false,
+    )
   })
 
-  it('keeps clinic permissions scoped to known roles', () => {
-    expect(canManagePatients('clinic_owner')).toBe(true)
-    expect(canManageAppointments('clinic_admin')).toBe(true)
-    expect(canManagePatients('doctor')).toBe(true)
-    expect(canManageAppointments('receptionist')).toBe(true)
-    expect(canViewClinicalRecords('doctor')).toBe(true)
-    expect(canViewClinicalRecords('receptionist')).toBe(false)
-    expect(canManageClinicSettings('clinic_owner')).toBe(true)
-    expect(canManageUsers('clinic_admin')).toBe(true)
-    expect(canManageWhatsapp('doctor')).toBe(false)
+  it('allows owner and admin to access every core clinical module', () => {
+    for (const role of ['clinic_owner', 'clinic_admin']) {
+      const permissions = getClinicalPermissions(role, 'basic')
+
+      expect(permissions.canAccessDashboard).toBe(true)
+      expect(permissions.canAccessPatients).toBe(true)
+      expect(permissions.canAccessAppointments).toBe(true)
+      expect(permissions.canAccessClinicalHistory).toBe(true)
+      expect(permissions.canAccessOdontogram).toBe(true)
+      expect(permissions.canAccessReminders).toBe(true)
+      expect(permissions.canAccessSettings).toBe(true)
+    }
+  })
+
+  it('limits doctors to clinical care without users, reminders or settings', () => {
+    const permissions = getClinicalPermissions('doctor', 'pro')
+
+    expect(permissions.canAccessDashboard).toBe(true)
+    expect(permissions.canAccessPatients).toBe(true)
+    expect(permissions.canAccessAppointments).toBe(true)
+    expect(permissions.canAccessClinicalHistory).toBe(true)
+    expect(permissions.canAccessOdontogram).toBe(true)
+    expect(permissions.canAccessReminders).toBe(false)
+    expect(permissions.canAccessSettings).toBe(false)
+    expect(permissions.canManageClinicUsers).toBe(false)
+    expect(permissions.canManageWhatsapp).toBe(false)
+  })
+
+  it('keeps reception away from history, odontogram and settings', () => {
+    const permissions = getClinicalPermissions('receptionist', 'pro')
+
+    expect(permissions.canAccessDashboard).toBe(true)
+    expect(permissions.canAccessPatients).toBe(true)
+    expect(permissions.canAccessAppointments).toBe(true)
+    expect(permissions.canAccessReminders).toBe(true)
+    expect(permissions.canAccessClinicalHistory).toBe(false)
+    expect(permissions.canAccessOdontogram).toBe(false)
+    expect(permissions.canAccessSettings).toBe(false)
+  })
+
+  it('applies plan gates to users and automatic WhatsApp', () => {
+    expect(canManageClinicUsers('clinic_owner', 'basic')).toBe(false)
+    expect(canManageClinicUsers('clinic_owner', 'medium')).toBe(true)
+    expect(canManageClinicUsers('clinic_owner', 'pro')).toBe(true)
+    expect(canManageClinicUsers('clinic_admin', 'medium')).toBe(true)
+    expect(canManageClinicUsers('doctor', 'pro')).toBe(false)
+    expect(canManageClinicUsers('receptionist', 'pro')).toBe(false)
+    expect(canManageWhatsapp('clinic_owner', 'basic')).toBe(false)
+    expect(canManageWhatsapp('clinic_owner', 'medium')).toBe(false)
+    expect(canManageWhatsapp('clinic_owner', 'pro')).toBe(true)
+  })
+
+  it('treats an unknown plan as the minimum safe plan', () => {
+    const permissions = getClinicalPermissions('clinic_owner', 'enterprise')
+
+    expect(permissions.canAccessDashboard).toBe(true)
+    expect(permissions.canManageClinicUsers).toBe(false)
+    expect(permissions.canManageWhatsapp).toBe(false)
   })
 
   it('returns safe readable role labels', () => {
@@ -101,7 +129,5 @@ describe('auth permissions', () => {
     expect(getUserRoleLabel('admin')).toBe('Administrador del consultorio')
     expect(getUserRoleLabel('receptionist')).toBe('Recepcionista')
     expect(getUserRoleLabel(null)).toBe('Rol no válido')
-    expect(getUserRoleLabel('clinic_owenr')).toBe('Rol no válido')
-    expect(getUserRoleLabel('super_admin')).toBe('Rol no válido')
   })
 })

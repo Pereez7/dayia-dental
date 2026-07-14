@@ -19,6 +19,32 @@ Registro breve de cambios relevantes en DayIA Dental.
   quedan reducidos a Basic en frontend.
 - La bandera `profiles.is_platform_admin` permanece independiente del rol
   clínico, permitiendo conservar ambos datos de contexto en la sesión.
+- Se agregó una matriz única de permisos por rol y plan para sidebar, acciones
+  rápidas, protección de vistas y carga de datos.
+- Recepción dejó de ver Historial clínico y Odontograma, incluso dentro del
+  detalle de paciente; Doctor dejó de acceder a configuración sensible.
+- Usuarios del consultorio se muestra solo para owner/admin con Medium o Pro.
+- WhatsApp automático se muestra y carga solo para owner/admin con Pro.
+- Los planes desconocidos aplican el mínimo seguro y no habilitan capacidades
+  premium.
+- Se corrigieron las tildes visibles de Historial clínico, Configuración y
+  Administración DayIA.
+- Usuarios del consultorio ahora lista roles y estados desde
+  `clinic_memberships`, sin depender de `profiles.role` ni `profiles.clinic_id`.
+- Se agregó `invite-clinic-member`, protegida por JWT, membership activa,
+  owner/admin, suscripción real y límites Medium 4 / Pro 10.
+- La invitación solo admite `clinic_admin`, `doctor` y `receptionist`; rechaza
+  owners adicionales, administradores de plataforma y memberships duplicadas.
+- Las cuentas nuevas usan invitación de Supabase Auth sin contraseña visible y
+  quedan `pending_activation`; las cuentas confirmadas pueden reutilizarse sin
+  sobrescribir `is_platform_admin`.
+- La UI muestra nombre, email, rol, estado, fecha de invitación y contador del
+  plan, y bloquea nuevas invitaciones cuando se agota el cupo.
+- La migración `015` amplía la activación existente a miembros clínicos y
+  mantiene la activación del consultorio reservada a `clinic_owner`.
+- La migración `016` aplica el límite de miembros de forma transaccional para
+  impedir sobrecupos por invitaciones concurrentes.
+- `create-clinic-user` queda documentada como legacy/deprecated.
 
 ## 2026-07-13
 

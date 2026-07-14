@@ -91,6 +91,11 @@ a comprobar ese permiso antes de cargar y la Function aplica la autorización
 definitiva en servidor. Un usuario no autorizado recibe `403` y no obtiene el
 listado aunque fuerce la sección desde el cliente.
 
+La navegación de un `platform_admin` puro contiene únicamente Administración
+DayIA. Sus acciones rápidas y loaders clínicos permanecen desactivados. El rol
+de plataforma no concede por sí mismo acceso a pacientes, citas, historial,
+odontograma, recordatorios o configuración clínica.
+
 ## Alta de consultorios
 
 ## Alta protegida de consultorios
@@ -135,6 +140,11 @@ npx supabase db push
 npx supabase functions deploy list-platform-clinics
 npx supabase functions deploy create-platform-clinic
 ```
+
+La gestión de usuarios clínicos no forma parte de Administración DayIA.
+`invite-clinic-member` se autoriza exclusivamente con una membership clínica
+activa `clinic_owner` o `clinic_admin` y un plan Medium/Pro; el flag de
+plataforma por sí solo no concede acceso a ese endpoint.
 
 Verificar el secret sin habilitarlo:
 

@@ -28,6 +28,8 @@ import {
 
 interface PatientDetailViewProps {
   appointments: Appointment[]
+  canAccessClinicalHistory: boolean
+  canAccessOdontogram: boolean
   clinicalRecords: ClinicalRecord[]
   odontogramEntries: OdontogramEntry[]
   onCreateClinicalRecord: (values: ClinicalRecordFormValues) => void
@@ -41,6 +43,8 @@ interface PatientDetailViewProps {
 
 export function PatientDetailView({
   appointments,
+  canAccessClinicalHistory,
+  canAccessOdontogram,
   clinicalRecords,
   odontogramEntries,
   onCreateClinicalRecord,
@@ -60,14 +64,12 @@ export function PatientDetailView({
   const ageLabel = patient.birthDate
     ? `${calculatePatientAge(patient.birthDate)} años`
     : 'Sin registro'
-  const patientClinicalRecords = getClinicalRecordsByPatient(
-    clinicalRecords,
-    patient.id,
-  )
-  const patientOdontogramEntries = getOdontogramEntriesByPatient(
-    odontogramEntries,
-    patient.id,
-  )
+  const patientClinicalRecords = canAccessClinicalHistory
+    ? getClinicalRecordsByPatient(clinicalRecords, patient.id)
+    : []
+  const patientOdontogramEntries = canAccessOdontogram
+    ? getOdontogramEntriesByPatient(odontogramEntries, patient.id)
+    : []
   const lastVisitLabel = formatOptionalCompactDateWithYear(patient.lastVisit)
   const birthDateLabel = formatOptionalCompactDateWithYear(patient.birthDate)
   const nextAppointmentLabel = nextActiveAppointment
@@ -139,33 +141,37 @@ export function PatientDetailView({
           <PatientAppointmentsList appointments={upcomingAppointments} />
         </article>
 
-        <article className="patient-detail-panel patient-clinical-panel">
-          <div className="section-heading">
-            <p className="eyebrow">Seguimiento odontologico</p>
-            <h2>Historial clinico</h2>
-            <p className="section-description">
-              Registra evoluciones basicas asociadas a este paciente.
-            </p>
-          </div>
+        {canAccessClinicalHistory && (
+          <article className="patient-detail-panel patient-clinical-panel">
+            <div className="section-heading">
+              <p className="eyebrow">Seguimiento odontologico</p>
+              <h2>Historial clínico</h2>
+              <p className="section-description">
+                Registra evoluciones basicas asociadas a este paciente.
+              </p>
+            </div>
 
-          <ClinicalRecordForm onCreateRecord={onCreateClinicalRecord} />
-          <ClinicalRecordsList records={patientClinicalRecords} />
-        </article>
+            <ClinicalRecordForm onCreateRecord={onCreateClinicalRecord} />
+            <ClinicalRecordsList records={patientClinicalRecords} />
+          </article>
+        )}
 
-        <article className="patient-detail-panel patient-odontogram-panel">
-          <div className="section-heading">
-            <p className="eyebrow">Registro dental</p>
-            <h2>Odontograma</h2>
-            <p className="section-description">
-              Registra estados basicos por pieza dental permanente.
-            </p>
-          </div>
+        {canAccessOdontogram && (
+          <article className="patient-detail-panel patient-odontogram-panel">
+            <div className="section-heading">
+              <p className="eyebrow">Registro dental</p>
+              <h2>Odontograma</h2>
+              <p className="section-description">
+                Registra estados basicos por pieza dental permanente.
+              </p>
+            </div>
 
-          <PatientOdontogram
-            entries={patientOdontogramEntries}
-            onSaveTooth={onSaveOdontogramTooth}
-          />
-        </article>
+            <PatientOdontogram
+              entries={patientOdontogramEntries}
+              onSaveTooth={onSaveOdontogramTooth}
+            />
+          </article>
+        )}
       </section>
     </section>
   )

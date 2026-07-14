@@ -2893,6 +2893,17 @@
   min-width: 0;
 }
 
+.clinic-users-limit {
+  margin: 2px 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.clinic-users-limit strong {
+  color: var(--color-heading);
+  font-weight: 650;
+}
+
 .clinic-user-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -3203,6 +3214,27 @@
   border-radius: var(--radius-lg);
   background: #fffafb;
   padding: 22px;
+}
+
+.access-denied-view {
+  display: grid;
+  gap: 8px;
+  width: min(100%, 620px);
+  border: 1px solid #f1c7d2;
+  border-radius: var(--radius-lg);
+  background: #fffafb;
+  padding: 22px;
+}
+
+.access-denied-view h2,
+.access-denied-view p {
+  margin: 0;
+}
+
+.access-denied-view p {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.5;
 }
 
 .platform-admin-access-denied h2,

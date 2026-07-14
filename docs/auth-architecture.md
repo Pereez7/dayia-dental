@@ -101,6 +101,38 @@ consultorio. Auth carga `clinic_subscriptions.plan_id` para el consultorio
 resuelto y la UI obtiene las capacidades Basic, Medium o Pro desde ese valor;
 ya no fuerza Basic para todas las sesiones reales.
 
+## Matriz de permisos clínicos
+
+La navegación, las acciones rápidas, las vistas y los loaders consumen la misma
+matriz denegada por defecto. El rol sale de la membership activa y el plan de la
+suscripción del consultorio.
+
+| Módulo | Owner | Admin | Doctor | Recepción |
+| --- | --- | --- | --- | --- |
+| Dashboard | Sí | Sí | Sí | Sí |
+| Pacientes | Sí | Sí | Sí | Sí |
+| Citas | Sí | Sí | Sí | Sí |
+| Historial clínico | Sí | Sí | Sí | No |
+| Odontograma | Sí | Sí | Sí | No |
+| Recordatorios operativos | Sí | Sí | No | Sí |
+| Configuración | Sí | Sí | No | No |
+
+`platform_admin` no recibe permisos clínicos por su rol de plataforma y, sin
+contexto clínico seleccionado, solo ve Administración DayIA. Un rol nulo o
+desconocido no obtiene módulos ni acciones.
+
+## Matriz de capacidades por plan
+
+| Capacidad | Basic | Medium | Pro |
+| --- | --- | --- | --- |
+| Operación clínica base | Sí | Sí | Sí |
+| Usuarios del consultorio | No | Owner/Admin | Owner/Admin |
+| WhatsApp automático | No | No | Owner/Admin |
+| Reportes avanzados futuros | No | No | Preparado |
+
+Un plan nulo o desconocido conserva únicamente la operación clínica base que
+permita el rol. No habilita Usuarios, WhatsApp automático ni funciones premium.
+
 ## Caso doctor dueño con Basic
 
 El doctor dueño trabaja solo:
@@ -115,8 +147,8 @@ La UI oculta "Usuarios del consultorio" mientras el plan no permita equipo.
 
 ## Caso consultorio con equipo
 
-Un consultorio con plan `medium` o `pro` podra agregar equipo. Esa invitacion
-debe pasar por una Edge Function futura que valide:
+Un consultorio con plan `medium` o `pro` puede agregar equipo. La invitación
+pasa por `invite-clinic-member`, que valida:
 
 - rol `clinic_owner` o `clinic_admin`;
 - plan con `can_manage_team = true`;
@@ -127,16 +159,31 @@ debe pasar por una Edge Function futura que valide:
 
 ## Invitaciones
 
-La Function actual `create-clinic-user` queda como flujo transitorio. La nueva
-Function futura recomendada es `invite-clinic-member`.
+`invite-clinic-member` es el flujo principal de Usuarios del consultorio.
+`create-clinic-user` permanece desplegable solo como legado/deprecated y no es
+invocada por el frontend.
 
-Reglas esperadas:
+Reglas aplicadas:
 
 - no usar `service_role` en React;
 - crear o actualizar `profiles`;
-- crear `clinic_memberships` en estado `pending`;
-- enviar invitacion segura;
-- activar membership cuando el usuario complete acceso.
+- crear `clinic_memberships` en `pending_activation` para cuentas nuevas;
+- reutilizar una cuenta confirmada sin modificar `is_platform_admin`;
+- admitir solo `clinic_admin`, `doctor` y `receptionist`;
+- contar memberships `active`, `pending` y `pending_activation` contra el
+  límite: Basic 1, Medium 4 y Pro 10;
+- enviar la invitación de Supabase Auth a `/activar-cuenta` cuando la cuenta es
+  nueva;
+- activar la membership mediante `complete-account-activation` al completar la
+  contraseña.
+
+La inserción final usa `insert_clinic_membership_with_limit`, un RPC restringido
+a `service_role` que bloquea por consultorio y aplica el cupo de forma atómica.
+
+El listado también pasa por la Function y queda limitado al consultorio activo
+resuelto desde la membership del solicitante. El multi-consultorio y su selector
+siguen pendientes; mientras tanto se usa la membership activa más recientemente
+activada, con desempate por fecha de creación.
 
 ## Migracion temporal
 

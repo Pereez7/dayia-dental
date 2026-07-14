@@ -3,6 +3,27 @@
 Este roadmap resume la direccion funcional de DayIA Dental. No implica que todos
 los modulos esten implementados hoy.
 
+## Permisos por rol y plan
+
+Estado: implementado en frontend.
+
+- El rol clínico se resuelve desde `clinic_memberships.role` y el plan desde
+  `clinic_subscriptions.plan_id`.
+- Sidebar, acciones rápidas, vistas y loaders usan una matriz común con
+  denegación por defecto.
+- Recepción no monta Historial clínico ni Odontograma, incluso dentro del
+  detalle de paciente.
+- Doctor no accede a Usuarios, WhatsApp automático ni Configuración.
+- Usuarios del consultorio requiere owner/admin con Medium o Pro.
+- WhatsApp automático requiere owner/admin con Pro.
+- Administración DayIA permanece separada de los módulos clínicos.
+
+Pendiente:
+
+- Selector multi-consultorio y cambio explícito entre contexto plataforma y
+  contexto clínico.
+- Llevar la misma matriz a RLS clínica en una migración separada.
+
 ## Modulos principales
 
 ### Dashboard
@@ -333,11 +354,18 @@ Implementado:
 - Botones compactos y coherentes con Recordatorios.
 - Conexion con Nueva Cita para mostrar solo tratamientos activos.
 - Pruebas unitarias para utilidades de tratamientos y horarios.
+- Usuarios del consultorio listados desde `clinic_memberships`.
+- Invitación segura de administradores, doctores y recepción mediante
+  `invite-clinic-member`.
+- Límites de equipo: Medium 4 y Pro 10 miembros activos o pendientes.
+- Activación de miembros invitados mediante la vista existente
+  `/activar-cuenta`.
 
 Pendiente:
 
 - Datos del consultorio.
-- Usuarios.
+- Selector de consultorio para usuarios con varias memberships activas.
+- Reenvío y revocación de invitaciones de usuarios.
 - Preferencias y ajustes de notificaciones.
 - Persistencia de tratamientos.
 - Persistencia de horarios.

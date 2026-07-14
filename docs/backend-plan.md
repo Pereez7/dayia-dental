@@ -197,6 +197,13 @@ membership activa. Si no existe ninguna, usa el perfil como fallback temporal.
 El plan de sesión sale de `clinic_subscriptions.plan_id`, no de un valor Basic
 hardcodeado.
 
+La app aplica una matriz frontend única para navegación, acciones rápidas,
+protección de vistas y carga de datos. Owner y admin conservan operación y
+configuración; doctor no accede a Usuarios, WhatsApp ni configuración sensible;
+Recepción no accede a historial ni odontograma. Usuarios requiere Medium/Pro y
+WhatsApp automático requiere Pro. Planes desconocidos no habilitan capacidades
+premium.
+
 ## Gestión de usuarios del consultorio
 
 Configuracion incluia una seccion basica de "Usuarios del consultorio". Mientras
@@ -210,10 +217,23 @@ fecha de creacion y estado. Ese flujo no se elimina todavia, pero la fuente de
 permisos clínicos ya es la membership activa y el plan real del consultorio. La
 selección explícita entre varios consultorios queda pendiente.
 
-El frontend no debe crear usuarios directamente con la anon key y nunca usa
-`service_role`. La Function legacy `create-clinic-user` queda como referencia
-transitoria, pero el siguiente flujo real debe ser `invite-clinic-member`, usando
-`clinic_memberships`, plan activo, limites de usuarios e invitacion segura.
+El frontend no crea usuarios directamente con la anon key y nunca usa
+`service_role`. El flujo real es `invite-clinic-member`: resuelve la membership
+activa con el JWT, exige owner/admin, verifica la suscripción y el límite del
+plan y recién entonces usa `service_role`. `create-clinic-user` queda como
+referencia legacy/deprecated y ya no es invocada por React.
+
+Medium admite hasta 4 miembros y Pro hasta 10. Cuentan los estados `active`,
+`pending` y `pending_activation`; `inactive` no consume cupo. Solo pueden
+invitarse `clinic_admin`, `doctor` y `receptionist`. Un email ya vinculado al
+mismo consultorio produce `409`; una cuenta existente de otro consultorio puede
+recibir una membership adicional sin sobrescribir su perfil ni su bandera de
+plataforma.
+
+Las cuentas nuevas se crean con `inviteUserByEmail` y redirección a
+`/activar-cuenta`. La migración `015_generalize_member_activation.sql` permite
+que `complete-account-activation` active cualquier membership pendiente del
+usuario; la activación del estado del consultorio continúa reservada al owner.
 
 No se guardan contrasenas en frontend, base de datos ni repositorio. Las claves
 secretas necesarias para Admin API pertenecen al entorno seguro de Supabase
@@ -222,26 +242,29 @@ el desarrollo fluido sin configurar credenciales reales.
 
 ## Creación segura de usuarios
 
-La creacion/invitacion de usuarios desde la UI actual queda pausada hasta que el
-flujo nuevo use memberships, planes y limites de usuarios. En plan Basic no se
-muestra gestion de usuarios: el doctor dueño puede operar pacientes, citas,
-agenda, configuracion y recordatorios sin equipo adicional.
+La creación/invitación usa memberships, planes y límites reales. En Basic no se
+muestra gestión de usuarios: el doctor dueño puede operar pacientes, citas,
+agenda, configuración y recordatorios sin equipo adicional.
 
-La Function futura recomendada es `invite-clinic-member`. El frontend debera
-invocarla con la sesion actual y solo enviar datos de invitacion; nunca enviara
-contrasenas, tokens, `service_role`, `clinic_id` confiado ni roles de plataforma.
+El frontend invoca `invite-clinic-member` con la sesión actual y solo envía
+nombre, email y rol de invitación; nunca envía contraseñas, tokens,
+`service_role`, un `clinic_id` confiado ni roles de plataforma.
 
-La Edge Function debera usar `SUPABASE_SERVICE_ROLE_KEY` desde Supabase Secrets,
-validar el JWT del solicitante, resolver la membresia activa, confirmar que el
-rol sea `clinic_owner` o `clinic_admin`, validar que el plan permita
-`can_manage_team`, respetar `max_users` y crear una membership `pending`.
+La Edge Function usa `SUPABASE_SERVICE_ROLE_KEY` desde Supabase Secrets después
+de validar JWT, membership activa, rol `clinic_owner`/`clinic_admin`, plan con
+`can_manage_team` y `max_users`. Una cuenta nueva queda en membership
+`pending_activation`; una cuenta existente confirmada puede quedar `active`.
+La migración `016_atomic_clinic_member_invitation.sql` serializa las altas por
+consultorio y vuelve a comprobar plan, duplicado y cupo dentro de la misma
+transacción para evitar exceder el límite con invitaciones concurrentes.
 
 La invitacion redirige a `/activar-cuenta`, donde el usuario invitado define su
 contrasena con `supabase.auth.updateUser({ password })`. Esa pantalla es
 publica dentro del frontend y tiene prioridad sobre el flujo normal de Auth
 para evitar enviar al usuario al dashboard antes de terminar su contrasena. Al
-activarse, la app intenta marcar `activated_at` en el propio perfil y luego
-cierra la sesion temporal del enlace para volver al login.
+activarse, la app llama a `complete-account-activation`, que marca el perfil y
+sus memberships pendientes, y luego cierra la sesión temporal para volver al
+login.
 
 La URL base del frontend puede definirse con `VITE_APP_URL`, por ejemplo
 `http://localhost:5173` en desarrollo local. En Supabase Auth tambien debe
@@ -513,8 +536,8 @@ La arquitectura preparada usa:
   `reminderId`.
 - Edge Function `process-due-reminders` para el futuro job programado.
 - Edge Function `whatsapp-webhook` para verificacion y estados futuros.
-- Edge Function `create-clinic-user` para crear usuarios del consultorio sin
-  exponer `service_role` en frontend.
+- Edge Function `invite-clinic-member` para listar e invitar miembros sin
+  exponer `service_role` en frontend. `create-clinic-user` queda deprecated.
 
 Por defecto, las funciones deben operar en modo dry-run. El envio real solo
 podra activarse explicitamente con `WHATSAPP_SEND_ENABLED=true` desde backend.
@@ -549,8 +572,8 @@ La preparacion actual agrega:
 - Tipos backend base en `src/types/database.ts`.
 - Servicios reales de Pacientes, Citas, Configuracion y Recordatorios, con
   placeholders pendientes para otros modulos en `src/services`.
-- Gestion basica de usuarios del consultorio en Configuracion, con lectura de
-  perfiles del mismo consultorio y Edge Function preparada para altas seguras.
+- Gestión de usuarios del consultorio en Configuración basada en memberships,
+  roles permitidos, estados de activación y límites reales Medium/Pro.
 - SQL inicial y policies Auth en `supabase/migrations`.
 
 Pacientes, Citas, Configuracion y Recordatorios consumen Supabase en modo real

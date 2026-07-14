@@ -23,6 +23,8 @@ interface ClinicUsersSettingsProps {
   currentUserId?: string | null
   errorMessage?: string
   isLoading?: boolean
+  maxUsers: number
+  memberCount: number
   onCreateUser: (
     values: ClinicUserFormValues,
   ) =>
@@ -46,6 +48,8 @@ export function ClinicUsersSettings({
   currentUserId,
   errorMessage = '',
   isLoading = false,
+  maxUsers,
+  memberCount,
   onCreateUser,
   onMigrateOwnerEmail,
   users,
@@ -72,6 +76,7 @@ export function ClinicUsersSettings({
   )
   const isCurrentUserOnly =
     isOnlyCurrentClinicUser(sortedUsers, currentUserId)
+  const hasReachedLimit = memberCount >= maxUsers
 
   useEffect(() => {
     if (!isToastVisible) {
@@ -102,6 +107,11 @@ export function ClinicUsersSettings({
       return
     }
 
+    if (hasReachedLimit) {
+      setFormMessage('Tu plan alcanzó el límite de usuarios.')
+      return
+    }
+
     setIsSubmitting(true)
     const result = await onCreateUser({
       email: normalizeClinicUserEmail(formValues.email),
@@ -122,9 +132,7 @@ export function ClinicUsersSettings({
     setFormValues(initialFormValues)
     setFieldErrors({})
     setFormMessage('')
-    setToastMessage(
-      'Usuario agregado. Se envió una invitación para activar su acceso.',
-    )
+    setToastMessage('Usuario invitado al consultorio.')
     setToastTone('success')
     setIsToastVisible(true)
   }
@@ -161,6 +169,9 @@ export function ClinicUsersSettings({
           Administra quién puede acceder a este consultorio. Si trabajas solo,
           no necesitas agregar más usuarios.
         </p>
+        <p className="clinic-users-limit" aria-live="polite">
+          Usuarios: <strong>{memberCount} de {maxUsers}</strong>
+        </p>
       </div>
 
       {errorMessage && (
@@ -176,9 +187,8 @@ export function ClinicUsersSettings({
 
         {!isLoading &&
           sortedUsers.map((user) => {
-            const isInvitationPending = Boolean(
-              user.invitedAt && !user.activatedAt,
-            )
+            const isInvitationPending =
+              user.status === 'pending' || user.status === 'pending_activation'
             const shouldShowOwnerEmailMigration =
               canMigrateOwnerEmail &&
               !isOwnerEmailActionHidden &&
@@ -196,9 +206,11 @@ export function ClinicUsersSettings({
                   </div>
                   <p>{user.email || 'Email no disponible'}</p>
                   <span>
-                    {user.createdAt
-                      ? `Creado el ${formatClinicUserDate(user.createdAt)}`
-                      : 'Fecha de creación pendiente'}
+                    {user.invitedAt
+                      ? `Invitado el ${formatClinicUserDate(user.invitedAt)}`
+                      : user.createdAt
+                        ? `Miembro desde el ${formatClinicUserDate(user.createdAt)}`
+                        : 'Fecha de invitación pendiente'}
                   </span>
                 </div>
                 <div className="clinic-user-badges">
@@ -209,14 +221,14 @@ export function ClinicUsersSettings({
                     className={`clinic-user-status ${
                       isInvitationPending
                         ? 'clinic-user-status--invited'
-                        : user.isActive
+                        : user.status === 'active'
                           ? 'clinic-user-status--active'
                           : 'clinic-user-status--inactive'
                     }`}
                   >
                     {isInvitationPending
-                      ? 'Invitación enviada'
-                      : user.isActive
+                      ? 'Pendiente'
+                      : user.status === 'active'
                         ? 'Activo'
                         : 'Inactivo'}
                   </span>
@@ -243,7 +255,7 @@ export function ClinicUsersSettings({
 
       {canManageUsers ? (
         <form className="clinic-user-form" noValidate onSubmit={handleSubmit}>
-          <h3>Agregar usuario</h3>
+          <h3>Invitar usuario</h3>
           <label>
             <span>Nombre completo</span>
             <input
@@ -251,6 +263,7 @@ export function ClinicUsersSettings({
                 fieldErrors.fullName ? 'clinic-user-name-error' : undefined
               }
               aria-invalid={Boolean(fieldErrors.fullName)}
+              disabled={hasReachedLimit || isSubmitting}
               value={formValues.fullName}
               onChange={(event) => {
                 const fullName = event.target.value
@@ -284,6 +297,7 @@ export function ClinicUsersSettings({
               }
               aria-invalid={Boolean(fieldErrors.email)}
               inputMode="email"
+              disabled={hasReachedLimit || isSubmitting}
               type="email"
               value={formValues.email}
               onChange={(event) => {
@@ -313,6 +327,7 @@ export function ClinicUsersSettings({
           <label>
             <span>Rol</span>
             <select
+              disabled={hasReachedLimit || isSubmitting}
               value={formValues.role}
               onChange={(event) => {
                 setFormValues((currentValues) => ({
@@ -331,12 +346,18 @@ export function ClinicUsersSettings({
 
           {formMessage && <p className="settings-note">{formMessage}</p>}
 
+          {hasReachedLimit && (
+            <p className="field-message field-message--error">
+              Tu plan alcanzó el límite de usuarios.
+            </p>
+          )}
+
           <button
             className="primary-action"
-            disabled={isSubmitting}
+            disabled={hasReachedLimit || isSubmitting}
             type="submit"
           >
-            {isSubmitting ? 'Agregando...' : 'Agregar usuario'}
+            {isSubmitting ? 'Invitando...' : 'Invitar usuario'}
           </button>
         </form>
       ) : (

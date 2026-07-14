@@ -1,14 +1,15 @@
+import type { ClinicalPermissions } from '../auth/permissions'
 import type { AppSection } from './navigation'
 import {
-  administrationNavigationItem,
-  navigationItems,
-  quickActions,
+  getVisibleNavigationItems,
+  getVisibleQuickActions,
 } from './navigation'
 import { SessionSummary } from './SessionSummary'
 
 interface SidebarProps {
   activeSection: AppSection
   canAccessAdministration?: boolean
+  permissions: ClinicalPermissions
   onSectionChange: (section: AppSection) => void
 }
 
@@ -16,10 +17,13 @@ export function Sidebar({
   activeSection,
   canAccessAdministration = false,
   onSectionChange,
+  permissions,
 }: SidebarProps) {
-  const visibleNavigationItems = canAccessAdministration
-    ? [administrationNavigationItem]
-    : navigationItems
+  const visibleNavigationItems = getVisibleNavigationItems(
+    permissions,
+    canAccessAdministration,
+  )
+  const visibleQuickActions = getVisibleQuickActions(permissions)
 
   return (
     <aside className="sidebar" aria-label="Navegacion principal">
@@ -35,11 +39,11 @@ export function Sidebar({
 
       <SessionSummary />
 
-      {!canAccessAdministration && (
+      {!canAccessAdministration && visibleQuickActions.length > 0 && (
         <section className="sidebar-section" aria-label="Acciones rapidas">
           <p className="sidebar-section-label">Acciones</p>
           <div className="quick-actions">
-            {quickActions.map((action) => (
+            {visibleQuickActions.map((action) => (
               <button
                 className="quick-action"
                 key={action.id}

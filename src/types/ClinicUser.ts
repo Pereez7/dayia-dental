@@ -1,4 +1,4 @@
-import type { UserRole } from './database'
+import type { ClinicMembershipRecordStatus, UserRole } from './database'
 
 export type ClinicUserRole = 'clinic_admin' | 'doctor' | 'receptionist'
 
@@ -10,9 +10,25 @@ export interface ClinicUser {
   fullName: string
   id: string
   invitedAt: string | null
-  isActive: boolean
   role: UserRole
+  status: ClinicMembershipRecordStatus
 }
+
+export interface ClinicMembersPlanSummary {
+  id: string
+  maxUsers: number
+}
+
+export interface ClinicMembersList {
+  memberCount: number
+  members: ClinicUser[]
+  plan: ClinicMembersPlanSummary
+}
+
+export type ClinicMemberActivationStatus =
+  | 'already_active'
+  | 'not_sent'
+  | 'pending'
 
 export interface ClinicUserFormValues {
   email: string

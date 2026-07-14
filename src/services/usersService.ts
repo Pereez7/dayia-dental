@@ -48,10 +48,10 @@ export function mapProfileToClinicUser(profile: UserProfile): ClinicUser {
     fullName: profile.full_name?.trim() || 'Usuario sin nombre',
     id: profile.id,
     invitedAt: profile.invited_at ?? null,
-    isActive: profile.is_active ?? true,
     role: normalizeUserRole(profile.role, {
       allowLegacyPlatformAdmin: true,
     }),
+    status: profile.is_active === false ? 'inactive' : 'active',
   }
 }
 
@@ -156,10 +156,10 @@ function mapCreatedClinicUser(
     fullName: user.fullName?.trim() || 'Usuario sin nombre',
     id: user.id ?? '',
     invitedAt: user.invitedAt ?? null,
-    isActive: user.isActive ?? true,
     role: normalizeUserRole(user.role, {
       allowLegacyPlatformAdmin: true,
     }),
+    status: user.isActive === false ? 'inactive' : 'active',
   }
 }
 

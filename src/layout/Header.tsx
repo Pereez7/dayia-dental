@@ -26,8 +26,8 @@ const sectionContent: Record<AppSection, { title: string; description: string }>
     description: 'Prepara el flujo para programar una atencion odontologica.',
   },
   'clinical-history': {
-    title: 'Historial clinico',
-    description: 'Antecedentes, evoluciones y notas clinicas del paciente.',
+    title: 'Historial clínico',
+    description: 'Antecedentes, evoluciones y notas clínicas del paciente.',
   },
   odontogram: {
     title: 'Odontograma',
@@ -38,11 +38,11 @@ const sectionContent: Record<AppSection, { title: string; description: string }>
     description: 'Mensajes y seguimiento automatizado de citas.',
   },
   administration: {
-    title: 'Administracion DayIA',
-    description: 'Gestion interna de consultorios y planes.',
+    title: 'Administración DayIA',
+    description: 'Gestión interna de consultorios y planes.',
   },
   settings: {
-    title: 'Configuracion',
+    title: 'Configuración',
     description: 'Preferencias generales de DayIA Dental.',
   },
 }

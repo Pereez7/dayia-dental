@@ -133,6 +133,32 @@ muestra el rechazo controlado cuando el secret no es `true`. Nunca agregues
 `DAYIA_PLATFORM_CREATE_ENABLED` ni `SUPABASE_SERVICE_ROLE_KEY` a `.env`,
 variables `VITE_` o React.
 
+## Usuarios del consultorio
+
+Aplica la migración de activación y despliega las dos Functions involucradas:
+
+```bash
+npx supabase db push
+npx supabase functions deploy invite-clinic-member
+npx supabase functions deploy complete-account-activation
+```
+
+`invite-clinic-member` usa los secrets estándar `SUPABASE_URL`,
+`SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY`. Configura además
+`DAYIA_APP_URL` con la URL pública de la app, sin barra final, para que las
+invitaciones redirijan a `/activar-cuenta`.
+
+En Supabase Auth agrega como Redirect URL la ruta pública equivalente, por
+ejemplo `https://app.dayia.example/activar-cuenta`. Para desarrollo agrega
+`http://localhost:5173/activar-cuenta`. El enlace no se muestra en la UI: se
+envía mediante `inviteUserByEmail`; para una cuenta existente no confirmada la
+respuesta puede quedar `not_sent` hasta implementar reenvío de invitaciones.
+
+Prueba con owner/admin de Medium y Pro. Basic, doctor, recepción y un usuario
+sin membership activa deben recibir rechazo aunque invoquen la Function fuera
+de la UI. Confirma también que una membership pendiente pasa a `active` después
+de definir la contraseña en la vista de activación.
+
 Prueba primero los rechazos sin sesión, sin `is_platform_admin` y con feature
 flag deshabilitado. Cuando el secret esté habilitado, crea un consultorio sin
 datos clínicos y confirma que el listado se refresque con la nueva fila.
@@ -173,6 +199,9 @@ datos clínicos y confirma que el listado se refresque con la nueva fila.
 - Crear excepcion del calendario.
 - Eliminar excepcion del calendario.
 - Guardar configuracion no secreta de WhatsApp.
+- Listar únicamente memberships del consultorio activo.
+- Invitar un usuario y verificar `pending_activation`.
+- Bloquear la invitación al llegar a 4 miembros en Medium o 10 en Pro.
 
 ### E. Recordatorios
 
