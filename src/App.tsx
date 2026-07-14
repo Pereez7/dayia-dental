@@ -116,7 +116,14 @@ import { SettingsView } from './views/SettingsView'
 import { WhatsAppRemindersView } from './views/WhatsAppRemindersView'
 
 function App() {
-  const { currentClinic, isDemoMode, profile, signOut, user } = useAuth()
+  const {
+    currentClinic,
+    currentPlanId,
+    isDemoMode,
+    profile,
+    signOut,
+    user,
+  } = useAuth()
   const canAccessAdministration = canAccessPlatformAdministration(profile)
   const [activeSection, setActiveSection] = useState<AppSection>(
     getStoredActiveSection,
@@ -174,10 +181,7 @@ function App() {
       : activeSection
   const isDashboardDataLoading =
     !isDemoMode && (isPatientsLoading || isAppointmentsLoading)
-  // Plan loading from Supabase will be connected after the new memberships
-  // architecture is adopted by the auth context. Until then, Basic keeps team
-  // management hidden and avoids more user-invitation patches.
-  const currentPlanFeatures = getPlanFeatures('basic')
+  const currentPlanFeatures = getPlanFeatures(currentPlanId)
   const canUseTeamManagement = canManageTeamWithPlan(
     profile?.role,
     currentPlanFeatures,

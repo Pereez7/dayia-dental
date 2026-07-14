@@ -192,7 +192,10 @@ usuarios de otros consultorios. La migracion
 `011_memberships_plans_architecture.sql` separa el nuevo modelo:
 `profiles` queda como identidad personal y `clinic_memberships` guarda rol,
 estado y pertenencia al consultorio. `profiles.clinic_id` y `profiles.role`
-siguen vivos como legacy para no romper el MVP actual.
+siguen vivos como legacy para no romper el MVP actual, pero Auth ya prioriza la
+membership activa. Si no existe ninguna, usa el perfil como fallback temporal.
+El plan de sesión sale de `clinic_subscriptions.plan_id`, no de un valor Basic
+hardcodeado.
 
 ## Gestión de usuarios del consultorio
 
@@ -203,9 +206,9 @@ queda pausada.
 
 En modo real, el flujo legacy podia leer `profiles` filtrado por `clinic_id` del
 consultorio actual y mostrar datos no secretos: nombre completo, email, rol,
-fecha de creacion y estado. Ese flujo no se elimina todavia, pero la nueva
-fuente de permisos para equipo sera `clinic_memberships` y el plan activo del
-consultorio.
+fecha de creacion y estado. Ese flujo no se elimina todavia, pero la fuente de
+permisos clínicos ya es la membership activa y el plan real del consultorio. La
+selección explícita entre varios consultorios queda pendiente.
 
 El frontend no debe crear usuarios directamente con la anon key y nunca usa
 `service_role`. La Function legacy `create-clinic-user` queda como referencia

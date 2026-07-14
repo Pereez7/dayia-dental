@@ -41,6 +41,12 @@ después se ordena por `activated_at DESC NULLS LAST`, `created_at DESC` y
 `user_id` como desempate estable. Si no hay owner activo, nombre y email son
 null y la UI muestra `Sin propietario`.
 
+Los owners creados desde Administración pueden conservar temporalmente
+`profiles.role = clinic_admin` por compatibilidad legacy. Al iniciar sesión, el
+frontend usa `clinic_memberships.role` como fuente principal, por lo que una
+membership activa `clinic_owner` se muestra y autoriza como propietario. No se
+modifican perfiles automáticamente para corregir el campo legacy.
+
 ## Auditoría manual de owners
 
 Los owners duplicados son una inconsistencia de datos y deben revisarse

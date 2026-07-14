@@ -38,8 +38,11 @@ muestra como administrador del consultorio mientras se completa la migracion.
 - timestamps
 
 `profiles.clinic_id` y `profiles.role` se mantienen como campos legacy para no
-romper login ni policies existentes. Las nuevas funciones y futuras invitaciones
-deben usar `clinic_memberships`.
+romper login ni policies existentes, pero están deprecados como fuente de
+contexto clínico en frontend. Auth consulta primero `clinic_memberships` activas
+y usa su `clinic_id` y `role`. Los campos de `profiles` solo funcionan como
+fallback temporal cuando la consulta termina correctamente sin memberships
+activas.
 
 `clinic_memberships` modela pertenencia a consultorios:
 
@@ -51,6 +54,9 @@ deben usar `clinic_memberships`.
 - `activated_at`
 
 Esto permite que un usuario pertenezca a mas de un consultorio en fases futuras.
+Mientras no exista selector multi-consultorio, Auth elige de forma estable la
+membership activa con `activated_at` más reciente, después `created_at` y el ID
+de membership como desempate.
 
 ## Acceso a Administración DayIA
 
@@ -70,6 +76,12 @@ propietario activo, cantidad de miembros activos y fecha de creación. No accede
 a módulos ni tablas clínicas. Un `clinic_owner`, `clinic_admin`, `doctor`,
 `receptionist` o rol desconocido sin la bandera de plataforma recibe `403`.
 
+`profiles.is_platform_admin` permanece independiente del rol clínico resuelto.
+Un administrador DayIA sin membership entra a Administración sin exigir
+consultorio. Si también tiene una membership activa, Auth conserva ambos datos
+en el contexto de sesión; un cambio explícito entre plataforma y consultorio
+queda pendiente junto con la navegación multi-contexto.
+
 En el alta, un email existente reutiliza Auth y profile sin sobrescribir datos
 sensibles. Un email nuevo usa invitación de Supabase Auth, nunca una contraseña
 manual. Hasta activar la cuenta, la membresía usa `pending_activation`; un
@@ -84,8 +96,10 @@ Los planes internos iniciales son:
 - `pro`: hasta 10 usuarios, gestion de usuarios, WhatsApp automatizado y
   reportes avanzados futuros.
 
-`plans` guarda capacidades. `clinic_subscriptions` asigna el plan activo a cada
-consultorio.
+`plans` guarda capacidades. `clinic_subscriptions` asigna el plan real a cada
+consultorio. Auth carga `clinic_subscriptions.plan_id` para el consultorio
+resuelto y la UI obtiene las capacidades Basic, Medium o Pro desde ese valor;
+ya no fuerza Basic para todas las sesiones reales.
 
 ## Caso doctor dueño con Basic
 

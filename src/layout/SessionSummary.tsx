@@ -3,18 +3,8 @@ import { useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import {
   canAccessPlatformAdministration,
-  normalizeUserRole,
 } from '../auth/permissions'
-import type { UserRole } from '../types/database'
-
-const compactRoleLabels: Record<UserRole, string> = {
-  clinic_admin: 'Administrador',
-  clinic_owner: 'Propietario',
-  doctor: 'Doctor',
-  platform_admin: 'Administrador',
-  receptionist: 'Recepción',
-  unknown: 'Rol no válido',
-}
+import { getSessionRoleLabel } from './sessionRole'
 
 export function SessionSummary() {
   const {
@@ -35,12 +25,11 @@ export function SessionSummary() {
       (!currentClinic && !isPlatformAdministration))
   const userName =
     profile?.full_name?.trim() || (isDemoMode ? 'Usuario demo' : 'Usuario')
-  const normalizedRole = normalizeUserRole(profile?.role)
-  const roleLabel = isPlatformAdministration
-    ? 'Administrador DayIA'
-    : isDemoMode
-    ? 'Modo demo'
-    : compactRoleLabels[normalizedRole]
+  const roleLabel = getSessionRoleLabel({
+    isDemoMode,
+    isPlatformAdministration,
+    role: profile?.role,
+  })
   const clinicName = isPlatformAdministration
     ? 'Plataforma DayIA'
     : currentClinic?.name || 'Consultorio'

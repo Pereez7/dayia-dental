@@ -22,3 +22,15 @@ export const demoProfile: UserProfile = {
   role: 'clinic_admin',
   updated_at: demoTimestamp,
 }
+
+export const demoMembership = {
+  activated_at: demoTimestamp,
+  clinic_id: demoClinic.id,
+  created_at: demoTimestamp,
+  id: 'demo-membership',
+  invited_at: null,
+  role: 'clinic_admin' as const,
+  status: 'active' as const,
+  updated_at: demoTimestamp,
+  user_id: demoProfile.id,
+}

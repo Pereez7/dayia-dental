@@ -2,6 +2,24 @@
 
 Registro breve de cambios relevantes en DayIA Dental.
 
+## 2026-07-14
+
+### Cambios realizados
+
+- Auth usa `clinic_memberships.role` y `clinic_memberships.clinic_id` como
+  fuente principal del contexto clínico activo.
+- `profiles.role` y `profiles.clinic_id` quedan deprecados como fuente primaria
+  y solo se usan como fallback cuando no existe membership activa.
+- Si existen varias memberships activas, se selecciona la activada más
+  recientemente con desempates estables; el selector multi-consultorio queda
+  pendiente.
+- `SessionSummary` muestra `Propietario` cuando el rol clínico resuelto es
+  `clinic_owner` y mantiene `Administrador DayIA` para contexto de plataforma.
+- El plan real se carga desde `clinic_subscriptions.plan_id`; Medium y Pro ya no
+  quedan reducidos a Basic en frontend.
+- La bandera `profiles.is_platform_admin` permanece independiente del rol
+  clínico, permitiendo conservar ambos datos de contexto en la sesión.
+
 ## 2026-07-13
 
 ### Cambios realizados

@@ -8,7 +8,7 @@ import {
 } from 'react'
 
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient'
-import { getCurrentClinicForProfile } from '../services/clinicContext'
+import { getClinicSessionContext } from '../services/clinicContext'
 import { clearStoredActiveSection } from '../utils/activeSectionStorage'
 import { isAccountActivationRoute } from '../utils/accountActivation'
 import { ActivateAccountView } from '../views/ActivateAccountView'
@@ -22,7 +22,7 @@ import {
 } from './authService'
 import { AuthContext } from './AuthContext'
 import type { AuthState } from './authTypes'
-import { demoClinic, demoProfile } from './demoAuth'
+import { demoClinic, demoMembership, demoProfile } from './demoAuth'
 import {
   canAccessPlatformAdministration,
   normalizeUserRole,
@@ -33,8 +33,10 @@ interface AuthProviderProps {
 }
 
 const initialAuthState: AuthState = {
+  activeMembership: null,
   authError: '',
   currentClinic: null,
+  currentPlanId: null,
   isDemoMode: false,
   isLoading: true,
   isSessionContextLoading: false,
@@ -45,7 +47,9 @@ const initialAuthState: AuthState = {
 
 const demoAuthState: AuthState = {
   ...initialAuthState,
+  activeMembership: demoMembership,
   currentClinic: demoClinic,
+  currentPlanId: 'basic',
   isDemoMode: true,
   isLoading: false,
   profile: demoProfile,
@@ -163,8 +167,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     if (profileError) {
       setAuthState({
+        activeMembership: null,
         authError: 'No pudimos cargar el perfil del usuario.',
         currentClinic: null,
+        currentPlanId: null,
         isDemoMode: false,
         isLoading: false,
         isSessionContextLoading: false,
@@ -178,8 +184,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     if (!profile) {
       setAuthState({
+        activeMembership: null,
         authError: 'Tu usuario aún no está vinculado a un consultorio.',
         currentClinic: null,
+        currentPlanId: null,
         isDemoMode: false,
         isLoading: false,
         isSessionContextLoading: false,
@@ -191,12 +199,40 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return
     }
 
-    const normalizedProfile = getProfileWithNormalizedRole(profile)
+    const { data: clinicContext, error: clinicContextError } =
+      await getClinicSessionContext(profile)
+
+    if (!isMounted) {
+      return
+    }
+
+    if (clinicContextError || !clinicContext) {
+      setAuthState({
+        activeMembership: null,
+        authError: 'No pudimos cargar el contexto del consultorio.',
+        currentClinic: null,
+        currentPlanId: null,
+        isDemoMode: false,
+        isLoading: false,
+        isSessionContextLoading: false,
+        profile: getProfileWithNormalizedRole(profile),
+        session,
+        user: session.user,
+      })
+      markInitialLoadComplete()
+      return
+    }
+
+    const normalizedProfile = getProfileWithNormalizedRole(
+      clinicContext.profile,
+    )
 
     if (canAccessPlatformAdministration(normalizedProfile)) {
       setAuthState({
+        activeMembership: clinicContext.activeMembership,
         authError: '',
-        currentClinic: null,
+        currentClinic: clinicContext.currentClinic,
+        currentPlanId: clinicContext.currentPlanId,
         isDemoMode: false,
         isLoading: false,
         isSessionContextLoading: false,
@@ -210,9 +246,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     if (normalizedProfile?.role === 'unknown') {
       setAuthState({
+        activeMembership: clinicContext.activeMembership,
         authError:
           'Tu perfil no tiene un rol válido. Contacta al administrador.',
         currentClinic: null,
+        currentPlanId: clinicContext.currentPlanId,
         isDemoMode: false,
         isLoading: false,
         isSessionContextLoading: false,
@@ -226,8 +264,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     if (!normalizedProfile?.clinic_id) {
       setAuthState({
+        activeMembership: clinicContext.activeMembership,
         authError: 'Tu usuario no tiene consultorio asignado.',
         currentClinic: null,
+        currentPlanId: clinicContext.currentPlanId,
         isDemoMode: false,
         isLoading: false,
         isSessionContextLoading: false,
@@ -239,17 +279,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return
     }
 
-    const { data: currentClinic, error: clinicError } =
-      await getCurrentClinicForProfile(normalizedProfile)
-
-    if (!isMounted) {
-      return
-    }
-
-    if (clinicError || !currentClinic) {
+    if (!clinicContext.currentClinic) {
       setAuthState({
+        activeMembership: clinicContext.activeMembership,
         authError: 'No pudimos cargar el consultorio asignado.',
         currentClinic: null,
+        currentPlanId: clinicContext.currentPlanId,
         isDemoMode: false,
         isLoading: false,
         isSessionContextLoading: false,
@@ -262,8 +297,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     setAuthState({
+      activeMembership: clinicContext.activeMembership,
       authError: '',
-      currentClinic,
+      currentClinic: clinicContext.currentClinic,
+      currentPlanId: clinicContext.currentPlanId,
       isDemoMode: false,
       isLoading: false,
       isSessionContextLoading: false,

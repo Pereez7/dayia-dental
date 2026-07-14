@@ -1,10 +1,16 @@
 import type { Session, User } from '@supabase/supabase-js'
 
-import type { Clinic, UserProfile } from '../types/database'
+import type {
+  Clinic,
+  ClinicMembershipRecord,
+  UserProfile,
+} from '../types/database'
 
 export interface AuthState {
+  activeMembership: ClinicMembershipRecord | null
   authError: string
   currentClinic: Clinic | null
+  currentPlanId: string | null
   isDemoMode: boolean
   isLoading: boolean
   isSessionContextLoading: boolean
