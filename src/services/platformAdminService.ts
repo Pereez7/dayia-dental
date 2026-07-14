@@ -215,10 +215,14 @@ function getFunctionErrorStatus(error: unknown) {
 
 async function getCreateClinicErrorMessage(error: unknown) {
   const status = getFunctionErrorStatus(error)
-  const responseMessage = await getFunctionResponseMessage(error)
+  const responseError = await getFunctionResponseError(error)
 
   if (status === 400) {
-    return responseMessage ?? 'Revisa los datos del consultorio.'
+    return ['INVALID_PAYLOAD', 'INVALID_PLAN'].includes(
+      responseError?.code ?? '',
+    ) && responseError?.message
+      ? responseError.message
+      : 'Revisa los datos del consultorio.'
   }
 
   if (status === 401) {
@@ -230,13 +234,24 @@ async function getCreateClinicErrorMessage(error: unknown) {
   }
 
   if (status === 409) {
-    return responseMessage ?? 'No pudimos crear el consultorio por un conflicto.'
+    if (responseError?.code === 'PLATFORM_CREATE_DISABLED') {
+      return 'La creación real de consultorios está deshabilitada.'
+    }
+
+    if (
+      responseError?.code === 'CLINIC_ALREADY_EXISTS' &&
+      responseError.message
+    ) {
+      return responseError.message
+    }
+
+    return 'No pudimos crear el consultorio por un conflicto.'
   }
 
   return 'No pudimos preparar el consultorio. Intenta nuevamente.'
 }
 
-async function getFunctionResponseMessage(error: unknown) {
+async function getFunctionResponseError(error: unknown) {
   if (!error || typeof error !== 'object') {
     return null
   }
@@ -248,8 +263,15 @@ async function getFunctionResponseMessage(error: unknown) {
   }
 
   try {
-    const payload = await context.clone().json() as { message?: unknown }
-    return typeof payload.message === 'string' ? payload.message : null
+    const payload = await context.clone().json() as {
+      code?: unknown
+      message?: unknown
+    }
+
+    return {
+      code: typeof payload.code === 'string' ? payload.code : null,
+      message: typeof payload.message === 'string' ? payload.message : null,
+    }
   } catch {
     return null
   }

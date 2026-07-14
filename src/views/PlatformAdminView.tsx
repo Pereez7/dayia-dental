@@ -22,7 +22,6 @@ interface PlatformAdminViewProps {
   createClinic?: (
     input: CreatePlatformClinicInput,
   ) => Promise<CreatePlatformClinicServiceResult>
-  creationEnabled?: boolean
   loadClinics?: () => Promise<PlatformAdminServiceResult>
 }
 
@@ -36,9 +35,6 @@ interface PlatformClinicsContentProps {
 export function PlatformAdminView({
   canAccessPlatformAdmin,
   createClinic = createPlatformClinic,
-  creationEnabled =
-    import.meta.env.VITE_DAYIA_PLATFORM_CREATE_ENABLED?.trim().toLowerCase() ===
-    'true',
   loadClinics = listPlatformClinics,
 }: PlatformAdminViewProps) {
   const [clinics, setClinics] = useState<PlatformClinicSummary[]>([])
@@ -115,7 +111,6 @@ export function PlatformAdminView({
       </section>
 
       <ClinicOnboardingForm
-        creationEnabled={creationEnabled}
         onCreate={createClinicAndRefresh}
       />
     </div>

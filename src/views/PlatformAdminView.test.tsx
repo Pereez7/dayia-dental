@@ -2,8 +2,14 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { PlatformClinicSummary } from '../types/platform'
-import { ClinicOnboardingForm } from '../components/ClinicOnboardingForm'
-import { createPlatformClinicAndRefresh } from '../utils/platformClinicCreation'
+import {
+  ClinicOnboardingFeedback,
+  ClinicOnboardingForm,
+} from '../components/ClinicOnboardingForm'
+import {
+  createPlatformClinicAndRefresh,
+  submitPlatformClinicOnce,
+} from '../utils/platformClinicCreation'
 import {
   PlatformAdminView,
   PlatformClinicsContent,
@@ -95,12 +101,44 @@ describe('PlatformAdminView', () => {
     expect(loadClinics).not.toHaveBeenCalled()
   })
 
-  it('keeps the onboarding form in validation mode by default', () => {
-    const markup = renderToStaticMarkup(<ClinicOnboardingForm />)
+  it('renders the form connected to the creation flow', () => {
+    const markup = renderToStaticMarkup(
+      <ClinicOnboardingForm onCreate={vi.fn()} />,
+    )
 
-    expect(markup).toContain('Modo de validación')
-    expect(markup).toContain('Validar alta')
-    expect(markup).not.toContain('Preparar consultorio')
+    expect(markup).toContain('Preparar consultorio')
+    expect(markup).toContain(
+      'Revisa los datos antes de preparar el consultorio.',
+    )
+    expect(markup).not.toContain('Modo de validación')
+    expect(markup).not.toContain('Validar alta')
+  })
+
+  it('renders the disabled response from the Function', () => {
+    const markup = renderToStaticMarkup(
+      <ClinicOnboardingFeedback
+        errorMessage="La creación real de consultorios está deshabilitada."
+        successMessage=""
+      />,
+    )
+
+    expect(markup).toContain('La creación real sigue deshabilitada.')
+    expect(markup).toContain(
+      'La creación real de consultorios está deshabilitada.',
+    )
+    expect(markup).toContain('role="alert"')
+  })
+
+  it('renders the successful creation message', () => {
+    const markup = renderToStaticMarkup(
+      <ClinicOnboardingFeedback
+        errorMessage=""
+        successMessage="Consultorio preparado correctamente."
+      />,
+    )
+
+    expect(markup).toContain('Consultorio preparado correctamente.')
+    expect(markup).toContain('role="status"')
   })
 
   it('refreshes the list only after a successful creation', async () => {
@@ -153,5 +191,74 @@ describe('PlatformAdminView', () => {
       'La creación real de consultorios está deshabilitada.',
     )
     expect(refreshClinics).not.toHaveBeenCalled()
+  })
+
+  it('submits the real form payload to the creation handler', async () => {
+    const createClinic = vi.fn().mockResolvedValue({ data: null, error: 'error' })
+    const submissionLock = { current: false }
+    const input = {
+      clinicName: 'Clínica Norte',
+      ownerEmail: 'owner@example.com',
+      ownerName: 'Dra. Andrea',
+      planId: 'medium' as const,
+    }
+
+    await submitPlatformClinicOnce(input, submissionLock, createClinic)
+
+    expect(createClinic).toHaveBeenCalledOnce()
+    expect(createClinic).toHaveBeenCalledWith(input)
+  })
+
+  it('blocks a second submit while the first request is pending', async () => {
+    let resolveRequest: ((value: { data: null; error: string }) => void) | undefined
+    const createClinic = vi.fn().mockImplementation(
+      () => new Promise((resolve) => {
+        resolveRequest = resolve
+      }),
+    )
+    const submissionLock = { current: false }
+    const input = {
+      clinicName: 'Clínica Norte',
+      ownerEmail: 'owner@example.com',
+      ownerName: 'Dra. Andrea',
+      planId: 'basic' as const,
+    }
+
+    const firstSubmit = submitPlatformClinicOnce(
+      input,
+      submissionLock,
+      createClinic,
+    )
+    const secondSubmit = submitPlatformClinicOnce(
+      input,
+      submissionLock,
+      createClinic,
+    )
+
+    await expect(secondSubmit).resolves.toBeNull()
+    expect(createClinic).toHaveBeenCalledOnce()
+
+    resolveRequest?.({ data: null, error: 'error' })
+    await firstSubmit
+    expect(submissionLock.current).toBe(false)
+  })
+
+  it('releases the submit lock after an unexpected request failure', async () => {
+    const submissionLock = { current: false }
+    const createClinic = vi.fn().mockRejectedValue(new Error('network detail'))
+
+    await expect(
+      submitPlatformClinicOnce(
+        {
+          clinicName: 'Clínica Norte',
+          ownerEmail: 'owner@example.com',
+          ownerName: 'Dra. Andrea',
+          planId: 'basic',
+        },
+        submissionLock,
+        createClinic,
+      ),
+    ).rejects.toThrow('network detail')
+    expect(submissionLock.current).toBe(false)
   })
 })

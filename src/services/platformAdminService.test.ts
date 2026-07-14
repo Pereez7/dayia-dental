@@ -176,4 +176,31 @@ describe('platform admin service', () => {
       error: 'La creación real de consultorios está deshabilitada.',
     })
   })
+
+  it.each([
+    [400, 'INVALID_PAYLOAD', 'Ingresa un email válido.', 'Ingresa un email válido.'],
+    [403, 'FORBIDDEN', 'detalle interno', 'No tienes permiso para crear consultorios.'],
+    [409, 'UNKNOWN_CONFLICT', 'detalle interno', 'No pudimos crear el consultorio por un conflicto.'],
+    [500, 'UNEXPECTED_ERROR', 'stack trace', 'No pudimos preparar el consultorio. Intenta nuevamente.'],
+  ])(
+    'maps a %i creation error to safe copy',
+    async (status, code, message, expectedMessage) => {
+      const client = createClient({
+        data: null,
+        error: {
+          context: new Response(JSON.stringify({ code, message }), { status }),
+          status,
+        },
+      })
+
+      await expect(
+        createPlatformClinicWithClient(client, {
+          clinicName: 'Clínica Norte',
+          ownerEmail: 'owner@example.com',
+          ownerName: 'Dra. Andrea',
+          planId: 'basic',
+        }),
+      ).resolves.toEqual({ data: null, error: expectedMessage })
+    },
+  )
 })

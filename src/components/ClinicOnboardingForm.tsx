@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 
 import type {
   ClinicOnboardingFormErrors,
@@ -13,6 +13,7 @@ import {
   hasClinicOnboardingErrors,
   validateClinicOnboardingForm,
 } from '../utils/clinicOnboarding'
+import { submitPlatformClinicOnce } from '../utils/platformClinicCreation'
 
 const initialValues: ClinicOnboardingFormValues = {
   clinicName: '',
@@ -28,14 +29,17 @@ const planOptions: { label: string; value: PlanId }[] = [
 ]
 
 interface ClinicOnboardingFormProps {
-  creationEnabled?: boolean
-  onCreate?: (
+  onCreate: (
     input: CreatePlatformClinicInput,
   ) => Promise<{ data: CreatePlatformClinicResponse | null; error: string | null }>
 }
 
+interface ClinicOnboardingFeedbackProps {
+  errorMessage: string
+  successMessage: string
+}
+
 export function ClinicOnboardingForm({
-  creationEnabled = false,
   onCreate,
 }: ClinicOnboardingFormProps) {
   const [formValues, setFormValues] =
@@ -45,6 +49,7 @@ export function ClinicOnboardingForm({
   const [validationMessage, setValidationMessage] = useState('')
   const [submissionError, setSubmissionError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const submissionLock = useRef(false)
 
   function updateField<Field extends keyof ClinicOnboardingFormValues>(
     field: Field,
@@ -63,6 +68,10 @@ export function ClinicOnboardingForm({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
+    if (submissionLock.current) {
+      return
+    }
+
     const errors = validateClinicOnboardingForm(formValues)
     setFieldErrors(errors)
 
@@ -72,26 +81,36 @@ export function ClinicOnboardingForm({
       return
     }
 
-    if (!creationEnabled || !onCreate) {
-      setSubmissionError('')
-      setValidationMessage(
-        'Los datos están completos y listos para el alta cuando se habilite la creación.',
-      )
-      return
-    }
-
     setIsSubmitting(true)
     setSubmissionError('')
     setValidationMessage('')
 
-    const result = await onCreate({
-      clinicName: formValues.clinicName,
-      ownerEmail: formValues.ownerEmail,
-      ownerName: formValues.ownerName,
-      planId: formValues.initialPlan,
-    })
+    let result: Awaited<ReturnType<typeof submitPlatformClinicOnce>>
+
+    try {
+      result = await submitPlatformClinicOnce(
+        {
+          clinicName: formValues.clinicName,
+          ownerEmail: formValues.ownerEmail,
+          ownerName: formValues.ownerName,
+          planId: formValues.initialPlan,
+        },
+        submissionLock,
+        onCreate,
+      )
+    } catch {
+      setIsSubmitting(false)
+      setSubmissionError(
+        'No pudimos preparar el consultorio. Intenta nuevamente.',
+      )
+      return
+    }
 
     setIsSubmitting(false)
+
+    if (!result) {
+      return
+    }
 
     if (result.error || !result.data) {
       setSubmissionError(result.error ?? 'No pudimos preparar el consultorio.')
@@ -114,11 +133,6 @@ export function ClinicOnboardingForm({
             habilitar una cuenta.
           </p>
         </div>
-        {!creationEnabled && (
-          <span className="validation-mode-badge">
-            Modo de validación: la creación real está deshabilitada.
-          </span>
-        )}
       </div>
 
       <form className="clinic-onboarding-form" noValidate onSubmit={handleSubmit}>
@@ -218,33 +232,49 @@ export function ClinicOnboardingForm({
           <button className="primary-action" disabled={isSubmitting} type="submit">
             {isSubmitting
               ? 'Preparando consultorio…'
-              : creationEnabled
-                ? 'Preparar consultorio'
-                : 'Validar alta'}
+              : 'Preparar consultorio'}
           </button>
-          <p className="clinic-onboarding-help">
-            {creationEnabled
-              ? 'La creación requiere autorización de plataforma y el permiso del servidor.'
-              : 'Validar alta revisa los datos sin crear consultorios.'}
-          </p>
-          {submissionError && (
-            <p
-              className="field-message field-message--error clinic-onboarding-result"
-              role="alert"
-            >
-              {submissionError}
-            </p>
-          )}
-          {validationMessage && (
-            <p
-              className="field-message field-message--success clinic-onboarding-result"
-              role="status"
-            >
-              {validationMessage}
-            </p>
-          )}
+          <ClinicOnboardingFeedback
+            errorMessage={submissionError}
+            successMessage={validationMessage}
+          />
         </div>
       </form>
     </section>
+  )
+}
+
+export function ClinicOnboardingFeedback({
+  errorMessage,
+  successMessage,
+}: ClinicOnboardingFeedbackProps) {
+  if (successMessage) {
+    return (
+      <p
+        className="field-message field-message--success clinic-onboarding-result"
+        role="status"
+      >
+        {successMessage}
+      </p>
+    )
+  }
+
+  return (
+    <>
+      <p className="clinic-onboarding-help">
+        {errorMessage ===
+        'La creación real de consultorios está deshabilitada.'
+          ? 'La creación real sigue deshabilitada.'
+          : 'Revisa los datos antes de preparar el consultorio.'}
+      </p>
+      {errorMessage && (
+        <p
+          className="field-message field-message--error clinic-onboarding-result"
+          role="alert"
+        >
+          {errorMessage}
+        </p>
+      )}
+    </>
   )
 }

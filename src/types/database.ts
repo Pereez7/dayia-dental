@@ -39,7 +39,11 @@ export type ClinicMembershipRecordRole =
   | 'doctor'
   | 'receptionist'
 
-export type ClinicMembershipRecordStatus = 'active' | 'inactive' | 'pending'
+export type ClinicMembershipRecordStatus =
+  | 'active'
+  | 'inactive'
+  | 'pending'
+  | 'pending_activation'
 
 export type PlanRecordId = 'basic' | 'medium' | 'pro' | string
 
