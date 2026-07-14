@@ -137,6 +137,20 @@ export interface PatientRecord {
   updated_at: string
 }
 
+export interface ClinicalRecordRecord {
+  clinic_id: string
+  created_at: string
+  created_by: string | null
+  diagnosis: string | null
+  id: string
+  observations: string | null
+  patient_id: string
+  reason: string | null
+  record_date: string
+  treatment: string | null
+  updated_at: string
+}
+
 export interface TreatmentRecord {
   clinic_id: string
   created_at: string
@@ -238,6 +252,7 @@ export type TableRowMap = {
   appointments: AppointmentRecord
   business_hours: BusinessHourRecord
   calendar_exceptions: CalendarExceptionRecord
+  clinical_records: ClinicalRecordRecord
   clinic_memberships: ClinicMembershipRecord
   clinic_subscriptions: ClinicSubscriptionRecord
   clinics: Clinic

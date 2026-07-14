@@ -45,6 +45,18 @@ Registro breve de cambios relevantes en DayIA Dental.
 - La migración `016` aplica el límite de miembros de forma transaccional para
   impedir sobrecupos por invitaciones concurrentes.
 - `create-clinic-user` queda documentada como legacy/deprecated.
+- Se agrego `017_clinical_records.sql` con tabla, indices, trigger de alcance
+  inmutable y RLS basada en memberships activas.
+- Owner, admin y doctor pueden leer y crear historial clinico; recepcion,
+  platform admin puro y memberships inactivas quedan sin acceso.
+- El historial real se carga desde Supabase por clinica y puede filtrarse por
+  paciente; los mocks quedan exclusivamente para modo demo.
+- El formulario normaliza motivo, diagnostico, tratamiento y observaciones, y
+  espera confirmacion del insert antes de mostrar exito.
+- La vista global y el detalle incorporan loading, vacio y errores publicos sin
+  mostrar informacion tecnica.
+- Odontograma no recibio persistencia ni tabla nueva; el modulo global sigue
+  como placeholder futuro.
 
 ## 2026-07-13
 

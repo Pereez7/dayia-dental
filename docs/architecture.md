@@ -36,8 +36,8 @@ renderizar UI y recibir datos por props cuando sea posible.
 `src/data`
 
 Contiene datos de ejemplo usados por la interfaz mientras no existe backend.
-Actualmente guarda citas, pacientes, tratamientos, registros clinicos y
-odontograma mock.
+Actualmente conserva datos mock para el modo demo, incluidos registros clinicos
+y odontograma. En modo real, el historial clinico ya no consume estos mocks.
 
 `src/layout`
 
@@ -83,10 +83,9 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
 4. `Sidebar` usa el mapa de `src/layout/navigation.ts` para renderizar
    secciones principales y acciones rapidas, separadas visualmente en marca,
    acciones y modulos.
-5. `App.tsx` mantiene el estado local de citas, pacientes, tratamientos,
-   excepciones del calendario, registros clinicos y odontograma para
-   compartirlo entre Dashboard, Pacientes, Citas, Configuracion y Detalle de
-   paciente.
+5. `App.tsx` coordina los datos compartidos. En modo real carga pacientes,
+   citas e historial clinico desde Supabase; en demo mantiene sus colecciones
+   mock. El odontograma continua en memoria.
 6. `PatientsView` recibe pacientes, el callback de alta y el callback para ver
    detalle desde `App.tsx`. En modo listado prioriza `PatientsList` y deja el
    formulario debajo; en modo `new` muestra solo `PatientForm`.
@@ -420,6 +419,8 @@ agrupada por paciente. Participan:
   tratamiento y observaciones.
 - `src/components/ClinicalRecordsList.tsx`: renderiza los registros del
   paciente y el resumen temporal.
+- `src/services/clinicalRecordsService.ts`: lista por clinica o paciente,
+  crea registros y mapea `observations` al campo visible `notes`.
 - `src/utils/clinicalRecords.ts`: filtra por paciente, ordena por fecha
   descendente, valida fecha no futura y campos obligatorios, normaliza valores,
   calcula resumen temporal, compone registros globales con datos de pacientes,
@@ -443,6 +444,14 @@ Los textos clinicos guardados se normalizan al crear registros. Para datos mock
 antiguos o textos sin tilde, la vista global usa un formatter de presentacion
 conservador que mejora tildes visibles sin cambiar el dato original.
 
+En modo real, `clinical_records` es la fuente persistente. Cada fila contiene
+`clinic_id`, `patient_id`, `created_by`, `record_date`, motivo, diagnostico,
+tratamiento y observaciones. RLS permite lectura, creacion y actualizacion solo
+a memberships activas `clinic_owner`, `clinic_admin` o `doctor`; recepcion y un
+administrador de plataforma sin membership clinica autorizada no reciben datos.
+La policy de escritura comprueba ademas que el paciente pertenezca a la misma
+clinica y el trigger impide cambiar el alcance del registro despues de crearlo.
+
 `Odontograma`
 
 Existe como primera version dentro de `PatientDetailView`. Participan:
@@ -462,6 +471,9 @@ Existe como primera version dentro de `PatientDetailView`. Participan:
 El modulo lateral `Odontograma` sigue siendo placeholder global hasta definir
 una experiencia visual mas completa. La primera version evita superficies
 dentales, denticion temporal infantil y graficos complejos.
+
+No existe tabla `odontogram_entries` ni persistencia de odontograma. Este paso
+no modifica su UI o comportamiento local.
 
 `PatientDetailView` entrega a `PatientOdontogram` entradas ya filtradas por
 paciente. Por eso los helpers de lectura de pieza trabajan sobre la coleccion

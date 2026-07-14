@@ -15,6 +15,8 @@ import { formatClinicalHistoryDate } from '../utils/dateFormatters'
 
 interface ClinicalHistoryViewProps {
   clinicalRecords: ClinicalRecord[]
+  errorMessage?: string
+  isLoading?: boolean
   patients: Patient[]
   onViewPatient: (patientId: PatientId) => void
 }
@@ -30,6 +32,8 @@ const periodFilters: Array<{
 
 export function ClinicalHistoryView({
   clinicalRecords,
+  errorMessage = '',
+  isLoading = false,
   patients,
   onViewPatient,
 }: ClinicalHistoryViewProps) {
@@ -127,7 +131,20 @@ export function ClinicalHistoryView({
           </div>
         </div>
 
-        {!hasRecords ? (
+        {errorMessage ? (
+          <p className="field-message field-message--error" role="alert">
+            {errorMessage}
+          </p>
+        ) : null}
+
+        {isLoading ? (
+          <div className="clinical-history-empty-state" aria-live="polite">
+            <strong>Cargando historial clínico...</strong>
+            <span>Estamos consultando los registros del consultorio.</span>
+          </div>
+        ) : null}
+
+        {!isLoading && !errorMessage && !hasRecords ? (
           <div className="clinical-history-empty-state">
             <strong>No hay registros clínicos todavía.</strong>
             <span>
@@ -137,14 +154,14 @@ export function ClinicalHistoryView({
           </div>
         ) : null}
 
-        {hasRecords && !hasSearchResults ? (
+        {!isLoading && !errorMessage && hasRecords && !hasSearchResults ? (
           <div className="clinical-history-empty-state">
             <strong>No se encontraron registros con ese criterio.</strong>
             <span>Prueba con otro paciente, diagnóstico o tratamiento.</span>
           </div>
         ) : null}
 
-        {hasSearchResults ? (
+        {!isLoading && !errorMessage && hasSearchResults ? (
           <div className="clinical-history-list">
             {filteredGroups.map((group) => {
               const isExpanded = expandedPatientIds.includes(group.patientId)

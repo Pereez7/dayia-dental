@@ -29,7 +29,12 @@ function getInitialFormValues(): ClinicalRecordFormValues {
 }
 
 interface ClinicalRecordFormProps {
-  onCreateRecord: (values: ClinicalRecordFormValues) => void
+  onCreateRecord: (
+    values: ClinicalRecordFormValues,
+  ) =>
+    | Promise<{ error?: string; success: boolean }>
+    | { error?: string; success: boolean }
+    | void
 }
 
 export function ClinicalRecordForm({
@@ -39,6 +44,8 @@ export function ClinicalRecordForm({
     useState<ClinicalRecordFormValues>(getInitialFormValues)
   const [errors, setErrors] = useState<ClinicalRecordFormErrors>({})
   const [successMessage, setSuccessMessage] = useState('')
+  const [formError, setFormError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const maxRecordDate = getTodayDateInputValue()
 
   function updateField(field: keyof ClinicalRecordFormValues, value: string) {
@@ -47,9 +54,10 @@ export function ClinicalRecordForm({
       [field]: value,
     }))
     setSuccessMessage('')
+    setFormError('')
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const validationErrors = validateClinicalRecordForm(formValues)
@@ -59,7 +67,19 @@ export function ClinicalRecordForm({
       return
     }
 
-    onCreateRecord(normalizeClinicalRecordFormValues(formValues))
+    setIsSubmitting(true)
+    const result = await onCreateRecord(
+      normalizeClinicalRecordFormValues(formValues),
+    )
+    setIsSubmitting(false)
+
+    if (result && !result.success) {
+      setFormError(
+        result.error ?? 'No pudimos guardar el registro clínico.',
+      )
+      return
+    }
+
     setFormValues(getInitialFormValues())
     setErrors({})
     setSuccessMessage('Registro clínico agregado correctamente.')
@@ -140,12 +160,17 @@ export function ClinicalRecordForm({
       </div>
 
       <div className="clinical-record-actions">
-        <button className="primary-action" type="submit">
-          Agregar registro
+        <button className="primary-action" disabled={isSubmitting} type="submit">
+          {isSubmitting ? 'Guardando...' : 'Agregar registro'}
         </button>
       </div>
 
       <div className="clinical-record-feedback-slot">
+        {formError && (
+          <p className="field-message field-message--error" role="alert">
+            {formError}
+          </p>
+        )}
         {successMessage && (
           <p className="settings-feedback settings-feedback--success" role="status">
             {successMessage}

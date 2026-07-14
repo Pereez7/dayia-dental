@@ -31,6 +31,11 @@ import {
   updateAppointmentStatus as updateAppointmentStatusInSupabase,
 } from './services/appointmentsService'
 import {
+  createClinicalRecord as createClinicalRecordInSupabase,
+  listClinicalRecordsByClinic,
+  mapClinicalRecordFormToCreateInput,
+} from './services/clinicalRecordsService'
+import {
   createCalendarException,
   createTreatment as createTreatmentInSupabase,
   deleteCalendarException,
@@ -190,8 +195,14 @@ function App() {
   )
   const [clinicalRecords, setClinicalRecords] =
     useState<ClinicalRecord[]>(
-      permissions.canAccessClinicalHistory ? initialClinicalRecords : [],
+      isDemoMode && permissions.canAccessClinicalHistory
+        ? initialClinicalRecords
+        : [],
     )
+  const [isClinicalRecordsLoading, setIsClinicalRecordsLoading] = useState(
+    () => !isDemoMode && permissions.canAccessClinicalHistory,
+  )
+  const [clinicalRecordsError, setClinicalRecordsError] = useState('')
   const [odontogramEntries, setOdontogramEntries] =
     useState<OdontogramEntry[]>(
       permissions.canAccessOdontogram ? initialOdontogramEntries : [],
@@ -280,6 +291,66 @@ function App() {
     isDemoMode,
     permissions.canManageClinicUsers,
     profile,
+  ])
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadClinicalRecords() {
+      if (!permissions.canAccessClinicalHistory) {
+        setClinicalRecords([])
+        setIsClinicalRecordsLoading(false)
+        setClinicalRecordsError('')
+        return
+      }
+
+      if (isDemoMode) {
+        setClinicalRecords(initialClinicalRecords)
+        setIsClinicalRecordsLoading(false)
+        setClinicalRecordsError('')
+        return
+      }
+
+      if (!currentClinic?.id) {
+        setClinicalRecords([])
+        setIsClinicalRecordsLoading(false)
+        setClinicalRecordsError(
+          'No hay consultorio activo para cargar el historial clínico.',
+        )
+        return
+      }
+
+      setIsClinicalRecordsLoading(true)
+      setClinicalRecordsError('')
+
+      const { data, error } = await listClinicalRecordsByClinic(
+        currentClinic.id,
+      )
+
+      if (!isMounted) {
+        return
+      }
+
+      if (error) {
+        setClinicalRecords([])
+        setClinicalRecordsError(error)
+        setIsClinicalRecordsLoading(false)
+        return
+      }
+
+      setClinicalRecords(data ?? [])
+      setIsClinicalRecordsLoading(false)
+    }
+
+    loadClinicalRecords()
+
+    return () => {
+      isMounted = false
+    }
+  }, [
+    currentClinic?.id,
+    isDemoMode,
+    permissions.canAccessClinicalHistory,
   ])
 
   useEffect(() => {
@@ -1391,22 +1462,58 @@ function App() {
     setActiveSection('patient-detail')
   }
 
-  function handleCreateClinicalRecord(
+  async function handleCreateClinicalRecord(
     patientId: PatientId,
     values: ClinicalRecordFormValues,
   ) {
-    setClinicalRecords((currentRecords) => [
-      {
-        id: getNextNumericId(currentRecords),
+    if (!permissions.canAccessClinicalHistory) {
+      return {
+        error: 'No tienes permiso para acceder a esta sección.',
+        success: false,
+      }
+    }
+
+    if (isDemoMode) {
+      setClinicalRecords((currentRecords) => [
+        {
+          date: values.date,
+          diagnosis: values.diagnosis,
+          id: `demo-clinical-record-${currentRecords.length + 1}`,
+          notes: values.notes,
+          patientId,
+          reason: values.reason,
+          treatment: values.treatment,
+        },
+        ...currentRecords,
+      ])
+      setClinicalRecordsError('')
+      return { success: true }
+    }
+
+    if (!currentClinic?.id) {
+      return {
+        error: 'No hay consultorio activo para guardar el registro clínico.',
+        success: false,
+      }
+    }
+
+    const { data, error } = await createClinicalRecordInSupabase(
+      mapClinicalRecordFormToCreateInput(
+        currentClinic.id,
         patientId,
-        date: values.date,
-        reason: values.reason,
-        diagnosis: values.diagnosis,
-        treatment: values.treatment,
-        notes: values.notes,
-      },
-      ...currentRecords,
-    ])
+        values,
+      ),
+    )
+
+    if (error || !data) {
+      const message = error ?? 'No pudimos guardar el registro clínico.'
+      setClinicalRecordsError(message)
+      return { error: message, success: false }
+    }
+
+    setClinicalRecords((currentRecords) => [data, ...currentRecords])
+    setClinicalRecordsError('')
+    return { success: true }
   }
 
   function handleSaveOdontogramTooth(
@@ -1437,6 +1544,19 @@ function App() {
   }
 
   function renderActiveView() {
+    if (
+      activeSection === 'clinical-history' &&
+      !permissions.canAccessClinicalHistory &&
+      !canAccessAdministration
+    ) {
+      return (
+        <section className="access-denied-view" role="alert">
+          <h2>Acceso restringido</h2>
+          <p>No tienes permiso para acceder a esta sección.</p>
+        </section>
+      )
+    }
+
     if (
       !canAccessAppSection(
         effectiveActiveSection,
@@ -1505,6 +1625,8 @@ function App() {
           canAccessClinicalHistory={permissions.canAccessClinicalHistory}
           canAccessOdontogram={permissions.canAccessOdontogram}
           clinicalRecords={clinicalRecords}
+          clinicalRecordsError={clinicalRecordsError}
+          isClinicalRecordsLoading={isClinicalRecordsLoading}
           odontogramEntries={odontogramEntries}
           onCreateClinicalRecord={(values) =>
             handleCreateClinicalRecord(selectedPatient.id, values)
@@ -1556,6 +1678,8 @@ function App() {
       return (
         <ClinicalHistoryView
           clinicalRecords={clinicalRecords}
+          errorMessage={clinicalRecordsError}
+          isLoading={isClinicalRecordsLoading}
           patients={patients}
           onViewPatient={handleViewPatient}
         />

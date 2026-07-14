@@ -121,6 +121,12 @@ suscripción del consultorio.
 contexto clínico seleccionado, solo ve Administración DayIA. Un rol nulo o
 desconocido no obtiene módulos ni acciones.
 
+La tabla `clinical_records` replica esta regla en RLS. Solo una membership
+activa `clinic_owner`, `clinic_admin` o `doctor` puede leer o escribir historial
+de su clinica. `receptionist`, el rol `platform_admin` por si solo y una
+membership inactiva reciben cero acceso. La policy tambien exige que el paciente
+pertenezca al mismo `clinic_id`; `profiles.role` no participa en la decision.
+
 ## Matriz de capacidades por plan
 
 | Capacidad | Basic | Medium | Pro |

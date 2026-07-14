@@ -31,8 +31,14 @@ interface PatientDetailViewProps {
   canAccessClinicalHistory: boolean
   canAccessOdontogram: boolean
   clinicalRecords: ClinicalRecord[]
+  clinicalRecordsError?: string
+  isClinicalRecordsLoading?: boolean
   odontogramEntries: OdontogramEntry[]
-  onCreateClinicalRecord: (values: ClinicalRecordFormValues) => void
+  onCreateClinicalRecord: (
+    values: ClinicalRecordFormValues,
+  ) =>
+    | Promise<{ error?: string; success: boolean }>
+    | { error?: string; success: boolean }
   onSaveOdontogramTooth: (
     toothNumber: number,
     values: OdontogramFormValues,
@@ -46,6 +52,8 @@ export function PatientDetailView({
   canAccessClinicalHistory,
   canAccessOdontogram,
   clinicalRecords,
+  clinicalRecordsError = '',
+  isClinicalRecordsLoading = false,
   odontogramEntries,
   onCreateClinicalRecord,
   onSaveOdontogramTooth,
@@ -151,8 +159,20 @@ export function PatientDetailView({
               </p>
             </div>
 
-            <ClinicalRecordForm onCreateRecord={onCreateClinicalRecord} />
-            <ClinicalRecordsList records={patientClinicalRecords} />
+            {clinicalRecordsError && (
+              <p className="field-message field-message--error" role="alert">
+                {clinicalRecordsError}
+              </p>
+            )}
+
+            {isClinicalRecordsLoading ? (
+              <p className="settings-note">Cargando historial clínico...</p>
+            ) : (
+              <>
+                <ClinicalRecordForm onCreateRecord={onCreateClinicalRecord} />
+                <ClinicalRecordsList records={patientClinicalRecords} />
+              </>
+            )}
           </article>
         )}
 

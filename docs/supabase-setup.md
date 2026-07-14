@@ -44,6 +44,11 @@ Ejecuta en Supabase SQL Editor, en orden, los archivos de
 10. `010_profiles_email_and_user_management.sql`
 11. `011_memberships_plans_architecture.sql`
 12. `012_clinics_status.sql`
+13. `013_platform_clinic_creation.sql`
+14. `014_complete_account_activation.sql`
+15. `015_generalize_member_activation.sql`
+16. `016_atomic_clinic_member_invitation.sql`
+17. `017_clinical_records.sql`
 
 Si usas Supabase CLI en el futuro, puedes adaptar este flujo a `supabase db
 push`, pero esta guia asume SQL Editor para una primera prueba controlada.
@@ -203,7 +208,19 @@ datos clínicos y confirma que el listado se refresque con la nueva fila.
 - Invitar un usuario y verificar `pending_activation`.
 - Bloquear la invitación al llegar a 4 miembros en Medium o 10 en Pro.
 
-### E. Recordatorios
+### E. Historial clinico
+
+- Aplicar `017_clinical_records.sql` o ejecutar `npx supabase db push`.
+- Ingresar como owner, admin y doctor y crear un registro desde el paciente.
+- Recargar la app y confirmar que el registro continua visible.
+- Confirmar que la vista global carga solo registros de la clinica activa.
+- Ingresar como recepcion y confirmar que no aparece Historial clinico ni se
+  ejecuta su consulta.
+- Confirmar que un platform admin puro no puede consultar `clinical_records`.
+- Intentar asociar un paciente de otra clinica y confirmar el rechazo RLS.
+- Verificar que Odontograma global conserva el texto de modulo futuro.
+
+### F. Recordatorios
 
 - Crear una cita futura y verificar que genera recordatorios.
 - Ver recordatorios persistidos.
@@ -211,7 +228,7 @@ datos clínicos y confirma que el listado se refresque con la nueva fila.
 - Marcar recordatorio como enviado.
 - Marcar recordatorio como fallido.
 
-### F. WhatsApp API dry-run
+### G. WhatsApp API dry-run
 
 - Verificar que `whatsapp_settings` existe para el consultorio.
 - Configurar Supabase Secrets de prueba, sin valores reales en repo:

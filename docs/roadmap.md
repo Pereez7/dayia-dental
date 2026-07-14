@@ -187,13 +187,18 @@ Pendiente:
 
 ### Historial clinico
 
-Estado: parcialmente implementado.
+Estado: persistencia MVP implementada.
 
 Implementado:
 
 - Tipo compartido `ClinicalRecord`.
-- Datos mock asociados a pacientes existentes.
-- Estado local compartido en `App.tsx`.
+- Datos mock reservados al modo demo.
+- Tabla real `clinical_records` por clinica y paciente.
+- Servicio Supabase para listado global, listado por paciente y creacion.
+- RLS por membership activa para owner, admin y doctor.
+- Bloqueo para recepcion y administradores de plataforma sin contexto clinico
+  autorizado.
+- Loading, vacio y errores publicos en vista global y detalle del paciente.
 - Visualizacion dentro del detalle de paciente.
 - Vista global desde el modulo lateral `Historial clinico`.
 - Filtrado por `patientId`.
@@ -265,6 +270,7 @@ Implementado:
 
 Pendiente:
 
+- Persistencia en Supabase; no existe `odontogram_entries` todavia.
 - Odontograma grafico avanzado.
 - Superficies dentales.
 - Denticion temporal infantil.

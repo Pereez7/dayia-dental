@@ -92,6 +92,24 @@ describe('auth permissions', () => {
     expect(permissions.canManageWhatsapp).toBe(false)
   })
 
+  it('allows only clinical owner, admin and doctor to write clinical history', () => {
+    expect(
+      getClinicalPermissions('clinic_owner', 'basic').canAccessClinicalHistory,
+    ).toBe(true)
+    expect(
+      getClinicalPermissions('clinic_admin', 'basic').canAccessClinicalHistory,
+    ).toBe(true)
+    expect(
+      getClinicalPermissions('doctor', 'basic').canAccessClinicalHistory,
+    ).toBe(true)
+    expect(
+      getClinicalPermissions('receptionist', 'pro').canAccessClinicalHistory,
+    ).toBe(false)
+    expect(
+      getClinicalPermissions('platform_admin', 'pro').canAccessClinicalHistory,
+    ).toBe(false)
+  })
+
   it('keeps reception away from history, odontogram and settings', () => {
     const permissions = getClinicalPermissions('receptionist', 'pro')
 

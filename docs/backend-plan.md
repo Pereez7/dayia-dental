@@ -140,9 +140,9 @@ Estados incompletos esperados:
 - Si no se puede cargar el consultorio, la app muestra un mensaje claro y evita
   dejar la pantalla en blanco.
 
-Esta etapa prepara la migracion por `clinic_id`. En modo real, Pacientes y
-Citas ya pueden leer y crear/actualizar registros en Supabase; Configuracion,
-Recordatorios, Historial clinico y Odontograma siguen usando datos mock/locales.
+En modo real, Pacientes, Citas e Historial clinico leen y escriben en Supabase.
+Configuracion y Recordatorios mantienen sus integraciones actuales; Odontograma
+sigue usando estado mock/local y su modulo global continua como placeholder.
 
 La migracion `supabase/migrations/002_auth_profiles_policies.sql` agrega una
 funcion `current_clinic_id()` y policies RLS basicas para que un usuario
@@ -203,6 +203,24 @@ configuración; doctor no accede a Usuarios, WhatsApp ni configuración sensible
 Recepción no accede a historial ni odontograma. Usuarios requiere Medium/Pro y
 WhatsApp automático requiere Pro. Planes desconocidos no habilitan capacidades
 premium.
+
+## Historial clinico persistente
+
+La migracion `017_clinical_records.sql` crea `clinical_records` con UUID,
+clinica, paciente, autor, fecha clinica, motivo, diagnostico, tratamiento,
+observaciones y timestamps. Los indices por clinica/paciente y fecha sostienen
+el detalle y la vista global.
+
+RLS usa `clinic_memberships`, no `profiles.role`. Owner, admin y doctor con
+membership activa pueden leer y crear; receptionist, platform_admin sin
+membership clinica autorizada y usuarios inactivos no reciben filas. La policy
+de escritura valida que el paciente pertenezca a la misma clinica, fija
+`created_by = auth.uid()` y un trigger hace inmutables clinica, paciente y
+autor. El frontend usa la anon key con RLS; no usa `service_role`.
+
+`src/services/clinicalRecordsService.ts` carga registros reales en modo
+Supabase. Los mocks quedan reservados al modo demo. El formulario normaliza los
+cuatro textos y solo muestra exito despues del insert confirmado.
 
 ## Gestión de usuarios del consultorio
 
@@ -570,16 +588,16 @@ La preparacion actual agrega:
 - Sesion visible, cierre de sesion y helpers de permisos por rol MVP.
 - Modo demo/desarrollo cuando faltan variables de Supabase.
 - Tipos backend base en `src/types/database.ts`.
-- Servicios reales de Pacientes, Citas, Configuracion y Recordatorios, con
+- Servicios reales de Pacientes, Citas, Historial clinico, Configuracion y Recordatorios, con
   placeholders pendientes para otros modulos en `src/services`.
 - Gestión de usuarios del consultorio en Configuración basada en memberships,
   roles permitidos, estados de activación y límites reales Medium/Pro.
 - SQL inicial y policies Auth en `supabase/migrations`.
 
-Pacientes, Citas, Configuracion y Recordatorios consumen Supabase en modo real
+Pacientes, Citas, Historial clinico, Configuracion y Recordatorios consumen Supabase en modo real
 y conservan mocks en modo demo. Dashboard, Nueva Cita, Agenda, Detalle de
 paciente y Recordatorios leen esos datos desde el estado central de App.
-Historial clinico y Odontograma siguen usando estado local/mock actual.
+Odontograma sigue usando estado local/mock y no tiene tabla persistente.
 
 ## Setup real
 

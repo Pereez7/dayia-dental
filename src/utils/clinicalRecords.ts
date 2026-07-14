@@ -10,7 +10,7 @@ import { compactText, normalizeSentenceText } from './textNormalizers'
 export type ClinicalHistoryPeriodFilter = 'all' | 'this-month' | 'last-30-days'
 
 export interface GlobalClinicalRecord {
-  id: number
+  id: number | string
   patientId: PatientId
   patientName: string
   patientPhone: string
