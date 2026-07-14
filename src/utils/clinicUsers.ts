@@ -7,7 +7,7 @@ import type {
 import type { UserRole } from '../types/database'
 import { normalizeUserRole } from '../auth/permissions'
 import { getVisibleClinicRoleLabel } from './planFeatures'
-import { normalizeSentenceText } from './textNormalizers'
+import { normalizePersonName } from './textNormalizers'
 
 export const clinicUserRoleOptions: Array<{
   label: string
@@ -44,7 +44,7 @@ export function normalizeClinicUserEmail(email: string) {
 }
 
 export function normalizeClinicUserFullName(fullName: string) {
-  return normalizeSentenceText(fullName)
+  return normalizePersonName(fullName)
 }
 
 export function validateClinicUserForm(values: ClinicUserFormValues) {

@@ -6,6 +6,7 @@ import {
   normalizeClinicUserFullName,
 } from '../utils/clinicUsers'
 import { normalizeUserRole } from '../auth/permissions'
+import { normalizePersonName } from '../utils/textNormalizers'
 
 interface CreateClinicUserResponse {
   code?: string
@@ -45,7 +46,9 @@ export function mapProfileToClinicUser(profile: UserProfile): ClinicUser {
     clinicId: profile.clinic_id,
     createdAt: profile.created_at,
     email: profile.email ?? null,
-    fullName: profile.full_name?.trim() || 'Usuario sin nombre',
+    fullName: profile.full_name
+      ? normalizePersonName(profile.full_name)
+      : 'Usuario sin nombre',
     id: profile.id,
     invitedAt: profile.invited_at ?? null,
     role: normalizeUserRole(profile.role, {
@@ -153,7 +156,9 @@ function mapCreatedClinicUser(
     clinicId: user.clinicId ?? null,
     createdAt: user.createdAt ?? null,
     email: user.email ?? null,
-    fullName: user.fullName?.trim() || 'Usuario sin nombre',
+    fullName: user.fullName
+      ? normalizePersonName(user.fullName)
+      : 'Usuario sin nombre',
     id: user.id ?? '',
     invitedAt: user.invitedAt ?? null,
     role: normalizeUserRole(user.role, {

@@ -6,6 +6,7 @@ import {
   hasClinicUserFormErrors,
   isOnlyCurrentClinicUser,
   normalizeClinicUserEmail,
+  normalizeClinicUserFullName,
   validateClinicUserForm,
 } from './clinicUsers'
 
@@ -34,6 +35,15 @@ describe('clinic users helpers', () => {
   it('normalizes email before sending it to the backend', () => {
     expect(normalizeClinicUserEmail('  CHARLES@DAYIA.COM  ')).toBe(
       'charles@dayia.com',
+    )
+  })
+
+  it('normalizes names as person names instead of sentences', () => {
+    expect(normalizeClinicUserFullName('Fabricio Pérez Suarez')).toBe(
+      'Fabricio Pérez Suarez',
+    )
+    expect(normalizeClinicUserFullName('fabricio pérez suarez')).toBe(
+      'Fabricio Pérez Suarez',
     )
   })
 

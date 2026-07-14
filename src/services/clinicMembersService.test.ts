@@ -36,4 +36,15 @@ describe('clinic members service', () => {
       'El rol seleccionado no es válido.',
     )
   })
+
+  it('repairs sentence-cased names when mapping existing memberships', () => {
+    expect(
+      mapMembershipToClinicUser({
+        fullName: 'Fabricio pérez suarez',
+        role: 'doctor',
+        status: 'active',
+        userId: 'user-2',
+      }).fullName,
+    ).toBe('Fabricio Pérez Suarez')
+  })
 })

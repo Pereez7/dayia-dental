@@ -14,6 +14,7 @@ import {
   normalizeClinicUserFullName,
 } from '../utils/clinicUsers'
 import { normalizeUserRole } from '../auth/permissions'
+import { normalizePersonName } from '../utils/textNormalizers'
 
 interface ClinicMemberResponseRow {
   activatedAt?: string | null
@@ -112,7 +113,9 @@ export function mapMembershipToClinicUser(
     clinicId: member.clinicId ?? null,
     createdAt: member.createdAt ?? null,
     email: member.email?.trim().toLowerCase() || null,
-    fullName: member.fullName?.trim() || 'Usuario sin nombre',
+    fullName: member.fullName
+      ? normalizePersonName(member.fullName)
+      : 'Usuario sin nombre',
     id: member.userId ?? '',
     invitedAt: member.invitedAt ?? null,
     role: normalizeUserRole(member.role) as UserRole,

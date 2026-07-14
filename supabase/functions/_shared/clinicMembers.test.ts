@@ -7,6 +7,7 @@ import {
   getManagedPlanLimit,
   isCountedMembershipStatus,
   normalizeInviteClinicMemberPayload,
+  normalizePersonName,
 } from './clinicMembers'
 
 describe('clinic member Edge Function rules', () => {
@@ -22,6 +23,15 @@ describe('clinic member Edge Function rules', () => {
       fullName: 'Dra. Andrea Vaca',
       role: 'doctor',
     })
+  })
+
+  it('normalizes member names without treating surnames as sentence text', () => {
+    expect(normalizePersonName('Fabricio pérez suarez')).toBe(
+      'Fabricio Pérez Suarez',
+    )
+    expect(normalizePersonName('MARÍA DEL CARMEN DE LA CRUZ')).toBe(
+      'María del Carmen de la Cruz',
+    )
   })
 
   it.each(['clinic_owner', 'platform_admin', 'unknown']) (

@@ -48,7 +48,7 @@ export function normalizeInviteClinicMemberPayload(
   }
 
   const candidate = value as Record<string, unknown>
-  const fullName = normalizeFullName(candidate.fullName)
+  const fullName = normalizePersonName(candidate.fullName)
   const email = normalizeEmail(candidate.email)
   const role = candidate.role
 
@@ -120,8 +120,44 @@ export function isCountedMembershipStatus(status: string) {
   return status === 'active' || status === 'pending' || status === 'pending_activation'
 }
 
-function normalizeFullName(value: unknown) {
-  return typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : ''
+export function normalizePersonName(value: unknown) {
+  if (typeof value !== 'string') {
+    return ''
+  }
+
+  const lowercaseParticles = new Set([
+    'da',
+    'das',
+    'de',
+    'del',
+    'do',
+    'dos',
+    'la',
+    'las',
+    'los',
+    'y',
+  ])
+
+  return value
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLocaleLowerCase('es-BO')
+    .split(' ')
+    .map((word, index) => {
+      if (index > 0 && lowercaseParticles.has(word)) {
+        return word
+      }
+
+      return word
+        .split(/([-'])/)
+        .map((part) =>
+          part === '-' || part === "'"
+            ? part
+            : `${part.charAt(0).toLocaleUpperCase('es-BO')}${part.slice(1)}`,
+        )
+        .join('')
+    })
+    .join(' ')
 }
 
 function normalizeEmail(value: unknown) {

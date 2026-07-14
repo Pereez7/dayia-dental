@@ -15,3 +15,39 @@ export function normalizeSentenceText(value: string) {
     1,
   )}`
 }
+
+const lowercaseNameParticles = new Set([
+  'da',
+  'das',
+  'de',
+  'del',
+  'do',
+  'dos',
+  'la',
+  'las',
+  'los',
+  'y',
+])
+
+export function normalizePersonName(value: string) {
+  const words = compactText(value)
+    .toLocaleLowerCase('es-BO')
+    .split(' ')
+
+  return words
+    .map((word, index) => {
+      if (index > 0 && lowercaseNameParticles.has(word)) {
+        return word
+      }
+
+      return word
+        .split(/([-'])/)
+        .map((part) =>
+          part === '-' || part === "'"
+            ? part
+            : `${part.charAt(0).toLocaleUpperCase('es-BO')}${part.slice(1)}`,
+        )
+        .join('')
+    })
+    .join(' ')
+}

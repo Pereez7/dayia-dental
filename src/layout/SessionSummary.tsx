@@ -5,6 +5,7 @@ import {
   canAccessPlatformAdministration,
 } from '../auth/permissions'
 import { getSessionRoleLabel } from './sessionRole'
+import { normalizePersonName } from '../utils/textNormalizers'
 
 export function SessionSummary() {
   const {
@@ -24,7 +25,8 @@ export function SessionSummary() {
       !profile ||
       (!currentClinic && !isPlatformAdministration))
   const userName =
-    profile?.full_name?.trim() || (isDemoMode ? 'Usuario demo' : 'Usuario')
+    (profile?.full_name ? normalizePersonName(profile.full_name) : '') ||
+    (isDemoMode ? 'Usuario demo' : 'Usuario')
   const roleLabel = getSessionRoleLabel({
     isDemoMode,
     isPlatformAdministration,

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { compactText, normalizeSentenceText } from './textNormalizers'
+import {
+  compactText,
+  normalizePersonName,
+  normalizeSentenceText,
+} from './textNormalizers'
 
 describe('compactText', () => {
   it('removes leading and trailing spaces and compacts internal spaces', () => {
@@ -32,5 +36,25 @@ describe('normalizeSentenceText', () => {
 
   it('returns an empty string when text is empty', () => {
     expect(normalizeSentenceText('   ')).toBe('')
+  })
+})
+
+describe('normalizePersonName', () => {
+  it('capitalizes every given name and surname', () => {
+    expect(normalizePersonName('Fabricio pérez suarez')).toBe(
+      'Fabricio Pérez Suarez',
+    )
+  })
+
+  it('keeps common Spanish name particles lowercase', () => {
+    expect(normalizePersonName('  MARÍA   DEL CARMEN DE LA CRUZ  ')).toBe(
+      'María del Carmen de la Cruz',
+    )
+  })
+
+  it('supports compound names', () => {
+    expect(normalizePersonName("juan-pablo d'angelo")).toBe(
+      "Juan-Pablo D'Angelo",
+    )
   })
 })
