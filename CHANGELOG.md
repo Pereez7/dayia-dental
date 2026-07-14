@@ -2,6 +2,31 @@
 
 Registro breve de cambios relevantes en DayIA Dental.
 
+## 2026-07-13
+
+### Cambios realizados
+
+- Se agregó `create-platform-clinic`, protegida por JWT,
+  `profiles.is_platform_admin = true` y
+  `DAYIA_PLATFORM_CREATE_ENABLED === "true"`.
+- La Function normaliza el payload, reutiliza owners existentes y prepara
+  owners nuevos mediante invitación de Supabase Auth, sin contraseña manual.
+- Se agregó compensación ante fallos parciales y unicidad normalizada para
+  nombres de consultorios mediante la migración `013`.
+- El frontend llama únicamente a la Function, muestra errores amigables y
+  refresca el listado solo tras una creación real.
+- La UI conserva el modo validación con
+  `VITE_DAYIA_PLATFORM_CREATE_ENABLED=false`; no se habilitó ningún flag.
+- Se agregaron pruebas de autorización, feature flag, validación, owner
+  existente, compensación, servicio y refresco del listado.
+
+### Seguridad
+
+- `service_role` se inicializa solo después de validar JWT, perfil y feature
+  flag.
+- La Function no consulta ni devuelve pacientes, citas, historial clínico,
+  odontograma, recordatorios ni configuración de WhatsApp.
+
 ## 2026-06-15
 
 ### Cambios realizados

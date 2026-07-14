@@ -107,6 +107,36 @@ Para acceder, el usuario autenticado debe tener
 `profiles.is_platform_admin = true`. Un usuario clínico sin esa bandera recibe
 `403`, incluso si intenta invocar la Function directamente.
 
+## 7. Preparar el alta protegida de consultorios
+
+Aplica la migración y despliega la Function:
+
+```bash
+npx supabase db push
+npx supabase functions deploy create-platform-clinic
+```
+
+Verifica los secrets sin habilitar la creación:
+
+```bash
+npx supabase secrets list
+```
+
+La condición autoritativa es
+`DAYIA_PLATFORM_CREATE_ENABLED === "true"`. Cualquier otro valor, incluido un
+secret ausente, responde `409` con
+`La creación real de consultorios está deshabilitada.` Puede configurarse
+`DAYIA_APP_URL` para el redirect de activación.
+
+En frontend conserva `VITE_DAYIA_PLATFORM_CREATE_ENABLED=false` hasta la prueba
+manual. Ese switch no es secreto ni sustituye al servidor. Nunca agregues
+`SUPABASE_SERVICE_ROLE_KEY` a `.env`, variables `VITE_` o React.
+
+Prueba primero los rechazos sin sesión, sin `is_platform_admin` y con feature
+flag deshabilitado. En un entorno controlado, habilita ambos switches solo para
+la prueba, crea un consultorio sin datos clínicos, confirma que el listado lo
+muestre y vuelve a deshabilitarlos.
+
 ## Checklist de prueba
 
 ### A. Auth

@@ -60,10 +60,20 @@ defensa de la vista, pero la decisión final vive en la Edge Function
 `list-platform-clinics`, que vuelve a validar JWT y perfil antes de usar
 `service_role`.
 
+`create-platform-clinic` agrega la barrera
+`DAYIA_PLATFORM_CREATE_ENABLED === "true"`. Consulta primero el perfil propio
+con el JWT y RLS, exige `is_platform_admin = true` y solo después inicializa el
+cliente con `service_role`. Si una condición falla, no escribe datos.
+
 El listado devuelve solo identidad del consultorio, plan, suscripción,
 propietario activo, cantidad de miembros activos y fecha de creación. No accede
 a módulos ni tablas clínicas. Un `clinic_owner`, `clinic_admin`, `doctor`,
 `receptionist` o rol desconocido sin la bandera de plataforma recibe `403`.
+
+En el alta, un email existente reutiliza Auth y profile sin sobrescribir datos
+sensibles. Un email nuevo usa invitación de Supabase Auth, nunca una contraseña
+manual. Hasta activar la cuenta, la membresía usa `pending_activation`; un
+usuario confirmado puede recibir membresía `active` de forma explícita.
 
 ## Planes
 

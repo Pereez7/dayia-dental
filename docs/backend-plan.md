@@ -280,8 +280,21 @@ nullable. Las filas legacy usan suscripción activa como fallback a `active` y
 en otro caso quedan `pending_activation`, sin inferir nada desde pacientes,
 citas u otra actividad.
 
-Esta fase es solo lectura. La creación, edición y eliminación de consultorios
-siguen pendientes y deshabilitadas; no existe `create-platform-clinic`.
+`create-platform-clinic` deja preparado el alta administrativa, pero la
+escritura real permanece deshabilitada. Valida primero JWT y
+`profiles.is_platform_admin` con el cliente del solicitante; luego exige que
+`DAYIA_PLATFORM_CREATE_ENABLED` sea exactamente `true` y recién entonces usa
+`service_role`.
+
+La Function solo escribe `clinics`, `profiles` cuando debe preparar un owner,
+`clinic_memberships` y `clinic_subscriptions`. No crea tratamientos, pacientes,
+citas ni otros datos clínicos. Usa invitación de Supabase Auth sin contraseña
+manual y compensa altas parciales eliminando el consultorio y, cuando
+corresponde, el usuario Auth recién creado.
+
+La migración `013_platform_clinic_creation.sql` admite
+`pending_activation` en membresías y agrega unicidad por nombre normalizado.
+La creación debe seguir deshabilitada hasta la prueba manual controlada.
 
 ## Migración de Pacientes
 

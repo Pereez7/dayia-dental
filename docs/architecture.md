@@ -562,3 +562,11 @@ actualiza la vista durante la sesion actual. Si falta telefono, `Marcar
 enviado` queda deshabilitado y `canMarkReminderAsSent` evita aplicar ese estado
 por defensa de presentacion. El Toast se posiciona como elemento flotante para
 evitar saltos visuales en el layout.
+
+## Administración de plataforma
+
+React accede a consultorios mediante `platformAdminService` y las Edge
+Functions `list-platform-clinics` y `create-platform-clinic`. La creación
+valida JWT e `is_platform_admin` con RLS antes del feature flag y de usar
+`service_role`. Su escritura se limita a `clinics`, Auth/profile del owner,
+`clinic_memberships` y `clinic_subscriptions`; los datos clínicos quedan fuera.

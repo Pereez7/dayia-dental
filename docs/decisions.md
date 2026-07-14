@@ -704,3 +704,14 @@ responsive, pero todavia puede evolucionar cuando el producto tenga mas modulos.
 No se agrega backend hasta validar los flujos principales en frontend. Supabase,
 autenticacion, permisos, persistencia y despliegue se evaluaran cuando pacientes
 y citas tengan una forma mas estable.
+
+## Alta de consultorios con doble feature flag
+
+Se mantienen dos controles: `VITE_DAYIA_PLATFORM_CREATE_ENABLED` para la UI y
+el secret autoritativo `DAYIA_PLATFORM_CREATE_ENABLED` en Supabase. Ambos
+permanecen deshabilitados hasta la prueba manual. El frontend nunca sustituye la
+validación de JWT e `is_platform_admin`.
+
+Como Auth y Postgres no comparten transacción, ante fallo parcial se elimina el
+consultorio, sus dependencias administrativas por cascada y solo el usuario Auth
+creado por la misma petición.

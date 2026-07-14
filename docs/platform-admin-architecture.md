@@ -87,17 +87,50 @@ listado aunque fuerce la sección desde el cliente.
 
 ## Alta de consultorios
 
-El formulario `Alta segura de consultorios` continúa en modo de validación. No
-existe `create-platform-clinic`, no se realizan escrituras y no se habilita
-`DAYIA_PLATFORM_CREATE_ENABLED`.
+## Alta protegida de consultorios
+
+`create-platform-clinic` prepara el consultorio, owner, membresía y suscripción
+solo con JWT válido, `profiles.is_platform_admin = true` y
+`DAYIA_PLATFORM_CREATE_ENABLED === "true"`. El perfil se consulta con el JWT y
+RLS. La Function no lee ni inicializa `service_role` antes de superar esas
+barreras.
+
+El payload contiene `clinicName`, `ownerName`, `ownerEmail` y `planId`. Los
+nombres se recortan y compactan, el email se normaliza a minúsculas y el plan
+solo admite `basic`, `medium` o `pro`. La respuesta nunca incluye tokens ni
+datos clínicos.
+
+El owner existente se reutiliza y su nombre solo se completa si está vacío. Un
+owner nuevo usa `inviteUserByEmail`, sin contraseña manual, y su membresía queda
+`pending_activation`; uno existente y confirmado puede quedar `active`. La
+suscripción MVP queda `active` y el consultorio `pending_activation`.
+
+No existe una transacción Auth + Postgres única. Ante un fallo, la compensación
+elimina el consultorio, cuyas membresías y suscripción caen por cascada, y
+elimina el usuario Auth solo si nació en la misma petición. La migración `013`
+evita nombres duplicados normalizados.
+
+La UI continúa en validación mientras
+`VITE_DAYIA_PLATFORM_CREATE_ENABLED=false`. Este switch público solo controla
+la experiencia; el secret de la Function es la barrera autoritativa y debe
+permanecer deshabilitado hasta una prueba manual controlada.
 
 ## Despliegue
 
-La Function requiere las variables estándar del entorno de Supabase Functions:
-`SUPABASE_URL`, `SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY`. No requiere un
-secret personalizado ni una clave nueva en React.
+Las Functions requieren `SUPABASE_URL`, `SUPABASE_ANON_KEY` y
+`SUPABASE_SERVICE_ROLE_KEY`. `create-platform-clinic` requiere además
+`DAYIA_PLATFORM_CREATE_ENABLED`, que debe permanecer distinto de `true` hasta
+la prueba manual, y opcionalmente `DAYIA_APP_URL`. `service_role` nunca se copia
+a React.
 
 ```bash
 npx supabase db push
 npx supabase functions deploy list-platform-clinics
+npx supabase functions deploy create-platform-clinic
+```
+
+Verificar el secret sin habilitarlo:
+
+```bash
+npx supabase secrets list
 ```

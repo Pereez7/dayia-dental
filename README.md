@@ -45,6 +45,17 @@ historiales y otros modulos clinicos.
 - Componentes pequenos y reutilizables en `src/components`.
 - Utilidades puras en `src/utils`.
 - Pruebas unitarias con Vitest.
+- Administración DayIA con listado real y alta de consultorios preparada detrás
+  de autorización `platform_admin` y feature flags deshabilitados por defecto.
+
+## Alta protegida de consultorios
+
+`create-platform-clinic` solo escribe si el JWT pertenece a un perfil con
+`is_platform_admin = true` y `DAYIA_PLATFORM_CREATE_ENABLED` es exactamente
+`true`. La UI conserva `VITE_DAYIA_PLATFORM_CREATE_ENABLED=false` hasta una
+prueba manual. `SUPABASE_SERVICE_ROLE_KEY` nunca se expone al frontend y el
+flujo no consulta datos clínicos. Los pasos de despliegue están en
+`docs/supabase-setup.md`.
 
 ## Modulos actuales
 
