@@ -128,14 +128,14 @@ secret ausente, responde `409` con
 `La creación real de consultorios está deshabilitada.` Puede configurarse
 `DAYIA_APP_URL` para el redirect de activación.
 
-En frontend conserva `VITE_DAYIA_PLATFORM_CREATE_ENABLED=false` hasta la prueba
-manual. Ese switch no es secreto ni sustituye al servidor. Nunca agregues
-`SUPABASE_SERVICE_ROLE_KEY` a `.env`, variables `VITE_` o React.
+El frontend no necesita un switch equivalente. Siempre invoca la Function y
+muestra el rechazo controlado cuando el secret no es `true`. Nunca agregues
+`DAYIA_PLATFORM_CREATE_ENABLED` ni `SUPABASE_SERVICE_ROLE_KEY` a `.env`,
+variables `VITE_` o React.
 
 Prueba primero los rechazos sin sesión, sin `is_platform_admin` y con feature
-flag deshabilitado. En un entorno controlado, habilita ambos switches solo para
-la prueba, crea un consultorio sin datos clínicos, confirma que el listado lo
-muestre y vuelve a deshabilitarlos.
+flag deshabilitado. Cuando el secret esté habilitado, crea un consultorio sin
+datos clínicos y confirma que el listado se refresque con la nueva fila.
 
 ## Checklist de prueba
 

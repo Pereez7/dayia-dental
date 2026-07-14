@@ -280,8 +280,8 @@ nullable. Las filas legacy usan suscripción activa como fallback a `active` y
 en otro caso quedan `pending_activation`, sin inferir nada desde pacientes,
 citas u otra actividad.
 
-`create-platform-clinic` deja preparado el alta administrativa, pero la
-escritura real permanece deshabilitada. Valida primero JWT y
+`create-platform-clinic` ejecuta el alta administrativa cuando el feature flag
+del servidor lo permite. Valida primero JWT y
 `profiles.is_platform_admin` con el cliente del solicitante; luego exige que
 `DAYIA_PLATFORM_CREATE_ENABLED` sea exactamente `true` y recién entonces usa
 `service_role`.
@@ -294,7 +294,8 @@ corresponde, el usuario Auth recién creado.
 
 La migración `013_platform_clinic_creation.sql` admite
 `pending_activation` en membresías y agrega unicidad por nombre normalizado.
-La creación debe seguir deshabilitada hasta la prueba manual controlada.
+La habilitación o deshabilitación se administra solo mediante el secret de la
+Function; React no mantiene una copia de esa decisión.
 
 ## Migración de Pacientes
 

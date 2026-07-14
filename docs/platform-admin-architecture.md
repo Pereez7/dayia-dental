@@ -110,10 +110,11 @@ elimina el consultorio, cuyas membresías y suscripción caen por cascada, y
 elimina el usuario Auth solo si nació en la misma petición. La migración `013`
 evita nombres duplicados normalizados.
 
-La UI continúa en validación mientras
-`VITE_DAYIA_PLATFORM_CREATE_ENABLED=false`. Este switch público solo controla
-la experiencia; el secret de la Function es la barrera autoritativa y debe
-permanecer deshabilitado hasta una prueba manual controlada.
+La UI no replica el feature flag. Un submit válido siempre invoca
+`create-platform-clinic`; la Function responde si la creación está habilitada.
+El frontend muestra ese resultado, evita dobles envíos y refresca
+`list-platform-clinics` únicamente tras una respuesta exitosa. El secret del
+servidor sigue siendo la única barrera autoritativa.
 
 ## Despliegue
 

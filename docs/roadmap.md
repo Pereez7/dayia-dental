@@ -356,5 +356,5 @@ Pendiente:
 - Agregar autenticacion.
 - Evaluar facturacion.
 - Desplegar y probar manualmente `create-platform-clinic` en un entorno
-  controlado, manteniendo deshabilitados sus flags fuera de esa ventana.
+  controlado, administrando su feature flag exclusivamente desde Supabase.
 - Verificar invitación y activación del owner antes de habilitar altas reales.

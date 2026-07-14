@@ -15,8 +15,10 @@ Registro breve de cambios relevantes en DayIA Dental.
   nombres de consultorios mediante la migración `013`.
 - El frontend llama únicamente a la Function, muestra errores amigables y
   refresca el listado solo tras una creación real.
-- La UI conserva el modo validación con
-  `VITE_DAYIA_PLATFORM_CREATE_ENABLED=false`; no se habilitó ningún flag.
+- El formulario quedó conectado a la Function sin una compuerta frontend. La
+  autorización y el feature flag se resuelven exclusivamente en el servidor.
+- El botón muestra carga, bloquea envíos duplicados, presenta errores seguros y
+  refresca el listado después de una creación confirmada.
 - Se agregaron pruebas de autorización, feature flag, validación, owner
   existente, compensación, servicio y refresco del listado.
 

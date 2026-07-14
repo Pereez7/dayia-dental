@@ -396,7 +396,8 @@ Todavia no existe:
 ## Actualización de plataforma, 2026-07-13
 
 Supabase ya sostiene autenticación y administración interna. La Edge Function
-`create-platform-clinic` está preparada, pero la creación real sigue
-deshabilitada. Requiere JWT válido, `profiles.is_platform_admin = true` y
+`create-platform-clinic` recibe las altas reales desde el formulario y requiere
+JWT válido, `profiles.is_platform_admin = true` y
 `DAYIA_PLATFORM_CREATE_ENABLED === "true"`. Solo gestiona consultorio, owner,
-membresía y suscripción; no toca datos clínicos.
+membresía y suscripción; no toca datos clínicos. La UI no decide el estado del
+feature flag.
