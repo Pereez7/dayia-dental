@@ -239,13 +239,14 @@ Pendiente:
 
 ### Odontograma
 
-Estado: iniciado dentro del detalle de paciente.
+Estado: MVP persistente implementado.
 
 Implementado:
 
 - Tipo compartido `OdontogramEntry`.
-- Datos mock asociados a pacientes existentes.
-- Estado local compartido en `App.tsx`.
+- Datos mock reservados al modo demo.
+- Persistencia real en `odontogram_entries` mediante Supabase y RLS.
+- Modulo global con busqueda y selector de paciente.
 - Visualizacion dentro del detalle de paciente.
 - Piezas permanentes adultas con numeracion FDI.
 - Arcada superior e inferior con cuadrantes FDI identificados por derecha e
@@ -258,7 +259,7 @@ Implementado:
 - Resumen de cantidad de piezas por estado.
 - Seleccion de pieza y panel simple de actualizacion.
 - Estado actual mostrado como badge con color semantico.
-- Actualizacion o creacion de entrada por `patientId` y `toothNumber`.
+- Upsert por clinica, paciente, `toothCode` y superficie nullable.
 - Lectura por pieza sobre entradas ya filtradas del paciente.
 - Observaciones con limite de 160 caracteres, contador discreto, textarea
   estable y normalizacion antes de guardar.
@@ -270,7 +271,6 @@ Implementado:
 
 Pendiente:
 
-- Persistencia en Supabase; no existe `odontogram_entries` todavia.
 - Odontograma grafico avanzado.
 - Superficies dentales.
 - Denticion temporal infantil.

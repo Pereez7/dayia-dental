@@ -36,6 +36,10 @@ import {
   mapClinicalRecordFormToCreateInput,
 } from './services/clinicalRecordsService'
 import {
+  listOdontogramEntries,
+  saveOdontogramEntry as saveOdontogramEntryInSupabase,
+} from './services/odontogramService'
+import {
   createCalendarException,
   createTreatment as createTreatmentInSupabase,
   deleteCalendarException,
@@ -88,6 +92,7 @@ import type {
 import type {
   OdontogramEntry,
   OdontogramFormValues,
+  ToothCode,
 } from './types/Odontogram'
 import type { Patient, PatientFormValues, PatientId } from './types/Patient'
 import type { Reminder } from './types/Reminder'
@@ -205,16 +210,28 @@ function App() {
   const [clinicalRecordsError, setClinicalRecordsError] = useState('')
   const [odontogramEntries, setOdontogramEntries] =
     useState<OdontogramEntry[]>(
-      permissions.canAccessOdontogram ? initialOdontogramEntries : [],
+      isDemoMode && permissions.canAccessOdontogram
+        ? initialOdontogramEntries
+        : [],
     )
+  const [isOdontogramLoading, setIsOdontogramLoading] = useState(false)
+  const [odontogramError, setOdontogramError] = useState('')
   const [selectedPatientId, setSelectedPatientId] = useState<PatientId | null>(
     null,
   )
+  const [selectedOdontogramPatientId, setSelectedOdontogramPatientId] =
+    useState<PatientId | null>(null)
   const effectiveActiveSection = getAuthorizedSection(
     activeSection,
     permissions,
     canAccessAdministration,
   )
+  const activeOdontogramPatientId =
+    effectiveActiveSection === 'patient-detail'
+      ? selectedPatientId
+      : effectiveActiveSection === 'odontogram'
+        ? selectedOdontogramPatientId
+        : null
   const isDashboardDataLoading =
     !isDemoMode && (isPatientsLoading || isAppointmentsLoading)
 
@@ -351,6 +368,77 @@ function App() {
     currentClinic?.id,
     isDemoMode,
     permissions.canAccessClinicalHistory,
+  ])
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadPatientOdontogram() {
+      if (!permissions.canAccessOdontogram) {
+        setOdontogramEntries([])
+        setIsOdontogramLoading(false)
+        setOdontogramError('')
+        return
+      }
+
+      if (isDemoMode) {
+        setOdontogramEntries(initialOdontogramEntries)
+        setIsOdontogramLoading(false)
+        setOdontogramError('')
+        return
+      }
+
+      if (!activeOdontogramPatientId) {
+        setIsOdontogramLoading(false)
+        setOdontogramError('')
+        return
+      }
+
+      if (!currentClinic?.id) {
+        setIsOdontogramLoading(false)
+        setOdontogramError(
+          'No hay consultorio activo para cargar el odontograma.',
+        )
+        return
+      }
+
+      setIsOdontogramLoading(true)
+      setOdontogramError('')
+      const { data, error } = await listOdontogramEntries(
+        currentClinic.id,
+        activeOdontogramPatientId,
+      )
+
+      if (!isMounted) {
+        return
+      }
+
+      if (error) {
+        setIsOdontogramLoading(false)
+        setOdontogramError(error)
+        return
+      }
+
+      setOdontogramEntries((currentEntries) => [
+        ...currentEntries.filter(
+          (entry) =>
+            String(entry.patientId) !== String(activeOdontogramPatientId),
+        ),
+        ...(data ?? []),
+      ])
+      setIsOdontogramLoading(false)
+    }
+
+    loadPatientOdontogram()
+
+    return () => {
+      isMounted = false
+    }
+  }, [
+    activeOdontogramPatientId,
+    currentClinic?.id,
+    isDemoMode,
+    permissions.canAccessOdontogram,
   ])
 
   useEffect(() => {
@@ -1516,27 +1604,67 @@ function App() {
     return { success: true }
   }
 
-  function handleSaveOdontogramTooth(
+  async function handleSaveOdontogramTooth(
     patientId: PatientId,
-    toothNumber: number,
+    toothCode: ToothCode,
     values: OdontogramFormValues,
   ) {
+    if (!permissions.canAccessOdontogram) {
+      return {
+        error: 'No tienes permiso para acceder a esta sección.',
+        success: false,
+      }
+    }
+
     const toothStatus = values.status
 
     if (!toothStatus) {
-      return
+      return { error: 'Selecciona un estado.', success: false }
+    }
+
+    if (isDemoMode) {
+      setOdontogramEntries((currentEntries) =>
+        upsertOdontogramEntry(currentEntries, {
+          id: getNextNumericId(currentEntries),
+          notes: values.notes,
+          patientId,
+          status: toothStatus,
+          surface: null,
+          toothCode,
+          updatedAt: getTodayDateInputValue(),
+        }),
+      )
+      setOdontogramError('')
+      return { success: true }
+    }
+
+    if (!currentClinic?.id) {
+      return {
+        error: 'No hay consultorio activo para guardar el odontograma.',
+        success: false,
+      }
+    }
+
+    const { data, error } = await saveOdontogramEntryInSupabase({
+      clinicId: currentClinic.id,
+      notes: values.notes,
+      patientId,
+      status: toothStatus,
+      surface: null,
+      toothCode,
+    })
+
+    if (error || !data) {
+      const message = error ?? 'No pudimos guardar la pieza dental.'
+      setOdontogramError(message)
+      return { error: message, success: false }
     }
 
     setOdontogramEntries((currentEntries) =>
-      upsertOdontogramEntry(currentEntries, {
-        id: getNextNumericId(currentEntries),
-        patientId,
-        toothNumber,
-        status: toothStatus,
-        notes: values.notes,
-        updatedAt: getTodayDateInputValue(),
-      }),
+      upsertOdontogramEntry(currentEntries, data),
     )
+    setOdontogramError('')
+    return { success: true }
   }
 
   function handleBackToPatientsList() {
@@ -1544,6 +1672,18 @@ function App() {
   }
 
   function renderActiveView() {
+    if (
+      activeSection === 'odontogram' &&
+      !permissions.canAccessOdontogram
+    ) {
+      return (
+        <section className="access-denied-view" role="alert">
+          <h2>Acceso restringido</h2>
+          <p>No tienes permiso para acceder a esta sección.</p>
+        </section>
+      )
+    }
+
     if (
       activeSection === 'clinical-history' &&
       !permissions.canAccessClinicalHistory &&
@@ -1627,12 +1767,14 @@ function App() {
           clinicalRecords={clinicalRecords}
           clinicalRecordsError={clinicalRecordsError}
           isClinicalRecordsLoading={isClinicalRecordsLoading}
+          isOdontogramLoading={isOdontogramLoading}
+          odontogramError={odontogramError}
           odontogramEntries={odontogramEntries}
           onCreateClinicalRecord={(values) =>
             handleCreateClinicalRecord(selectedPatient.id, values)
           }
-          onSaveOdontogramTooth={(toothNumber, values) =>
-            handleSaveOdontogramTooth(selectedPatient.id, toothNumber, values)
+          onSaveOdontogramTooth={(toothCode, values) =>
+            handleSaveOdontogramTooth(selectedPatient.id, toothCode, values)
           }
           onBackToList={handleBackToPatientsList}
           patient={selectedPatient}
@@ -1687,7 +1829,18 @@ function App() {
     }
 
     if (effectiveActiveSection === 'odontogram') {
-      return <OdontogramView />
+      return (
+        <OdontogramView
+          entries={odontogramEntries}
+          errorMessage={odontogramError}
+          isLoading={isOdontogramLoading}
+          isPatientsLoading={isPatientsLoading}
+          onSaveTooth={handleSaveOdontogramTooth}
+          onSelectPatient={setSelectedOdontogramPatientId}
+          patients={patients}
+          selectedPatientId={selectedOdontogramPatientId}
+        />
+      )
     }
 
     if (effectiveActiveSection === 'whatsapp-reminders') {
@@ -1772,8 +1925,15 @@ function App() {
   )
 }
 
-function getNextNumericId(items: { id: number }[]) {
-  return Math.max(0, ...items.map((item) => item.id)) + 1
+function getNextNumericId(items: { id: number | string }[]) {
+  return (
+    Math.max(
+      0,
+      ...items
+        .map((item) => item.id)
+        .filter((id): id is number => typeof id === 'number'),
+    ) + 1
+  )
 }
 
 function getNextNumericPatientId(patients: Patient[]) {

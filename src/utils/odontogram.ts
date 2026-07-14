@@ -2,6 +2,7 @@ import type {
   OdontogramEntry,
   OdontogramFormErrors,
   OdontogramFormValues,
+  ToothCode,
   ToothStatus,
 } from '../types/Odontogram'
 import type { PatientId } from '../types/Patient'
@@ -13,7 +14,7 @@ export const toothStatuses: ToothStatus[] = [
   'restored',
   'missing',
   'pending',
-  'watch',
+  'observation',
   'other',
 ]
 
@@ -24,7 +25,7 @@ export interface AdultTeethGroup {
   quadrants: Array<{
     label: string
     range: string
-    teeth: number[]
+    teeth: ToothCode[]
   }>
 }
 
@@ -35,7 +36,7 @@ export const toothStatusLabels: Record<ToothStatus, string> = {
   other: 'Otro',
   pending: 'Tratamiento pendiente',
   restored: 'Restaurado',
-  watch: 'En observación',
+  observation: 'Observación',
 }
 
 export const toothStatusShortLabels: Record<ToothStatus, string> = {
@@ -45,13 +46,16 @@ export const toothStatusShortLabels: Record<ToothStatus, string> = {
   other: 'Otro',
   pending: 'Pendiente',
   restored: 'Restaurado',
-  watch: 'En observación',
+  observation: 'Observación',
 }
 
 export function generateAdultTeethNumbers() {
-  return [1, 2, 3, 4].flatMap((quadrant) =>
-    Array.from({ length: 8 }, (_, index) => quadrant * 10 + index + 1),
-  )
+  return [
+    '18', '17', '16', '15', '14', '13', '12', '11',
+    '21', '22', '23', '24', '25', '26', '27', '28',
+    '48', '47', '46', '45', '44', '43', '42', '41',
+    '31', '32', '33', '34', '35', '36', '37', '38',
+  ] satisfies ToothCode[]
 }
 
 export function generateAdultTeethGroups(): AdultTeethGroup[] {
@@ -63,13 +67,13 @@ export function generateAdultTeethGroups(): AdultTeethGroup[] {
       quadrants: [
         {
           label: 'Derecha del paciente',
-          range: 'Piezas 11-18',
-          teeth: [11, 12, 13, 14, 15, 16, 17, 18],
+          range: 'Piezas 18-11',
+          teeth: ['18', '17', '16', '15', '14', '13', '12', '11'],
         },
         {
           label: 'Izquierda del paciente',
           range: 'Piezas 21-28',
-          teeth: [21, 22, 23, 24, 25, 26, 27, 28],
+          teeth: ['21', '22', '23', '24', '25', '26', '27', '28'],
         },
       ],
     },
@@ -79,14 +83,14 @@ export function generateAdultTeethGroups(): AdultTeethGroup[] {
       range: 'Piezas 31-48',
       quadrants: [
         {
-          label: 'Izquierda del paciente',
-          range: 'Piezas 31-38',
-          teeth: [31, 32, 33, 34, 35, 36, 37, 38],
+          label: 'Derecha del paciente',
+          range: 'Piezas 48-41',
+          teeth: ['48', '47', '46', '45', '44', '43', '42', '41'],
         },
         {
-          label: 'Derecha del paciente',
-          range: 'Piezas 41-48',
-          teeth: [41, 42, 43, 44, 45, 46, 47, 48],
+          label: 'Izquierda del paciente',
+          range: 'Piezas 31-38',
+          teeth: ['31', '32', '33', '34', '35', '36', '37', '38'],
         },
       ],
     },
@@ -102,16 +106,18 @@ export function getOdontogramEntriesByPatient(
 
 export function getToothEntry(
   entries: OdontogramEntry[],
-  toothNumber: number,
+  toothCode: ToothCode,
 ) {
-  return entries.find((entry) => entry.toothNumber === toothNumber)
+  return entries.find(
+    (entry) => entry.toothCode === toothCode && entry.surface === null,
+  )
 }
 
 export function getToothStatus(
   entries: OdontogramEntry[],
-  toothNumber: number,
+  toothCode: ToothCode,
 ): ToothStatus {
-  return getToothEntry(entries, toothNumber)?.status ?? 'healthy'
+  return getToothEntry(entries, toothCode)?.status ?? 'healthy'
 }
 
 export function summarizeToothStatuses(entries: OdontogramEntry[]) {
@@ -122,11 +128,11 @@ export function summarizeToothStatuses(entries: OdontogramEntry[]) {
     other: 0,
     pending: 0,
     restored: 0,
-    watch: 0,
+    observation: 0,
   }
 
-  for (const toothNumber of generateAdultTeethNumbers()) {
-    summary[getToothStatus(entries, toothNumber)] += 1
+  for (const toothCode of generateAdultTeethNumbers()) {
+    summary[getToothStatus(entries, toothCode)] += 1
   }
 
   return summary
@@ -161,7 +167,8 @@ export function upsertOdontogramEntry(
   const existingEntry = entries.find(
     (currentEntry) =>
       currentEntry.patientId === entry.patientId &&
-      currentEntry.toothNumber === entry.toothNumber,
+      currentEntry.toothCode === entry.toothCode &&
+      currentEntry.surface === entry.surface,
   )
 
   if (!existingEntry) {

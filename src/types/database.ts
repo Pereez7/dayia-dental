@@ -151,6 +151,20 @@ export interface ClinicalRecordRecord {
   updated_at: string
 }
 
+export interface OdontogramEntryRecord {
+  clinic_id: string
+  created_at: string
+  created_by: string | null
+  id: string
+  notes: string | null
+  patient_id: string
+  status: string
+  surface: string | null
+  tooth_code: string
+  updated_at: string
+  updated_by: string | null
+}
+
 export interface TreatmentRecord {
   clinic_id: string
   created_at: string
@@ -253,6 +267,7 @@ export type TableRowMap = {
   business_hours: BusinessHourRecord
   calendar_exceptions: CalendarExceptionRecord
   clinical_records: ClinicalRecordRecord
+  odontogram_entries: OdontogramEntryRecord
   clinic_memberships: ClinicMembershipRecord
   clinic_subscriptions: ClinicSubscriptionRecord
   clinics: Clinic

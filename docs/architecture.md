@@ -37,7 +37,7 @@ renderizar UI y recibir datos por props cuando sea posible.
 
 Contiene datos de ejemplo usados por la interfaz mientras no existe backend.
 Actualmente conserva datos mock para el modo demo, incluidos registros clinicos
-y odontograma. En modo real, el historial clinico ya no consume estos mocks.
+y odontograma. En modo real, ninguno de esos modulos consume mocks.
 
 `src/layout`
 
@@ -84,8 +84,8 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
    secciones principales y acciones rapidas, separadas visualmente en marca,
    acciones y modulos.
 5. `App.tsx` coordina los datos compartidos. En modo real carga pacientes,
-   citas e historial clinico desde Supabase; en demo mantiene sus colecciones
-   mock. El odontograma continua en memoria.
+   citas, historial clinico y odontograma desde Supabase; en demo mantiene sus
+   colecciones mock. El odontograma se carga bajo demanda por paciente.
 6. `PatientsView` recibe pacientes, el callback de alta y el callback para ver
    detalle desde `App.tsx`. En modo listado prioriza `PatientsList` y deja el
    formulario debajo; en modo `new` muestra solo `PatientForm`.
@@ -215,10 +215,10 @@ seleccionado, y tambien existe como vista global agrupada por paciente para
 consultar historiales entre pacientes sin repetir cards por cada registro.
 
 El odontograma tambien se asocia por `patientId`; cada entrada identifica una
-pieza mediante `toothNumber`. `PatientOdontogram` usa grupos FDI generados por
+pieza mediante `toothCode`. `PatientOdontogram` usa grupos FDI generados por
 `src/utils/odontogram.ts` para separar arcada superior e inferior y mostrar
-cuadrantes como derecha o izquierda del paciente. Por ahora vive dentro del
-detalle del paciente y no en la vista global del menu lateral.
+cuadrantes como derecha o izquierda del paciente. La misma UI se reutiliza en
+el detalle y en la vista global con selector de paciente.
 
 `Citas`
 
@@ -454,13 +454,18 @@ clinica y el trigger impide cambiar el alcance del registro despues de crearlo.
 
 `Odontograma`
 
-Existe como primera version dentro de `PatientDetailView`. Participan:
+Existe dentro de `PatientDetailView` y como modulo global con selector de
+paciente. Participan:
 
 - `src/types/Odontogram.ts`: define `OdontogramEntry`, `ToothStatus` y valores
   del formulario.
 - `src/data/odontogram.ts`: contiene entradas mock asociadas a pacientes.
 - `src/components/PatientOdontogram.tsx`: renderiza grilla de piezas, resumen
   por estado y panel de actualizacion.
+- `src/services/odontogramService.ts`: lista por clinica/paciente y guarda por
+  upsert con la anon key y RLS.
+- `src/views/OdontogramView.tsx`: selecciona paciente y reutiliza el mismo mapa
+  dental del detalle.
 - `src/utils/odontogram.ts`: genera piezas permanentes adultas FDI, filtra por
   paciente, obtiene estado por pieza, cuenta estados, valida formulario,
   normaliza observaciones y crea o actualiza entradas.
@@ -468,16 +473,14 @@ Existe como primera version dentro de `PatientDetailView`. Participan:
 - `src/utils/dateFormatters.ts`: muestra `updatedAt` con `formatAppDate`, por
   ejemplo `14 jun` o `14 jun 2025` segun corresponda.
 
-El modulo lateral `Odontograma` sigue siendo placeholder global hasta definir
-una experiencia visual mas completa. La primera version evita superficies
-dentales, denticion temporal infantil y graficos complejos.
-
-No existe tabla `odontogram_entries` ni persistencia de odontograma. Este paso
-no modifica su UI o comportamiento local.
+La tabla `odontogram_entries` persiste por `clinic_id`, `patient_id`,
+`tooth_code` y `surface`. La version inicial guarda la pieza completa con
+`surface = null`; superficies avanzadas, denticion infantil, PDF y adjuntos o
+radiografias quedan pendientes.
 
 `PatientDetailView` entrega a `PatientOdontogram` entradas ya filtradas por
 paciente. Por eso los helpers de lectura de pieza trabajan sobre la coleccion
-recibida y buscan por `toothNumber`; el filtrado por `patientId` queda en
+recibida y buscan por `toothCode`; el filtrado por `patientId` queda en
 `getOdontogramEntriesByPatient`.
 
 El resumen del odontograma no cuenta solo entradas existentes: recorre las 32

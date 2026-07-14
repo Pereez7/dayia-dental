@@ -17,7 +17,8 @@ const entries: OdontogramEntry[] = [
   {
     id: 1,
     patientId: 1,
-    toothNumber: 16,
+    toothCode: '16',
+    surface: null,
     status: 'caries',
     notes: 'Caries visible',
     updatedAt: '2026-06-08',
@@ -25,7 +26,8 @@ const entries: OdontogramEntry[] = [
   {
     id: 2,
     patientId: 2,
-    toothNumber: 26,
+    toothCode: '26',
+    surface: null,
     status: 'restored',
     notes: 'Restaurado',
     updatedAt: '2026-06-08',
@@ -35,10 +37,10 @@ const entries: OdontogramEntry[] = [
 describe('odontogram helpers', () => {
   it('generates adult permanent teeth using FDI numbering', () => {
     expect(generateAdultTeethNumbers()).toEqual([
-      11, 12, 13, 14, 15, 16, 17, 18,
-      21, 22, 23, 24, 25, 26, 27, 28,
-      31, 32, 33, 34, 35, 36, 37, 38,
-      41, 42, 43, 44, 45, 46, 47, 48,
+      '18', '17', '16', '15', '14', '13', '12', '11',
+      '21', '22', '23', '24', '25', '26', '27', '28',
+      '48', '47', '46', '45', '44', '43', '42', '41',
+      '31', '32', '33', '34', '35', '36', '37', '38',
     ])
   })
 
@@ -51,13 +53,13 @@ describe('odontogram helpers', () => {
         quadrants: [
           {
             label: 'Derecha del paciente',
-            range: 'Piezas 11-18',
-            teeth: [11, 12, 13, 14, 15, 16, 17, 18],
+            range: 'Piezas 18-11',
+            teeth: ['18', '17', '16', '15', '14', '13', '12', '11'],
           },
           {
             label: 'Izquierda del paciente',
             range: 'Piezas 21-28',
-            teeth: [21, 22, 23, 24, 25, 26, 27, 28],
+            teeth: ['21', '22', '23', '24', '25', '26', '27', '28'],
           },
         ],
       },
@@ -67,14 +69,14 @@ describe('odontogram helpers', () => {
         range: 'Piezas 31-48',
         quadrants: [
           {
-            label: 'Izquierda del paciente',
-            range: 'Piezas 31-38',
-            teeth: [31, 32, 33, 34, 35, 36, 37, 38],
+            label: 'Derecha del paciente',
+            range: 'Piezas 48-41',
+            teeth: ['48', '47', '46', '45', '44', '43', '42', '41'],
           },
           {
-            label: 'Derecha del paciente',
-            range: 'Piezas 41-48',
-            teeth: [41, 42, 43, 44, 45, 46, 47, 48],
+            label: 'Izquierda del paciente',
+            range: 'Piezas 31-38',
+            teeth: ['31', '32', '33', '34', '35', '36', '37', '38'],
           },
         ],
       },
@@ -86,7 +88,7 @@ describe('odontogram helpers', () => {
   })
 
   it('returns healthy when a tooth has no entry', () => {
-    expect(getToothStatus(entries, 11)).toBe('healthy')
+    expect(getToothStatus(entries, '11')).toBe('healthy')
   })
 
   it('counts teeth by status including healthy defaults', () => {
@@ -100,7 +102,8 @@ describe('odontogram helpers', () => {
     const newEntry: OdontogramEntry = {
       id: 3,
       patientId: 1,
-      toothNumber: 11,
+      toothCode: '11',
+      surface: null,
       status: 'pending',
       notes: '',
       updatedAt: '2026-06-09',
@@ -116,7 +119,8 @@ describe('odontogram helpers', () => {
     const updatedEntry: OdontogramEntry = {
       id: 99,
       patientId: 1,
-      toothNumber: 16,
+      toothCode: '16',
+      surface: null,
       status: 'restored',
       notes: 'Restaurado',
       updatedAt: '2026-06-09',
@@ -135,8 +139,8 @@ describe('odontogram helpers', () => {
   })
 
   it('keeps consistent status labels for observation and pending states', () => {
-    expect(toothStatusLabels.watch).toBe('En observación')
-    expect(toothStatusShortLabels.watch).toBe('En observación')
+    expect(toothStatusLabels.observation).toBe('Observación')
+    expect(toothStatusShortLabels.observation).toBe('Observación')
     expect(toothStatusLabels.pending).toBe('Tratamiento pendiente')
     expect(toothStatusShortLabels.pending).toBe('Pendiente')
   })

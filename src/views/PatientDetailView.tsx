@@ -10,6 +10,8 @@ import type {
 import type {
   OdontogramEntry,
   OdontogramFormValues,
+  OdontogramSaveResult,
+  ToothCode,
 } from '../types/Odontogram'
 import type { Patient } from '../types/Patient'
 import { getClinicalRecordsByPatient } from '../utils/clinicalRecords'
@@ -33,6 +35,8 @@ interface PatientDetailViewProps {
   clinicalRecords: ClinicalRecord[]
   clinicalRecordsError?: string
   isClinicalRecordsLoading?: boolean
+  isOdontogramLoading?: boolean
+  odontogramError?: string
   odontogramEntries: OdontogramEntry[]
   onCreateClinicalRecord: (
     values: ClinicalRecordFormValues,
@@ -40,9 +44,9 @@ interface PatientDetailViewProps {
     | Promise<{ error?: string; success: boolean }>
     | { error?: string; success: boolean }
   onSaveOdontogramTooth: (
-    toothNumber: number,
+    toothCode: ToothCode,
     values: OdontogramFormValues,
-  ) => void
+  ) => Promise<OdontogramSaveResult> | OdontogramSaveResult
   onBackToList: () => void
   patient: Patient
 }
@@ -54,6 +58,8 @@ export function PatientDetailView({
   clinicalRecords,
   clinicalRecordsError = '',
   isClinicalRecordsLoading = false,
+  isOdontogramLoading = false,
+  odontogramError = '',
   odontogramEntries,
   onCreateClinicalRecord,
   onSaveOdontogramTooth,
@@ -186,10 +192,15 @@ export function PatientDetailView({
               </p>
             </div>
 
-            <PatientOdontogram
-              entries={patientOdontogramEntries}
-              onSaveTooth={onSaveOdontogramTooth}
-            />
+            {isOdontogramLoading ? (
+              <p className="settings-note">Cargando odontograma...</p>
+            ) : (
+              <PatientOdontogram
+                entries={patientOdontogramEntries}
+                errorMessage={odontogramError}
+                onSaveTooth={onSaveOdontogramTooth}
+              />
+            )}
           </article>
         )}
       </section>

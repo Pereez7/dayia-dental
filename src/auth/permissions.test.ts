@@ -110,6 +110,14 @@ describe('auth permissions', () => {
     ).toBe(false)
   })
 
+  it('allows only owner, admin and doctor to use the odontogram', () => {
+    expect(getClinicalPermissions('clinic_owner', 'basic').canAccessOdontogram).toBe(true)
+    expect(getClinicalPermissions('clinic_admin', 'basic').canAccessOdontogram).toBe(true)
+    expect(getClinicalPermissions('doctor', 'basic').canAccessOdontogram).toBe(true)
+    expect(getClinicalPermissions('receptionist', 'pro').canAccessOdontogram).toBe(false)
+    expect(getClinicalPermissions('platform_admin', 'pro').canAccessOdontogram).toBe(false)
+  })
+
   it('keeps reception away from history, odontogram and settings', () => {
     const permissions = getClinicalPermissions('receptionist', 'pro')
 

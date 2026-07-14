@@ -103,6 +103,10 @@ Las migraciones actuales son:
 - `011_memberships_plans_architecture.sql`: base multi-consultorio nueva con
   `clinic_memberships`, `plans`, `clinic_subscriptions`, helpers SQL de rol/plan
   y RLS inicial para esas tablas sin reemplazar todavia las policies clinicas.
+- `017_clinical_records.sql`: historial clinico por paciente con RLS de
+  membership activa.
+- `018_odontogram_entries.sql`: odontograma adulto FDI por paciente, upsert por
+  pieza/superficie y RLS clinica.
 
 ## Migracion por modulos
 
@@ -115,6 +119,7 @@ configurado. En modo real, los modulos se migraran gradualmente:
 4. Configuracion: tratamientos, horarios y excepciones.
 5. Recordatorios generados desde citas reales.
 6. WhatsApp real mediante Edge Functions y webhooks.
+7. Historial clinico y odontograma persistentes por paciente.
 
 Este orden reduce riesgo porque primero estabiliza el contexto del consultorio y
 el primer CRUD real antes de mover Agenda y sus dependencias.
@@ -140,9 +145,8 @@ Estados incompletos esperados:
 - Si no se puede cargar el consultorio, la app muestra un mensaje claro y evita
   dejar la pantalla en blanco.
 
-En modo real, Pacientes, Citas e Historial clinico leen y escriben en Supabase.
-Configuracion y Recordatorios mantienen sus integraciones actuales; Odontograma
-sigue usando estado mock/local y su modulo global continua como placeholder.
+En modo real, Pacientes, Citas, Historial clinico y Odontograma leen y escriben
+en Supabase. Configuracion y Recordatorios mantienen sus integraciones actuales.
 
 La migracion `supabase/migrations/002_auth_profiles_policies.sql` agrega una
 funcion `current_clinic_id()` y policies RLS basicas para que un usuario
@@ -221,6 +225,19 @@ autor. El frontend usa la anon key con RLS; no usa `service_role`.
 `src/services/clinicalRecordsService.ts` carga registros reales en modo
 Supabase. Los mocks quedan reservados al modo demo. El formulario normaliza los
 cuatro textos y solo muestra exito despues del insert confirmado.
+
+## Odontograma persistente
+
+La migracion `018_odontogram_entries.sql` crea `odontogram_entries` para el
+odontograma adulto FDI. Cada fila pertenece a una clinica, un paciente, una
+pieza y una superficie opcional. La unicidad `NULLS NOT DISTINCT` permite un
+upsert estable de la pieza completa cuando `surface` es null.
+
+RLS autoriza solo memberships activas `clinic_owner`, `clinic_admin` y
+`doctor`, y comprueba que el paciente pertenezca a la misma clinica.
+`receptionist`, platform admin puro y memberships inactivas no pueden leer ni
+escribir. El frontend consulta por `clinic_id + patient_id`, usa anon key y
+reserva los mocks para modo demo.
 
 ## Gestión de usuarios del consultorio
 
@@ -594,10 +611,10 @@ La preparacion actual agrega:
   roles permitidos, estados de activación y límites reales Medium/Pro.
 - SQL inicial y policies Auth en `supabase/migrations`.
 
-Pacientes, Citas, Historial clinico, Configuracion y Recordatorios consumen Supabase en modo real
+Pacientes, Citas, Historial clinico, Odontograma, Configuracion y Recordatorios consumen Supabase en modo real
 y conservan mocks en modo demo. Dashboard, Nueva Cita, Agenda, Detalle de
 paciente y Recordatorios leen esos datos desde el estado central de App.
-Odontograma sigue usando estado local/mock y no tiene tabla persistente.
+Odontograma carga y guarda por paciente mediante `odontogram_entries`.
 
 ## Setup real
 

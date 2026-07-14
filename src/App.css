@@ -4898,13 +4898,13 @@
   color: var(--color-warning);
 }
 
-.odontogram-status-summary--watch {
+.odontogram-status-summary--observation {
   border-color: #c7d2fe;
   background: #eef2ff;
 }
 
-.odontogram-status-summary--watch strong,
-.odontogram-status-summary--watch span {
+.odontogram-status-summary--observation strong,
+.odontogram-status-summary--observation span {
   color: var(--color-indigo);
 }
 
@@ -5117,7 +5117,7 @@
   color: var(--color-warning);
 }
 
-.odontogram-status--watch {
+.odontogram-status--observation {
   background: #eef2ff;
   border-color: #c7d2fe;
   color: var(--color-indigo);
@@ -5149,7 +5149,7 @@
   color: var(--color-warning);
 }
 
-.odontogram-status-dot--watch {
+.odontogram-status-dot--observation {
   color: var(--color-indigo);
 }
 
@@ -5250,7 +5250,7 @@
   color: var(--color-warning);
 }
 
-.odontogram-status-badge--watch {
+.odontogram-status-badge--observation {
   border-color: #c7d2fe;
   background: #eef2ff;
   color: var(--color-indigo);
@@ -5322,6 +5322,124 @@
   width: auto;
   min-width: 168px;
   padding: 10px 18px;
+}
+
+.odontogram-view {
+  gap: 16px;
+}
+
+.odontogram-view-heading,
+.odontogram-patient-context {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+}
+
+.odontogram-view-heading h2 {
+  margin: 2px 0 4px;
+  color: var(--color-heading);
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+}
+
+.odontogram-view-heading p:last-child {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.odontogram-patient-selector {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 12px;
+  max-width: 760px;
+}
+
+.odontogram-patient-selector label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.odontogram-patient-selector input,
+.odontogram-patient-selector select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  padding: 10px 12px;
+  transition:
+    border-color var(--transition-base),
+    box-shadow var(--transition-base);
+}
+
+.odontogram-patient-selector input:hover,
+.odontogram-patient-selector select:hover {
+  border-color: #b9ddec;
+}
+
+.odontogram-patient-selector input:focus,
+.odontogram-patient-selector select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-focus);
+  outline: 0;
+}
+
+.odontogram-view-state {
+  display: grid;
+  justify-items: start;
+  gap: 5px;
+  min-height: 150px;
+  align-content: center;
+  border-block: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  padding: 28px 2px;
+}
+
+.odontogram-view-state strong {
+  color: var(--color-heading);
+  font-family: var(--font-heading);
+  font-size: var(--text-md);
+}
+
+.odontogram-view-state span {
+  font-size: var(--text-sm);
+}
+
+.odontogram-workspace {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.odontogram-patient-context {
+  border-block: 1px solid var(--color-border);
+  padding: 12px 2px;
+}
+
+.odontogram-patient-context div {
+  display: grid;
+  gap: 2px;
+}
+
+.odontogram-patient-context span {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+.odontogram-patient-context strong {
+  color: var(--color-heading);
+  font-family: var(--font-heading);
+  font-size: var(--text-md);
 }
 
 .reminders-view {
@@ -6141,6 +6259,16 @@
 }
 
 @media (max-width: 600px) {
+  .odontogram-view-heading,
+  .odontogram-patient-context {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .odontogram-patient-selector {
+    grid-template-columns: 1fr;
+  }
+
   .confirm-dialog-overlay {
     padding: 14px;
   }

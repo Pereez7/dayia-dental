@@ -49,6 +49,7 @@ Ejecuta en Supabase SQL Editor, en orden, los archivos de
 15. `015_generalize_member_activation.sql`
 16. `016_atomic_clinic_member_invitation.sql`
 17. `017_clinical_records.sql`
+18. `018_odontogram_entries.sql`
 
 Si usas Supabase CLI en el futuro, puedes adaptar este flujo a `supabase db
 push`, pero esta guia asume SQL Editor para una primera prueba controlada.
@@ -218,9 +219,19 @@ datos clínicos y confirma que el listado se refresque con la nueva fila.
   ejecuta su consulta.
 - Confirmar que un platform admin puro no puede consultar `clinical_records`.
 - Intentar asociar un paciente de otra clinica y confirmar el rechazo RLS.
-- Verificar que Odontograma global conserva el texto de modulo futuro.
 
-### F. Recordatorios
+### F. Odontograma
+
+- Aplicar `018_odontogram_entries.sql` o ejecutar `npx supabase db push`.
+- Ingresar como owner, admin y doctor, seleccionar un paciente y guardar una
+  pieza; recargar y confirmar que persiste.
+- Cambiar de paciente y confirmar que no aparecen piezas del anterior.
+- Confirmar que recepcion no ve Odontograma ni ejecuta consultas.
+- Confirmar que un platform admin puro no puede consultar
+  `odontogram_entries`.
+- Verificar que el upsert de la misma pieza actualiza una fila y no duplica.
+
+### G. Recordatorios
 
 - Crear una cita futura y verificar que genera recordatorios.
 - Ver recordatorios persistidos.
@@ -228,7 +239,7 @@ datos clínicos y confirma que el listado se refresque con la nueva fila.
 - Marcar recordatorio como enviado.
 - Marcar recordatorio como fallido.
 
-### G. WhatsApp API dry-run
+### H. WhatsApp API dry-run
 
 - Verificar que `whatsapp_settings` existe para el consultorio.
 - Configurar Supabase Secrets de prueba, sin valores reales en repo:

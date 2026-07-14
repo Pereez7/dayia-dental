@@ -127,6 +127,12 @@ de su clinica. `receptionist`, el rol `platform_admin` por si solo y una
 membership inactiva reciben cero acceso. La policy tambien exige que el paciente
 pertenezca al mismo `clinic_id`; `profiles.role` no participa en la decision.
 
+`odontogram_entries` aplica la misma frontera: owner, admin y doctor con
+membership activa pueden leer y escribir solo piezas de pacientes de su
+clinica. Recepcion, platform admin sin contexto clinico autorizado y usuarios
+sin membership activa reciben cero filas. La autorizacion no usa
+`profiles.role`.
+
 ## Matriz de capacidades por plan
 
 | Capacidad | Basic | Medium | Pro |

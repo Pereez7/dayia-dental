@@ -55,8 +55,16 @@ Registro breve de cambios relevantes en DayIA Dental.
   espera confirmacion del insert antes de mostrar exito.
 - La vista global y el detalle incorporan loading, vacio y errores publicos sin
   mostrar informacion tecnica.
-- Odontograma no recibio persistencia ni tabla nueva; el modulo global sigue
-  como placeholder futuro.
+- Se agrego `018_odontogram_entries.sql` con FDI adulto, unicidad segura para
+  superficie nullable, auditoria y RLS basada en memberships activas.
+- Owner, admin y doctor pueden leer y guardar odontogramas; recepcion,
+  platform admin puro y memberships inactivas quedan sin acceso.
+- El modulo global de Odontograma ahora permite buscar y seleccionar paciente,
+  reutiliza el mapa del detalle y carga solo `clinic_id + patient_id`.
+- El guardado usa upsert real, normaliza observaciones y solo confirma exito
+  despues de la respuesta de Supabase; los mocks quedan para modo demo.
+- Quedan pendientes superficies avanzadas, denticion infantil, PDF y adjuntos
+  o radiografias.
 
 ## 2026-07-13
 
