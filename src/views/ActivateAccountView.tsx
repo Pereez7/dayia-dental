@@ -1,8 +1,10 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 
 import { supabase } from '../lib/supabaseClient'
+import { completeAccountActivation } from '../services/accountActivationService'
 import {
   hasActivationPasswordErrors,
+  runAccountActivationOnce,
   validateActivationPasswordForm,
   type ActivationPasswordErrors,
 } from '../utils/accountActivation'
@@ -12,6 +14,7 @@ interface ActivateAccountViewProps {
 }
 
 export function ActivateAccountView({ onActivated }: ActivateAccountViewProps) {
+  const submissionLock = useRef(false)
   const [confirmPassword, setConfirmPassword] = useState('')
   const [fieldErrors, setFieldErrors] = useState<ActivationPasswordErrors>({})
   const [formError, setFormError] = useState('')
@@ -38,29 +41,36 @@ export function ActivateAccountView({ onActivated }: ActivateAccountViewProps) {
       return
     }
 
-    setIsSubmitting(true)
-    const { error } = await supabase.auth.updateUser({ password })
-    setIsSubmitting(false)
+    const activationClient = supabase
 
-    if (error) {
-      setFormError(
-        'No pudimos activar tu acceso. Solicita una nueva invitación.',
-      )
+    if (submissionLock.current) {
       return
     }
 
-    const { data: userData } = await supabase.auth.getUser()
-    const currentUserId = userData.user?.id
+    setIsSubmitting(true)
+    const result = await runAccountActivationOnce(submissionLock, {
+      completeActivation: async () => {
+        const { error } = await completeAccountActivation()
+        return { error }
+      },
+      updatePassword: async () => {
+        const { error } = await activationClient.auth.updateUser({ password })
+        return {
+          error: error
+            ? { code: error.code, message: error.message }
+            : null,
+        }
+      },
+    })
+    setIsSubmitting(false)
 
-    if (currentUserId) {
-      const activatedAt = new Date().toISOString()
-      await supabase
-        .from('profiles')
-        .update({
-          activated_at: activatedAt,
-          updated_at: activatedAt,
-        } as never)
-        .eq('id', currentUserId)
+    if (result.status === 'ignored') {
+      return
+    }
+
+    if (result.error) {
+      setFormError(result.error)
+      return
     }
 
     setPassword('')

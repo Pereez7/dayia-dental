@@ -1,8 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
   hasActivationPasswordErrors,
+  isPasswordAlreadyConfiguredError,
   isAccountActivationRoute,
+  runAccountActivationOnce,
   validateActivationPasswordForm,
 } from './accountActivation'
 
@@ -51,5 +53,60 @@ describe('account activation helpers', () => {
     })
 
     expect(hasActivationPasswordErrors(errors)).toBe(false)
+  })
+
+  it('recognizes an already configured password response', () => {
+    expect(isPasswordAlreadyConfiguredError({ code: 'same_password' })).toBe(true)
+  })
+
+  it('completes membership activation after saving the password', async () => {
+    const calls: string[] = []
+
+    await expect(
+      runAccountActivationOnce(
+        { current: false },
+        {
+          completeActivation: async () => {
+            calls.push('activation')
+            return { error: null }
+          },
+          updatePassword: async () => {
+            calls.push('password')
+            return { error: null }
+          },
+        },
+      ),
+    ).resolves.toEqual({ error: null, status: 'success' })
+    expect(calls).toEqual(['password', 'activation'])
+  })
+
+  it('continues activation when the password was already configured', async () => {
+    const completeActivation = vi.fn().mockResolvedValue({ error: null })
+
+    await expect(
+      runAccountActivationOnce(
+        { current: false },
+        {
+          completeActivation,
+          updatePassword: vi.fn().mockResolvedValue({
+            error: { code: 'same_password' },
+          }),
+        },
+      ),
+    ).resolves.toEqual({ error: null, status: 'success' })
+    expect(completeActivation).toHaveBeenCalledOnce()
+  })
+
+  it('blocks duplicate activation submissions', async () => {
+    const completeActivation = vi.fn().mockResolvedValue({ error: null })
+    const lock = { current: true }
+
+    await expect(
+      runAccountActivationOnce(lock, {
+        completeActivation,
+        updatePassword: vi.fn(),
+      }),
+    ).resolves.toEqual({ error: null, status: 'ignored' })
+    expect(completeActivation).not.toHaveBeenCalled()
   })
 })
