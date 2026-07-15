@@ -715,3 +715,16 @@ puede quedar bloqueado por una configuración pública desincronizada.
 Como Auth y Postgres no comparten transacción, ante fallo parcial se elimina el
 consultorio, sus dependencias administrativas por cascada y solo el usuario Auth
 creado por la misma petición.
+
+## Pacientes y Citas conservan un flujo inline sin nuevas rutas
+
+El pulido comercial mantiene `App.tsx` como coordinador de navegación y estado.
+Pacientes usa una composición responsive: lista y registro conviven en desktop,
+mientras mobile conserva el listado como tarea principal y ofrece un acceso
+directo al formulario. No se agrega React Router ni una segunda fuente de
+estado.
+
+Nueva cita acepta un paciente preseleccionado desde su ficha. La selección se
+mantiene sólo durante ese flujo y se limpia después del guardado. Los accesos a
+historial y odontograma se renderizan con la matriz de permisos existente; no
+se duplican reglas de rol dentro de componentes visuales.

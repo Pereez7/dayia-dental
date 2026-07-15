@@ -401,3 +401,16 @@ JWT válido, `profiles.is_platform_admin = true` y
 `DAYIA_PLATFORM_CREATE_ENABLED === "true"`. Solo gestiona consultorio, owner,
 membresía y suscripción; no toca datos clínicos. La UI no decide el estado del
 feature flag.
+
+## Pulido comercial de Pacientes y Citas, 2026-07-14
+
+Pacientes presenta un listado más compacto y un bloque de registro claramente
+separado. La búsqueda incluye nombre, apellido, nombre completo, teléfono y
+email, con normalización de tildes y mayúsculas. El alta evita duplicados
+básicos por teléfono, limpia el formulario y destaca el registro creado.
+
+El detalle conserva el alcance clínico por rol, reúne todas las citas del
+paciente y ofrece accesos a nueva cita, historial y odontograma sólo cuando
+corresponde. Agenda mantiene las reglas existentes de disponibilidad,
+solapamiento, cancelación y reprogramación, y agrega CTA en vacío, feedback de
+éxito y preselección del paciente desde su ficha.

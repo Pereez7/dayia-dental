@@ -6,6 +6,22 @@ Registro breve de cambios relevantes en DayIA Dental.
 
 ### Cambios realizados
 
+- Pacientes adopta un layout operativo más compacto: listado y alta conviven en
+  dos columnas en desktop, con acceso directo al registro en mobile.
+- La búsqueda de pacientes ahora contempla nombre, apellido, nombre completo,
+  teléfono y email, ignorando diferencias de mayúsculas y tildes.
+- El alta valida duplicados por teléfono, normaliza el email, bloquea dobles
+  envíos, limpia el formulario y mantiene visible la ficha creada.
+- El detalle muestra datos personales, resumen, todas las citas relacionadas y
+  accesos rápidos a nueva cita, historial clínico y odontograma según permisos.
+- Agenda conserva sus KPIs compactos y suma un estado vacío con CTA para crear
+  citas. En mobile, el total se separa del resumen por estados.
+- Nueva cita puede iniciar con el paciente preseleccionado desde su ficha,
+  bloquea envíos concurrentes y confirma el guardado con feedback visible.
+- Se corrigieron tildes y mensajes visibles en Pacientes, Citas y validaciones.
+- Owner, admin, doctor y recepción conservan la gestión de Pacientes y Citas;
+  recepción no recibe accesos clínicos sensibles y platform admin permanece
+  fuera de los módulos clínicos.
 - Auth usa `clinic_memberships.role` y `clinic_memberships.clinic_id` como
   fuente principal del contexto clínico activo.
 - `profiles.role` y `profiles.clinic_id` quedan deprecados como fuente primaria

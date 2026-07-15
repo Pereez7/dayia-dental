@@ -134,6 +134,16 @@ de backend antes de validar la experiencia local.
 - Mantener las altas de plataforma detrás de autorización y feature flag de
   servidor; el frontend debe mostrar la respuesta real y nunca simular que creó
   un consultorio.
+- En Pacientes, mantener búsqueda y alta dentro del mismo contexto operativo:
+  el registro debe ser visible sin desplazar el listado como tarea principal.
+- Tras crear un paciente, limpiar el formulario, reiniciar filtros que puedan
+  ocultarlo y destacar temporalmente la ficha confirmada.
+- En el detalle, mostrar todas las citas relacionadas y limitar historial y
+  odontograma mediante la matriz de permisos existente.
+- Permitir iniciar Nueva cita desde la ficha con el paciente preseleccionado,
+  sin conservar esa selección para altas posteriores no relacionadas.
+- Los estados vacíos de Agenda deben enseñar la siguiente acción y mostrar
+  `Crear cita` sólo cuando el usuario tiene acceso al módulo.
 
 Cuando exista integracion real con WhatsApp, se evaluaran estados intermedios
 como `Solicitud de cancelacion` para evitar cancelaciones accidentales antes de

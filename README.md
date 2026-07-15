@@ -62,9 +62,9 @@ en `docs/supabase-setup.md`.
 - **Dashboard:** KPIs operativos, proximas citas activas, citas que requieren
   atencion, actividad reciente basada en cambios de cita, resumen mensual y
   pacientes recientes.
-- **Pacientes:** listado, busqueda, alta local, validaciones, detalle de
-  paciente, fichas escaneables, resumen clinico compacto, citas activas
-  asociadas, historial clinico inicial y odontograma inicial con piezas FDI.
+- **Pacientes:** listado compacto, búsqueda normalizada por nombre completo,
+  teléfono y email, alta persistente con control básico de duplicados, detalle
+  con todas las citas relacionadas y accesos rápidos condicionados por rol.
 - **Citas:** agenda diaria mobile-first con selector horizontal de dias, KPIs
   compactos, listado ordenado por hora, confirmacion, cancelacion con motivo en
   `ConfirmDialog`, reprogramacion inline con motivo, creacion local de citas,
@@ -80,7 +80,8 @@ en `docs/supabase-setup.md`.
   de creacion no se muestra como ultimo cambio. Los errores de reprogramacion se
   muestran inline dentro del panel para evitar alertas duplicadas. Las citas
   canceladas no se reprograman directamente; si el paciente desea asistir
-  nuevamente, se crea una nueva cita.
+  nuevamente, se crea una nueva cita. La agenda vacía ofrece un CTA según
+  permisos y el detalle del paciente puede abrir Nueva cita con preselección.
 - **Historial clinico:** registros clinicos dentro del detalle de paciente,
   ordenados por fecha, con resumen temporal y formulario de evolucion basica.
   El modulo global muestra una card por paciente, resume el ultimo registro,

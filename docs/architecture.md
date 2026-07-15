@@ -587,3 +587,21 @@ valida JWT e `is_platform_admin` con RLS antes del feature flag y de usar
 `clinic_memberships` y `clinic_subscriptions`; los datos clínicos quedan fuera.
 El formulario siempre llama a la Function, bloquea solicitudes concurrentes y
 refresca el listado solo después de una respuesta exitosa.
+
+## Flujo pulido de Pacientes y Citas
+
+`PatientsView` coordina el listado y el alta sin duplicar persistencia.
+`filterPatients` resuelve la búsqueda normalizada y `patientValidators`
+concentra campos requeridos, formatos y detección básica de duplicados. Tras un
+insert exitoso, `App` actualiza el estado compartido y la vista reinicia la
+búsqueda para mantener visible la nueva ficha.
+
+`PatientDetailView` compone datos personales, citas relacionadas, historial y
+odontograma. Los accesos sensibles se renderizan desde `ClinicalPermissions`.
+El acceso Nueva cita pasa el paciente seleccionado a `AppointmentForm` sin
+agregar rutas ni estado global nuevo fuera de `App`.
+
+`AppointmentForm` y `AppointmentsAgenda` reutilizan las utilidades existentes
+de horario, duración, excepciones, conflictos y motivos. Las citas canceladas
+siguen fuera del cálculo de disponibilidad, y confirmar, cancelar o reprogramar
+continúa persistiendo por `clinic_id` mediante `appointmentsService`.

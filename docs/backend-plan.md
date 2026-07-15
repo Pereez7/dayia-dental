@@ -626,3 +626,15 @@ validar Pacientes, Citas, Configuracion, Recordatorios y WhatsApp dry-run.
 
 El seed es una plantilla comentada con placeholders. No contiene contrasenas,
 tokens, `service_role` ni datos reales.
+
+## Validaciones operativas de Pacientes y Citas
+
+El frontend normaliza nombre, apellido, teléfono y email antes de crear un
+paciente. La lista cargada del consultorio se usa para rechazar duplicados
+básicos por teléfono antes del insert. Supabase continúa siendo la fuente real
+y todas las operaciones permanecen limitadas por `clinic_id` y RLS.
+
+La creación y reprogramación de citas reutiliza las validaciones de fecha,
+horario efectivo, excepciones, duración, solapamiento y cita activa del mismo
+paciente. Las canceladas no bloquean disponibilidad. No se introdujeron nuevas
+tablas, migraciones, Functions ni credenciales frontend para este pulido.

@@ -378,6 +378,23 @@ Pendiente:
 - Edicion directa de excepciones existentes.
 - Feriados recurrentes.
 
+### Pulido comercial de Pacientes y Citas
+
+Estado: completado para demo.
+
+Implementado:
+
+- Listado de pacientes compacto y responsive, con registro lateral en desktop.
+- Búsqueda por nombre, apellido, nombre completo, teléfono y email.
+- Validaciones amigables, normalización y detección básica de duplicados.
+- Estado vacío, estado sin resultados y visibilidad del paciente recién creado.
+- Detalle con citas relacionadas y accesos rápidos según permisos.
+- Agenda vacía con CTA, KPIs responsive y copy corregido.
+- Nueva cita con preselección de paciente, horarios disponibles, feedback de
+  éxito y bloqueo de doble envío.
+- Confirmación, cancelación y reprogramación mantienen trazabilidad y reglas de
+  disponibilidad existentes.
+
 ## Pendientes generales
 
 - Mejorar navegacion a medida que crezcan los modulos.
