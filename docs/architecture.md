@@ -96,10 +96,10 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
    citas activas asociadas, historial clinico, odontograma y permite volver al
    listado.
 10. `AppointmentsView` alterna entre la agenda y el formulario de nueva cita.
-11. `DashboardView` recibe citas y pacientes desde `App.tsx`, calcula metricas
-   con `src/utils/dashboardMetrics.ts` y compone KPIs, proximas citas activas,
-   citas que requieren atencion, actividad reciente, resumen mensual y
-   pacientes recientes.
+11. `DashboardView` recibe desde `App.tsx` las citas y pacientes que los
+   servicios ya limitaron al `clinic_id` activo. Calcula métricas con
+   `src/utils/dashboardMetrics.ts` y separa operación de hoy, resumen mensual,
+   próximas citas activas, atención, actividad real y pacientes recientes.
 12. `SettingsView` recibe tratamientos y excepciones del calendario desde
    `App.tsx`, carga horarios mock y compone la configuracion del consultorio.
 13. `BusinessHoursSettings` permite ajustar horario semanal, intervalo de
@@ -142,10 +142,11 @@ Contiene estilos globales, variables de color, reset basico y reglas generales.
 
 `Dashboard`
 
-Incluye KPIs operativos, proximas citas activas, citas que requieren atencion,
-actividad reciente, resumen mensual y pacientes recientes. No muestra nuevos
-pacientes del mes porque aun no existe una fecha real de registro para
-pacientes.
+Incluye KPIs operativos separados por alcance diario y mensual, próximas citas
+activas, citas que requieren atención, actividad reciente y pacientes activos.
+Durante la carga muestra skeletons y no publica ceros transitorios. No muestra
+nuevos pacientes del mes porque el modelo frontend aún no expone una fecha de
+registro confiable.
 
 Participan:
 
@@ -155,13 +156,14 @@ Participan:
   citas activas.
 - `src/components/DashboardAttentionList.tsx`: muestra citas que requieren
   seguimiento operativo.
-- `src/components/DashboardMonthSummary.tsx`: muestra resumen del mes.
+- `src/components/DashboardPanelSkeleton.tsx`: representa la carga de listados
+  sin confundirla con estados vacíos.
 - `src/components/DashboardPatientsList.tsx`: muestra pacientes recientes.
 - `src/components/DashboardActivityList.tsx`: muestra actividad reciente basada
   en cambios de cita.
-- `src/utils/dashboardMetrics.ts`: calcula KPIs, citas de hoy, resumen mensual,
-  proximas citas, citas que requieren atencion, actividad reciente y pacientes
-  recientes.
+- `src/utils/dashboardMetrics.ts`: calcula KPIs con fecha local, eventos
+  mensuales con fallback, próximas citas, atención, actividad y pacientes
+  activos. Solo opera sobre las colecciones ya acotadas por los servicios.
 
 `Pacientes`
 

@@ -52,7 +52,8 @@ export function getDashboardSummary(
   return {
     monthlyCancelledAppointments: monthlyStatusSummary.cancelled,
     monthlyRescheduledAppointments: monthlyStatusSummary.rescheduled,
-    registeredPatients: patients.length,
+    registeredPatients: patients.filter(({ status }) => status !== 'inactive')
+      .length,
     todayAppointments: todayAppointments.length,
     todayConfirmedAppointments: todayStatusSummary.confirmed,
     todayPendingAppointments: todayStatusSummary.pending,
@@ -66,7 +67,10 @@ export function getTodayAppointments(
   const today = formatDateInputValue(referenceDate)
 
   return sortAppointmentsByDateTime(
-    appointments.filter((appointment) => appointment.date === today),
+    appointments.filter(
+      (appointment) =>
+        appointment.date === today && isActiveAppointment(appointment),
+    ),
   )
 }
 
@@ -78,7 +82,7 @@ export function getUpcomingAppointments(
   return sortAppointmentsByDateTime(
     appointments.filter(
       (appointment) =>
-        appointment.status !== 'cancelled' &&
+        isActiveAppointment(appointment) &&
         getAppointmentDateTime(appointment) >= referenceDate,
     ),
   ).slice(0, limit)
@@ -103,27 +107,38 @@ export function getMonthlyStatusSummary(
   const statusSummary = summarizeAppointmentsByStatus(monthlyAppointments)
 
   return {
-    cancelled: statusSummary.cancelled,
+    cancelled: getMonthlyChangeCount(
+      appointments,
+      monthlyAppointments,
+      'cancelled',
+      referenceDate,
+    ),
     confirmed: statusSummary.confirmed,
-    rescheduled: statusSummary.rescheduled,
+    rescheduled: getMonthlyChangeCount(
+      appointments,
+      monthlyAppointments,
+      'rescheduled',
+      referenceDate,
+    ),
     total: monthlyAppointments.length,
   }
 }
 
 export function getRecentPatients(patients: Patient[], limit = 4) {
-  return patients.slice(0, limit)
+  return patients.filter(({ status }) => status !== 'inactive').slice(0, limit)
 }
 
 export function getAppointmentsRequiringAttention(
   appointments: Appointment[],
-  patients: Patient[],
   limit = 5,
   referenceDate = new Date(),
 ): DashboardAttentionItem[] {
-  const upcomingAppointments = getUpcomingAppointments(
-    appointments,
-    appointments.length,
-    referenceDate,
+  const today = formatDateInputValue(referenceDate)
+  const upcomingAppointments = sortAppointmentsByDateTime(
+    appointments.filter(
+      (appointment) =>
+        appointment.date >= today && isActiveAppointment(appointment),
+    ),
   )
   const attentionItems: DashboardAttentionItem[] = []
 
@@ -137,21 +152,12 @@ export function getAppointmentsRequiringAttention(
       })
     }
 
-    const patient = getAppointmentPatient(appointment, patients)
-
-    if (patient && !patient.phone) {
-      attentionItems.push({
-        detail: `${appointment.patient} · sin telefono registrado`,
-        id: `phone-${appointment.id}`,
-        label: 'Revisar telefono',
-        tone: 'red',
-      })
-    }
   }
 
   for (const appointment of getRecentlyChangedAppointments(
     appointments,
     'rescheduled',
+    referenceDate,
   )) {
     attentionItems.push({
       detail: formatAttentionDetail(appointment),
@@ -170,9 +176,9 @@ export function getRecentAppointmentActivity(
 ): DashboardActivityItem[] {
   return appointments
     .flatMap((appointment) =>
-      (appointment.changeLog ?? [])
-        .filter((entry) => entry.type !== 'created')
-        .map((entry) => createActivityItem(appointment, entry)),
+      (appointment.changeLog ?? []).map((entry) =>
+        createActivityItem(appointment, entry),
+      ),
     )
     .sort(
       (firstItem, secondItem) =>
@@ -249,17 +255,34 @@ function getActivityDescription(entry: AppointmentChangeLogEntry) {
     return getAppointmentLogDisplayText(entry).replace(/\.$/, '')
   }
 
+  if (entry.type === 'created') {
+    return 'Cita creada'
+  }
+
   return entry.description.replace(/\.$/, '')
 }
 
 function getRecentlyChangedAppointments(
   appointments: Appointment[],
   type: AppointmentChangeLogEntry['type'],
+  referenceDate: Date,
 ) {
+  const recentThreshold = new Date(referenceDate)
+  recentThreshold.setDate(recentThreshold.getDate() - 14)
+  const today = formatDateInputValue(referenceDate)
+
   return appointments
-    .filter((appointment) =>
-      appointment.changeLog?.some((entry) => entry.type === type),
-    )
+    .filter((appointment) => {
+      const latestEntry = getLatestEntryByType(appointment, type)
+
+      return (
+        appointment.date >= today &&
+        isActiveAppointment(appointment) &&
+        latestEntry !== undefined &&
+        new Date(latestEntry.createdAt) >= recentThreshold &&
+        new Date(latestEntry.createdAt) <= referenceDate
+      )
+    })
     .sort((firstAppointment, secondAppointment) => {
       const firstEntry = getLatestEntryByType(firstAppointment, type)
       const secondEntry = getLatestEntryByType(secondAppointment, type)
@@ -303,12 +326,51 @@ export function formatDashboardActivityDate(createdAt: string) {
   return formatAppointmentChangeLogTimestamp(createdAt)
 }
 
-function getAppointmentPatient(appointment: Appointment, patients: Patient[]) {
-  if (appointment.patientId !== undefined) {
-    return patients.find((patient) => patient.id === appointment.patientId)
-  }
+function getMonthlyChangeCount(
+  appointments: Appointment[],
+  monthlyAppointments: Appointment[],
+  type: 'cancelled' | 'rescheduled',
+  referenceDate: Date,
+) {
+  const monthlyAppointmentIds = new Set(
+    monthlyAppointments.map(({ id }) => String(id)),
+  )
 
-  return patients.find((patient) => patient.fullName === appointment.patient)
+  return appointments.reduce((total, appointment) => {
+    if ((appointment.changeLog ?? []).length === 0) {
+      return (
+        total +
+        Number(
+          appointment.status === type &&
+            monthlyAppointmentIds.has(String(appointment.id)),
+        )
+      )
+    }
+
+    return (
+      total +
+      (appointment.changeLog ?? []).filter(
+        (entry) =>
+          entry.type === type &&
+          isDateInLocalMonth(new Date(entry.createdAt), referenceDate),
+      ).length
+    )
+  }, 0)
+}
+
+function isDateInLocalMonth(date: Date, referenceDate: Date) {
+  return (
+    date.getFullYear() === referenceDate.getFullYear() &&
+    date.getMonth() === referenceDate.getMonth()
+  )
+}
+
+function isActiveAppointment(appointment: Appointment) {
+  return (
+    appointment.status === 'pending' ||
+    appointment.status === 'confirmed' ||
+    appointment.status === 'rescheduled'
+  )
 }
 
 function getAppointmentDateTime(appointment: Appointment) {

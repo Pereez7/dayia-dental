@@ -18,8 +18,19 @@ export function DashboardKpiCard({
       }`}
       aria-busy={isLoading}
     >
-      <strong>{isLoading ? '—' : value}</strong>
+      <strong>
+        {isLoading ? (
+          <span aria-hidden="true" className="dashboard-kpi-skeleton" />
+        ) : (
+          value
+        )}
+      </strong>
       <span>{label}</span>
+      {isLoading ? (
+        <span className="sr-only" role="status">
+          Cargando {label.toLowerCase()}.
+        </span>
+      ) : null}
     </article>
   )
 }

@@ -100,6 +100,30 @@ const appointments: Appointment[] = [
       },
     ],
   },
+  {
+    id: 6,
+    date: '2026-06-08',
+    time: '12:00',
+    patient: 'Cancelada hoy',
+    treatment: 'Control',
+    status: 'cancelled',
+  },
+  {
+    id: 7,
+    date: '2026-07-02',
+    time: '09:00',
+    patient: 'Movida fuera del mes',
+    treatment: 'Control',
+    status: 'rescheduled',
+    changeLog: [
+      {
+        id: 'rescheduled-7',
+        type: 'rescheduled',
+        createdAt: '2026-06-20T15:00:00.000Z',
+        description: 'Cita reprogramada.',
+      },
+    ],
+  },
 ]
 
 const patients: Patient[] = [
@@ -119,15 +143,23 @@ const patients: Patient[] = [
     nextAppointment: null,
     status: 'follow-up',
   },
+  {
+    id: 3,
+    fullName: 'Paciente inactivo',
+    phone: '+59170000000',
+    lastVisit: '2026-01-10',
+    nextAppointment: null,
+    status: 'inactive',
+  },
 ]
 
 describe('dashboardMetrics', () => {
-  const referenceDate = new Date('2026-06-08T08:00:00')
+  const referenceDate = new Date(2026, 5, 8, 12)
 
   it('calculates dashboard summary from today, month and patients', () => {
     expect(getDashboardSummary(appointments, patients, referenceDate)).toEqual({
-      monthlyCancelledAppointments: 1,
-      monthlyRescheduledAppointments: 1,
+      monthlyCancelledAppointments: 2,
+      monthlyRescheduledAppointments: 2,
       registeredPatients: 2,
       todayAppointments: 2,
       todayConfirmedAppointments: 1,
@@ -147,6 +179,7 @@ describe('dashboardMetrics', () => {
       1,
       3,
       2,
+      6,
       4,
       5,
     ])
@@ -154,18 +187,17 @@ describe('dashboardMetrics', () => {
 
   it('counts monthly appointment statuses', () => {
     expect(getMonthlyStatusSummary(appointments, referenceDate)).toEqual({
-      cancelled: 1,
+      cancelled: 2,
       confirmed: 2,
-      rescheduled: 1,
-      total: 5,
+      rescheduled: 2,
+      total: 6,
     })
   })
 
   it('gets upcoming appointments sorted by date and time without cancelled appointments', () => {
     expect(getUpcomingAppointments(appointments, 10, referenceDate).map(({ id }) => id)).toEqual([
-      3,
-      2,
       4,
+      7,
     ])
   })
 
@@ -173,15 +205,21 @@ describe('dashboardMetrics', () => {
     expect(getRecentPatients(patients, 1)).toEqual([patients[0]])
   })
 
-  it('creates attention items from pending, rescheduled and missing phone appointments', () => {
+  it('creates attention items from active pending and recent rescheduled appointments', () => {
     expect(
-      getAppointmentsRequiringAttention(appointments, patients, 5, referenceDate)
+      getAppointmentsRequiringAttention(appointments, 5, referenceDate)
         .map(({ id }) => id),
-    ).toEqual(['phone-3', 'pending-2', 'rescheduled-4'])
+    ).toEqual(['pending-2', 'rescheduled-4'])
   })
 
-  it('gets recent activity ignoring created events', () => {
+  it('gets real appointment activity including created events', () => {
     expect(getRecentAppointmentActivity(appointments, 5)).toEqual([
+      {
+        description: 'Cita reprogramada',
+        id: '7-rescheduled-7',
+        occurredAt: '2026-06-20T15:00:00.000Z',
+        patient: 'Movida fuera del mes',
+      },
       {
         description: 'Cita cancelada',
         id: '5-cancelled-5',
@@ -200,6 +238,57 @@ describe('dashboardMetrics', () => {
         occurredAt: '2026-06-08T13:30:00.000Z',
         patient: 'Hoy temprano',
       },
+      {
+        description: 'Cita creada',
+        id: '1-created-1',
+        occurredAt: '2026-06-01T09:00:00.000Z',
+        patient: 'Pasada',
+      },
+    ])
+  })
+
+  it('excludes cancelled and completed appointments from today and upcoming totals', () => {
+    const completed: Appointment = {
+      id: 8,
+      date: '2026-06-08',
+      time: '13:00',
+      patient: 'Completada',
+      treatment: 'Control',
+      status: 'completed',
+    }
+
+    expect(
+      getTodayAppointments([...appointments, completed], referenceDate).map(
+        ({ id }) => id,
+      ),
+    ).toEqual([3, 2])
+    expect(
+      getUpcomingAppointments([...appointments, completed], 10, referenceDate).map(
+        ({ id }) => id,
+      ),
+    ).toEqual([4, 7])
+  })
+
+  it('uses status as a monthly fallback when no change log exists', () => {
+    const withoutLogs = appointments.map((appointment) => ({
+      ...appointment,
+      changeLog: undefined,
+    }))
+
+    expect(getMonthlyStatusSummary(withoutLogs, referenceDate)).toEqual({
+      cancelled: 2,
+      confirmed: 2,
+      rescheduled: 1,
+      total: 6,
+    })
+  })
+
+  it('uses the local calendar day around a UTC boundary', () => {
+    const localReference = new Date(2026, 5, 8, 0, 15)
+
+    expect(getTodayAppointments(appointments, localReference).map(({ id }) => id)).toEqual([
+      3,
+      2,
     ])
   })
 
@@ -207,8 +296,8 @@ describe('dashboardMetrics', () => {
     expect(getDashboardActivityMessages(appointments, referenceDate)).toEqual([
       'Hoy tienes 2 atenciones programadas.',
       'Tienes 1 citas pendientes de hoy por confirmar.',
-      'Este mes tienes 5 atenciones registradas.',
-      'Hay 1 citas reprogramadas este mes.',
+      'Este mes tienes 6 atenciones registradas.',
+      'Hay 2 citas reprogramadas este mes.',
     ])
   })
 })

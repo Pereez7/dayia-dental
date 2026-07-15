@@ -990,6 +990,19 @@
   margin-bottom: 0;
 }
 
+.dashboard-kpi-heading h3 {
+  margin: 0;
+  color: var(--color-heading);
+  font-family: var(--font-heading);
+  font-size: var(--text-md);
+  font-weight: 700;
+}
+
+.dashboard-kpi-divider {
+  height: 1px;
+  background: rgba(122, 170, 188, 0.25);
+}
+
 .dashboard-kpi-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1029,6 +1042,21 @@
 
 .dashboard-kpi--loading strong {
   color: var(--color-text-muted);
+}
+
+.dashboard-kpi-skeleton {
+  display: block;
+  width: 2.25rem;
+  height: 1.9rem;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    rgba(117, 147, 163, 0.12) 25%,
+    rgba(117, 147, 163, 0.25) 50%,
+    rgba(117, 147, 163, 0.12) 75%
+  );
+  background-size: 200% 100%;
+  animation: dashboard-skeleton-loading 1.4s ease-in-out infinite;
 }
 
 .dashboard-kpi span {
@@ -1319,6 +1347,55 @@
   padding: 14px;
 }
 
+.dashboard-panel-skeleton {
+  display: grid;
+  gap: 8px;
+}
+
+.dashboard-panel-skeleton > span:not(.sr-only) {
+  display: block;
+  height: 58px;
+  border: 1px solid rgba(186, 207, 218, 0.45);
+  border-radius: var(--radius-md);
+  background: linear-gradient(
+    90deg,
+    rgba(222, 236, 242, 0.45) 25%,
+    rgba(242, 248, 250, 0.9) 50%,
+    rgba(222, 236, 242, 0.45) 75%
+  );
+  background-size: 200% 100%;
+  animation: dashboard-skeleton-loading 1.4s ease-in-out infinite;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes dashboard-skeleton-loading {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-kpi-skeleton,
+  .dashboard-panel-skeleton > span:not(.sr-only) {
+    animation: none;
+  }
+}
+
 @media (min-width: 760px) {
   .dashboard-kpi-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1336,7 +1413,7 @@
 
 @media (min-width: 1040px) {
   .dashboard-kpi-grid {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .dashboard-content-grid {

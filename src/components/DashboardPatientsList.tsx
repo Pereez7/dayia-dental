@@ -21,11 +21,11 @@ export function DashboardPatientsList({ patients }: DashboardPatientsListProps) 
 
           <span>
             {patient.nextAppointment
-              ? `Proxima ${formatOptionalCompactDateWithYear(
+              ? `Próxima ${formatOptionalCompactDateWithYear(
                   patient.nextAppointment,
                   'Sin cita',
                 )}`
-              : `Ultima ${formatOptionalCompactDateWithYear(patient.lastVisit)}`}
+              : `Última ${formatOptionalCompactDateWithYear(patient.lastVisit)}`}
           </span>
         </article>
       ))}

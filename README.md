@@ -11,8 +11,9 @@ historiales y otros modulos clinicos.
 - Sidebar con marca, acciones rapidas y navegacion principal diferenciadas.
 - Modulo de pacientes con listado, busqueda, formulario, validaciones, detalle
   de paciente y resumen clinico compacto.
-- Dashboard operativo con KPIs diarios y mensuales, proximas citas activas,
-  citas que requieren atencion, actividad reciente y resumen mensual.
+- Dashboard operativo con KPIs diarios y mensuales reales, próximas citas
+  activas, seguimiento y actividad reciente, siempre limitado al consultorio
+  activo y con estados de carga explícitos.
 - Modulo de citas con agenda diaria operativa y formulario de nueva cita.
 - Citas con confirmacion, cancelacion y reprogramacion local, incluyendo
   motivos simples de cancelacion y reprogramacion, con validacion para exigir
@@ -59,9 +60,9 @@ en `docs/supabase-setup.md`.
 
 ## Modulos actuales
 
-- **Dashboard:** KPIs operativos, proximas citas activas, citas que requieren
-  atencion, actividad reciente basada en cambios de cita, resumen mensual y
-  pacientes recientes.
+- **Dashboard:** operación de hoy sin citas canceladas, movimientos mensuales
+  desde el historial real, próximas citas activas, seguimiento, actividad de
+  citas y pacientes activos recientes.
 - **Pacientes:** listado compacto, búsqueda normalizada por nombre completo,
   teléfono y email, alta persistente con control básico de duplicados, detalle
   con todas las citas relacionadas y accesos rápidos condicionados por rol.

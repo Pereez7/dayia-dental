@@ -16,7 +16,7 @@ export function DashboardAppointmentList({
   if (appointments.length === 0) {
     return (
       <p className="dashboard-empty-state">
-        No hay proximas atenciones programadas.
+        No hay próximas atenciones programadas.
       </p>
     )
   }

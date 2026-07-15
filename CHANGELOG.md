@@ -6,6 +6,22 @@ Registro breve de cambios relevantes en DayIA Dental.
 
 ### Cambios realizados
 
+- El Dashboard separa la operación de hoy del resumen mensual y usa datos
+  reales ya limitados al consultorio activo por `clinic_id`.
+- Citas de hoy excluye estados cancelados y completados; pendientes y
+  confirmadas se calculan sobre la misma fecha local del consultorio.
+- Reprogramaciones y cancelaciones del mes priorizan eventos reales de
+  `appointment_change_logs`; si no existe historial de ese tipo, usan el estado
+  de las citas del mes como compatibilidad.
+- Próximas citas muestra solo citas activas realmente futuras, y Requieren
+  atención se limita a pendientes de hoy o posteriores y reprogramaciones de
+  los últimos 14 días.
+- Actividad reciente incorpora altas, confirmaciones, reprogramaciones y
+  cancelaciones reales, ordenadas de forma descendente.
+- Los KPIs y paneles muestran skeletons durante la carga para evitar ceros o
+  estados vacíos transitorios.
+- Se agregaron pruebas de semántica temporal, exclusión de canceladas,
+  fallback mensual, alcance por consultorio y estados de carga.
 - Pacientes adopta un layout operativo más compacto: listado y alta conviven en
   dos columnas en desktop, con acceso directo al registro en mobile.
 - La búsqueda de pacientes ahora contempla nombre, apellido, nombre completo,

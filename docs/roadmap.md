@@ -28,19 +28,25 @@ Pendiente:
 
 ### Dashboard
 
-Estado: iniciado.
+Estado: operativo.
 
 Implementado:
 
-- KPIs operativos actuales de citas de hoy, pendientes de hoy, confirmadas de
-  hoy, reprogramadas del mes, canceladas del mes y pacientes registrados.
-- Panel visual de KPIs equilibrado para desktop y mobile.
-- Proximas citas futuras activas, con maximo 5 citas y sin incluir canceladas.
-- Citas que requieren atencion: pendientes proximas, reprogramaciones recientes
-  y pacientes sin telefono cuando el dato existe.
-- Actividad reciente basada en `changeLog`, ignorando eventos `created`.
-- Resumen del mes con total, confirmadas, canceladas y reprogramadas.
-- Pacientes recientes.
+- KPIs diarios de citas activas, pendientes y confirmadas de hoy, calculados con
+  fecha local y sin canceladas ni completadas.
+- Resumen mensual de eventos reales de reprogramación y cancelación, con
+  fallback por estado para registros históricos sin `changeLog`, más pacientes
+  activos registrados.
+- Panel visual separado por alcance temporal, responsive y con skeletons de
+  carga que evitan ceros falsos.
+- Próximas citas futuras activas, con máximo 5 y sin canceladas ni completadas.
+- Citas que requieren atención: pendientes de hoy o posteriores y
+  reprogramaciones recientes, sin canceladas.
+- Actividad reciente basada en `changeLog`, incluyendo creación, confirmación,
+  reprogramación y cancelación.
+- Pacientes activos recientes.
+- Datos reales cargados por `App.tsx` mediante servicios limitados al
+  `clinic_id` activo; los mocks quedan solo para modo demo.
 - Calculos puros en `src/utils/dashboardMetrics.ts`.
 - Pruebas unitarias para metricas del Dashboard.
 
@@ -49,6 +55,8 @@ Pendiente:
 - Nuevos pacientes del mes cuando exista una fecha real de registro.
 - Comparativas con periodos anteriores.
 - Graficos o reportes avanzados.
+- Zona horaria configurable por consultorio; actualmente se usa la zona local
+  del navegador.
 
 ### Pacientes
 

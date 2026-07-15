@@ -616,6 +616,14 @@ y conservan mocks en modo demo. Dashboard, Nueva Cita, Agenda, Detalle de
 paciente y Recordatorios leen esos datos desde el estado central de App.
 Odontograma carga y guarda por paciente mediante `odontogram_entries`.
 
+El Dashboard no consulta tablas directamente. `App.tsx` carga pacientes,
+citas y `appointment_change_logs` mediante servicios que aplican
+`eq('clinic_id', currentClinic.id)` antes de entregar los datos a la vista. Los
+KPIs diarios usan la fecha local del navegador; los movimientos mensuales
+priorizan el timestamp real del log y recurren al estado de la cita solo cuando
+no existe historial de ese tipo. La actividad de pacientes no incluye altas
+porque el modelo `Patient` todavía no expone `created_at`.
+
 ## Setup real
 
 La guia para probar el MVP con un proyecto Supabase real vive en

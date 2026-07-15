@@ -217,9 +217,9 @@ por identificador.
 ## Dashboard operativo
 
 El Dashboard muestra indicadores accionables para el consultorio en lugar de
-duplicar la agenda completa. Sus KPIs actuales son citas de hoy, pendientes de
-hoy, confirmadas de hoy, reprogramadas del mes, canceladas del mes y pacientes
-registrados.
+duplicar la agenda completa. Sus KPIs actuales son citas activas de hoy,
+pendientes de hoy, confirmadas de hoy, eventos de reprogramación del mes,
+eventos de cancelación del mes y pacientes activos registrados.
 
 No se muestra `N/D` como KPI principal. El indicador de nuevos pacientes del mes
 queda fuera temporalmente porque los pacientes mock no tienen una fecha real de
@@ -230,13 +230,13 @@ Las proximas citas del Dashboard muestran solo citas futuras activas y excluyen
 canceladas. Las citas canceladas conservan trazabilidad en Agenda, pero no
 deben competir como proxima atencion operativa.
 
-La seccion de actividad reciente usa `changeLog` y omite eventos `created`.
-Crear una cita se conserva internamente, pero el Dashboard prioriza cambios
-operativos relevantes: confirmacion, cancelacion y reprogramacion.
+La sección de actividad reciente usa `changeLog` e incluye creación,
+confirmación, cancelación y reprogramación. Los eventos se ordenan por su
+timestamp real y se muestran en hora local.
 
-Las citas que requieren atencion se calculan desde datos existentes sin inventar
-informacion: pendientes proximas, reprogramaciones recientes y telefono faltante
-solo cuando existe el paciente relacionado.
+Las citas que requieren atención se calculan desde datos existentes: pendientes
+de hoy o posteriores y reprogramaciones recientes de citas activas. Las
+canceladas nunca ingresan en esta cola.
 
 Los calculos del Dashboard viven en `src/utils/dashboardMetrics.ts` para poder
 probarlos con Vitest y mantener la vista enfocada en composicion visual.
