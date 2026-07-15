@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { PatientFormValues } from '../types/Patient'
 import {
+  findDuplicatePatient,
+  getDuplicatePatientMessage,
   hasPatientFormErrors,
   validateCountryCode,
   validateLocalPhone,
@@ -10,6 +12,7 @@ import {
   validatePersonName,
   validateRequired,
 } from './patientValidators'
+import type { Patient } from '../types/Patient'
 
 const validFormValues: PatientFormValues = {
   firstName: 'Lucia',
@@ -44,8 +47,8 @@ describe('patientValidators', () => {
     ).toEqual({
       firstName: 'El nombre es requerido',
       lastName: 'El apellido es requerido',
-      countryCode: 'El prefijo de pais es requerido',
-      localPhone: 'El numero local es requerido',
+      countryCode: 'El prefijo de país es requerido',
+      localPhone: 'El número local es requerido',
     })
   })
 
@@ -73,10 +76,10 @@ describe('patientValidators', () => {
 
   it('rejects invalid country codes', () => {
     expect(validateCountryCode('591')).toBe(
-      'El prefijo debe iniciar con + y contener solo numeros',
+      'El prefijo debe iniciar con + y contener solo números',
     )
     expect(validateCountryCode('+BO')).toBe(
-      'El prefijo debe iniciar con + y contener solo numeros',
+      'El prefijo debe iniciar con + y contener solo números',
     )
   })
 
@@ -86,13 +89,13 @@ describe('patientValidators', () => {
 
   it('rejects local phone numbers with letters or symbols', () => {
     expect(validateLocalPhone('764544_df')).toBe(
-      'El numero local solo debe contener digitos',
+      'El número local solo debe contener dígitos',
     )
   })
 
   it('rejects local phone numbers with fewer than 6 digits', () => {
     expect(validateLocalPhone('12345')).toBe(
-      'El numero local debe tener mas de 5 digitos',
+      'El número local debe tener más de 5 dígitos',
     )
   })
 
@@ -103,7 +106,7 @@ describe('patientValidators', () => {
   it('validates optional email when it has a value', () => {
     expect(validateOptionalEmail('paciente@dayia.com')).toBe('')
     expect(validateOptionalEmail('correo-invalido')).toBe(
-      'El email debe tener un formato valido',
+      'El email debe tener un formato válido',
     )
   })
 
@@ -142,9 +145,9 @@ describe('patientValidators', () => {
       ),
     ).toEqual({
       firstName: 'El nombre solo debe contener letras y espacios',
-      countryCode: 'El prefijo debe iniciar con + y contener solo numeros',
-      localPhone: 'El numero local solo debe contener digitos',
-      email: 'El email debe tener un formato valido',
+      countryCode: 'El prefijo debe iniciar con + y contener solo números',
+      localPhone: 'El número local solo debe contener dígitos',
+      email: 'El email debe tener un formato válido',
       birthDate: 'La fecha de nacimiento no puede ser futura',
     })
   })
@@ -160,7 +163,7 @@ describe('patientValidators', () => {
         birthDate: '',
       }),
     ).toEqual({
-      localPhone: 'El numero local debe tener mas de 5 digitos',
+      localPhone: 'El número local debe tener más de 5 dígitos',
     })
   })
 
@@ -169,5 +172,43 @@ describe('patientValidators', () => {
       true,
     )
     expect(hasPatientFormErrors({})).toBe(false)
+  })
+
+  it('detects an existing patient by normalized phone', () => {
+    const patients: Patient[] = [
+      {
+        id: 'patient-1',
+        fullName: 'Lucía Vargas',
+        phone: '+591 70000000',
+        lastVisit: 'Sin registro',
+        nextAppointment: null,
+        status: 'active',
+      },
+    ]
+
+    expect(findDuplicatePatient(patients, validFormValues)?.id).toBe(
+      'patient-1',
+    )
+    expect(getDuplicatePatientMessage(patients, validFormValues)).toBe(
+      'Ya existe un paciente registrado con este teléfono.',
+    )
+  })
+
+  it('allows a patient with a different phone', () => {
+    expect(
+      getDuplicatePatientMessage(
+        [
+          {
+            id: 'patient-1',
+            fullName: 'Lucia Vargas',
+            phone: '+59171111111',
+            lastVisit: 'Sin registro',
+            nextAppointment: null,
+            status: 'active',
+          },
+        ],
+        validFormValues,
+      ),
+    ).toBe('')
   })
 })

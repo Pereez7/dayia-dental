@@ -1,5 +1,9 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import type { PatientFormErrors, PatientFormValues } from '../types/Patient'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import type {
+  Patient,
+  PatientFormErrors,
+  PatientFormValues,
+} from '../types/Patient'
 import {
   hasPatientFormErrors,
   validatePatientForm,
@@ -27,10 +31,15 @@ const countryCodeOptions = [
 interface PatientFormProps {
   onCreatePatient: (
     values: PatientFormValues,
-  ) => Promise<{ error?: string; success: boolean }>
+  ) => Promise<{
+    error?: string
+    patientId?: Patient['id']
+    success: boolean
+  }>
 }
 
 export function PatientForm({ onCreatePatient }: PatientFormProps) {
+  const submissionLock = useRef(false)
   const [formValues, setFormValues] =
     useState<PatientFormValues>(initialFormValues)
   const [errors, setErrors] = useState<PatientFormErrors>({})
@@ -53,12 +62,20 @@ export function PatientForm({ onCreatePatient }: PatientFormProps) {
       ...currentValues,
       [field]: value,
     }))
+    setErrors((currentErrors) => ({
+      ...currentErrors,
+      [field]: undefined,
+    }))
     setSubmitError('')
     setSuccessMessage('')
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    if (submissionLock.current) {
+      return
+    }
 
     const validationErrors = validatePatientForm(formValues)
     setErrors(validationErrors)
@@ -67,9 +84,22 @@ export function PatientForm({ onCreatePatient }: PatientFormProps) {
       return
     }
 
+    submissionLock.current = true
     setIsSubmitting(true)
-    const result = await onCreatePatient(formValues)
-    setIsSubmitting(false)
+
+    let result: Awaited<ReturnType<typeof onCreatePatient>>
+
+    try {
+      result = await onCreatePatient(formValues)
+    } catch {
+      result = {
+        error: 'No pudimos registrar el paciente. Intenta nuevamente.',
+        success: false,
+      }
+    } finally {
+      submissionLock.current = false
+      setIsSubmitting(false)
+    }
 
     if (!result.success) {
       setSubmitError(result.error ?? 'No pudimos registrar el paciente.')
@@ -88,38 +118,56 @@ export function PatientForm({ onCreatePatient }: PatientFormProps) {
       <div className="section-heading">
         <p className="eyebrow">Registro</p>
         <h2 id="patient-form-title">Nuevo paciente</h2>
+        <p className="section-description">
+          Completa los datos de contacto para crear su ficha.
+        </p>
       </div>
 
       <form className="patient-form" onSubmit={handleSubmit}>
         <label>
           <span>Nombre</span>
           <input
+            id="patient-first-name"
+            aria-describedby={
+              errors.firstName ? 'patient-first-name-error' : undefined
+            }
+            aria-invalid={Boolean(errors.firstName)}
+            autoComplete="given-name"
             type="text"
             placeholder="Ej. Charles"
             value={formValues.firstName}
             disabled={isSubmitting}
             onChange={(event) => updateField('firstName', event.target.value)}
           />
-          {errors.firstName && <small>{errors.firstName}</small>}
+          {errors.firstName && (
+            <small id="patient-first-name-error">{errors.firstName}</small>
+          )}
         </label>
 
         <label>
           <span>Apellido</span>
           <input
+            aria-describedby={
+              errors.lastName ? 'patient-last-name-error' : undefined
+            }
+            aria-invalid={Boolean(errors.lastName)}
+            autoComplete="family-name"
             type="text"
             placeholder="Ej. Pérez"
             value={formValues.lastName}
             disabled={isSubmitting}
             onChange={(event) => updateField('lastName', event.target.value)}
           />
-          {errors.lastName && <small>{errors.lastName}</small>}
+          {errors.lastName && (
+            <small id="patient-last-name-error">{errors.lastName}</small>
+          )}
         </label>
 
         <fieldset className="phone-field">
-          <legend>Telefono</legend>
+          <legend>Teléfono</legend>
           <div className="phone-control">
             <select
-              aria-label="Prefijo de pais"
+              aria-label="Prefijo de país"
               value={formValues.countryCode}
               disabled={isSubmitting}
               onChange={(event) =>
@@ -134,9 +182,14 @@ export function PatientForm({ onCreatePatient }: PatientFormProps) {
             </select>
 
             <input
+              aria-describedby={
+                errors.localPhone ? 'patient-phone-error' : undefined
+              }
+              aria-invalid={Boolean(errors.localPhone)}
               type="tel"
+              autoComplete="tel-national"
               inputMode="numeric"
-              aria-label="Numero local"
+              aria-label="Número local"
               placeholder="70000000"
               value={formValues.localPhone}
               disabled={isSubmitting}
@@ -146,34 +199,49 @@ export function PatientForm({ onCreatePatient }: PatientFormProps) {
             />
           </div>
           {errors.countryCode && <small>{errors.countryCode}</small>}
-          {errors.localPhone && <small>{errors.localPhone}</small>}
+          {errors.localPhone && (
+            <small id="patient-phone-error">{errors.localPhone}</small>
+          )}
         </fieldset>
 
         <label>
           <span>Email opcional</span>
           <input
+            aria-describedby={errors.email ? 'patient-email-error' : undefined}
+            aria-invalid={Boolean(errors.email)}
             type="email"
+            autoComplete="email"
             placeholder="correo@ejemplo.com"
             value={formValues.email}
             disabled={isSubmitting}
             onChange={(event) => updateField('email', event.target.value)}
           />
-          {errors.email && <small>{errors.email}</small>}
+          {errors.email && (
+            <small id="patient-email-error">{errors.email}</small>
+          )}
         </label>
 
         <label>
           <span>Fecha de nacimiento opcional</span>
           <input
+            aria-describedby={
+              errors.birthDate ? 'patient-birth-date-error' : undefined
+            }
+            aria-invalid={Boolean(errors.birthDate)}
             type="date"
             value={formValues.birthDate}
             disabled={isSubmitting}
             onChange={(event) => updateField('birthDate', event.target.value)}
           />
-          {errors.birthDate && <small>{errors.birthDate}</small>}
+          {errors.birthDate && (
+            <small id="patient-birth-date-error">{errors.birthDate}</small>
+          )}
         </label>
 
         {submitError && (
-          <p className="field-message field-message--error">{submitError}</p>
+          <p className="field-message field-message--error" role="alert">
+            {submitError}
+          </p>
         )}
 
         <button className="primary-action" disabled={isSubmitting} type="submit">

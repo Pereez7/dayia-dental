@@ -56,6 +56,7 @@ interface AppointmentsAgendaProps {
   calendarExceptions: CalendarException[]
   errorMessage?: string
   isLoading?: boolean
+  onCreateAppointment?: () => void
   patients: Patient[]
   treatments: Treatment[]
   onRescheduleAppointment?: (
@@ -95,6 +96,7 @@ export function AppointmentsAgenda({
   calendarExceptions,
   errorMessage = '',
   isLoading = false,
+  onCreateAppointment,
   onRescheduleAppointment,
   onUpdateAppointmentStatus,
   patients,
@@ -561,7 +563,7 @@ export function AppointmentsAgenda({
           <p className="eyebrow">Agenda diaria</p>
           <h2>Citas del consultorio</h2>
           <p className="section-description">
-            Revisa la operacion de un dia y las citas programadas por hora.
+            Revisa la operación del día y las citas programadas por hora.
           </p>
         </div>
       </div>
@@ -572,7 +574,7 @@ export function AppointmentsAgenda({
         </p>
       )}
 
-      <div className="agenda-date-nav" aria-label="Seleccionar dia de agenda">
+      <div className="agenda-date-nav" aria-label="Seleccionar día de agenda">
         {visibleDays.map((day) => (
           <button
             key={day.date}
@@ -616,7 +618,7 @@ export function AppointmentsAgenda({
           <p>Estamos preparando la agenda del consultorio.</p>
         </div>
       ) : selectedAppointments.length > 0 ? (
-        <div className="agenda-list" aria-label="Citas del dia seleccionado">
+        <div className="agenda-list" aria-label="Citas del día seleccionado">
           {selectedAppointments.map((appointment) => (
             <AppointmentAgendaCard
               appointment={appointment}
@@ -650,8 +652,19 @@ export function AppointmentsAgenda({
         </div>
       ) : (
         <div className="agenda-empty-state">
-          <h3>No hay citas programadas para este dia.</h3>
-          <p>Registra una nueva cita desde el acceso de Nueva cita.</p>
+          <div>
+            <h3>No hay citas programadas para este día</h3>
+            <p>El horario está disponible para una nueva atención.</p>
+          </div>
+          {onCreateAppointment && (
+            <button
+              className="primary-action agenda-empty-action"
+              type="button"
+              onClick={onCreateAppointment}
+            >
+              Crear cita
+            </button>
+          )}
         </div>
       )}
     </section>

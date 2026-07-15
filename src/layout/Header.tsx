@@ -7,7 +7,7 @@ const sectionContent: Record<AppSection, { title: string; description: string }>
   },
   'patients-list': {
     title: 'Pacientes',
-    description: 'Listado, busqueda y seguimiento basico de pacientes.',
+    description: 'Listado, búsqueda y seguimiento básico de pacientes.',
   },
   'patient-new': {
     title: 'Nuevo paciente',
@@ -15,15 +15,15 @@ const sectionContent: Record<AppSection, { title: string; description: string }>
   },
   'patient-detail': {
     title: 'Detalle de paciente',
-    description: 'Ficha basica y proximas citas asociadas.',
+    description: 'Ficha básica y próximas citas asociadas.',
   },
   'appointments-agenda': {
     title: 'Citas',
-    description: 'Agenda odontologica y proximas atenciones.',
+    description: 'Agenda odontológica y próximas atenciones.',
   },
   'appointment-new': {
     title: 'Nueva cita',
-    description: 'Prepara el flujo para programar una atencion odontologica.',
+    description: 'Prepara el flujo para programar una atención odontológica.',
   },
   'clinical-history': {
     title: 'Historial clínico',

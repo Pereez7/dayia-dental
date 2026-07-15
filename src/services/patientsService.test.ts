@@ -48,7 +48,7 @@ describe('patientsService mappers', () => {
     expect(input).toEqual({
       birthDate: undefined,
       countryCode: '+591',
-      email: 'ANA@EXAMPLE.COM',
+      email: 'ana@example.com',
       firstName: 'Ana',
       lastName: 'Salazar',
       localPhone: '76543210',

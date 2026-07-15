@@ -1,4 +1,9 @@
-import type { PatientFormErrors, PatientFormValues } from '../types/Patient'
+import type {
+  Patient,
+  PatientFormErrors,
+  PatientFormValues,
+} from '../types/Patient'
+import { normalizePatientSearchText } from './patientFilters'
 
 const namePattern = /^[\p{L}\s]+$/u
 const countryCodePattern = /^\+\d+$/
@@ -29,11 +34,11 @@ export function validateCountryCode(value: string) {
   const trimmedValue = value.trim()
 
   if (trimmedValue === '') {
-    return 'El prefijo de pais es requerido'
+    return 'El prefijo de país es requerido'
   }
 
   if (!countryCodePattern.test(trimmedValue)) {
-    return 'El prefijo debe iniciar con + y contener solo numeros'
+    return 'El prefijo debe iniciar con + y contener solo números'
   }
 
   return ''
@@ -43,15 +48,15 @@ export function validateLocalPhone(value: string) {
   const trimmedValue = value.trim()
 
   if (trimmedValue === '') {
-    return 'El numero local es requerido'
+    return 'El número local es requerido'
   }
 
   if (!localPhonePattern.test(trimmedValue)) {
-    return 'El numero local solo debe contener digitos'
+    return 'El número local solo debe contener dígitos'
   }
 
   if (trimmedValue.length < minPhoneLength) {
-    return 'El numero local debe tener mas de 5 digitos'
+    return 'El número local debe tener más de 5 dígitos'
   }
 
   return ''
@@ -65,7 +70,7 @@ export function validateOptionalEmail(value: string) {
   }
 
   if (!emailPattern.test(trimmedValue)) {
-    return 'El email debe tener un formato valido'
+    return 'El email debe tener un formato válido'
   }
 
   return ''
@@ -146,4 +151,38 @@ export function validatePatientForm(
 
 export function hasPatientFormErrors(errors: PatientFormErrors) {
   return Object.keys(errors).length > 0
+}
+
+export function findDuplicatePatient(
+  patients: Patient[],
+  values: PatientFormValues,
+) {
+  const candidatePhone = normalizePhone(
+    `${values.countryCode}${values.localPhone}`,
+  )
+  const candidateName = normalizePatientSearchText(
+    `${values.firstName} ${values.lastName}`,
+  )
+
+  return patients.find((patient) => {
+    const hasSamePhone = normalizePhone(patient.phone) === candidatePhone
+    const hasSameIdentity =
+      normalizePatientSearchText(patient.fullName) === candidateName &&
+      hasSamePhone
+
+    return hasSamePhone || hasSameIdentity
+  })
+}
+
+export function getDuplicatePatientMessage(
+  patients: Patient[],
+  values: PatientFormValues,
+) {
+  return findDuplicatePatient(patients, values)
+    ? 'Ya existe un paciente registrado con este teléfono.'
+    : ''
+}
+
+function normalizePhone(value: string) {
+  return value.replace(/\D/g, '')
 }

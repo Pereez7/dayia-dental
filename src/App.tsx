@@ -119,6 +119,7 @@ import type { AppointmentReasonPayload } from './utils/appointmentReasons'
 import { rescheduleAppointment } from './utils/appointmentReschedule'
 import { getTreatmentDuration } from './utils/treatmentUtils'
 import { getPlanFeatures } from './utils/planFeatures'
+import { getDuplicatePatientMessage } from './utils/patientValidators'
 import {
   getStoredActiveSection,
   saveActiveSection,
@@ -164,6 +165,8 @@ function App() {
     () => !isDemoMode && permissions.canAccessPatients,
   )
   const [patientsError, setPatientsError] = useState('')
+  const [appointmentPatientId, setAppointmentPatientId] =
+    useState<PatientId | null>(null)
   const [treatments, setTreatments] =
     useState<Treatment[]>(canLoadOperationalSettings ? initialTreatments : [])
   const [businessHours, setBusinessHours] =
@@ -754,12 +757,19 @@ function App() {
   ])
 
   async function handleCreatePatient(values: PatientFormValues) {
+    const duplicateMessage = getDuplicatePatientMessage(patients, values)
+
+    if (duplicateMessage) {
+      return { error: duplicateMessage, success: false }
+    }
+
     if (isDemoMode) {
       const patientInput = mapPatientFormValuesToPatientInput(values)
+      const patientId = getNextNumericPatientId(patients)
 
       setPatients((currentPatients) => [
         {
-          id: getNextNumericPatientId(currentPatients),
+          id: patientId,
           fullName: `${patientInput.firstName} ${patientInput.lastName}`,
           phone: `${patientInput.countryCode}${patientInput.localPhone}`,
           email: patientInput.email,
@@ -772,7 +782,7 @@ function App() {
       ])
       setPatientsError('')
 
-      return { success: true }
+      return { patientId, success: true }
     }
 
     if (!currentClinic?.id) {
@@ -797,7 +807,7 @@ function App() {
     setPatients((currentPatients) => [data, ...currentPatients])
     setPatientsError('')
 
-    return { success: true }
+    return { patientId: data.id, success: true }
   }
 
   async function handleCreateAppointment(values: AppointmentFormValues) {
@@ -854,7 +864,7 @@ function App() {
 
       setAppointments(nextAppointments)
       setAppointmentsError('')
-      setActiveSection('appointments-agenda')
+      setAppointmentPatientId(null)
 
       return { success: true }
     }
@@ -880,7 +890,7 @@ function App() {
       ]
     })
     setAppointmentsError('')
-    setActiveSection('appointments-agenda')
+    setAppointmentPatientId(null)
 
     return { success: true }
   }
@@ -1582,6 +1592,19 @@ function App() {
     setActiveSection('patient-detail')
   }
 
+  function handleCreateAppointmentForPatient(patientId: PatientId) {
+    setAppointmentPatientId(patientId)
+    setActiveSection('appointment-new')
+  }
+
+  function handleSectionChange(section: AppSection) {
+    if (section === 'appointment-new') {
+      setAppointmentPatientId(null)
+    }
+
+    setActiveSection(section)
+  }
+
   async function handleCreateClinicalRecord(
     patientId: PatientId,
     values: ClinicalRecordFormValues,
@@ -1799,6 +1822,9 @@ function App() {
             handleSaveOdontogramTooth(selectedPatient.id, toothCode, values)
           }
           onBackToList={handleBackToPatientsList}
+          onCreateAppointment={() =>
+            handleCreateAppointmentForPatient(selectedPatient.id)
+          }
           patient={selectedPatient}
         />
       )
@@ -1816,6 +1842,9 @@ function App() {
           patients={patients}
           treatments={treatments}
           onRescheduleAppointment={handleRescheduleAppointment}
+          onNavigateToNewAppointment={() =>
+            handleSectionChange('appointment-new')
+          }
           onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
         />
       )
@@ -1830,6 +1859,9 @@ function App() {
           errorMessage={appointmentsError}
           isLoading={isAppointmentsLoading}
           mode="new"
+          initialPatient={patients.find(
+            (patient) => patient.id === appointmentPatientId,
+          )}
           patients={patients}
           treatments={treatments}
           onCreateAppointment={handleCreateAppointment}
@@ -1939,7 +1971,7 @@ function App() {
     <AppLayout
       activeSection={effectiveActiveSection}
       canAccessAdministration={canAccessAdministration}
-      onSectionChange={setActiveSection}
+      onSectionChange={handleSectionChange}
       permissions={permissions}
     >
       {renderActiveView()}

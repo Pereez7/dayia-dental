@@ -303,7 +303,7 @@ describe('validateAppointmentForm', () => {
       status: 'rescheduled',
     })
 
-    expect(errors.status).toBe('Selecciona un estado valido.')
+    expect(errors.status).toBe('Selecciona un estado válido.')
   })
 
   it('does not allow cancelled or completed as initial statuses', () => {
@@ -312,13 +312,13 @@ describe('validateAppointmentForm', () => {
         ...validAppointmentFormValues,
         status: 'cancelled',
       }).status,
-    ).toBe('Selecciona un estado valido.')
+    ).toBe('Selecciona un estado válido.')
     expect(
       validate({
         ...validAppointmentFormValues,
         status: 'completed',
       }).status,
-    ).toBe('Selecciona un estado valido.')
+    ).toBe('Selecciona un estado válido.')
   })
 
   it('requires a treatment from the active treatment catalog', () => {
@@ -327,7 +327,7 @@ describe('validateAppointmentForm', () => {
       treatment: 'Endodoncia',
     })
 
-    expect(errors.treatment).toBe('Selecciona un tratamiento valido.')
+    expect(errors.treatment).toBe('Selecciona un tratamiento válido.')
   })
 
   it('requires at least one active treatment', () => {
@@ -340,7 +340,7 @@ describe('validateAppointmentForm', () => {
     )
 
     expect(errors.treatment).toBe(
-      'Activa al menos un tratamiento en Configuracion.',
+      'Activa al menos un tratamiento en Configuración.',
     )
   })
 

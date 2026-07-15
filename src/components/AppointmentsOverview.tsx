@@ -21,7 +21,7 @@ export function AppointmentsOverview({ appointments }: AppointmentsOverviewProps
         </div>
 
         <div className="metric-row">
-          <StatsCard value={appointments.length} label="Proximas citas" />
+          <StatsCard value={appointments.length} label="Próximas citas" />
           <StatsCard value={statusSummary.confirmed} label="Confirmadas" />
           <StatsCard value={statusSummary.pending} label="Pendientes" />
         </div>
@@ -30,7 +30,7 @@ export function AppointmentsOverview({ appointments }: AppointmentsOverviewProps
       <article className="appointments-panel">
         <div className="section-heading">
           <p className="eyebrow">Agenda</p>
-          <h2>Proximas atenciones</h2>
+          <h2>Próximas atenciones</h2>
         </div>
 
         <div className="appointment-list">

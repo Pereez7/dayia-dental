@@ -41,7 +41,7 @@ export function mapPatientFormValuesToPatientInput(
   return {
     birthDate: values.birthDate || undefined,
     countryCode: values.countryCode.trim(),
-    email: values.email.trim() || undefined,
+    email: values.email.trim().toLowerCase() || undefined,
     firstName: normalizeSentenceText(values.firstName),
     lastName: normalizeSentenceText(values.lastName),
     localPhone: values.localPhone.trim(),
@@ -56,7 +56,7 @@ export function mapPatientInputToPatientInsert(
     birth_date: input.birthDate || null,
     clinic_id: clinicId,
     country_code: input.countryCode,
-    email: input.email?.trim() || null,
+    email: input.email?.trim().toLowerCase() || null,
     first_name: normalizeSentenceText(input.firstName),
     last_name: normalizeSentenceText(input.lastName),
     notes: input.notes?.trim() || null,
@@ -70,7 +70,7 @@ export function mapPatientInputToPatientUpdate(
   return {
     birth_date: input.birthDate || null,
     country_code: input.countryCode,
-    email: input.email?.trim() || null,
+    email: input.email?.trim().toLowerCase() || null,
     first_name: normalizeSentenceText(input.firstName),
     last_name: normalizeSentenceText(input.lastName),
     notes: input.notes?.trim() || null,

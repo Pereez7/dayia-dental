@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import type {
   Appointment,
   AppointmentFormErrors,
@@ -31,6 +31,7 @@ import {
   hasAppointmentFormErrors,
   validateAppointmentForm,
 } from '../utils/appointmentValidators'
+import { Toast } from './Toast'
 
 const initialFormValues: AppointmentFormValues = {
   patientId: null,
@@ -55,6 +56,7 @@ interface AppointmentFormProps {
   appointments: Appointment[]
   businessHours: BusinessHoursSettings
   calendarExceptions: CalendarException[]
+  initialPatient?: Patient
   patients: Patient[]
   treatments: Treatment[]
   onCancel: () => void
@@ -67,17 +69,35 @@ export function AppointmentForm({
   appointments,
   businessHours,
   calendarExceptions,
+  initialPatient,
   patients,
   treatments,
   onCancel,
   onCreateAppointment,
 }: AppointmentFormProps) {
+  const submissionLock = useRef(false)
   const [formValues, setFormValues] =
-    useState<AppointmentFormValues>(initialFormValues)
+    useState<AppointmentFormValues>(() => ({
+      ...initialFormValues,
+      patient: initialPatient?.fullName ?? '',
+      patientId: initialPatient?.id ?? null,
+    }))
   const [errors, setErrors] = useState<AppointmentFormErrors>({})
-  const [patientSearch, setPatientSearch] = useState('')
+  const [patientSearch, setPatientSearch] = useState(
+    initialPatient?.fullName ?? '',
+  )
   const [submitError, setSubmitError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!successMessage) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => setSuccessMessage(''), 3200)
+    return () => window.clearTimeout(timeoutId)
+  }, [successMessage])
 
   const minAppointmentDate = getTodayDateInputValue()
   const filteredPatients = filterPatients(patients, patientSearch).slice(0, 5)
@@ -125,6 +145,10 @@ export function AppointmentForm({
     setFormValues((currentValues) => ({
       ...currentValues,
       [field]: value,
+    }))
+    setErrors((currentErrors) => ({
+      ...currentErrors,
+      [field]: undefined,
     }))
   }
 
@@ -259,7 +283,13 @@ export function AppointmentForm({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    if (submissionLock.current) {
+      return
+    }
+
     setSubmitError('')
+    setSuccessMessage('')
 
     const validationErrors = validateAppointmentForm(
       formValues,
@@ -276,14 +306,26 @@ export function AppointmentForm({
       return
     }
 
+    submissionLock.current = true
     setIsSubmitting(true)
-    const result = await onCreateAppointment({
-      ...formValues,
-      patient: formValues.patient.trim(),
-      treatment: formValues.treatment.trim(),
-    })
 
-    setIsSubmitting(false)
+    let result: Awaited<ReturnType<typeof onCreateAppointment>>
+
+    try {
+      result = await onCreateAppointment({
+        ...formValues,
+        patient: formValues.patient.trim(),
+        treatment: formValues.treatment.trim(),
+      })
+    } catch {
+      result = {
+        error: 'No pudimos guardar la cita. Intenta nuevamente.',
+        success: false,
+      }
+    } finally {
+      submissionLock.current = false
+      setIsSubmitting(false)
+    }
 
     if (result && !result.success) {
       setSubmitError(result.error ?? 'No pudimos guardar la cita.')
@@ -293,6 +335,7 @@ export function AppointmentForm({
     setFormValues(initialFormValues)
     setPatientSearch('')
     setErrors({})
+    setSuccessMessage('Cita registrada correctamente.')
   }
 
   return (
@@ -304,7 +347,7 @@ export function AppointmentForm({
         <p className="eyebrow">Agenda</p>
         <h2 id="appointment-form-title">Nueva cita</h2>
         <p className="section-description">
-          Registra una atencion programada usando los pacientes actuales.
+          Registra una atención usando un paciente y un horario disponible.
         </p>
       </div>
 
@@ -313,11 +356,13 @@ export function AppointmentForm({
           <label htmlFor="appointment-patient">Paciente</label>
           <div className="appointment-control">
             <input
+              aria-describedby="appointment-patient-message"
+              aria-invalid={Boolean(errors.patient)}
               id="appointment-patient"
               name="dayia-appointment-patient-search"
               type="search"
               autoComplete="off"
-              placeholder="Buscar por nombre o telefono"
+              placeholder="Buscar por nombre, teléfono o email"
               value={patientSearch}
               onChange={(event) => handlePatientSearch(event.target.value)}
             />
@@ -342,7 +387,10 @@ export function AppointmentForm({
             )}
           </div>
 
-          <div className="appointment-message-slot">
+          <div
+            className="appointment-message-slot"
+            id="appointment-patient-message"
+          >
             {errors.patient ? (
               <p className="field-message field-message--error">
                 {errors.patient}
@@ -362,6 +410,8 @@ export function AppointmentForm({
         <div className="appointment-field">
           <label htmlFor="appointment-status">Estado inicial</label>
           <select
+            aria-describedby="appointment-status-message"
+            aria-invalid={Boolean(errors.status)}
             id="appointment-status"
             value={formValues.status}
             onChange={(event) =>
@@ -374,7 +424,10 @@ export function AppointmentForm({
               </option>
             ))}
           </select>
-          <div className="appointment-message-slot">
+          <div
+            className="appointment-message-slot"
+            id="appointment-status-message"
+          >
             {errors.status && (
               <p className="field-message field-message--error">
                 {errors.status}
@@ -386,13 +439,18 @@ export function AppointmentForm({
         <div className="appointment-field">
           <label htmlFor="appointment-date">Fecha</label>
           <input
+            aria-describedby="appointment-date-message"
+            aria-invalid={Boolean(errors.date)}
             id="appointment-date"
             type="date"
             min={minAppointmentDate}
             value={formValues.date}
             onChange={(event) => updateAppointmentDate(event.target.value)}
           />
-          <div className="appointment-message-slot">
+          <div
+            className="appointment-message-slot"
+            id="appointment-date-message"
+          >
             {errors.date && (
               <p className="field-message field-message--error">
                 {errors.date}
@@ -404,6 +462,8 @@ export function AppointmentForm({
         <div className="appointment-field">
           <label htmlFor="appointment-time">Hora</label>
           <select
+            aria-describedby="appointment-time-message"
+            aria-invalid={Boolean(errors.time)}
             id="appointment-time"
             disabled={isTimeSelectDisabled}
             value={formValues.time}
@@ -424,7 +484,10 @@ export function AppointmentForm({
               </option>
             ))}
           </select>
-          <div className="appointment-message-slot">
+          <div
+            className="appointment-message-slot"
+            id="appointment-time-message"
+          >
             {errors.time && (
               <p className="field-message field-message--error">
                 {errors.time}
@@ -444,6 +507,8 @@ export function AppointmentForm({
         <div className="appointment-field appointment-form-full">
           <label htmlFor="appointment-treatment">Motivo o tratamiento</label>
           <select
+            aria-describedby="appointment-treatment-message"
+            aria-invalid={Boolean(errors.treatment)}
             id="appointment-treatment"
             value={formValues.treatment}
             onChange={(event) => updateTreatment(event.target.value)}
@@ -455,10 +520,13 @@ export function AppointmentForm({
               </option>
             ))}
           </select>
-          <div className="appointment-message-slot">
+          <div
+            className="appointment-message-slot"
+            id="appointment-treatment-message"
+          >
             {activeTreatments.length === 0 ? (
               <p className="field-message field-message--error">
-                Activa al menos un tratamiento en Configuracion.
+                Activa al menos un tratamiento en Configuración.
               </p>
             ) : errors.treatment ? (
               <p className="field-message field-message--error">
@@ -474,7 +542,9 @@ export function AppointmentForm({
 
         <div className="form-actions">
           {submitError && (
-            <p className="field-message field-message--error">{submitError}</p>
+            <p className="field-message field-message--error" role="alert">
+              {submitError}
+            </p>
           )}
           <button className="primary-action" type="submit" disabled={isSubmitting}>
             {isSubmitting ? 'Guardando...' : 'Guardar cita'}
@@ -484,6 +554,12 @@ export function AppointmentForm({
           </button>
         </div>
       </form>
+
+      <Toast
+        message={successMessage}
+        tone="success"
+        visible={Boolean(successMessage)}
+      />
     </section>
   )
 }

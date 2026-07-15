@@ -21,7 +21,7 @@ import {
   calculatePatientAge,
   getActivePatientAppointments,
   getNextActivePatientAppointment,
-  getUpcomingActivePatientAppointments,
+  getPatientAppointments,
 } from '../utils/patientDetails'
 import {
   formatAppointmentDate,
@@ -48,6 +48,7 @@ interface PatientDetailViewProps {
     values: OdontogramFormValues,
   ) => Promise<OdontogramSaveResult> | OdontogramSaveResult
   onBackToList: () => void
+  onCreateAppointment?: () => void
   patient: Patient
 }
 
@@ -64,9 +65,10 @@ export function PatientDetailView({
   onCreateClinicalRecord,
   onSaveOdontogramTooth,
   onBackToList,
+  onCreateAppointment,
   patient,
 }: PatientDetailViewProps) {
-  const upcomingAppointments = getUpcomingActivePatientAppointments(
+  const patientAppointments = getPatientAppointments(
     patient,
     appointments,
   )
@@ -92,15 +94,15 @@ export function PatientDetailView({
       )}`
     : 'Sin cita activa'
   const patientData = [
-    { label: 'Telefono', value: patient.phone },
+    { label: 'Teléfono', value: patient.phone },
     { label: 'Email', value: patient.email ?? 'Sin registro' },
     { label: 'Nacimiento', value: birthDateLabel },
     { label: 'Edad', value: ageLabel },
   ]
   const patientSummary = [
     { label: 'Citas activas', value: String(activeAppointments.length) },
-    { label: 'Ultima atencion', value: lastVisitLabel },
-    { label: 'Proxima cita', value: nextAppointmentLabel },
+    { label: 'Última atención', value: lastVisitLabel },
+    { label: 'Próxima cita', value: nextAppointmentLabel },
   ]
 
   return (
@@ -124,6 +126,31 @@ export function PatientDetailView({
             </div>
             <span className="status-pill">Paciente activo</span>
           </div>
+
+          <nav
+            aria-label="Accesos rápidos del paciente"
+            className="patient-quick-actions"
+          >
+            {onCreateAppointment && (
+              <button
+                className="primary-action"
+                type="button"
+                onClick={onCreateAppointment}
+              >
+                Nueva cita
+              </button>
+            )}
+            {canAccessClinicalHistory && (
+              <a className="secondary-action" href="#patient-clinical-history">
+                Ver historial clínico
+              </a>
+            )}
+            {canAccessOdontogram && (
+              <a className="secondary-action" href="#patient-odontogram">
+                Ver odontograma
+              </a>
+            )}
+          </nav>
 
           <div className="patient-summary-grid" aria-label="Resumen del paciente">
             {patientSummary.map((item) => (
@@ -149,19 +176,22 @@ export function PatientDetailView({
         <article className="patient-detail-panel patient-detail-panel--appointments">
           <div className="section-heading">
             <p className="eyebrow">Agenda del paciente</p>
-            <h2>Proximas citas</h2>
+            <h2>Citas del paciente</h2>
           </div>
 
-          <PatientAppointmentsList appointments={upcomingAppointments} />
+          <PatientAppointmentsList appointments={patientAppointments} />
         </article>
 
         {canAccessClinicalHistory && (
-          <article className="patient-detail-panel patient-clinical-panel">
+          <article
+            className="patient-detail-panel patient-clinical-panel"
+            id="patient-clinical-history"
+          >
             <div className="section-heading">
-              <p className="eyebrow">Seguimiento odontologico</p>
+              <p className="eyebrow">Seguimiento odontológico</p>
               <h2>Historial clínico</h2>
               <p className="section-description">
-                Registra evoluciones basicas asociadas a este paciente.
+                Registra evoluciones básicas asociadas a este paciente.
               </p>
             </div>
 
@@ -183,12 +213,15 @@ export function PatientDetailView({
         )}
 
         {canAccessOdontogram && (
-          <article className="patient-detail-panel patient-odontogram-panel">
+          <article
+            className="patient-detail-panel patient-odontogram-panel"
+            id="patient-odontogram"
+          >
             <div className="section-heading">
               <p className="eyebrow">Registro dental</p>
               <h2>Odontograma</h2>
               <p className="section-description">
-                Registra estados basicos por pieza dental permanente.
+                Registra estados básicos por pieza dental permanente.
               </p>
             </div>
 

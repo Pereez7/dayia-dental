@@ -15,9 +15,10 @@ export function PatientAppointmentsList({
 }: PatientAppointmentsListProps) {
   if (appointments.length === 0) {
     return (
-      <p className="dashboard-empty-state">
-        Este paciente aun no tiene citas registradas.
-      </p>
+      <div className="patient-appointments-empty" role="status">
+        <strong>Sin citas registradas</strong>
+        <span>Las nuevas atenciones aparecerán aquí con su estado.</span>
+      </div>
     )
   }
 

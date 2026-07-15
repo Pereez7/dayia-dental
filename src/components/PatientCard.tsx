@@ -8,11 +8,16 @@ const patientStatusLabels: Record<Patient['status'], string> = {
 }
 
 interface PatientCardProps {
+  isHighlighted?: boolean
   onViewDetail: (patientId: Patient['id']) => void
   patient: Patient
 }
 
-export function PatientCard({ onViewDetail, patient }: PatientCardProps) {
+export function PatientCard({
+  isHighlighted = false,
+  onViewDetail,
+  patient,
+}: PatientCardProps) {
   const nextAppointmentLabel = formatOptionalCompactDateWithYear(
     patient.nextAppointment,
     'Sin cita agendada',
@@ -22,7 +27,9 @@ export function PatientCard({ onViewDetail, patient }: PatientCardProps) {
   const emailLabel = patient.email ?? 'Sin email'
 
   return (
-    <article className="patient-card">
+    <article
+      className={`patient-card${isHighlighted ? ' patient-card--highlighted' : ''}`}
+    >
       <div className="patient-card-header">
         <div>
           <p className="patient-name">{patient.fullName}</p>
@@ -34,11 +41,11 @@ export function PatientCard({ onViewDetail, patient }: PatientCardProps) {
 
       <dl className="patient-details">
         <div>
-          <dt>Ultima visita</dt>
+          <dt>Última visita</dt>
           <dd>{lastVisitLabel}</dd>
         </div>
         <div>
-          <dt>Proxima cita</dt>
+          <dt>Próxima cita</dt>
           <dd>{nextAppointmentLabel}</dd>
         </div>
       </dl>

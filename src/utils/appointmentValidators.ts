@@ -118,9 +118,9 @@ export function validateAppointmentForm(
   if (!values.treatment.trim()) {
     errors.treatment = 'Ingresa el motivo o tratamiento.'
   } else if (activeTreatments.length === 0) {
-    errors.treatment = 'Activa al menos un tratamiento en Configuracion.'
+    errors.treatment = 'Activa al menos un tratamiento en Configuración.'
   } else if (!selectedTreatment) {
-    errors.treatment = 'Selecciona un tratamiento valido.'
+    errors.treatment = 'Selecciona un tratamiento válido.'
   } else if (!isValidTreatmentDuration(selectedTreatment.durationMinutes)) {
     errors.treatment = 'El tratamiento seleccionado no tiene una duración válida.'
   } else if (
@@ -148,7 +148,7 @@ export function validateAppointmentForm(
   }
 
   if (!appointmentInitialStatuses.includes(values.status)) {
-    errors.status = 'Selecciona un estado valido.'
+    errors.status = 'Selecciona un estado válido.'
   }
 
   return errors

@@ -26,5 +26,29 @@ describe('PatientDetailView permissions', () => {
     expect(markup).not.toContain('Historial clínico')
     expect(markup).not.toContain('Odontograma')
     expect(markup).toContain('Agenda del paciente')
+    expect(markup).not.toContain('Ver historial clínico')
+    expect(markup).not.toContain('Ver odontograma')
+  })
+
+  it('shows permitted quick actions and all patient appointments', () => {
+    const markup = renderToStaticMarkup(
+      <PatientDetailView
+        appointments={appointments}
+        canAccessClinicalHistory
+        canAccessOdontogram
+        clinicalRecords={clinicalRecords}
+        odontogramEntries={odontogramEntries}
+        patient={patients[0]}
+        onBackToList={vi.fn()}
+        onCreateAppointment={vi.fn()}
+        onCreateClinicalRecord={vi.fn()}
+        onSaveOdontogramTooth={vi.fn()}
+      />,
+    )
+
+    expect(markup).toContain('Nueva cita')
+    expect(markup).toContain('Ver historial clínico')
+    expect(markup).toContain('Ver odontograma')
+    expect(markup).toContain('Citas del paciente')
   })
 })

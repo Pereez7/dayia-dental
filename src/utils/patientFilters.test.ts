@@ -5,6 +5,7 @@ import { filterPatients } from './patientFilters'
 const patients: Patient[] = [
   {
     id: 1,
+    email: 'mariana.rojas@dayia.test',
     fullName: 'Mariana Rojas',
     phone: '+59170012345',
     lastVisit: '2026-05-18',
@@ -35,8 +36,17 @@ describe('filterPatients', () => {
     expect(filterPatients(patients, 'medina')).toEqual([patients[1]])
   })
 
+  it('filters patients by full name without requiring accents', () => {
+    expect(filterPatients(patients, 'mariana rojas')).toEqual([patients[0]])
+    expect(filterPatients(patients, 'Maríana')).toEqual([patients[0]])
+  })
+
   it('filters patients by phone', () => {
     expect(filterPatients(patients, '70012345')).toEqual([patients[0]])
+  })
+
+  it('filters patients by email when available', () => {
+    expect(filterPatients(patients, 'rojas@dayia')).toEqual([patients[0]])
   })
 
   it('returns an empty list when there are no matches', () => {

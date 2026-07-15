@@ -111,7 +111,7 @@ export function AppointmentAgendaCard({
 
         <div className="agenda-card-patient">
           <h3>{appointment.patient}</h3>
-          <p>{patient?.phone ?? 'Telefono sin registro'}</p>
+          <p>{patient?.phone ?? 'Teléfono sin registro'}</p>
         </div>
 
         <span className={`agenda-status agenda-card-status ${statusClassName}`}>

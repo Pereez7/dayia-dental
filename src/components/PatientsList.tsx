@@ -7,6 +7,7 @@ interface PatientsListProps {
   emptyMessage?: string
   errorMessage?: string
   isLoading?: boolean
+  highlightedPatientId?: Patient['id'] | null
   onViewPatient: (patientId: Patient['id']) => void
   patients: Patient[]
 }
@@ -14,12 +15,17 @@ interface PatientsListProps {
 export function PatientsList({
   emptyMessage = 'No hay pacientes registrados todavía.',
   errorMessage = '',
+  highlightedPatientId = null,
   isLoading = false,
   onViewPatient,
   patients,
 }: PatientsListProps) {
   const [searchText, setSearchText] = useState('')
   const filteredPatients = filterPatients(patients, searchText)
+
+  function focusPatientForm() {
+    document.getElementById('patient-first-name')?.focus()
+  }
 
   return (
     <section className="patients-section" aria-label="Listado de pacientes">
@@ -35,7 +41,8 @@ export function PatientsList({
             type="search"
             value={searchText}
             onChange={(event) => setSearchText(event.target.value)}
-            placeholder="Nombre, apellido o telefono"
+            placeholder="Nombre, apellido, teléfono o email"
+            autoComplete="off"
           />
         </label>
       </div>
@@ -49,6 +56,7 @@ export function PatientsList({
           {filteredPatients.map((patient) => (
             <PatientCard
               key={patient.id}
+              isHighlighted={patient.id === highlightedPatientId}
               onViewDetail={onViewPatient}
               patient={patient}
             />
@@ -57,11 +65,32 @@ export function PatientsList({
       )}
 
       {!isLoading && !errorMessage && filteredPatients.length === 0 && (
-        <p className="empty-state">
-          {searchText.trim()
-            ? 'No encontramos pacientes con esa busqueda.'
-            : emptyMessage}
-        </p>
+        <div className="patients-empty-state" role="status">
+          <div aria-hidden="true" className="patients-empty-mark">
+            {searchText.trim() ? '?' : '+'}
+          </div>
+          <div>
+            <h3>
+              {searchText.trim()
+                ? 'No encontramos coincidencias'
+                : 'Aún no hay pacientes registrados'}
+            </h3>
+            <p>
+              {searchText.trim()
+                ? 'Prueba con el nombre completo, teléfono o email.'
+                : emptyMessage}
+            </p>
+          </div>
+          <button
+            className="secondary-action"
+            type="button"
+            onClick={
+              searchText.trim() ? () => setSearchText('') : focusPatientForm
+            }
+          >
+            {searchText.trim() ? 'Limpiar búsqueda' : 'Registrar paciente'}
+          </button>
+        </div>
       )}
     </section>
   )
