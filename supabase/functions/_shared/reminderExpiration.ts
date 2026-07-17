@@ -13,7 +13,11 @@ export function resolveReminderDisposition(
   referenceDate = new Date(),
   timeZone = DEFAULT_CLINIC_TIME_ZONE,
 ): ReminderDisposition {
-  if (appointment.status === 'cancelled') {
+  if (
+    appointment.status === 'cancelled' ||
+    appointment.status === 'completed' ||
+    appointment.status === 'no_show'
+  ) {
     return 'cancelled'
   }
 

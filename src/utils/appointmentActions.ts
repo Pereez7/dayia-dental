@@ -15,6 +15,7 @@ export function getAppointmentStatusActions(status: AppointmentStatus) {
     cancelled: [],
     completed: [],
     confirmed: ['reschedule', 'cancel'],
+    no_show: [],
     pending: ['confirm', 'reschedule', 'cancel'],
     rescheduled: ['reschedule', 'cancel'],
   }

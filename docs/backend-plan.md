@@ -107,6 +107,8 @@ Las migraciones actuales son:
   membership activa.
 - `018_odontogram_entries.sql`: odontograma adulto FDI por paciente, upsert por
   pieza/superficie y RLS clinica.
+- `019_appointment_resolution_statuses.sql`: estados terminales `completed` y
+  `no_show` para cerrar citas pasadas sin afectar disponibilidad futura.
 
 ## Migracion por modulos
 
@@ -397,6 +399,17 @@ En modo real, las citas se cargan desde `appointments` filtrando siempre por
 cancelar y reprogramar actualizan Supabase y registran eventos en
 `appointment_change_logs`, tambien filtrados por `clinic_id`.
 
+La migracion `019_appointment_resolution_statuses.sql` amplia el constraint de
+`appointments.status` con `completed` y `no_show`. Ambos son terminales: no
+bloquean disponibilidad, no aparecen como proximas citas y no generan
+recordatorios activos. Cada cierre registra un evento homonimo en
+`appointment_change_logs` para actividad reciente.
+
+La migracion `019` debe aplicarse antes de usar Resolver cita pasada contra
+Supabase. Si el constraint remoto aun no admite el estado o RLS rechaza la
+actualizacion, el frontend muestra un mensaje controlado y nunca expone el
+detalle tecnico devuelto por Postgres.
+
 El frontend conserva su forma actual de datos:
 
 - `patientId` usa el UUID real de `patients.id` en modo Supabase y numeros en
@@ -412,6 +425,17 @@ duracion, validacion contra horarios del consultorio, excepciones del
 calendario, bloqueo de solapamientos, bloqueo de doble cita activa del mismo
 paciente en el mismo dia, citas canceladas que no bloquean horario y restriccion
 para no reprogramar citas canceladas.
+
+Recordatorios puede resolver una cita pasada sin cierre reutilizando estos
+servicios. Completar, marcar no asistencia o cancelar cambia el estado de la
+cita y cancela solo recordatorios `pending/scheduled`. Reprogramar exige nueva
+fecha, hora y motivo, conserva los `skipped` como historico y crea la cola de la
+nueva ocurrencia.
+
+La reprogramacion desde Recordatorios reutiliza
+`getAvailableTimeOptionsByDuration`, igual que Nueva cita. El selector respeta
+horarios del consultorio, excepciones, duracion del tratamiento, solapamientos
+y horas pasadas, e ignora solo la cita que se esta reprogramando.
 
 En modo demo/desarrollo, Citas no llama a Supabase: usa `initialAppointments` y
 las altas/cambios viven solo en memoria. No se mezclan citas mock con citas
@@ -511,10 +535,21 @@ no intenta enviar citas pasadas ni canceladas y persiste `skipped` o
 directas. La reconciliacion de React usa la sesion y RLS; no expone
 `service_role` en frontend.
 
+Cuando un recordatorio cambia a `skipped` por cita pasada, `metadata` conserva
+fecha, hora y estado de la ocurrencia original. Esa instantanea evita que un
+omitido historico adopte la fecha nueva si la cita se reprograma despues.
+
 El boton "Abrir WhatsApp" usa un enlace manual `https://wa.me/...` con telefono
 normalizado y mensaje precargado. Esto no es envio automatico ni WhatsApp API:
 solo prepara el flujo manual para validar el MVP antes de incorporar backend de
-mensajeria.
+mensajeria. Despues de abrir el enlace, el operador registra por separado si el
+recordatorio fue enviado o fallo. La interfaz evita dobles actualizaciones y no
+ofrece estas acciones para estados `skipped` o `cancelled`.
+
+El resumen visual cuenta Todos, Pendientes, Programados, Enviados, Fallidos,
+Omitidos y Cancelados sin mezclar estados terminales con pendientes. Basic y
+Medium identifican el flujo como `Modo manual`; Pro puede indicar `Automatico
+pendiente de configuracion`, pero esa etiqueta no habilita entrega automatica.
 
 Las policies de `002_auth_profiles_policies.sql` ya cubren `reminders` para
 usuarios autenticados del mismo consultorio. La migracion

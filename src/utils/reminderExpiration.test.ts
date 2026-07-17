@@ -59,6 +59,17 @@ describe('reminder expiration', () => {
     ).toEqual(['reminder-1'])
   })
 
+  it.each(['completed', 'no_show'] as const)(
+    'cancels mutable reminders for a %s appointment',
+    (appointmentStatus) => {
+      expect(
+        getReminderReconciliation([
+          { ...baseReminder, appointmentStatus },
+        ]).cancelledIds,
+      ).toEqual([baseReminder.id])
+    },
+  )
+
   it('does not change terminal reminder statuses', () => {
     expect(
       getReminderReconciliation(

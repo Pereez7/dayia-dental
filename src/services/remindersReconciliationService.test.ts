@@ -69,6 +69,9 @@ describe('reminder reconciliation service', () => {
     })
     expect(queryMocks.update).toHaveBeenCalledWith({
       metadata: {
+        appointment_date: '2026-07-15',
+        appointment_status: 'confirmed',
+        appointment_time: '10:00',
         note: 'La cita ya pasó sin envío del recordatorio.',
         reason: 'appointment_passed',
       },

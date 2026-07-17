@@ -15,8 +15,10 @@ import type {
 import type { AppointmentReasonPayload } from '../utils/appointmentReasons'
 import {
   createAppointmentCancelledLog,
+  createAppointmentCompletedLog,
   createAppointmentConfirmedLog,
   createAppointmentCreatedLog,
+  createAppointmentNoShowLog,
   createAppointmentRescheduledLog,
 } from '../utils/appointmentChangeLog'
 
@@ -106,7 +108,7 @@ export function mapAppointmentInputToInsert(
     reason: input.treatment,
     reschedule_reason: null,
     start_time: input.time,
-    status: input.status === 'completed' ? 'confirmed' : input.status,
+    status: input.status,
     treatment_id: input.treatmentId ?? null,
   }
 }
@@ -144,7 +146,10 @@ export async function getAppointmentsByClinic(
     .order('start_time', { ascending: true })
 
   if (appointmentsError) {
-    return { data: null, error: getAppointmentServiceErrorMessage() }
+    return {
+      data: null,
+      error: getAppointmentServiceErrorMessage(appointmentsError),
+    }
   }
 
   const { data: logs, error: logsError } = await supabase
@@ -154,7 +159,7 @@ export async function getAppointmentsByClinic(
     .order('created_at', { ascending: true })
 
   if (logsError) {
-    return { data: null, error: getAppointmentServiceErrorMessage() }
+    return { data: null, error: getAppointmentServiceErrorMessage(logsError) }
   }
 
   return {
@@ -186,7 +191,7 @@ export async function getAppointmentsByDate(
     .order('start_time', { ascending: true })
 
   if (error) {
-    return { data: null, error: getAppointmentServiceErrorMessage() }
+    return { data: null, error: getAppointmentServiceErrorMessage(error) }
   }
 
   return {
@@ -214,7 +219,7 @@ export async function getAppointmentsByPatient(
     .order('appointment_date', { ascending: true })
 
   if (error) {
-    return { data: null, error: getAppointmentServiceErrorMessage() }
+    return { data: null, error: getAppointmentServiceErrorMessage(error) }
   }
 
   return {
@@ -241,7 +246,7 @@ export async function createAppointment(
     .single()
 
   if (error) {
-    return { data: null, error: getAppointmentServiceErrorMessage() }
+    return { data: null, error: getAppointmentServiceErrorMessage(error) }
   }
 
   const appointment = mapAppointmentRecordToAppointment(
@@ -275,7 +280,12 @@ export async function updateAppointmentStatus(
     return cancelAppointment(clinicId, appointmentId, reasonPayload, currentAppointment)
   }
 
-  const logEntry = createAppointmentConfirmedLog()
+  const logEntry =
+    status === 'completed'
+      ? createAppointmentCompletedLog()
+      : status === 'no_show'
+        ? createAppointmentNoShowLog()
+        : createAppointmentConfirmedLog()
   return updateAppointment(clinicId, appointmentId, {
     currentAppointment,
     logEntry,
@@ -368,7 +378,7 @@ export async function createAppointmentChangeLog(
     .single()
 
   if (error) {
-    return { data: null, error: getAppointmentServiceErrorMessage() }
+    return { data: null, error: getAppointmentServiceErrorMessage(error) }
   }
 
   return {
@@ -405,7 +415,7 @@ async function updateAppointment(
     .single()
 
   if (error) {
-    return { data: null, error: getAppointmentServiceErrorMessage() }
+    return { data: null, error: getAppointmentServiceErrorMessage(error) }
   }
 
   await createAppointmentChangeLog(clinicId, appointmentId, {
@@ -446,6 +456,14 @@ function normalizeDbTime(time: string) {
   return time.slice(0, 5)
 }
 
-function getAppointmentServiceErrorMessage() {
-  return 'No pudimos completar la operación de citas.'
+function getAppointmentServiceErrorMessage(error?: { code?: string }) {
+  if (error?.code === '23514') {
+    return 'La base de datos todavía no admite este estado de cita. Aplica la migración pendiente e intenta nuevamente.'
+  }
+
+  if (error?.code === '42501') {
+    return 'No tienes permiso para actualizar esta cita.'
+  }
+
+  return 'No pudimos completar la operación. Intenta nuevamente.'
 }

@@ -54,6 +54,9 @@ Deno.serve(async (request) => {
         disposition === 'cancelled'
           ? { reason: 'appointment_cancelled' }
           : {
+              appointment_date: appointment.appointment_date,
+              appointment_status: appointment.status,
+              appointment_time: appointment.start_time,
               note: 'La cita ya pasó sin envío del recordatorio.',
               reason: 'appointment_passed',
             }

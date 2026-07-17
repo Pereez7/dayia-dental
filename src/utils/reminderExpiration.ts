@@ -24,7 +24,11 @@ export function getReminderReconciliation(
         return result
       }
 
-      if (reminder.appointmentStatus === 'cancelled') {
+      if (
+        reminder.appointmentStatus === 'cancelled' ||
+        reminder.appointmentStatus === 'completed' ||
+        reminder.appointmentStatus === 'no_show'
+      ) {
         result.cancelledIds.push(reminder.id)
         return result
       }

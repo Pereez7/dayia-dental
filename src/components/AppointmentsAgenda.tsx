@@ -610,6 +610,14 @@ export function AppointmentsAgenda({
           <strong>{statusSummary.cancelled}</strong>
           <span>Canceladas</span>
         </div>
+        <div className="agenda-kpi agenda-kpi--completed">
+          <strong>{statusSummary.completed}</strong>
+          <span>Atendidas</span>
+        </div>
+        <div className="agenda-kpi agenda-kpi--no-show">
+          <strong>{statusSummary.no_show}</strong>
+          <span>No asistieron</span>
+        </div>
       </div>
 
       {isLoading ? (

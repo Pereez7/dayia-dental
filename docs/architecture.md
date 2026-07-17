@@ -542,16 +542,26 @@ Participan:
 - `src/components/RemindersList.tsx`: renderiza citas agrupadas,
   recordatorios, notas de omision y acciones.
 - `src/components/ReminderMessagePreview.tsx`: muestra el mensaje sugerido.
+- `src/components/ResolvePastAppointmentDialog.tsx`: resuelve citas pasadas
+  como atendidas, no asistidas, reprogramadas o canceladas usando los handlers
+  existentes de Citas.
 - `src/components/Toast.tsx`: muestra feedback flotante sin mover el layout.
 - `src/utils/reminders.ts`: genera recordatorios, filtra por fecha y estado,
   agrupa por cita y fecha, calcula resumen, prioriza la cola, valida si un
   recordatorio puede marcarse como enviado, formatea fecha/hora visible y crea
   mensajes sugeridos.
+- `src/utils/reminderView.ts`: separa filtros de recordatorio y cita, busqueda
+  operativa y textos humanos de ambos dominios.
 
 La generacion de recordatorios solo considera citas futuras activas:
 `pending`, `confirmed` y `rescheduled`. Las citas `cancelled` no generan
-recordatorios, no aparecen en la cola y no afectan KPIs del modulo. Las citas
-`completed` tampoco entran en esta cola inicial.
+recordatorios activos. Las citas `completed` y `no_show` tambien son terminales,
+no bloquean horarios ni aparecen como proximas atenciones.
+
+Una cita pasada activa puede resolverse desde Recordatorios. El estado
+`skipped` del recordatorio se conserva como evidencia; resolver modifica la
+cita, no revive el mensaje. Al reprogramar, la instantanea guardada en metadata
+mantiene separada la ocurrencia omitida de la cola nueva.
 
 Para cada cita activa, `24h` y `2h` solo se generan si su horario programado
 queda despues de la fecha/hora de referencia. Si una cita esta demasiado cerca,

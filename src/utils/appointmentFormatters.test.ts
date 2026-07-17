@@ -20,6 +20,7 @@ describe('appointmentFormatters', () => {
     expect(getAppointmentStatusLabel('pending')).toBe('Pendiente')
     expect(getAppointmentStatusLabel('cancelled')).toBe('Cancelada')
     expect(getAppointmentStatusLabel('completed')).toBe('Atendida')
+    expect(getAppointmentStatusLabel('no_show')).toBe('No asistió')
     expect(getAppointmentStatusLabel('rescheduled')).toBe('Reprogramada')
   })
 
@@ -35,6 +36,9 @@ describe('appointmentFormatters', () => {
     )
     expect(getAppointmentStatusClassName('completed')).toBe(
       'appointment-status--completed',
+    )
+    expect(getAppointmentStatusClassName('no_show')).toBe(
+      'appointment-status--no-show',
     )
     expect(getAppointmentStatusClassName('rescheduled')).toBe(
       'appointment-status--rescheduled',

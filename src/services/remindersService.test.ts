@@ -87,6 +87,37 @@ describe('remindersService mappers', () => {
     ).toBe('Omitido porque la cita ya pasó.')
   })
 
+  it('keeps the original occurrence stored with an omitted reminder', () => {
+    const mappedReminder = mapReminderRecordToReminder(
+      {
+        ...reminderRecord,
+        metadata: {
+          appointment_date: '2026-06-15',
+          appointment_status: 'pending',
+          appointment_time: '10:00',
+          reason: 'appointment_passed',
+        },
+        status: 'skipped',
+      },
+      [
+        {
+          ...appointment,
+          date: '2026-06-29',
+          status: 'rescheduled',
+          time: '14:00',
+        },
+      ],
+      [patient],
+    )
+
+    expect(mappedReminder).toMatchObject({
+      appointmentDate: '2026-06-15',
+      appointmentStatus: 'pending',
+      appointmentTime: '10:00',
+      status: 'skipped',
+    })
+  })
+
   it('maps reminder inputs to clinic-scoped inserts', () => {
     expect(
       mapReminderInputToInsert('clinic-1', {

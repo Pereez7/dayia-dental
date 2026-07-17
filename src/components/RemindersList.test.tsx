@@ -11,7 +11,7 @@ const skippedDateGroups: ReminderDateGroup[] = [
       {
         appointmentDate: '2026-07-15',
         appointmentId: 'appointment-1',
-        appointmentStatus: 'confirmed',
+        appointmentStatus: 'pending',
         appointmentTime: '10:00',
         omittedReminderNotes: [],
         patientId: 'patient-1',
@@ -21,7 +21,7 @@ const skippedDateGroups: ReminderDateGroup[] = [
           {
             appointmentDate: '2026-07-15',
             appointmentId: 'appointment-1',
-            appointmentStatus: 'confirmed',
+            appointmentStatus: 'pending',
             appointmentTime: '10:00',
             id: 'reminder-1',
             message: 'Recordatorio',
@@ -52,14 +52,64 @@ describe('RemindersList omitted state', () => {
         selectedReminderId={null}
         onMarkFailed={vi.fn()}
         onMarkSent={vi.fn()}
+        onResolveAppointment={vi.fn()}
         onSelectReminder={vi.fn()}
       />,
     )
 
     expect(markup).toContain('Omitido porque la cita ya pasó.')
-    expect(markup).toContain('Omitido')
+    expect(markup).toContain('Recordatorio omitido')
+    expect(markup).toContain('Cita: Pendiente')
+    expect(markup).toContain('Cita pasada sin cierre.')
+    expect(markup).toContain('Resolver cita')
+    expect(markup).not.toContain('appointment-status')
     expect(markup).not.toContain('Abrir WhatsApp')
     expect(markup).not.toContain('Marcar enviado')
     expect(markup).not.toContain('Marcar fallido')
+  })
+
+  it('prioritizes the manual WhatsApp action for active reminders', () => {
+    const pendingGroups: ReminderDateGroup[] = [
+      {
+        ...skippedDateGroups[0],
+        appointmentDate: '2027-01-15',
+        appointmentGroups: [
+          {
+            ...skippedDateGroups[0].appointmentGroups[0],
+            appointmentDate: '2027-01-15',
+            appointmentStatus: 'confirmed',
+            reminders: [
+              {
+                ...skippedDateGroups[0].appointmentGroups[0].reminders[0],
+                appointmentDate: '2027-01-15',
+                appointmentStatus: 'confirmed',
+                message: 'Hola Ana',
+                scheduledFor: '2027-01-15T08:00:00-04:00',
+                status: 'pending',
+                statusNote: undefined,
+              },
+            ],
+          },
+        ],
+      },
+    ]
+    const markup = renderToStaticMarkup(
+      <RemindersList
+        dateGroups={pendingGroups}
+        emptyDescription=""
+        emptyMessage=""
+        selectedReminderId={null}
+        onMarkFailed={vi.fn()}
+        onMarkSent={vi.fn()}
+        onSelectReminder={vi.fn()}
+      />,
+    )
+
+    expect(markup).toContain(
+      'href="https://wa.me/59170000000?text=Hola%20Ana"',
+    )
+    expect(markup).toContain('Abrir WhatsApp')
+    expect(markup).toContain('Marcar enviado')
+    expect(markup).toContain('Marcar fallido')
   })
 })

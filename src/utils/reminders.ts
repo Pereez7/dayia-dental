@@ -152,20 +152,22 @@ export function groupRemindersByAppointmentDate(
 }
 
 export function groupRemindersByAppointment(reminders: Reminder[]) {
-  const appointmentGroups = new Map<
-    Appointment['id'],
-    ReminderAppointmentGroup
-  >()
+  const appointmentGroups = new Map<string, ReminderAppointmentGroup>()
 
   for (const reminder of sortRemindersByAppointment(reminders)) {
-    const currentGroup = appointmentGroups.get(reminder.appointmentId)
+    const appointmentOccurrenceKey = [
+      reminder.appointmentId,
+      reminder.appointmentDate,
+      reminder.appointmentTime,
+    ].join(':')
+    const currentGroup = appointmentGroups.get(appointmentOccurrenceKey)
 
     if (currentGroup) {
       currentGroup.reminders.push(reminder)
       continue
     }
 
-    appointmentGroups.set(reminder.appointmentId, {
+    appointmentGroups.set(appointmentOccurrenceKey, {
       appointmentDate: reminder.appointmentDate,
       appointmentId: reminder.appointmentId,
       appointmentStatus: reminder.appointmentStatus,

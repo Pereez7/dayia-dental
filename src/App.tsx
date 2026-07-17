@@ -112,8 +112,10 @@ import { canRescheduleAppointment } from './utils/appointmentActions'
 import {
   appendAppointmentLogEntry,
   createAppointmentCancelledLog,
+  createAppointmentCompletedLog,
   createAppointmentConfirmedLog,
   createAppointmentCreatedLog,
+  createAppointmentNoShowLog,
 } from './utils/appointmentChangeLog'
 import type { AppointmentReasonPayload } from './utils/appointmentReasons'
 import { rescheduleAppointment } from './utils/appointmentReschedule'
@@ -938,13 +940,24 @@ function App() {
         ),
       )
 
-      if (status === 'cancelled') {
+      if (
+        status === 'cancelled' ||
+        status === 'completed' ||
+        status === 'no_show'
+      ) {
         await cancelRemindersForAppointment(currentClinic.id, appointmentId)
         setReminders((currentReminders) =>
           currentReminders.map((reminder) =>
-            reminder.appointmentId === appointmentId &&
-            (reminder.status === 'pending' || reminder.status === 'scheduled')
-              ? { ...reminder, status: 'cancelled' }
+            reminder.appointmentId === appointmentId
+              ? {
+                  ...reminder,
+                  appointmentStatus: status,
+                  status:
+                    reminder.status === 'pending' ||
+                    reminder.status === 'scheduled'
+                      ? 'cancelled'
+                      : reminder.status,
+                }
               : reminder,
           ),
         )
@@ -1016,6 +1029,20 @@ function App() {
           return appendAppointmentLogEntry(
             updatedAppointment,
             createAppointmentCancelledLog(reasonPayload),
+          )
+        }
+
+        if (status === 'completed') {
+          return appendAppointmentLogEntry(
+            updatedAppointment,
+            createAppointmentCompletedLog(),
+          )
+        }
+
+        if (status === 'no_show') {
+          return appendAppointmentLogEntry(
+            updatedAppointment,
+            createAppointmentNoShowLog(),
           )
         }
 
@@ -1906,12 +1933,18 @@ function App() {
       return (
         <WhatsAppRemindersView
           appointments={appointments}
+          businessHours={businessHours}
+          calendarExceptions={calendarExceptions}
           errorMessage={remindersError}
           isLoading={!isDemoMode && isRemindersLoading}
           onMarkReminderFailed={handleMarkReminderFailed}
           onMarkReminderSent={handleMarkReminderSent}
+          onRescheduleAppointment={handleRescheduleAppointment}
+          onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
           patients={patients}
+          planId={currentPlanId}
           reminders={isDemoMode ? undefined : reminders}
+          treatments={treatments}
         />
       )
     }

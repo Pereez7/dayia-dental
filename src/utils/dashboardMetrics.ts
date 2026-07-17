@@ -251,6 +251,14 @@ function getActivityDescription(entry: AppointmentChangeLogEntry) {
     return 'Cita cancelada'
   }
 
+  if (entry.type === 'completed') {
+    return 'Cita atendida'
+  }
+
+  if (entry.type === 'no_show') {
+    return 'Paciente no asistió'
+  }
+
   if (entry.type === 'rescheduled') {
     return getAppointmentLogDisplayText(entry).replace(/\.$/, '')
   }

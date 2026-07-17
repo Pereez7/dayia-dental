@@ -637,6 +637,69 @@ describe('updateReminderStatus', () => {
       'scheduled',
     )
   })
+
+  it('can mark a selected reminder as failed', () => {
+    const reminders = generateAppointmentReminders(
+      appointments,
+      patients,
+      new Date('2026-06-09T08:00:00'),
+    )
+
+    expect(updateReminderStatus(reminders, '1-2h', 'failed')[3].status).toBe(
+      'failed',
+    )
+  })
+
+  it('keeps historical and reprogrammed occurrences in separate cards', () => {
+    const [baseReminder] = generateAppointmentReminders(
+      [appointments[0]],
+      patients,
+      new Date('2026-06-09T08:00:00'),
+    )
+    const groups = groupRemindersByAppointment([
+      { ...baseReminder, id: 'historical', status: 'skipped' },
+      {
+        ...baseReminder,
+        appointmentDate: '2026-06-12',
+        appointmentStatus: 'rescheduled',
+        appointmentTime: '11:00',
+        id: 'new-occurrence',
+      },
+    ])
+
+    expect(groups).toHaveLength(2)
+    expect(groups.map((group) => group.appointmentDate)).toEqual([
+      '2026-06-10',
+      '2026-06-12',
+    ])
+  })
+
+  it('sorts appointment cards by appointment time within a day', () => {
+    const [baseReminder] = generateAppointmentReminders(
+      [appointments[0]],
+      patients,
+      new Date('2026-06-09T08:00:00'),
+    )
+    const groups = groupRemindersByAppointment([
+      {
+        ...baseReminder,
+        appointmentId: 'late',
+        appointmentTime: '15:00',
+        id: 'late-reminder',
+      },
+      {
+        ...baseReminder,
+        appointmentId: 'early',
+        appointmentTime: '08:30',
+        id: 'early-reminder',
+      },
+    ])
+
+    expect(groups.map((group) => group.appointmentTime)).toEqual([
+      '08:30',
+      '15:00',
+    ])
+  })
 })
 
 describe('canMarkReminderAsSent', () => {

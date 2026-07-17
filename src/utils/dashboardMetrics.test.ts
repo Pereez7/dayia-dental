@@ -247,7 +247,7 @@ describe('dashboardMetrics', () => {
     ])
   })
 
-  it('excludes cancelled and completed appointments from today and upcoming totals', () => {
+  it('excludes cancelled, completed and no-show appointments from active totals', () => {
     const completed: Appointment = {
       id: 8,
       date: '2026-06-08',
@@ -256,14 +256,25 @@ describe('dashboardMetrics', () => {
       treatment: 'Control',
       status: 'completed',
     }
+    const noShow: Appointment = {
+      ...completed,
+      id: 9,
+      patient: 'No asistió',
+      status: 'no_show',
+      time: '14:00',
+    }
 
     expect(
-      getTodayAppointments([...appointments, completed], referenceDate).map(
+      getTodayAppointments([...appointments, completed, noShow], referenceDate).map(
         ({ id }) => id,
       ),
     ).toEqual([3, 2])
     expect(
-      getUpcomingAppointments([...appointments, completed], 10, referenceDate).map(
+      getUpcomingAppointments(
+        [...appointments, completed, noShow],
+        10,
+        referenceDate,
+      ).map(
         ({ id }) => id,
       ),
     ).toEqual([4, 7])

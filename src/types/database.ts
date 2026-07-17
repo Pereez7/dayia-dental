@@ -21,14 +21,18 @@ export type LegacyUserRole = 'admin' | 'owner' | 'super_admin'
 
 export type AppointmentRecordStatus =
   | 'cancelled'
+  | 'completed'
   | 'confirmed'
+  | 'no_show'
   | 'pending'
   | 'rescheduled'
 
 export type AppointmentChangeLogRecordType =
   | 'cancelled'
+  | 'completed'
   | 'confirmed'
   | 'created'
+  | 'no_show'
   | 'rescheduled'
 
 export type CalendarExceptionRecordType = 'closed' | 'special-hours'

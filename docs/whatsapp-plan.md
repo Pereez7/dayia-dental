@@ -70,6 +70,18 @@ Al abrir Recordatorios, el frontend aplica la misma reconciliacion antes de
 mostrar la lista. Los omitidos no cuentan como pendientes ni ofrecen "Abrir
 WhatsApp", pero permanecen visibles en Todos y Omitido para conservar trazabilidad.
 
+Un recordatorio omitido y una cita pasada sin cierre son conceptos distintos.
+El omitido es historico y nunca vuelve a `pending`. La cita asociada se resuelve
+como `completed`, `no_show`, `rescheduled` o `cancelled`. Si se reprograma, la
+ocurrencia anterior conserva su omitido y la nueva fecha genera recordatorios
+nuevos.
+
+El modal Resolver cita pasada permite cerrar como atendida o no asistida,
+cancelar con motivo o reprogramar con fecha, motivo y un horario disponible.
+Su selector reutiliza las reglas de Nueva cita y evita horarios cerrados,
+ocupados o vencidos. Las fechas se muestran con el formato humano global y la
+retroalimentacion distingue advertencias de errores operativos.
+
 ### whatsapp-webhook
 
 Prepara verificacion de webhook con `WHATSAPP_VERIFY_TOKEN` y recepcion de
@@ -81,7 +93,25 @@ WhatsApp.
 
 El boton "Abrir WhatsApp" sigue activo en Recordatorios. Usa `wa.me` con el
 telefono normalizado y el mensaje precargado. Esto no es envio automatico ni
-usa tokens.
+usa tokens. Solo se ofrece para recordatorios `pending` o `scheduled` con
+telefono valido. El operador abre WhatsApp y luego registra el resultado con
+`Marcar enviado` o `Marcar fallido`; estas acciones son independientes para no
+confundir abrir el enlace con confirmar una entrega.
+
+La vista previa se abre al elegir un recordatorio y muestra paciente, fecha y
+hora de cita, tipo, tratamiento y mensaje final. Los filtros conservan la fecha
+activa y los estados vacios explican cuando no existen resultados para esa
+combinacion.
+
+La cola agrupa recordatorios por ocurrencia de cita, ordena las citas por hora
+y permite buscar por paciente, telefono o tratamiento. El estado de
+recordatorio y el estado de cita tienen filtros separados; `Pasada sin cierre`
+solo identifica citas activas cuya fecha y hora ya terminaron.
+
+En Basic y Medium la interfaz muestra `Modo manual`. En Pro muestra `Automatico
+pendiente de configuracion` mientras WhatsApp Cloud API siga desactivado. El
+plan no bloquea el fallback manual para los roles que ya pueden operar
+Recordatorios.
 
 ## Pendiente
 

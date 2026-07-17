@@ -72,6 +72,7 @@ describe('appointmentGroups', () => {
       cancelled: 1,
       completed: 0,
       confirmed: 1,
+      no_show: 0,
       pending: 1,
       rescheduled: 1,
     })

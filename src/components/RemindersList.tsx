@@ -1,13 +1,14 @@
-import type { AppointmentStatus } from '../types/Appointment'
 import type { ReminderDateGroup } from '../types/Reminder'
+import { getAppointmentStatusLabel } from '../utils/appointmentFormatters'
+import { isAppointmentDateTimePast } from '../utils/reminderExpiration'
 import {
   buildWhatsAppReminderUrl,
   canMarkReminderAsSent,
   formatReminderScheduledDateTime,
   getReminderStatusClassName,
-  getReminderStatusLabel,
   getReminderTypeLabel,
 } from '../utils/reminders'
+import { getReminderStateText } from '../utils/reminderView'
 
 interface RemindersListProps {
   emptyDescription: string
@@ -16,7 +17,17 @@ interface RemindersListProps {
   selectedReminderId: string | null
   onMarkFailed: (reminderId: string) => void
   onMarkSent: (reminderId: string) => void
+  canResolveAppointment?: (
+    appointmentId: ReminderDateGroup['appointmentGroups'][number]['appointmentId'],
+    appointmentDate: string,
+    appointmentTime: string,
+  ) => boolean
+  onResolveAppointment?: (appointmentId: ReminderDateGroup['appointmentGroups'][number]['appointmentId']) => void
   onSelectReminder: (reminderId: string) => void
+  pendingAction?: {
+    reminderId: string
+    status: 'failed' | 'sent'
+  } | null
 }
 
 export function RemindersList({
@@ -26,7 +37,10 @@ export function RemindersList({
   selectedReminderId,
   onMarkFailed,
   onMarkSent,
+  canResolveAppointment,
+  onResolveAppointment,
   onSelectReminder,
+  pendingAction = null,
 }: RemindersListProps) {
   if (dateGroups.length === 0) {
     return (
@@ -51,24 +65,73 @@ export function RemindersList({
               const reasonText =
                 appointmentGroup.rescheduleReasonDetail ||
                 appointmentGroup.rescheduleReason
+              const reminderStatuses = Array.from(
+                new Set(
+                  appointmentGroup.reminders.map((reminder) => reminder.status),
+                ),
+              )
+              const isPastAppointment = isAppointmentDateTimePast(
+                appointmentGroup.appointmentDate,
+                appointmentGroup.appointmentTime,
+              )
+              const isPastUnresolvedAppointment =
+                isPastAppointment &&
+                (appointmentGroup.appointmentStatus === 'pending' ||
+                  appointmentGroup.appointmentStatus === 'confirmed' ||
+                  appointmentGroup.appointmentStatus === 'rescheduled')
+              const canResolveCurrentOccurrence =
+                isPastUnresolvedAppointment &&
+                (canResolveAppointment?.(
+                  appointmentGroup.appointmentId,
+                  appointmentGroup.appointmentDate,
+                  appointmentGroup.appointmentTime,
+                ) ?? true)
 
               return (
                 <article
-                  className={`reminder-card reminder-card--${appointmentGroup.appointmentStatus}`}
-                  key={appointmentGroup.appointmentId}
+                  className="reminder-card"
+                  key={`${appointmentGroup.appointmentId}-${appointmentGroup.appointmentDate}-${appointmentGroup.appointmentTime}`}
                 >
                   <div className="reminder-card-main">
                     <div className="reminder-card-patient">
                       <div className="reminder-card-title">
                         <h4>{appointmentGroup.patientName}</h4>
-                        <span
-                          className={`appointment-status appointment-status--${appointmentGroup.appointmentStatus}`}
-                        >
-                          {getAppointmentStatusLabel(
-                            appointmentGroup.appointmentStatus,
-                          )}
-                        </span>
+                        <div className="reminder-card-statuses">
+                          {reminderStatuses.map((status) => (
+                            <span
+                              className={`reminder-status ${getReminderStatusClassName(status)}`}
+                              key={status}
+                            >
+                              {getReminderStateText(status)}
+                            </span>
+                          ))}
+                        </div>
                       </div>
+                      <p className="reminder-appointment-state">
+                        Cita: {getAppointmentStatusLabel(
+                          appointmentGroup.appointmentStatus,
+                        )}
+                      </p>
+                      {canResolveCurrentOccurrence && (
+                        <div className="reminder-resolution-callout">
+                          <p className="reminder-past-appointment-note">
+                            Cita pasada sin cierre.
+                          </p>
+                          {onResolveAppointment && canResolveCurrentOccurrence && (
+                            <button
+                              className="primary-action"
+                              type="button"
+                              onClick={() =>
+                                onResolveAppointment(
+                                  appointmentGroup.appointmentId,
+                                )
+                              }
+                            >
+                              Resolver cita
+                            </button>
+                          )}
+                        </div>
+                      )}
                       <p
                         className={
                           hasPhone
@@ -94,6 +157,12 @@ export function RemindersList({
                     <div className="reminder-appointment-time">
                       <strong>{appointmentGroup.appointmentTime}</strong>
                       <span>{appointmentGroup.treatment}</span>
+                      <small>
+                        {appointmentGroup.reminders.length}{' '}
+                        {appointmentGroup.reminders.length === 1
+                          ? 'recordatorio'
+                          : 'recordatorios'}
+                      </small>
                     </div>
                   </div>
 
@@ -109,14 +178,22 @@ export function RemindersList({
                     {appointmentGroup.reminders.map((reminder) => {
                       const isSelected = reminder.id === selectedReminderId
                       const canRunManualActions =
-                        reminder.status === 'pending' ||
-                        reminder.status === 'scheduled'
+                        !isPastAppointment &&
+                        (reminder.status === 'pending' ||
+                          reminder.status === 'scheduled')
                       const statusClassName = getReminderStatusClassName(
                         reminder.status,
                       )
+                      const whatsappUrl = buildWhatsAppReminderUrl(
+                        reminder.phone,
+                        reminder.message,
+                      )
+                      const isUpdating =
+                        pendingAction?.reminderId === reminder.id
 
                       return (
                         <div
+                          aria-current={isSelected ? 'true' : undefined}
                           className={`reminder-row${
                             isSelected ? ' reminder-row--selected' : ''
                           }`}
@@ -143,7 +220,7 @@ export function RemindersList({
                             <span
                               className={`reminder-status ${statusClassName}`}
                             >
-                              {getReminderStatusLabel(reminder.status)}
+                              {getReminderStateText(reminder.status)}
                             </span>
                             {reminder.statusNote && (
                               <p className="reminder-status-note">
@@ -162,29 +239,11 @@ export function RemindersList({
                             </button>
                             {canRunManualActions && (
                               <>
-                                <button
-                                  className="soft-action reminder-action-secondary"
-                                  type="button"
-                                  disabled={!hasPhone}
-                                  title={
-                                    hasPhone
-                                      ? undefined
-                                      : 'Agrega un teléfono para simular el envío.'
-                                  }
-                                  onClick={() => onMarkSent(reminder.id)}
-                                >
-                                  Marcar enviado
-                                </button>
-                                {buildWhatsAppReminderUrl(
-                                  reminder.phone,
-                                  reminder.message,
-                                ) ? (
+                                {whatsappUrl ? (
                                   <a
-                                    className="soft-action reminder-action-secondary"
-                                    href={buildWhatsAppReminderUrl(
-                                      reminder.phone,
-                                      reminder.message,
-                                    )}
+                                    aria-label={`Abrir WhatsApp para ${reminder.patientName}`}
+                                    className="success-action reminder-action-whatsapp"
+                                    href={whatsappUrl}
                                     rel="noreferrer"
                                     target="_blank"
                                   >
@@ -192,7 +251,7 @@ export function RemindersList({
                                   </a>
                                 ) : (
                                   <button
-                                    className="soft-action reminder-action-secondary"
+                                    className="success-action reminder-action-whatsapp"
                                     disabled
                                     title="Agrega un teléfono para abrir WhatsApp."
                                     type="button"
@@ -201,11 +260,29 @@ export function RemindersList({
                                   </button>
                                 )}
                                 <button
-                                  className="soft-action reminder-action-danger"
+                                  className="soft-action reminder-action-secondary"
                                   type="button"
+                                  disabled={!hasPhone || Boolean(pendingAction)}
+                                  title={
+                                    hasPhone
+                                      ? 'Registra el resultado después de enviar el mensaje.'
+                                      : 'Agrega un teléfono para registrar el envío.'
+                                  }
+                                  onClick={() => onMarkSent(reminder.id)}
+                                >
+                                  {isUpdating && pendingAction.status === 'sent'
+                                    ? 'Guardando...'
+                                    : 'Marcar enviado'}
+                                </button>
+                                <button
+                                  className="danger-action reminder-action-danger"
+                                  type="button"
+                                  disabled={Boolean(pendingAction)}
                                   onClick={() => onMarkFailed(reminder.id)}
                                 >
-                                  Marcar fallido
+                                  {isUpdating && pendingAction.status === 'failed'
+                                    ? 'Guardando...'
+                                    : 'Marcar fallido'}
                                 </button>
                               </>
                             )}
@@ -222,18 +299,4 @@ export function RemindersList({
       ))}
     </div>
   )
-}
-
-function getAppointmentStatusLabel(
-  appointmentStatus: AppointmentStatus,
-) {
-  const labels: Record<AppointmentStatus, string> = {
-    cancelled: 'Cancelada',
-    completed: 'Completada',
-    confirmed: 'Confirmada',
-    pending: 'Pendiente',
-    rescheduled: 'Reprogramada',
-  }
-
-  return labels[appointmentStatus]
 }

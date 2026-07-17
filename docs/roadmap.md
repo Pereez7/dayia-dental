@@ -304,16 +304,32 @@ Implementado:
 - Confirmacion inmediata para citas muy cercanas, cuando ya no aplica `24h` ni
   `2h`.
 - Agrupacion por fecha y cita.
+- Orden ascendente por hora y separacion entre ocurrencias historicas y
+  reprogramadas de una misma cita.
 - Selector horizontal por fecha.
 - Filtros compactos por estado.
+- Busqueda por paciente, telefono o tratamiento y filtro por estado de cita.
 - KPIs de todos, pendientes, programados, enviados simulados, fallidos y
-  omitidos.
+  omitidos, ademas de cancelados.
 - KPIs calculados solo desde recordatorios validos de citas activas.
 - Reconciliacion real al cargar: recordatorios mutables de citas pasadas pasan
   a `skipped` y los de citas canceladas a `cancelled`.
 - Proteccion equivalente en `process-due-reminders` y en el envio directo, con
   comparacion de fecha y hora en `America/La_Paz`.
+- Resolucion de citas pasadas sin cierre como atendida, no asistio,
+  reprogramada o cancelada, sin reactivar recordatorios omitidos.
+- Reprogramacion desde Recordatorios con el selector de disponibilidad de
+  Nueva cita, sin input horario nativo y con validacion de horario, duracion,
+  excepciones, solapamientos y horas pasadas.
+- Estados terminales `completed` y `no_show` persistidos mediante migracion
+  `019`, excluidos de disponibilidad y proximas citas.
 - Vista previa del mensaje sugerido.
+- Vista previa seleccionable con paciente, fecha/hora, tipo, tratamiento y
+  mensaje final.
+- Jerarquia clara del flujo manual: Abrir WhatsApp, marcar enviado y marcar
+  fallido son acciones separadas.
+- Indicador `Modo manual` para Basic/Medium y `Automatico pendiente de
+  configuracion` para Pro, sin activar WhatsApp Cloud API.
 - Mensajes sugeridos diferenciados por estado de cita:
   pendiente, confirmada y reprogramada.
 - Uso de fecha y hora vigente para recordatorios de citas reprogramadas.

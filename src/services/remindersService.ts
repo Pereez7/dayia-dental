@@ -38,13 +38,21 @@ export function mapReminderRecordToReminder(
   const appointment = appointments.find(
     (item) => item.id === record.appointment_id,
   )
+  const appointmentSnapshot = getPersistedAppointmentSnapshot(record)
   const patient = patients.find((item) => item.id === record.patient_id)
 
   return {
-    appointmentDate: appointment?.date ?? getDateFromDateTime(record.scheduled_at),
+    appointmentDate:
+      appointmentSnapshot?.date ??
+      appointment?.date ??
+      getDateFromDateTime(record.scheduled_at),
     appointmentId: record.appointment_id,
-    appointmentStatus: appointment?.status ?? 'pending',
-    appointmentTime: appointment?.time ?? getTimeFromDateTime(record.scheduled_at),
+    appointmentStatus:
+      appointmentSnapshot?.status ?? appointment?.status ?? 'pending',
+    appointmentTime:
+      appointmentSnapshot?.time ??
+      appointment?.time ??
+      getTimeFromDateTime(record.scheduled_at),
     failedReason: record.failed_reason ?? undefined,
     id: record.id,
     message: record.message,
@@ -174,14 +182,24 @@ export async function reconcileExpiredRemindersByClinic(
     referenceDate,
   )
 
+  const skippedReminders = skippedIds
+    .map((reminderId) =>
+      reminders.find((reminder) => reminder.id === reminderId),
+    )
+    .filter((reminder): reminder is Reminder => reminder !== undefined)
   const updateResults = await Promise.all([
     updateReminderBatch(clinicId, cancelledIds, 'cancelled', {
       reason: 'appointment_cancelled',
     }),
-    updateReminderBatch(clinicId, skippedIds, 'skipped', {
-      note: EXPIRED_REMINDER_METADATA_NOTE,
-      reason: 'appointment_passed',
-    }),
+    ...skippedReminders.map((reminder) =>
+      updateReminderBatch(clinicId, [reminder.id], 'skipped', {
+        appointment_date: reminder.appointmentDate,
+        appointment_status: reminder.appointmentStatus,
+        appointment_time: reminder.appointmentTime,
+        note: EXPIRED_REMINDER_METADATA_NOTE,
+        reason: 'appointment_passed',
+      }),
+    ),
   ])
 
   if (updateResults.some((result) => result.error)) {
@@ -444,6 +462,30 @@ function getPersistedReminderStatusNote(record: ReminderRecord) {
   }
 
   return undefined
+}
+
+function getPersistedAppointmentSnapshot(
+  record: ReminderRecord,
+): Pick<Appointment, 'date' | 'status' | 'time'> | null {
+  const metadata = record.metadata
+
+  if (
+    record.status !== 'skipped' ||
+    !metadata ||
+    typeof metadata !== 'object' ||
+    Array.isArray(metadata) ||
+    typeof metadata.appointment_date !== 'string' ||
+    typeof metadata.appointment_time !== 'string' ||
+    typeof metadata.appointment_status !== 'string'
+  ) {
+    return null
+  }
+
+  return {
+    date: metadata.appointment_date,
+    status: metadata.appointment_status as Appointment['status'],
+    time: metadata.appointment_time,
+  }
 }
 
 function getRemindersServiceErrorMessage() {

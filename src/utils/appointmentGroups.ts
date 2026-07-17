@@ -128,6 +128,7 @@ export function summarizeAppointmentsByStatus(appointments: Appointment[]) {
     cancelled: 0,
     completed: 0,
     confirmed: 0,
+    no_show: 0,
     pending: 0,
     rescheduled: 0,
   }

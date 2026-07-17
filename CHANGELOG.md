@@ -18,6 +18,30 @@ Registro breve de cambios relevantes en DayIA Dental.
   citas pasadas o canceladas y persisten el estado terminal correspondiente.
 - Se agregaron pruebas de reconciliacion, filtros, KPIs, acciones y proteccion
   de zona horaria tanto en frontend como en la logica compartida de Functions.
+- Recordatorios presenta una jerarquia operativa renovada para demo: siete
+  KPIs, filtros con conteos, estados vacios por contexto y vista previa con
+  paciente, cita, tipo, tratamiento y mensaje final.
+- El flujo diferencia el enlace manual de WhatsApp de las acciones para marcar
+  enviado o fallido, bloquea dobles actualizaciones y mantiene omitidos y
+  cancelados sin acciones de envio.
+- Basic y Medium muestran `Modo manual`; Pro muestra `Automatico pendiente de
+  configuracion`, sin afirmar que WhatsApp Cloud API este activo.
+- Las citas pasadas pendientes, confirmadas o reprogramadas pueden resolverse
+  desde Recordatorios como atendidas, no asistidas, reprogramadas o canceladas.
+- Se agregaron los estados terminales `completed` y `no_show`, con actividad,
+  badges, KPIs de Agenda y exclusion de disponibilidad, proximas citas y envios.
+- Los omitidos no se reactivan al resolver una cita. Al reprogramar conservan
+  una instantanea de la ocurrencia original y la nueva fecha genera otra cola.
+- La cola incorpora busqueda por paciente, telefono o tratamiento y filtro
+  independiente por estado de cita, incluida `Pasada sin cierre`.
+- El modal Resolver cita pasada usa el mismo calculo de disponibilidad que
+  Nueva cita: respeta horarios, excepciones, duracion, solapamientos y horas
+  vencidas mediante un selector controlado, sin desplegable horario nativo.
+- Las fechas del modal usan el formato humano global y los errores o
+  advertencias se presentan como alertas accesibles con mensajes controlados.
+- Los errores de constraint o RLS al cerrar una cita se traducen a mensajes
+  seguros; `completed` y `no_show` requieren que la migracion `019` este
+  aplicada en Supabase.
 
 ## 2026-07-14
 

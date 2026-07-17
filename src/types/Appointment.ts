@@ -7,12 +7,15 @@ export type AppointmentStatus =
   | 'pending'
   | 'cancelled'
   | 'completed'
+  | 'no_show'
   | 'rescheduled'
 
 export type AppointmentChangeLogType =
   | 'cancelled'
   | 'confirmed'
   | 'created'
+  | 'completed'
+  | 'no_show'
   | 'rescheduled'
 
 export interface AppointmentChangeLogEntry {

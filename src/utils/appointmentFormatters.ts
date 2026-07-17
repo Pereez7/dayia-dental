@@ -4,6 +4,7 @@ const appointmentStatusLabels: Record<AppointmentStatus, string> = {
   cancelled: 'Cancelada',
   completed: 'Atendida',
   confirmed: 'Confirmada',
+  no_show: 'No asistió',
   pending: 'Pendiente',
   rescheduled: 'Reprogramada',
 }
@@ -12,6 +13,7 @@ const appointmentStatusClassNames: Record<AppointmentStatus, string> = {
   cancelled: 'appointment-status--cancelled',
   completed: 'appointment-status--completed',
   confirmed: 'appointment-status--confirmed',
+  no_show: 'appointment-status--no-show',
   pending: 'appointment-status--pending',
   rescheduled: 'appointment-status--rescheduled',
 }

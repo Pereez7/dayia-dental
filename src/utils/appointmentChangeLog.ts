@@ -61,6 +61,24 @@ export function createAppointmentConfirmedLog(createdAt = new Date()) {
   )
 }
 
+export function createAppointmentCompletedLog(createdAt = new Date()) {
+  return createAppointmentLogEntry(
+    'completed',
+    'Cita marcada como atendida.',
+    undefined,
+    createdAt,
+  )
+}
+
+export function createAppointmentNoShowLog(createdAt = new Date()) {
+  return createAppointmentLogEntry(
+    'no_show',
+    'Cita marcada como no asistió.',
+    undefined,
+    createdAt,
+  )
+}
+
 export function createAppointmentCancelledLog(
   reasonPayload?: AppointmentReasonPayload,
   createdAt = new Date(),
@@ -130,6 +148,14 @@ export function getAppointmentLogDisplayText(entry: AppointmentChangeLogEntry) {
 
   if (entry.type === 'confirmed') {
     return 'Confirmada.'
+  }
+
+  if (entry.type === 'completed') {
+    return 'Atendida.'
+  }
+
+  if (entry.type === 'no_show') {
+    return 'No asistió.'
   }
 
   if (entry.type === 'created') {

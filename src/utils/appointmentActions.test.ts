@@ -31,6 +31,8 @@ describe('getAppointmentStatusActions', () => {
 
   it('does not expose actions for cancelled appointments', () => {
     expect(getAppointmentStatusActions('cancelled')).toEqual([])
+    expect(getAppointmentStatusActions('completed')).toEqual([])
+    expect(getAppointmentStatusActions('no_show')).toEqual([])
   })
 
   it('allows rescheduling pending, confirmed and rescheduled appointments', () => {

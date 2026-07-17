@@ -7,7 +7,9 @@ interface ConfirmDialogProps {
   children?: ReactNode
   confirmLabel: string
   isOpen: boolean
+  isConfirmDisabled?: boolean
   message: string
+  size?: 'default' | 'wide'
   title: string
   variant: ConfirmDialogVariant
   onCancel: () => void
@@ -19,7 +21,9 @@ export function ConfirmDialog({
   children,
   confirmLabel,
   isOpen,
+  isConfirmDisabled = false,
   message,
+  size = 'default',
   title,
   variant,
   onCancel,
@@ -56,7 +60,9 @@ export function ConfirmDialog({
         aria-describedby={messageId}
         aria-labelledby={titleId}
         aria-modal="true"
-        className={`confirm-dialog confirm-dialog--${variant}`}
+        className={`confirm-dialog confirm-dialog--${variant}${
+          size === 'wide' ? ' confirm-dialog--wide' : ''
+        }`}
         role="dialog"
       >
         <div className="confirm-dialog-content">
@@ -76,6 +82,7 @@ export function ConfirmDialog({
           </button>
           <button
             className={`confirm-dialog-confirm confirm-dialog-confirm--${variant}`}
+            disabled={isConfirmDisabled}
             type="button"
             onClick={onConfirm}
           >

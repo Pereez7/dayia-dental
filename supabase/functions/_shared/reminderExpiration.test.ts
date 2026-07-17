@@ -51,4 +51,17 @@ describe('process due reminder expiration', () => {
       }),
     ).toBe('cancelled')
   })
+
+  it.each(['completed', 'no_show'])(
+    'does not process reminders when the appointment is %s',
+    (status) => {
+      expect(
+        resolveReminderDisposition({
+          appointmentDate: '2026-07-18',
+          appointmentTime: '10:00',
+          status,
+        }),
+      ).toBe('cancelled')
+    },
+  )
 })

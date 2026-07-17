@@ -619,6 +619,7 @@
   display: grid;
   gap: 18px;
   width: min(100%, 430px);
+  max-height: calc(100dvh - 36px);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background:
@@ -627,6 +628,10 @@
   box-shadow: 0 18px 46px rgba(16, 42, 67, 0.18);
   color: var(--color-text);
   padding: 18px;
+}
+
+.confirm-dialog--wide {
+  width: min(100%, 620px);
 }
 
 .confirm-dialog--danger {
@@ -644,6 +649,9 @@
 .confirm-dialog-content {
   display: grid;
   gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .confirm-dialog h2 {
@@ -797,6 +805,159 @@
 
 .confirm-dialog-confirm:active {
   transform: translateY(1px);
+}
+
+.confirm-dialog-confirm:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+  transform: none;
+}
+
+.appointment-resolution-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.appointment-resolution-context {
+  display: flex;
+  flex-wrap: wrap;
+  color: var(--color-text-muted) !important;
+  font-size: var(--text-xs) !important;
+}
+
+.appointment-resolution-context strong {
+  color: var(--color-heading);
+}
+
+.appointment-resolution-option {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  min-height: 66px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+  padding: 9px 10px;
+  text-align: left;
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base),
+    color var(--transition-base);
+}
+
+.appointment-resolution-option:hover {
+  border-color: #b9ddec;
+  background: #f6fbfd;
+}
+
+.appointment-resolution-option[aria-pressed='true'] {
+  border-color: var(--color-primary);
+  background: var(--color-soft-blue);
+  color: var(--color-primary-dark);
+}
+
+.appointment-resolution-option:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.appointment-resolution-option strong {
+  color: var(--color-heading);
+  font-size: var(--text-sm);
+}
+
+.appointment-resolution-option span {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.35;
+}
+
+.appointment-resolution-schedule {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.appointment-resolution-schedule label,
+.appointment-resolution-reason {
+  display: grid;
+  gap: 6px;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.appointment-resolution-schedule input,
+.appointment-resolution-schedule select,
+.appointment-resolution-reason textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  padding: 9px 10px;
+}
+
+.appointment-resolution-schedule input,
+.appointment-resolution-schedule select {
+  min-height: 42px;
+}
+
+.appointment-resolution-schedule select:disabled {
+  cursor: not-allowed;
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+}
+
+.appointment-resolution-reason textarea {
+  resize: vertical;
+}
+
+.appointment-resolution-schedule input:focus-visible,
+.appointment-resolution-schedule select:focus-visible,
+.appointment-resolution-reason textarea:focus-visible {
+  border-color: var(--color-primary);
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.appointment-resolution-schedule-help {
+  grid-column: 1 / -1;
+  color: var(--color-text-muted) !important;
+  font-size: var(--text-xs) !important;
+}
+
+.appointment-resolution-feedback {
+  min-height: 0;
+}
+
+.appointment-resolution-alert {
+  border: 1px solid;
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs) !important;
+  font-weight: 600;
+  line-height: 1.45 !important;
+  padding: 9px 10px;
+}
+
+.appointment-resolution-alert--error {
+  border-color: #fecaca;
+  background: #fff1f2;
+  color: #9f1239 !important;
+}
+
+.appointment-resolution-alert--warning {
+  border-color: #f0d487;
+  background: #fff8e6;
+  color: #854d0e !important;
 }
 
 @keyframes toast-in {
@@ -1233,6 +1394,12 @@
   color: #406176;
 }
 
+.dashboard-status.appointment-status--no-show {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #4b5563;
+}
+
 .dashboard-patient-row {
   display: flex;
   align-items: center;
@@ -1569,6 +1736,19 @@
 .agenda-kpi--cancelled strong,
 .agenda-kpi--cancelled span {
   color: var(--color-danger);
+}
+
+.agenda-kpi--completed,
+.agenda-kpi--no-show {
+  background: #f3f7f9;
+  border-color: #d5e1e7;
+}
+
+.agenda-kpi--completed strong,
+.agenda-kpi--completed span,
+.agenda-kpi--no-show strong,
+.agenda-kpi--no-show span {
+  color: var(--color-neutral);
 }
 
 .agenda-list {
@@ -1917,6 +2097,13 @@
   background: #eef6fb;
   border-color: #c9dce8;
   color: var(--color-neutral);
+}
+
+.agenda-status.appointment-status--no-show,
+.status-pill.appointment-status--no-show {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #4b5563;
 }
 
 @media (min-width: 760px) {
@@ -5720,8 +5907,16 @@
   padding: 16px;
 }
 
-.reminder-kpi-panel .section-heading {
-  margin-bottom: 12px;
+.reminder-summary-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.reminder-summary-heading .section-heading {
+  margin-bottom: 0;
 }
 
 .reminder-kpi-panel .section-heading h2 {
@@ -5732,23 +5927,54 @@
   margin-top: 5px;
 }
 
-.reminder-simulation-note {
-  max-width: 680px;
-  margin: 6px 0 0;
+.reminder-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  border: 1px solid #cbe8f2;
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-primary-dark);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 6px 9px;
+  text-align: center;
+}
+
+.reminder-operation-note {
+  display: grid;
+  gap: 3px;
+  max-width: 780px;
+  margin-bottom: 12px;
+  border: 1px solid #cbe8f2;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.76);
+  padding: 10px 11px;
+}
+
+.reminder-operation-note strong {
+  color: var(--color-heading);
+  font-family: var(--font-heading);
+  font-size: var(--text-sm);
+}
+
+.reminder-operation-note span {
   color: var(--color-text-muted);
   font-size: var(--text-xs);
   font-weight: 500;
+  line-height: 1.45;
 }
 
 .reminder-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
   gap: 8px;
 }
 
 .reminder-kpi-card {
   min-height: auto;
-  padding: 8px 9px;
+  padding: 9px 10px;
 }
 
 .reminder-kpi-card strong {
@@ -5758,8 +5984,8 @@
 }
 
 .reminder-kpi-card span {
-  font-size: 0.7rem;
-  font-weight: 500;
+  font-size: var(--text-xs);
+  font-weight: 600;
 }
 
 .reminders-layout {
@@ -5872,6 +6098,10 @@
   font-size: 0.72rem;
   font-weight: 500;
   padding: 5px 8px;
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base),
+    color var(--transition-base);
 }
 
 .reminder-filter:hover {
@@ -5890,6 +6120,48 @@
   outline-offset: 2px;
 }
 
+.reminder-secondary-filters {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+  border-block: 1px solid var(--color-border);
+  padding: 12px 0;
+}
+
+.reminder-search-field,
+.reminder-appointment-filter {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.reminder-search-field input,
+.reminder-appointment-filter select {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  padding: 9px 10px;
+}
+
+.reminder-search-field input::placeholder {
+  color: #627d98;
+}
+
+.reminder-search-field input:focus-visible,
+.reminder-appointment-filter select:focus-visible {
+  border-color: var(--color-primary);
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
 .reminder-card {
   display: grid;
   gap: 8px;
@@ -5898,13 +6170,6 @@
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.78);
   padding: 10px;
-}
-
-.reminder-card--pending {
-  border-color: rgba(240, 212, 135, 0.52);
-  background:
-    linear-gradient(90deg, rgba(255, 247, 223, 0.24), rgba(255, 255, 255, 0.9)),
-    rgba(255, 255, 255, 0.78);
 }
 
 .reminder-card--selected {
@@ -5944,34 +6209,15 @@
   margin: 0;
 }
 
-.reminder-card-title .appointment-status {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid transparent;
-  border-radius: 999px;
+.reminder-card-statuses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.reminder-card-statuses .reminder-status {
   font-size: 0.68rem;
-  font-weight: 600;
-  line-height: 1;
-  padding: 4px 7px;
-  white-space: nowrap;
-}
-
-.reminder-card-title .appointment-status--pending {
-  background: #fff7df;
-  border-color: #f0d487;
-  color: #8a5a00;
-}
-
-.reminder-card-title .appointment-status--confirmed {
-  background: var(--color-soft-green);
-  border-color: #b7e4ce;
-  color: var(--color-success);
-}
-
-.reminder-card-title .appointment-status--rescheduled {
-  background: #eef2ff;
-  border-color: #c7d2fe;
-  color: var(--color-indigo);
+  padding: 5px 7px;
 }
 
 .reminder-card p {
@@ -6052,6 +6298,12 @@
   font-weight: 500;
 }
 
+.reminder-appointment-time small {
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
 .reminder-row {
   display: grid;
   gap: 7px;
@@ -6065,6 +6317,46 @@
 .reminder-row--selected {
   border-color: #b9ddec;
   background: var(--color-soft-blue);
+  box-shadow: inset 0 0 0 1px rgba(31, 143, 190, 0.08);
+}
+
+.reminder-card-main .reminder-appointment-state {
+  margin-top: 5px;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.reminder-card-main .reminder-past-appointment-note {
+  display: inline-flex;
+  justify-self: start;
+  margin-top: 6px;
+  border: 1px solid #f0d487;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 247, 223, 0.62);
+  color: #8a5a00;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1.3;
+  padding: 5px 7px;
+}
+
+.reminder-resolution-callout {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 6px;
+}
+
+.reminder-resolution-callout .reminder-past-appointment-note {
+  margin-top: 0;
+}
+
+.reminder-resolution-callout .primary-action {
+  min-height: 32px;
+  font-size: var(--text-xs);
+  padding: 6px 9px;
 }
 
 .reminder-row-meta {
@@ -6098,7 +6390,8 @@
   gap: 6px;
 }
 
-.reminder-actions button {
+.reminder-actions button,
+.reminder-actions a {
   min-height: 34px;
   font-size: var(--text-xs);
   font-weight: 500;
@@ -6111,7 +6404,12 @@
 }
 
 .reminder-action-secondary {
-  color: var(--color-success);
+  color: var(--color-primary-dark);
+}
+
+.reminder-action-whatsapp {
+  border-color: #9fd9bd;
+  font-weight: 700;
 }
 
 .reminder-action-danger {
@@ -6198,11 +6496,150 @@
   font-weight: 500;
   line-height: 1.55;
   padding: 14px;
+  white-space: pre-wrap;
 }
 
 .reminder-note {
   margin: 12px 0 0;
   font-weight: 500;
+  line-height: 1.45;
+}
+
+.reminder-preview-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.reminder-preview-heading .section-heading {
+  margin-bottom: 0;
+}
+
+.reminder-preview-heading .section-description {
+  margin-top: 4px;
+  font-size: var(--text-xs);
+}
+
+.reminder-preview-details {
+  display: grid;
+  gap: 0;
+  margin: 0 0 14px;
+}
+
+.reminder-preview-details div {
+  display: grid;
+  grid-template-columns: minmax(82px, 0.42fr) minmax(0, 1fr);
+  gap: 10px;
+  border-top: 1px solid var(--color-border);
+  padding: 8px 0;
+}
+
+.reminder-preview-details dt {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.reminder-preview-details dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--color-heading);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  overflow-wrap: break-word;
+}
+
+.reminder-preview-label {
+  margin: 0 0 6px;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.reminder-preview-empty {
+  display: grid;
+  gap: 4px;
+  min-height: 132px;
+  align-content: center;
+  border: 1px dashed #cbe8f2;
+  border-radius: var(--radius-md);
+  background: rgba(238, 248, 252, 0.46);
+  padding: 16px;
+}
+
+.reminder-preview-empty strong {
+  color: var(--color-heading);
+  font-family: var(--font-heading);
+  font-size: var(--text-sm);
+}
+
+.reminder-preview-empty span {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.45;
+}
+
+.reminder-preview-resolution {
+  display: grid;
+  gap: 9px;
+  margin-top: 14px;
+  border: 1px solid #f0d487;
+  border-radius: var(--radius-md);
+  background: rgba(255, 247, 223, 0.52);
+  padding: 10px;
+}
+
+.reminder-preview-resolution div {
+  display: grid;
+  gap: 3px;
+}
+
+.reminder-preview-resolution strong {
+  color: #8a5a00;
+  font-size: var(--text-sm);
+}
+
+.reminder-preview-resolution span {
+  color: #72510b;
+  font-size: var(--text-xs);
+  line-height: 1.4;
+}
+
+.reminder-preview-resolution .primary-action {
+  justify-self: start;
+  min-height: 34px;
+  font-size: var(--text-xs);
+  padding: 7px 10px;
+}
+
+.reminder-loading-state {
+  display: grid;
+  gap: 8px;
+  min-height: 150px;
+  align-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.reminder-loading-line {
+  display: block;
+  height: 16px;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    rgba(222, 236, 242, 0.45) 25%,
+    rgba(242, 248, 250, 0.9) 50%,
+    rgba(222, 236, 242, 0.45) 75%
+  );
+  background-size: 200% 100%;
+  animation: dashboard-skeleton-loading 1.4s ease-in-out infinite;
+}
+
+.reminder-loading-line--short {
+  width: 42%;
 }
 
 .reminder-empty-state {
@@ -6300,7 +6737,11 @@
   }
 
   .reminder-kpi-grid {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
+  }
+
+  .reminder-secondary-filters {
+    grid-template-columns: minmax(220px, 1fr) minmax(180px, 0.55fr);
   }
 
   .reminders-layout {
@@ -6324,7 +6765,7 @@
   }
 
   .reminder-row {
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
   }
 
@@ -6334,6 +6775,8 @@
 
   .reminder-actions {
     display: flex;
+    grid-column: 1 / -1;
+    flex-wrap: wrap;
     justify-content: end;
   }
 
@@ -6342,7 +6785,8 @@
     text-align: right;
   }
 
-  .reminder-actions button {
+  .reminder-actions button,
+  .reminder-actions a {
     min-height: 32px;
     padding: 6px 8px;
   }
@@ -6578,6 +7022,7 @@
   }
 
   .confirm-dialog {
+    max-height: calc(100dvh - 28px);
     padding: 16px;
   }
 
@@ -6588,6 +7033,11 @@
 
   .confirm-dialog-actions button {
     min-height: 40px;
+  }
+
+  .appointment-resolution-options,
+  .appointment-resolution-schedule {
+    grid-template-columns: 1fr;
   }
 
   .sidebar-brand span {
@@ -6899,7 +7349,33 @@
     display: grid;
   }
 
-  .reminder-actions button {
+  .reminder-actions button,
+  .reminder-actions a {
     width: 100%;
+    min-height: 44px;
+  }
+
+  .reminder-summary-heading {
+    display: grid;
+  }
+
+  .reminder-mode-badge {
+    justify-self: start;
+    max-width: 100%;
+  }
+
+  .reminder-preview-heading {
+    display: grid;
+  }
+
+  .reminder-preview-details div {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reminder-loading-line {
+    animation: none;
   }
 }
