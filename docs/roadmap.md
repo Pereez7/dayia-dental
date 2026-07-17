@@ -306,8 +306,13 @@ Implementado:
 - Agrupacion por fecha y cita.
 - Selector horizontal por fecha.
 - Filtros compactos por estado.
-- KPIs de todos, pendientes, programados, enviados simulados y fallidos.
+- KPIs de todos, pendientes, programados, enviados simulados, fallidos y
+  omitidos.
 - KPIs calculados solo desde recordatorios validos de citas activas.
+- Reconciliacion real al cargar: recordatorios mutables de citas pasadas pasan
+  a `skipped` y los de citas canceladas a `cancelled`.
+- Proteccion equivalente en `process-due-reminders` y en el envio directo, con
+  comparacion de fecha y hora en `America/La_Paz`.
 - Vista previa del mensaje sugerido.
 - Mensajes sugeridos diferenciados por estado de cita:
   pendiente, confirmada y reprogramada.
@@ -315,7 +320,7 @@ Implementado:
 - Formato visible corto 24 horas en filas de recordatorio, por ejemplo
   `15 jun, 10:00`.
 - Priorizacion de recordatorios pendientes de citas pendientes.
-- Marcado local como enviado o fallido.
+- Persistencia en Supabase de estados enviado, fallido, cancelado y omitido.
 - Manejo visual y defensivo de pacientes sin telefono: no permite marcar
   enviado si falta telefono.
 - Estado vacio para cuando no existen recordatorios de citas activas.
@@ -327,7 +332,6 @@ Implementado:
 Pendiente:
 
 - Envio real por WhatsApp API.
-- Persistencia de estados de recordatorio.
 - Plantillas configurables.
 - Programacion real de jobs o tareas.
 - Historial de intentos de envio.

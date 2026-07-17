@@ -2,6 +2,23 @@
 
 Registro breve de cambios relevantes en DayIA Dental.
 
+## 2026-07-17
+
+### Cambios realizados
+
+- Recordatorios reconcilia al cargar los estados mutables con la fecha y hora
+  real de la cita: una cita pasada cambia a `skipped` y una cita cancelada a
+  `cancelled`.
+- La comparacion usa la zona horaria clinica `America/La_Paz`, por lo que una
+  cita de hoy con hora futura conserva su estado pendiente o programado.
+- Los recordatorios omitidos muestran el motivo "Omitido porque la cita ya
+  paso", aparecen en su filtro y KPI, y dejan de ofrecer acciones manuales de
+  envio.
+- `process-due-reminders` y `send-whatsapp-reminder` impiden preparar envios de
+  citas pasadas o canceladas y persisten el estado terminal correspondiente.
+- Se agregaron pruebas de reconciliacion, filtros, KPIs, acciones y proteccion
+  de zona horaria tanto en frontend como en la logica compartida de Functions.
+
 ## 2026-07-14
 
 ### Cambios realizados

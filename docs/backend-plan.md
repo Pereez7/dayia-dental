@@ -490,10 +490,26 @@ recordatorios pendientes/programados anteriores y crea una nueva cola para la
 fecha/hora vigente. Cuando se cancela una cita, no borra registros: marca como
 `cancelled` los recordatorios pendientes/programados de esa cita.
 
+Antes de listar la cola real, el frontend reconcilia los estados mutables. Un
+recordatorio `pending` o `scheduled` cuya fecha y hora de cita ya paso cambia a
+`skipped`, con `metadata.reason = 'appointment_passed'`; si la cita esta
+cancelada cambia a `cancelled`. La comparacion se hace con fecha y hora completas
+en `America/La_Paz`: `scheduled_at` indica cuando corresponde intentar el
+recordatorio, pero no determina por si solo que la cita haya vencido.
+
 Los estados reales de la cola son `pending`, `scheduled`, `sent`, `failed`,
 `cancelled` y `skipped`. Marcar enviado actualiza `status = 'sent'` y
 `sent_at = now()` en Supabase. Marcar fallido actualiza `status = 'failed'` y
-`failed_reason` con un motivo manual.
+`failed_reason` con un motivo manual. `pending` todavia espera su ventana,
+`scheduled` esta programado, `sent` fue enviado, `failed` registra un intento
+fallido, `cancelled` deja de aplicar por cancelacion y `skipped` representa un
+recordatorio omitido sin intento, por ejemplo porque la cita ya paso.
+
+`process-due-reminders` repite esta validacion antes de preparar cada entrega:
+no intenta enviar citas pasadas ni canceladas y persiste `skipped` o
+`cancelled`. `send-whatsapp-reminder` aplica la misma defensa para las llamadas
+directas. La reconciliacion de React usa la sesion y RLS; no expone
+`service_role` en frontend.
 
 El boton "Abrir WhatsApp" usa un enlace manual `https://wa.me/...` con telefono
 normalizado y mensaje precargado. Esto no es envio automatico ni WhatsApp API:

@@ -33,6 +33,7 @@ Recibe `reminderId`, busca el recordatorio y valida:
 
 - El recordatorio existe.
 - Su estado es `pending` o `scheduled`.
+- La cita asociada no esta cancelada ni ha pasado en `America/La_Paz`.
 - El paciente tiene telefono.
 - El consultorio tiene `whatsapp_settings` conectado.
 - Existe `phone_number_id`.
@@ -50,7 +51,24 @@ Prepara el futuro job programado. Busca recordatorios:
 - `scheduled_at <= now()`
 
 Procesa una tanda limitada y reutiliza la preparacion de envio. No procesa
-recordatorios `cancelled`, `skipped`, `sent` o `failed`.
+recordatorios `cancelled`, `skipped`, `sent` o `failed`. Antes de preparar una
+entrega compara la fecha y hora real de la cita en `America/La_Paz`: las citas
+pasadas cambian a `skipped` con motivo `appointment_passed`, y las canceladas a
+`cancelled`. `scheduled_at <= now()` solo identifica recordatorios cuyo intento
+ya corresponde; no significa que la cita haya vencido.
+
+## Estados de la cola
+
+- `pending`: espera su ventana de procesamiento.
+- `scheduled`: esta programado para un intento posterior.
+- `sent`: fue enviado.
+- `failed`: un intento termino con error.
+- `cancelled`: dejo de aplicar porque la cita fue cancelada.
+- `skipped`: se omitio sin envio, por ejemplo porque la cita ya paso.
+
+Al abrir Recordatorios, el frontend aplica la misma reconciliacion antes de
+mostrar la lista. Los omitidos no cuentan como pendientes ni ofrecen "Abrir
+WhatsApp", pero permanecen visibles en Todos y Omitido para conservar trazabilidad.
 
 ### whatsapp-webhook
 
