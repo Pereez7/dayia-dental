@@ -58,7 +58,7 @@ import {
 } from './services/settingsService'
 import {
   cancelRemindersForAppointment,
-  getRemindersByClinic,
+  getReconciledRemindersByClinic,
   markReminderFailed,
   markReminderSent,
   upsertRemindersForAppointment,
@@ -553,10 +553,14 @@ function App() {
         return
       }
 
+      if (isAppointmentsLoading) {
+        return
+      }
+
       setIsRemindersLoading(true)
       setRemindersError('')
 
-      const { data, error } = await getRemindersByClinic(
+      const { data, error } = await getReconciledRemindersByClinic(
         currentClinic.id,
         appointments,
         patients,
@@ -586,6 +590,7 @@ function App() {
     appointments,
     currentClinic?.id,
     isDemoMode,
+    isAppointmentsLoading,
     patients,
     permissions.canAccessReminders,
   ])

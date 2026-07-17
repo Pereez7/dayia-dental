@@ -6165,6 +6165,29 @@
   color: var(--color-danger);
 }
 
+.reminder-status--cancelled,
+.reminder-status--skipped {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #4b5563;
+}
+
+.reminder-status-stack {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.reminder-status-note {
+  max-width: 220px;
+  margin: 0;
+  color: #4b5563;
+  font-size: 0.7rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
 .reminder-message-preview {
   margin: 0;
   border: 1px solid #cbe8f2;
@@ -6277,7 +6300,7 @@
   }
 
   .reminder-kpi-grid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 
   .reminders-layout {
@@ -6312,6 +6335,11 @@
   .reminder-actions {
     display: flex;
     justify-content: end;
+  }
+
+  .reminder-status-stack {
+    justify-items: end;
+    text-align: right;
   }
 
   .reminder-actions button {

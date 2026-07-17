@@ -221,6 +221,11 @@ export function WhatsAppRemindersView({
             tone="red"
             value={summary.failed}
           />
+          <ReminderKpiCard
+            label="Omitidos"
+            tone="slate"
+            value={summary.skipped}
+          />
         </div>
       </section>
 

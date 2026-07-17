@@ -37,7 +37,10 @@ export function ReminderMessagePreview({
         {reminder.message}
       </blockquote>
       <p className="reminder-note">
-        Envio manual preparado. Todavia no hay envio automatico por WhatsApp API.
+        {reminder.statusNote ??
+          (reminder.status === 'cancelled'
+            ? 'Recordatorio cancelado junto con la cita.'
+            : 'Envio manual preparado. Todavia no hay envio automatico por WhatsApp API.')}
       </p>
     </aside>
   )

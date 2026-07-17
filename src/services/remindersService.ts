@@ -10,6 +10,11 @@ import type { Reminder, ReminderStatus } from '../types/Reminder'
 import {
   generateRemindersForAppointment,
 } from '../utils/reminders'
+import {
+  EXPIRED_REMINDER_METADATA_NOTE,
+  EXPIRED_REMINDER_STATUS_NOTE,
+  getReminderReconciliation,
+} from '../utils/reminderExpiration'
 
 export interface ReminderInput {
   appointmentId: string
@@ -50,6 +55,7 @@ export function mapReminderRecordToReminder(
     scheduledFor: record.scheduled_at,
     sentAt: record.sent_at ?? undefined,
     status: record.status as ReminderStatus,
+    statusNote: getPersistedReminderStatusNote(record),
     treatment: appointment?.treatment ?? 'Tratamiento no registrado',
   }
 }
@@ -117,6 +123,77 @@ export async function getRemindersByClinic(
     data: (data ?? []).map((record) =>
       mapReminderRecordToReminder(record as ReminderRecord, appointments, patients),
     ),
+    error: null,
+  }
+}
+
+export async function getReconciledRemindersByClinic(
+  clinicId: string,
+  appointments: Appointment[] = [],
+  patients: Patient[] = [],
+  referenceDate = new Date(),
+) {
+  const initialResult = await getRemindersByClinic(
+    clinicId,
+    appointments,
+    patients,
+  )
+
+  if (initialResult.error || !initialResult.data) {
+    return initialResult
+  }
+
+  const reconciliationResult = await reconcileExpiredRemindersByClinic(
+    clinicId,
+    initialResult.data,
+    referenceDate,
+  )
+
+  if (reconciliationResult.error) {
+    return { data: null, error: reconciliationResult.error }
+  }
+
+  if (!reconciliationResult.data?.changed) {
+    return initialResult
+  }
+
+  return getRemindersByClinic(clinicId, appointments, patients)
+}
+
+export async function reconcileExpiredRemindersByClinic(
+  clinicId: string,
+  reminders: Reminder[],
+  referenceDate = new Date(),
+) {
+  if (!supabase) {
+    return { data: null, error: 'Supabase is not configured yet.' }
+  }
+
+  const { cancelledIds, skippedIds } = getReminderReconciliation(
+    reminders,
+    referenceDate,
+  )
+
+  const updateResults = await Promise.all([
+    updateReminderBatch(clinicId, cancelledIds, 'cancelled', {
+      reason: 'appointment_cancelled',
+    }),
+    updateReminderBatch(clinicId, skippedIds, 'skipped', {
+      note: EXPIRED_REMINDER_METADATA_NOTE,
+      reason: 'appointment_passed',
+    }),
+  ])
+
+  if (updateResults.some((result) => result.error)) {
+    return { data: null, error: getRemindersServiceErrorMessage() }
+  }
+
+  return {
+    data: {
+      cancelledCount: cancelledIds.length,
+      changed: cancelledIds.length > 0 || skippedIds.length > 0,
+      skippedCount: skippedIds.length,
+    },
     error: null,
   }
 }
@@ -328,6 +405,45 @@ function getDateFromDateTime(value: string) {
 
 function getTimeFromDateTime(value: string) {
   return value.slice(11, 16)
+}
+
+async function updateReminderBatch(
+  clinicId: string,
+  reminderIds: string[],
+  status: 'cancelled' | 'skipped',
+  metadata: Record<string, string>,
+) {
+  if (reminderIds.length === 0) {
+    return { error: null }
+  }
+
+  const { error } = await supabase!
+    .from('reminders')
+    .update({ metadata, status } as never)
+    .eq('clinic_id', clinicId)
+    .in('id', reminderIds)
+    .in('status', ['pending', 'scheduled'] as never)
+
+  return { error }
+}
+
+function getPersistedReminderStatusNote(record: ReminderRecord) {
+  if (record.status !== 'skipped') {
+    return undefined
+  }
+
+  const metadata = record.metadata
+
+  if (
+    metadata &&
+    typeof metadata === 'object' &&
+    !Array.isArray(metadata) &&
+    metadata.reason === 'appointment_passed'
+  ) {
+    return EXPIRED_REMINDER_STATUS_NOTE
+  }
+
+  return undefined
 }
 
 function getRemindersServiceErrorMessage() {

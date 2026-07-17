@@ -415,6 +415,23 @@ describe('summarizeRemindersByStatus', () => {
       skipped: 0,
     })
   })
+
+  it('excludes skipped reminders from pending totals', () => {
+    const reminders = generateAppointmentReminders(
+      appointments,
+      patients,
+      new Date('2026-06-09T08:00:00'),
+    )
+    const reconciledReminders = [
+      { ...reminders[0], status: 'skipped' as const },
+      ...reminders.slice(1),
+    ]
+
+    expect(summarizeRemindersByStatus(reconciledReminders)).toMatchObject({
+      pending: 1,
+      skipped: 1,
+    })
+  })
 })
 
 describe('WhatsApp manual link helpers', () => {
@@ -449,6 +466,19 @@ describe('filterRemindersByStatus', () => {
     expect(filterRemindersByStatus(reminders, 'all')).toHaveLength(4)
     expect(filterRemindersByStatus(reminders, 'sent')).toHaveLength(1)
     expect(filterRemindersByStatus(reminders, 'pending')).toHaveLength(1)
+  })
+
+  it('shows omitted reminders only under the skipped filter', () => {
+    const reminders = generateAppointmentReminders(
+      appointments,
+      patients,
+      new Date('2026-06-09T08:00:00'),
+    )
+    const skippedReminder = { ...reminders[0], status: 'skipped' as const }
+
+    expect(
+      filterRemindersByStatus([skippedReminder, ...reminders.slice(1)], 'skipped'),
+    ).toEqual([skippedReminder])
   })
 })
 

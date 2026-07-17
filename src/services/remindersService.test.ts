@@ -69,8 +69,22 @@ describe('remindersService mappers', () => {
       scheduledFor: '2026-06-21T13:00:00Z',
       sentAt: undefined,
       status: 'scheduled',
+      statusNote: undefined,
       treatment: 'Consulta de emergencia',
     })
+  })
+
+  it('maps appointment-passed metadata to a clear omitted note', () => {
+    expect(
+      mapReminderRecordToReminder({
+        ...reminderRecord,
+        metadata: {
+          note: 'La cita ya pasó sin envío del recordatorio.',
+          reason: 'appointment_passed',
+        },
+        status: 'skipped',
+      }, [appointment], [patient]).statusNote,
+    ).toBe('Omitido porque la cita ya pasó.')
   })
 
   it('maps reminder inputs to clinic-scoped inserts', () => {

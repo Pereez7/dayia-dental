@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { resolveReminderDisposition } from './reminderExpiration.ts'
 
 type ReminderStatus =
   | 'cancelled'
@@ -72,6 +73,49 @@ export async function buildReminderDelivery(reminderId: string) {
 
   if (!['pending', 'scheduled'].includes(reminder.status)) {
     return { error: 'Reminder is not pending or scheduled.', status: 409 }
+  }
+
+  const { data: appointment } = await supabase
+    .from('appointments')
+    .select('appointment_date, start_time, status')
+    .eq('clinic_id', reminder.clinic_id)
+    .eq('id', reminder.appointment_id)
+    .single()
+
+  if (!appointment) {
+    return { error: 'Appointment not found.', status: 404 }
+  }
+
+  const disposition = resolveReminderDisposition({
+    appointmentDate: appointment.appointment_date,
+    appointmentTime: appointment.start_time,
+    status: appointment.status,
+  })
+
+  if (disposition !== 'processable') {
+    const nextStatus = disposition === 'cancelled' ? 'cancelled' : 'skipped'
+    const metadata =
+      disposition === 'cancelled'
+        ? { reason: 'appointment_cancelled' }
+        : {
+            note: 'La cita ya pasó sin envío del recordatorio.',
+            reason: 'appointment_passed',
+          }
+
+    await supabase
+      .from('reminders')
+      .update({ metadata, status: nextStatus })
+      .eq('clinic_id', reminder.clinic_id)
+      .eq('id', reminder.id)
+      .in('status', ['pending', 'scheduled'])
+
+    return {
+      error:
+        disposition === 'cancelled'
+          ? 'Appointment is cancelled.'
+          : 'Appointment already passed.',
+      status: 409,
+    }
   }
 
   const { data: patient } = await supabase

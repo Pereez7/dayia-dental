@@ -30,6 +30,7 @@ export interface Reminder {
   sentAt?: string
   failedReason?: string
   status: ReminderStatus
+  statusNote?: string
   message: string
   omittedReminderNotes?: string[]
 }

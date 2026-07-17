@@ -3,6 +3,7 @@ import {
   createAdminClient,
   jsonResponse,
 } from '../_shared/whatsapp.ts'
+import { resolveReminderDisposition } from '../_shared/reminderExpiration.ts'
 
 Deno.serve(async (request) => {
   if (request.method !== 'POST') {
@@ -12,7 +13,15 @@ Deno.serve(async (request) => {
   const supabase = createAdminClient()
   const { data: reminders, error } = await supabase
     .from('reminders')
-    .select('id')
+    .select(`
+      id,
+      clinic_id,
+      appointment:appointments!inner (
+        appointment_date,
+        start_time,
+        status
+      )
+    `)
     .eq('channel', 'whatsapp')
     .in('status', ['pending', 'scheduled'])
     .lte('scheduled_at', new Date().toISOString())
@@ -24,8 +33,44 @@ Deno.serve(async (request) => {
   }
 
   const results = []
+  const referenceDate = new Date()
 
   for (const reminder of reminders ?? []) {
+    const appointment = Array.isArray(reminder.appointment)
+      ? reminder.appointment[0]
+      : reminder.appointment
+    const disposition = resolveReminderDisposition(
+      {
+        appointmentDate: appointment.appointment_date,
+        appointmentTime: appointment.start_time,
+        status: appointment.status,
+      },
+      referenceDate,
+    )
+
+    if (disposition !== 'processable') {
+      const status = disposition === 'cancelled' ? 'cancelled' : 'skipped'
+      const metadata =
+        disposition === 'cancelled'
+          ? { reason: 'appointment_cancelled' }
+          : {
+              note: 'La cita ya pasó sin envío del recordatorio.',
+              reason: 'appointment_passed',
+            }
+      const { error: updateError } = await supabase
+        .from('reminders')
+        .update({ metadata, status })
+        .eq('clinic_id', reminder.clinic_id)
+        .eq('id', reminder.id)
+        .in('status', ['pending', 'scheduled'])
+
+      results.push({
+        reminderId: reminder.id,
+        status: updateError ? 'update_failed' : status,
+      })
+      continue
+    }
+
     results.push(await buildReminderDelivery(reminder.id))
   }
 

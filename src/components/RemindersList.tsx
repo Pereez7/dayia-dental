@@ -108,6 +108,9 @@ export function RemindersList({
                   <div className="reminder-row-list">
                     {appointmentGroup.reminders.map((reminder) => {
                       const isSelected = reminder.id === selectedReminderId
+                      const canRunManualActions =
+                        reminder.status === 'pending' ||
+                        reminder.status === 'scheduled'
                       const statusClassName = getReminderStatusClassName(
                         reminder.status,
                       )
@@ -136,9 +139,18 @@ export function RemindersList({
                             </div>
                           </div>
 
-                          <span className={`reminder-status ${statusClassName}`}>
-                            {getReminderStatusLabel(reminder.status)}
-                          </span>
+                          <div className="reminder-status-stack">
+                            <span
+                              className={`reminder-status ${statusClassName}`}
+                            >
+                              {getReminderStatusLabel(reminder.status)}
+                            </span>
+                            {reminder.statusNote && (
+                              <p className="reminder-status-note">
+                                {reminder.statusNote}
+                              </p>
+                            )}
+                          </div>
 
                           <div className="reminder-actions">
                             <button
@@ -148,51 +160,55 @@ export function RemindersList({
                             >
                               Ver mensaje
                             </button>
-                            <button
-                              className="soft-action reminder-action-secondary"
-                              type="button"
-                              disabled={!hasPhone}
-                              title={
-                                hasPhone
-                                  ? undefined
-                                  : 'Agrega un teléfono para simular el envío.'
-                              }
-                              onClick={() => onMarkSent(reminder.id)}
-                            >
-                              Marcar enviado
-                            </button>
-                            {buildWhatsAppReminderUrl(
-                              reminder.phone,
-                              reminder.message,
-                            ) ? (
-                              <a
-                                className="soft-action reminder-action-secondary"
-                                href={buildWhatsAppReminderUrl(
+                            {canRunManualActions && (
+                              <>
+                                <button
+                                  className="soft-action reminder-action-secondary"
+                                  type="button"
+                                  disabled={!hasPhone}
+                                  title={
+                                    hasPhone
+                                      ? undefined
+                                      : 'Agrega un teléfono para simular el envío.'
+                                  }
+                                  onClick={() => onMarkSent(reminder.id)}
+                                >
+                                  Marcar enviado
+                                </button>
+                                {buildWhatsAppReminderUrl(
                                   reminder.phone,
                                   reminder.message,
+                                ) ? (
+                                  <a
+                                    className="soft-action reminder-action-secondary"
+                                    href={buildWhatsAppReminderUrl(
+                                      reminder.phone,
+                                      reminder.message,
+                                    )}
+                                    rel="noreferrer"
+                                    target="_blank"
+                                  >
+                                    Abrir WhatsApp
+                                  </a>
+                                ) : (
+                                  <button
+                                    className="soft-action reminder-action-secondary"
+                                    disabled
+                                    title="Agrega un teléfono para abrir WhatsApp."
+                                    type="button"
+                                  >
+                                    Abrir WhatsApp
+                                  </button>
                                 )}
-                                rel="noreferrer"
-                                target="_blank"
-                              >
-                                Abrir WhatsApp
-                              </a>
-                            ) : (
-                              <button
-                                className="soft-action reminder-action-secondary"
-                                disabled
-                                title="Agrega un teléfono para abrir WhatsApp."
-                                type="button"
-                              >
-                                Abrir WhatsApp
-                              </button>
+                                <button
+                                  className="soft-action reminder-action-danger"
+                                  type="button"
+                                  onClick={() => onMarkFailed(reminder.id)}
+                                >
+                                  Marcar fallido
+                                </button>
+                              </>
                             )}
-                            <button
-                              className="soft-action reminder-action-danger"
-                              type="button"
-                              onClick={() => onMarkFailed(reminder.id)}
-                            >
-                              Marcar fallido
-                            </button>
                           </div>
                         </div>
                       )
