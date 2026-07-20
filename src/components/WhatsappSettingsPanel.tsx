@@ -126,8 +126,8 @@ export function WhatsappSettingsPanel({
       <div className="section-heading">
         <h2 id="whatsapp-settings-title">WhatsApp del consultorio</h2>
         <p className="section-description">
-          Configura el número de WhatsApp Business que se usará para enviar
-          recordatorios.
+          Configura el número de WhatsApp Business usado en los recordatorios
+          manuales.
         </p>
       </div>
 
@@ -197,8 +197,8 @@ export function WhatsappSettingsPanel({
         </fieldset>
 
         <p className="whatsapp-info-note">
-          La integración automática todavía no está activa. Estos datos dejan
-          preparada la configuración del consultorio.
+          Actualmente el envío es manual desde WhatsApp. El envío automático
+          está preparado para una etapa posterior.
         </p>
 
         <div className="whatsapp-settings-actions">

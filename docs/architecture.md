@@ -647,6 +647,10 @@ no está autorizada, se renderiza el estado de acceso restringido y React no
 solicita el chunk de la vista sensible. Auth, servicios, contexto de consultorio
 y estado operativo permanecen centralizados en `App.tsx`.
 
+La primera separación redujo el bundle principal de aproximadamente `616.91 kB`
+a `493.58 kB` minificado. La navegación continúa por estado local y no se
+incorporó React Router.
+
 ## Edición de pacientes
 
 `App.tsx` conserva la colección y el paciente seleccionado. Tras una edición

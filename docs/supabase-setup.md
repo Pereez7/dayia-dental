@@ -15,6 +15,8 @@ modo demo/desarrollo.
 ```env
 VITE_SUPABASE_URL=REEMPLAZAR_CON_PROJECT_URL
 VITE_SUPABASE_ANON_KEY=REEMPLAZAR_CON_ANON_KEY
+VITE_APP_URL=http://localhost:5173
+VITE_ENABLE_DEMO_MODE=false
 ```
 
 4. Reinicia Vite despues de crear o cambiar `.env`:
@@ -54,6 +56,71 @@ Ejecuta en Supabase SQL Editor, en orden, los archivos de
 
 Si usas Supabase CLI en el futuro, puedes adaptar este flujo a `supabase db
 push`, pero esta guia asume SQL Editor para una primera prueba controlada.
+
+### Inventario de preproducción
+
+Antes de una demo con Supabase real, confirma en el proyecto remoto que están
+aplicadas las migraciones `001` a `019`. El repositorio solo contiene los
+archivos; no garantiza el estado del entorno remoto. La migración `003` es una
+plantilla de setup y no debe reemplazar un seed revisado.
+
+Functions vigentes para el MVP:
+
+```bash
+npx supabase functions deploy list-platform-clinics
+npx supabase functions deploy create-platform-clinic
+npx supabase functions deploy invite-clinic-member
+npx supabase functions deploy complete-account-activation
+npx supabase functions deploy process-due-reminders
+npx supabase functions deploy send-whatsapp-reminder
+npx supabase functions deploy whatsapp-webhook
+```
+
+Para una demo clínica sin alta de consultorios ni pruebas de webhook basta con
+desplegar las Functions que participan en el recorrido. `create-clinic-user` es
+legacy/deprecated y `migrate-owner-email` es una utilidad de transición.
+
+Secrets backend:
+
+| Secret | Valor seguro de preproducción |
+| --- | --- |
+| `DAYIA_APP_URL` | URL pública sin barra final |
+| `DAYIA_PLATFORM_CREATE_ENABLED` | `false` o ausente |
+| `WHATSAPP_SEND_ENABLED` | `false` o ausente |
+| `WHATSAPP_VERIFY_TOKEN` | Solo para verificar webhook |
+| `WHATSAPP_ACCESS_TOKEN` | No necesario mientras no exista envío real |
+
+`SUPABASE_URL`, `SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY` son variables
+administradas por Supabase para Functions. No copiarlas a React salvo URL y
+anon key bajo sus equivalentes `VITE_`.
+
+WhatsApp sigue siendo manual. `send-whatsapp-reminder` prepara un resultado en
+dry-run y el código actual no llama a Meta incluso si el flag cambia. Mantén el
+flag en `false` y no configures tokens productivos.
+
+En la revisión del 20 de julio de 2026, el remoto enlazado tenía activas todas
+las Functions anteriores salvo `whatsapp-webhook`; también conservaba activas
+`create-clinic-user` y `migrate-owner-email`. No había secrets de WhatsApp. El
+secret `DAYIA_PLATFORM_CREATE_ENABLED` existía, pero la CLI solo muestra su
+hash. Durante la revisión se restableció explícitamente a `false`; repite esta
+verificación antes de cada demo o prueba controlada.
+
+```bash
+npx supabase secrets set DAYIA_PLATFORM_CREATE_ENABLED=false
+```
+
+### URLs de autenticación
+
+Configura el Site URL con el origen de la app y registra:
+
+```text
+https://TU_DOMINIO/activar-cuenta
+http://localhost:5173/activar-cuenta
+```
+
+`VITE_APP_URL` pertenece al frontend. `DAYIA_APP_URL` pertenece a las Edge
+Functions. Ambos deben apuntar al mismo origen en cada entorno. El hosting debe
+servir `index.html` también en `/activar-cuenta`.
 
 ## 3. Crear usuario real
 
@@ -139,6 +206,10 @@ El frontend no necesita un switch equivalente. Siempre invoca la Function y
 muestra el rechazo controlado cuando el secret no es `true`. Nunca agregues
 `DAYIA_PLATFORM_CREATE_ENABLED` ni `SUPABASE_SERVICE_ROLE_KEY` a `.env`,
 variables `VITE_` o React.
+
+Para demo y preproducción general debe permanecer `false` o ausente. Habilítalo
+solo durante una prueba controlada de alta, con un `platform_admin` específico,
+y vuelve a deshabilitarlo al terminar.
 
 ## Usuarios del consultorio
 

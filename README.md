@@ -106,6 +106,13 @@ La aplicación ya integra Supabase Auth, PostgreSQL, RLS, Edge Functions y
 persistencia clínica. WhatsApp Cloud API real, webhooks completos,
 multi-consultorio seleccionable y facturación todavía no están activos.
 
+## Demo y preproducción
+
+- `docs/production-readiness.md`: checklist de configuración, seguridad,
+  despliegue y límites del MVP.
+- `docs/demo-script.md`: recorrido comercial breve con datos ficticios.
+- `docs/supabase-setup.md`: migraciones, Functions, secrets y Redirect URLs.
+
 ## Comandos
 
 Instalar dependencias:

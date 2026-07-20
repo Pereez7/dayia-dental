@@ -4,6 +4,17 @@ Registro breve de cambios relevantes en DayIA Dental.
 
 ## 2026-07-20
 
+### Preparación de demo y preproducción
+
+- Se agrega un checklist de readiness con variables, secrets, Functions,
+  migraciones, redirects, cuentas por rol y límites conocidos del MVP.
+- Se incorpora un guion comercial con datos ficticios y recorrido por los
+  módulos existentes.
+- Recordatorios y Configuración aclaran con el mismo texto que WhatsApp opera
+  manualmente y que la automatización corresponde a una etapa posterior.
+- Se documenta la reducción del bundle de `616.91 kB` a `493.58 kB`, manteniendo
+  navegación local sin React Router.
+
 ### Carga diferida por vistas
 
 - Las vistas principales se cargan mediante `React.lazy` y `Suspense`, sin

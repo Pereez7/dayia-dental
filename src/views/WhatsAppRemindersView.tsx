@@ -269,8 +269,8 @@ export function WhatsAppRemindersView({
         <div className="reminder-operation-note" role="note">
           <strong>Envío manual disponible</strong>
           <span>
-            El envío automático por WhatsApp API todavía no está activo. Puedes
-            abrir WhatsApp manualmente y marcar el recordatorio según corresponda.
+            Actualmente el envío es manual desde WhatsApp. El envío automático
+            está preparado para una etapa posterior.
           </span>
           {!persistedReminders && (
             <span>Esta sesión usa recordatorios de demostración.</span>

@@ -45,7 +45,10 @@ describe('WhatsAppRemindersView', () => {
     )
 
     expect(markup).toContain('Automático pendiente de configuración')
-    expect(markup).toContain('El envío automático por WhatsApp API todavía no está activo.')
+    expect(markup).toContain('Actualmente el envío es manual desde WhatsApp.')
+    expect(markup).toContain(
+      'El envío automático está preparado para una etapa posterior.',
+    )
     expect(markup).toContain('Pendientes')
     expect(markup).toContain('Omitidos')
     expect(markup).toContain('Cancelados')
