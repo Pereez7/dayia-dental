@@ -8,7 +8,7 @@ export const frequentCountryCodes = [
   { country: 'Chile', code: '+56' },
   { country: 'Perú', code: '+51' },
   { country: 'Paraguay', code: '+595' },
-  { country: 'EE. UU. / Canadá', code: '+1' },
+  { country: 'EE. UU./Canadá', code: '+1' },
   { country: 'España', code: '+34' },
 ] as const
 
