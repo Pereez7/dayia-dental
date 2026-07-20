@@ -167,9 +167,9 @@ Participan:
 
 `Pacientes`
 
-Incluye listado, busqueda, formulario de registro, validaciones, telefono en
-formato internacional compacto, detalle de paciente como vista completa e
-historial clinico y odontograma inicial asociados al paciente.
+Incluye listado, búsqueda, registro y edición de datos personales, validaciones,
+teléfono en formato internacional compacto, detalle de paciente como vista
+completa e historial clínico y odontograma inicial asociados al paciente.
 
 Participan:
 
@@ -177,7 +177,11 @@ Participan:
 - `src/views/PatientDetailView.tsx`: muestra la ficha completa del paciente.
 - `src/components/PatientsList.tsx`: filtra y lista pacientes.
 - `src/components/PatientCard.tsx`: muestra cada paciente como ficha clinica
-  escaneable y permite abrir el detalle.
+  escaneable y permite abrir el detalle o editar sus datos.
+- `src/components/PatientEditDialog.tsx`: contiene el flujo modal de edición y
+  bloquea duplicados, guardados concurrentes y envíos sin cambios.
+- `src/components/PatientFields.tsx`: comparte los campos entre alta y edición,
+  incluidos prefijos frecuentes y el prefijo internacional manual.
 - `src/components/PatientAppointmentsList.tsx`: lista citas asociadas al
   paciente.
 - `src/components/ClinicalRecordForm.tsx`: registra una evolucion clinica
@@ -642,3 +646,15 @@ Los permisos se resuelven antes de devolver el componente lazy. Si la sección
 no está autorizada, se renderiza el estado de acceso restringido y React no
 solicita el chunk de la vista sensible. Auth, servicios, contexto de consultorio
 y estado operativo permanecen centralizados en `App.tsx`.
+
+## Edición de pacientes
+
+`App.tsx` conserva la colección y el paciente seleccionado. Tras una edición
+exitosa sustituye el registro por ID, por lo que listado, búsqueda y detalle se
+actualizan sin cambiar de contexto. En modo real, `updatePatient` exige tanto el
+`clinic_id` activo como el ID del paciente; RLS sigue siendo la defensa final.
+
+El teléfono usa una lista breve de prefijos frecuentes y la opción `Otro`. El
+prefijo manual admite `+` seguido de 1 a 4 dígitos y el número local se guarda
+sin espacios. Esta validación es deliberadamente básica: todavía no se usa
+`libphonenumber-js` ni se aplican reglas específicas por país.

@@ -688,10 +688,16 @@ tokens, `service_role` ni datos reales.
 
 ## Validaciones operativas de Pacientes y Citas
 
-El frontend normaliza nombre, apellido, teléfono y email antes de crear un
-paciente. La lista cargada del consultorio se usa para rechazar duplicados
-básicos por teléfono antes del insert. Supabase continúa siendo la fuente real
-y todas las operaciones permanecen limitadas por `clinic_id` y RLS.
+El frontend normaliza nombre, apellido, teléfono y email antes de crear o
+actualizar un paciente. La lista cargada del consultorio se usa para rechazar
+duplicados activos por teléfono y email, excluyendo al propio registro durante
+la edición. Supabase continúa siendo la fuente real y todas las operaciones
+permanecen limitadas por `clinic_id` y RLS.
+
+`updatePatient` actualiza únicamente datos personales mediante filtros por
+`clinic_id` e ID. El frontend no usa `service_role`. El prefijo telefónico puede
+seleccionarse de una lista frecuente o escribirse manualmente; por ahora se
+aplica validación estructural básica sin `libphonenumber-js`.
 
 La creación y reprogramación de citas reutiliza las validaciones de fecha,
 horario efectivo, excepciones, duración, solapamiento y cita activa del mismo
@@ -708,4 +714,4 @@ configuración real antes de habilitarse.
 Los servicios clínicos filtran por `clinic_id` y las cargas sensibles se
 detienen antes de llamar al servicio cuando el rol carece de permiso. Se
 mantienen como pendientes la selección multi-consultorio, la migración completa
-de policies legacy y la reducción del bundle principal.
+de policies legacy y la medición de Core Web Vitals en dispositivos reales.

@@ -14,6 +14,19 @@ Registro breve de cambios relevantes en DayIA Dental.
   por lo que una sección no autorizada no solicita su módulo ni ejecuta sus
   loaders sensibles.
 
+### Edición de pacientes y teléfonos flexibles
+
+- Las fichas y el detalle permiten editar nombre, apellido, teléfono, email y
+  fecha de nacimiento sin abandonar el contexto del paciente.
+- La actualización usa `patientsService.updatePatient`, conserva el ID activo
+  y limita la escritura por `clinic_id` y RLS.
+- Alta y edición comparten prefijos frecuentes y la opción `Otro`, que acepta
+  un prefijo manual con `+` y entre 1 y 4 dígitos.
+- Los nombres se capitalizan por palabra, el email se guarda en minúsculas y el
+  teléfono se persiste sin espacios.
+- Se bloquean fechas futuras, guardados sin cambios y duplicados activos por
+  teléfono o email. No se añadió una librería de telefonía.
+
 ### Auditoría de calidad del MVP
 
 - Las sesiones Supabase dejan de mostrar horarios, tratamientos y excepciones

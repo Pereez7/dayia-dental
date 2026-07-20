@@ -86,8 +86,11 @@ Implementado:
 - Cards de pacientes compactas con jerarquia clara: nombre principal y datos de
   contacto como secundarios.
 - Formulario de registro.
+- Edición desde ficha y detalle, manteniendo seleccionado el mismo paciente.
 - Validaciones de datos principales.
-- Telefono en formato internacional.
+- Teléfono en formato internacional con prefijos frecuentes y opción manual.
+- Duplicados activos por teléfono y email, fecha no futura y bloqueo cuando no
+  existen cambios.
 - Detalle de paciente como vista completa.
 - Ficha con datos generales, edad, ultima visita, citas activas y proxima cita
   activa.
@@ -105,7 +108,6 @@ Implementado:
 
 Pendiente:
 
-- Edicion de paciente.
 - Eliminacion o desactivacion de paciente.
 - Edicion y eliminacion de registros clinicos.
 - Edicion avanzada del odontograma.
