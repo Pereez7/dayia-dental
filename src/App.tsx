@@ -123,6 +123,7 @@ import { rescheduleAppointment } from './utils/appointmentReschedule'
 import { getTreatmentDuration } from './utils/treatmentUtils'
 import { getPlanFeatures } from './utils/planFeatures'
 import { getDuplicatePatientMessage } from './utils/patientValidators'
+import { createEmptyAppointmentDraft } from './utils/appointmentDraft'
 import {
   getStoredActiveSection,
   saveActiveSection,
@@ -221,6 +222,8 @@ function App() {
   const [patientsError, setPatientsError] = useState('')
   const [appointmentPatientId, setAppointmentPatientId] =
     useState<PatientId | null>(null)
+  const [appointmentDraft, setAppointmentDraft] =
+    useState<AppointmentFormValues | null>(null)
   const [treatments, setTreatments] =
     useState<Treatment[]>(
       isDemoMode && canLoadOperationalSettings ? initialTreatments : [],
@@ -235,6 +238,7 @@ function App() {
     useState(isDemoMode && canLoadOperationalSettings)
   const [isOperationalSettingsLoading, setIsOperationalSettingsLoading] =
     useState(() => !isDemoMode && canLoadOperationalSettings)
+
   const [settingsError, setSettingsError] = useState('')
   const [treatmentsError, setTreatmentsError] = useState('')
   const [businessHoursError, setBusinessHoursError] = useState('')
@@ -1019,6 +1023,7 @@ function App() {
       setAppointments(nextAppointments)
       setAppointmentsError('')
       setAppointmentPatientId(null)
+      setAppointmentDraft(createEmptyAppointmentDraft())
 
       return { success: true }
     }
@@ -1045,6 +1050,7 @@ function App() {
     })
     setAppointmentsError('')
     setAppointmentPatientId(null)
+    setAppointmentDraft(createEmptyAppointmentDraft())
 
     return { success: true }
   }
@@ -1772,13 +1778,23 @@ function App() {
   }
 
   function handleCreateAppointmentForPatient(patientId: PatientId) {
+    const patient = patients.find((item) => item.id === patientId)
+
     setAppointmentPatientId(patientId)
+    setAppointmentDraft({
+      ...createEmptyAppointmentDraft(),
+      patient: patient?.fullName ?? '',
+      patientId,
+    })
     setActiveSection('appointment-new')
   }
 
   function handleSectionChange(section: AppSection) {
     if (section === 'appointment-new') {
       setAppointmentPatientId(null)
+      setAppointmentDraft((currentDraft) =>
+        currentDraft ?? createEmptyAppointmentDraft(),
+      )
     }
 
     setActiveSection(section)
@@ -2045,6 +2061,7 @@ function App() {
           appointments={appointments}
           businessHours={businessHours}
           calendarExceptions={calendarExceptions}
+          draft={appointmentDraft}
           errorMessage={appointmentsError}
           isLoading={isAppointmentsLoading}
           mode="new"
@@ -2055,6 +2072,7 @@ function App() {
           patients={patients}
           treatments={treatments}
           onCreateAppointment={handleCreateAppointment}
+          onDraftChange={setAppointmentDraft}
           onNavigateToAgenda={() => setActiveSection('appointments-agenda')}
         />
       )

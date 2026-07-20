@@ -26,22 +26,13 @@ import {
   getActiveTreatments,
   getTreatmentDuration,
 } from '../utils/treatmentUtils'
+import { createEmptyAppointmentDraft } from '../utils/appointmentDraft'
 import {
   appointmentInitialStatuses,
   hasAppointmentFormErrors,
   validateAppointmentForm,
 } from '../utils/appointmentValidators'
 import { Toast } from './Toast'
-
-const initialFormValues: AppointmentFormValues = {
-  patientId: null,
-  patient: '',
-  date: '',
-  durationMinutes: defaultTreatmentDurationMinutes,
-  time: '',
-  treatment: '',
-  status: 'pending',
-}
 
 function getTodayDateInputValue() {
   const today = new Date()
@@ -56,10 +47,12 @@ interface AppointmentFormProps {
   appointments: Appointment[]
   businessHours: BusinessHoursSettings
   calendarExceptions: CalendarException[]
+  draft?: AppointmentFormValues | null
   initialPatient?: Patient
   patients: Patient[]
   treatments: Treatment[]
   onCancel: () => void
+  onDraftChange?: (values: AppointmentFormValues) => void
   onCreateAppointment: (
     values: AppointmentFormValues,
   ) => Promise<{ error?: string; success: boolean }> | { error?: string; success: boolean } | void
@@ -69,22 +62,24 @@ export function AppointmentForm({
   appointments,
   businessHours,
   calendarExceptions,
+  draft,
   initialPatient,
   patients,
   treatments,
   onCancel,
+  onDraftChange,
   onCreateAppointment,
 }: AppointmentFormProps) {
   const submissionLock = useRef(false)
   const [formValues, setFormValues] =
     useState<AppointmentFormValues>(() => ({
-      ...initialFormValues,
-      patient: initialPatient?.fullName ?? '',
-      patientId: initialPatient?.id ?? null,
+      ...(draft ?? createEmptyAppointmentDraft()),
+      patient: draft?.patient ?? initialPatient?.fullName ?? '',
+      patientId: draft?.patientId ?? initialPatient?.id ?? null,
     }))
   const [errors, setErrors] = useState<AppointmentFormErrors>({})
   const [patientSearch, setPatientSearch] = useState(
-    initialPatient?.fullName ?? '',
+    draft?.patient ?? initialPatient?.fullName ?? '',
   )
   const [submitError, setSubmitError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
@@ -141,11 +136,16 @@ export function AppointmentForm({
   const isTimeSelectDisabled =
     !formValues.date || selectedDateIsClosed || appointmentTimeOptions.length === 0
 
+  function saveFormValues(nextValues: AppointmentFormValues) {
+    setFormValues(nextValues)
+    onDraftChange?.(nextValues)
+  }
+
   function updateField(field: keyof AppointmentFormValues, value: string) {
-    setFormValues((currentValues) => ({
-      ...currentValues,
+    saveFormValues({
+      ...formValues,
       [field]: value,
-    }))
+    })
     setErrors((currentErrors) => ({
       ...currentErrors,
       [field]: undefined,
@@ -184,14 +184,14 @@ export function AppointmentForm({
       value,
     )
 
-    setFormValues((currentValues) => ({
-      ...currentValues,
+    saveFormValues({
+      ...formValues,
       date: value,
       time:
-        !isClosed && timeOptions.some((slot) => slot.value === currentValues.time)
-          ? currentValues.time
+        !isClosed && timeOptions.some((slot) => slot.value === formValues.time)
+          ? formValues.time
           : '',
-    }))
+    })
     setErrors((currentErrors) => ({
       ...currentErrors,
       date: isClosed
@@ -232,14 +232,14 @@ export function AppointmentForm({
         )
       : []
 
-    setFormValues((currentValues) => ({
-      ...currentValues,
+    saveFormValues({
+      ...formValues,
       durationMinutes,
-      time: timeOptions.some((slot) => slot.value === currentValues.time)
-        ? currentValues.time
+      time: timeOptions.some((slot) => slot.value === formValues.time)
+        ? formValues.time
         : '',
       treatment: value,
-    }))
+    })
     setErrors((currentErrors) => ({
       ...currentErrors,
       time: undefined,
@@ -249,11 +249,11 @@ export function AppointmentForm({
 
   function handlePatientSearch(value: string) {
     setPatientSearch(value)
-    setFormValues((currentValues) => ({
-      ...currentValues,
+    saveFormValues({
+      ...formValues,
       patientId: null,
       patient: '',
-    }))
+    })
     setErrors((currentErrors) => ({
       ...currentErrors,
       patient: undefined,
@@ -268,11 +268,11 @@ export function AppointmentForm({
     )
 
     setPatientSearch(patient.fullName)
-    setFormValues((currentValues) => ({
-      ...currentValues,
+    saveFormValues({
+      ...formValues,
       patientId: patient.id,
       patient: patient.fullName,
-    }))
+    })
     setErrors((currentErrors) => ({
       ...currentErrors,
       patient: hasPatientConflict
@@ -332,7 +332,7 @@ export function AppointmentForm({
       return
     }
 
-    setFormValues(initialFormValues)
+    saveFormValues(createEmptyAppointmentDraft())
     setPatientSearch('')
     setErrors({})
     setSuccessMessage('Cita registrada correctamente.')

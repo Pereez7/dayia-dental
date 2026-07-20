@@ -18,6 +18,7 @@ interface AppointmentsViewProps {
   appointments: Appointment[]
   businessHours: BusinessHoursSettings
   calendarExceptions: CalendarException[]
+  draft?: AppointmentFormValues | null
   errorMessage?: string
   isLoading?: boolean
   isSettingsLoading?: boolean
@@ -29,6 +30,7 @@ interface AppointmentsViewProps {
     values: AppointmentFormValues,
   ) => Promise<{ error?: string; success: boolean }> | { error?: string; success: boolean } | void
   onNavigateToAgenda?: () => void
+  onDraftChange?: (values: AppointmentFormValues) => void
   onNavigateToNewAppointment?: () => void
   onRescheduleAppointment?: (
     appointmentId: AppointmentId,
@@ -47,6 +49,7 @@ export function AppointmentsView({
   appointments,
   businessHours,
   calendarExceptions,
+  draft,
   errorMessage = '',
   isLoading = false,
   isSettingsLoading = false,
@@ -56,6 +59,7 @@ export function AppointmentsView({
   mode = 'agenda',
   onCreateAppointment,
   onNavigateToAgenda,
+  onDraftChange,
   onNavigateToNewAppointment,
   onRescheduleAppointment,
   onUpdateAppointmentStatus,
@@ -79,10 +83,12 @@ export function AppointmentsView({
         appointments={appointments}
         businessHours={businessHours}
         calendarExceptions={calendarExceptions}
+        draft={draft}
         initialPatient={initialPatient}
         patients={patients}
         treatments={treatments}
         onCancel={() => onNavigateToAgenda?.()}
+        onDraftChange={onDraftChange}
         onCreateAppointment={handleCreateAppointment}
       />
     )
