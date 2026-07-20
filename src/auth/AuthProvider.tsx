@@ -27,6 +27,7 @@ import {
   canAccessPlatformAdministration,
   normalizeUserRole,
 } from './permissions'
+import { canReuseSessionContext } from './sessionContextLifecycle'
 
 interface AuthProviderProps {
   children: ReactNode
@@ -123,6 +124,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isAccountActivationRoute(),
   )
   const hasCompletedInitialLoadRef = useRef(false)
+  const sessionContextUserIdRef = useRef<string | null>(null)
   const [loginError, setLoginError] = useState('')
 
   const markInitialLoadComplete = useCallback(() => {
@@ -139,6 +141,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     if (!session) {
+      sessionContextUserIdRef.current = null
       clearStoredActiveSection()
       setAuthState({
         ...initialAuthState,
@@ -148,8 +151,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return
     }
 
+    if (
+      canReuseSessionContext(
+        sessionContextUserIdRef.current,
+        session.user.id,
+      )
+    ) {
+      setAuthState((currentState) => ({
+        ...currentState,
+        session,
+        user: session.user,
+      }))
+      return
+    }
+
+    sessionContextUserIdRef.current = session.user.id
+
     setAuthState((currentState) => ({
-      ...currentState,
+      ...initialAuthState,
       authError: '',
       isLoading:
         !hasCompletedInitialLoadRef.current && !currentState.session,
@@ -408,6 +427,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     clearStoredActiveSection()
+    sessionContextUserIdRef.current = null
     setLoginError('')
     setAuthState({
       ...demoAuthState,
@@ -418,6 +438,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   async function handleSignOut() {
     setLoginError('')
     clearStoredActiveSection()
+    sessionContextUserIdRef.current = null
 
     if (authState.isDemoMode || !authState.session) {
       setAuthState({
@@ -461,6 +482,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   async function handleAccountActivated() {
     setLoginError('')
     clearStoredActiveSection()
+    sessionContextUserIdRef.current = null
 
     if (isSupabaseConfigured && supabase) {
       await signOutFromSupabase()

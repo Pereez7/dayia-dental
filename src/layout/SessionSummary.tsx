@@ -19,11 +19,10 @@ export function SessionSummary() {
   const isPlatformAdministration =
     canAccessPlatformAdministration(profile)
 
+  const hasResolvedSessionIdentity =
+    Boolean(profile) && Boolean(currentClinic || isPlatformAdministration)
   const isRealSessionLoading =
-    !isDemoMode &&
-    (isSessionContextLoading ||
-      !profile ||
-      (!currentClinic && !isPlatformAdministration))
+    !isDemoMode && isSessionContextLoading && !hasResolvedSessionIdentity
   const userName =
     (profile?.full_name ? normalizePersonName(profile.full_name) : '') ||
     (isDemoMode ? 'Usuario demo' : 'Usuario')
