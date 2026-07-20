@@ -4,6 +4,7 @@ import type { PatientRecord } from '../types/database'
 import {
   mapPatientFormValuesToPatientInput,
   mapPatientInputToPatientInsert,
+  mapPatientInputToPatientUpdate,
   mapPatientRecordToPatient,
 } from './patientsService'
 
@@ -26,8 +27,11 @@ describe('patientsService mappers', () => {
     expect(mapPatientRecordToPatient(patientRecord)).toEqual({
       id: 'patient-1',
       birthDate: '1990-05-20',
+      countryCode: '+591',
       email: 'ana@example.com',
+      firstName: 'Ana',
       fullName: 'Ana Salazar',
+      lastName: 'Salazar',
       lastVisit: 'Sin registro',
       nextAppointment: null,
       phone: '+59176543210',
@@ -74,6 +78,26 @@ describe('patientsService mappers', () => {
       last_name: 'Salazar',
       notes: null,
       phone: '+59176543210',
+    })
+  })
+
+  it('capitalizes compound names and cleans the phone before updating', () => {
+    expect(
+      mapPatientInputToPatientUpdate({
+        countryCode: '+49',
+        email: '  PACIENTE@EXAMPLE.COM ',
+        firstName: '  maría  josé ',
+        lastName: ' pérez  suarez ',
+        localPhone: ' 170 123 4567 ',
+      }),
+    ).toEqual({
+      birth_date: null,
+      country_code: '+49',
+      email: 'paciente@example.com',
+      first_name: 'María José',
+      last_name: 'Pérez Suarez',
+      notes: null,
+      phone: '+491701234567',
     })
   })
 })
