@@ -154,6 +154,7 @@ describe('auth permissions', () => {
     expect(getUserRoleLabel('owner')).toBe('Propietario del consultorio')
     expect(getUserRoleLabel('admin')).toBe('Administrador del consultorio')
     expect(getUserRoleLabel('receptionist')).toBe('Recepcionista')
+    expect(getUserRoleLabel('platform_admin')).toBe('Administrador DayIA')
     expect(getUserRoleLabel(null)).toBe('Rol no válido')
   })
 })

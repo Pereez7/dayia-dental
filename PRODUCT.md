@@ -16,9 +16,9 @@ desktop y mobile.
 
 ## Product Purpose
 
-DayIA Dental organiza pacientes, citas odontologicas, seguimiento clinico,
-odontograma inicial y recordatorios simulados mientras se valida el flujo
-frontend antes de integrar backend, persistencia, autenticacion o WhatsApp real.
+DayIA Dental organiza pacientes, citas odontológicas, seguimiento clínico,
+odontograma y recordatorios persistidos sobre Supabase. El envío manual está
+disponible; WhatsApp Cloud API real todavía no está activo.
 
 El producto tiene exito cuando el consultorio puede entender su operacion del
 dia, registrar informacion confiable y preparar comunicaciones de seguimiento

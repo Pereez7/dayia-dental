@@ -25,7 +25,7 @@ const roleLabels: Record<UserRole, string> = {
   clinic_admin: 'Administrador del consultorio',
   clinic_owner: 'Propietario del consultorio',
   doctor: 'Doctor',
-  platform_admin: 'Administrador del consultorio',
+  platform_admin: 'Administrador DayIA',
   receptionist: 'Recepcionista',
   unknown: 'Rol no válido',
 }
