@@ -50,6 +50,7 @@ Ejecuta en Supabase SQL Editor, en orden, los archivos de
 16. `016_atomic_clinic_member_invitation.sql`
 17. `017_clinical_records.sql`
 18. `018_odontogram_entries.sql`
+19. `019_appointment_resolution_statuses.sql`
 
 Si usas Supabase CLI en el futuro, puedes adaptar este flujo a `supabase db
 push`, pero esta guia asume SQL Editor para una primera prueba controlada.
@@ -290,6 +291,11 @@ del usuario autenticado.
 
 Verifica que las citas tengan `clinic_id` correcto y `patient_id` de un paciente
 real del mismo consultorio.
+
+### No se puede marcar una cita como atendida o no asistida
+
+Confirma que ejecutaste `019_appointment_resolution_statuses.sql`. Esa
+migración agrega `completed` y `no_show` al constraint de estados permitido.
 
 ### Edge Function no responde
 

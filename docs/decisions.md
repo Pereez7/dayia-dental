@@ -687,7 +687,7 @@ el dato para futura integracion con WhatsApp API. Por ahora usamos una lista
 manual corta de prefijos regionales; mas adelante puede reemplazarse por una
 libreria especializada sin cambiar el modelo principal.
 
-## Sin backend por ahora
+## Sin backend por ahora (decisión histórica superada)
 
 El proyecto se mantiene solo en frontend mientras se define bien el modulo de
 citas. Backend, base de datos y autenticacion se agregaran mas adelante cuando
@@ -699,7 +699,7 @@ La prioridad actual es construir flujos correctos, tipados y testeables antes de
 invertir en un sistema visual definitivo. El diseno se mantiene limpio y
 responsive, pero todavia puede evolucionar cuando el producto tenga mas modulos.
 
-## Backend fuera temporalmente
+## Backend fuera temporalmente (decisión histórica superada)
 
 No se agrega backend hasta validar los flujos principales en frontend. Supabase,
 autenticacion, permisos, persistencia y despliegue se evaluaran cuando pacientes
@@ -728,3 +728,11 @@ Nueva cita acepta un paciente preseleccionado desde su ficha. La selección se
 mantiene sólo durante ese flujo y se limpia después del guardado. Los accesos a
 historial y odontograma se renderizan con la matriz de permisos existente; no
 se duplican reglas de rol dentro de componentes visuales.
+
+## No mostrar mocks durante sesiones reales
+
+En modo Supabase, los estados iniciales de tratamientos, horarios y excepciones
+son vacíos o cerrados. Las vistas dependientes muestran loading hasta recibir
+la configuración del consultorio activo. Los mocks quedan reservados
+exclusivamente para `isDemoMode`, evitando decisiones operativas sobre datos
+transitorios.

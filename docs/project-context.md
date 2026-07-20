@@ -383,15 +383,14 @@ No se usa React Router todavia.
 
 ## Fuera de alcance actual
 
-Todavia no existe:
+Todavía no existe:
 
-- Backend.
-- Base de datos.
-- Supabase.
-- Autenticacion.
-- Integracion real con WhatsApp.
-- Facturacion.
-- Persistencia de datos.
+- Integración real con WhatsApp Cloud API y webhooks productivos.
+- Facturación.
+- Selector multi-consultorio.
+- Reenvío y revocación completa de invitaciones.
+
+Supabase, Auth, RLS y persistencia clínica ya forman parte del MVP.
 
 ## Actualización de plataforma, 2026-07-13
 
@@ -414,3 +413,11 @@ paciente y ofrece accesos a nueva cita, historial y odontograma sólo cuando
 corresponde. Agenda mantiene las reglas existentes de disponibilidad,
 solapamiento, cancelación y reprogramación, y agrega CTA en vacío, feedback de
 éxito y preselección del paciente desde su ficha.
+
+## Auditoría de calidad, 2026-07-20
+
+Las sesiones Supabase ya no muestran configuración demo durante la carga. Los
+formularios dependientes esperan horarios y tratamientos reales, los diálogos
+contienen el foco y los flujos de escritura bloquean envíos concurrentes. La
+auditoría confirmó guards de permisos antes de loaders sensibles y filtros por
+`clinic_id` en los servicios operativos.

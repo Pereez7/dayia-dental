@@ -697,3 +697,15 @@ La creación y reprogramación de citas reutiliza las validaciones de fecha,
 horario efectivo, excepciones, duración, solapamiento y cita activa del mismo
 paciente. Las canceladas no bloquean disponibilidad. No se introdujeron nuevas
 tablas, migraciones, Functions ni credenciales frontend para este pulido.
+
+## Estado de calidad del MVP
+
+El frontend real inicia pacientes, citas y configuración sin datos mock. Los
+datos demo solo se cargan cuando faltan las variables de Supabase y
+`isDemoMode` está activo. Los formularios dependientes de horarios esperan la
+configuración real antes de habilitarse.
+
+Los servicios clínicos filtran por `clinic_id` y las cargas sensibles se
+detienen antes de llamar al servicio cuando el rol carece de permiso. Se
+mantienen como pendientes la selección multi-consultorio, la migración completa
+de policies legacy y la reducción del bundle principal.

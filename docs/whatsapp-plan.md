@@ -113,6 +113,11 @@ pendiente de configuracion` mientras WhatsApp Cloud API siga desactivado. El
 plan no bloquea el fallback manual para los roles que ya pueden operar
 Recordatorios.
 
+La pantalla de Configuración puede guardar identificadores preparatorios en
+Pro, pero no presenta ese estado como envío activo. Incluso con datos completos,
+la UI aclara que WhatsApp Cloud API continúa deshabilitado. El fallback `wa.me`
+y el registro manual de resultados siguen siendo el único flujo operativo.
+
 ## Pendiente
 
 - Embedded Signup u OAuth de Meta.

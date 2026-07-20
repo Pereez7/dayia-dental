@@ -1,8 +1,8 @@
 # DayIA Dental
 
-Aplicacion interna para consultorios dentales. El objetivo inicial es organizar
-citas odontologicas y preparar una base clara para crecer hacia recordatorios,
-historiales y otros modulos clinicos.
+Aplicación interna para consultorios dentales. El MVP organiza pacientes,
+citas, historial clínico, odontograma y recordatorios manuales con aislamiento
+por consultorio sobre Supabase.
 
 ## Estado actual
 
@@ -34,8 +34,8 @@ historiales y otros modulos clinicos.
   guardado, observaciones limitadas y piezas sin registro tratadas como sanas.
 - Formato global de fechas con `formatAppDate`: muestra año solo cuando la
   fecha no pertenece al año actual y mantiene hora en formato 24 horas.
-- Recordatorios WhatsApp iniciado con generacion local desde citas activas,
-  filtros, vista previa, mensajes segun estado de cita y estados simulados.
+- Recordatorios WhatsApp con persistencia, reconciliación de vencidos, filtros,
+  vista previa, resolución de citas pasadas y fallback manual mediante `wa.me`.
 - Configuracion con horarios del consultorio y tratamientos locales.
 - Tratamientos con alta, busqueda, edicion, activacion, desactivacion y Toast
   flotante de feedback.
@@ -102,8 +102,9 @@ en `docs/supabase-setup.md`.
   local de tratamientos disponibles para Nueva Cita. Horarios, Excepciones y
   Tratamientos se presentan como bloques visuales diferenciados y coherentes.
 
-La aplicacion todavia no tiene backend, base de datos, autenticacion,
-persistencia ni integracion real con WhatsApp.
+La aplicación ya integra Supabase Auth, PostgreSQL, RLS, Edge Functions y
+persistencia clínica. WhatsApp Cloud API real, webhooks completos,
+multi-consultorio seleccionable y facturación todavía no están activos.
 
 ## Comandos
 

@@ -3,6 +3,22 @@
 Este roadmap resume la direccion funcional de DayIA Dental. No implica que todos
 los modulos esten implementados hoy.
 
+## Rendimiento de carga
+
+Estado: primera optimización implementada.
+
+- Dashboard, Pacientes, Detalle de paciente, Citas, Historial clínico,
+  Odontograma, Recordatorios, Configuración y Administración DayIA se separan
+  en chunks por vista mediante `React.lazy` y `Suspense`.
+- La navegación continúa basada en estado local, sin React Router.
+- El fallback mantiene el shell de la aplicación visible durante la carga.
+
+Pendiente:
+
+- Medir Core Web Vitals en dispositivos y redes reales.
+- Revisar dependencias compartidas si algún chunk vuelve a superar el umbral de
+  Vite.
+
 ## Permisos por rol y plan
 
 Estado: implementado en frontend.
@@ -408,7 +424,7 @@ Pendiente:
 
 ### Pulido comercial de Pacientes y Citas
 
-Estado: completado para demo.
+Estado: completado para el MVP integrado con Supabase y para modo demo.
 
 Implementado:
 
@@ -430,9 +446,10 @@ Implementado:
 - Evaluar mas adelante iconos, graficos o una navegacion movil mas avanzada.
 - Ampliar historial clinico.
 - Ampliar odontograma.
-- Integrar WhatsApp.
-- Integrar Supabase.
-- Agregar autenticacion.
+- Integrar WhatsApp Cloud API real y webhooks productivos.
+- Evaluar precarga selectiva de la siguiente vista más probable si las
+  mediciones reales muestran una espera perceptible entre módulos.
+- Completar la migración de policies legacy a memberships.
 - Evaluar facturacion.
 - Desplegar y probar manualmente `create-platform-clinic` en un entorno
   controlado, administrando su feature flag exclusivamente desde Supabase.

@@ -217,3 +217,15 @@ mantienen como roles clinicos.
 Las policies de pacientes, citas, configuracion y recordatorios todavia usan
 `current_clinic_id()` basado en `profiles.clinic_id`. Esa migracion completa se
 hara en un paso posterior para reducir riesgo.
+
+## Verificación de calidad del MVP
+
+La auditoría del 20 de julio de 2026 confirmó que recepción no carga historial,
+odontograma, usuarios ni configuración sensible; doctor no carga usuarios ni
+WhatsApp; y un `platform_admin` puro no carga módulos clínicos. Los intentos de
+abrir una vista sensible no autorizada muestran un mensaje controlado y no
+ejecutan el loader correspondiente.
+
+Basic mantiene equipo y automatización deshabilitados. Medium admite hasta 4
+miembros y Pro hasta 10; WhatsApp automático permanece pendiente aunque el plan
+permita guardar su configuración.

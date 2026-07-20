@@ -2,6 +2,37 @@
 
 Registro breve de cambios relevantes en DayIA Dental.
 
+## 2026-07-20
+
+### Carga diferida por vistas
+
+- Las vistas principales se cargan mediante `React.lazy` y `Suspense`, sin
+  cambiar la navegación local ni introducir React Router.
+- El layout permanece visible mientras se descarga un módulo y muestra un
+  fallback accesible y consistente con DayIA Dental.
+- Los guards de rol y plan se evalúan antes de renderizar la vista diferida,
+  por lo que una sección no autorizada no solicita su módulo ni ejecuta sus
+  loaders sensibles.
+
+### Auditoría de calidad del MVP
+
+- Las sesiones Supabase dejan de mostrar horarios, tratamientos y excepciones
+  mock mientras carga la configuración real del consultorio.
+- Nueva cita, Agenda, Recordatorios y Configuración esperan los datos
+  operativos antes de habilitar acciones dependientes de disponibilidad.
+- `ConfirmDialog` contiene el foco del teclado, admite Escape y restaura el
+  foco al cerrar.
+- Los formularios secundarios bloquean envíos concurrentes y convierten
+  excepciones inesperadas en mensajes controlados.
+- Fechas de usuarios y consultorios reutilizan `formatAppDate`; se corrigieron
+  tildes visibles y atributos accesibles.
+- WhatsApp se describe como configuración pendiente, sin afirmar que el envío
+  automático esté activo.
+- Los objetivos táctiles principales alcanzan 44 px en mobile y se retiraron
+  tres componentes legacy sin consumidores.
+- Se confirmó el aislamiento por `clinic_id`, los guards de cargas sensibles y
+  la matriz de permisos por rol y plan.
+
 ## 2026-07-17
 
 ### Cambios realizados

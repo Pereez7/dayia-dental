@@ -617,3 +617,28 @@ agregar rutas ni estado global nuevo fuera de `App`.
 de horario, duración, excepciones, conflictos y motivos. Las citas canceladas
 siguen fuera del cálculo de disponibilidad, y confirmar, cancelar o reprogramar
 continúa persistiendo por `clinic_id` mediante `appointmentsService`.
+
+## Estabilización del MVP
+
+Las sesiones reales no inicializan configuración con mocks. Mientras Supabase
+carga horarios, tratamientos y excepciones, las vistas dependientes muestran un
+estado de preparación y no montan formularios de agenda con datos transitorios.
+
+`ConfirmDialog` centraliza semántica modal, Escape, contención de foco y
+restauración al disparador. Los formularios de escritura usan bloqueo inmediato
+además del estado visual `disabled` para evitar solicitudes duplicadas.
+
+Los loaders clínicos y administrativos comprueban permisos antes de invocar
+servicios. Cada servicio operativo recibe el `clinic_id` del contexto activo y
+las consultas aplican ese filtro; RLS sigue siendo la defensa autoritativa.
+
+## Carga diferida de vistas
+
+`App.tsx` conserva la navegación por estado local y carga las vistas principales
+con `React.lazy`. Un único `Suspense`, ubicado dentro de `AppLayout`, mantiene la
+navegación y el encabezado visibles mientras se descarga el chunk solicitado.
+
+Los permisos se resuelven antes de devolver el componente lazy. Si la sección
+no está autorizada, se renderiza el estado de acceso restringido y React no
+solicita el chunk de la vista sensible. Auth, servicios, contexto de consultorio
+y estado operativo permanecen centralizados en `App.tsx`.
