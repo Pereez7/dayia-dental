@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { PatientFields } from './PatientFields'
 
 describe('PatientFields phone prefix', () => {
-  it('shows the manual prefix field for a code outside the frequent list', () => {
+  it('uses the same phone row for a manual prefix outside the frequent list', () => {
     const markup = renderToStaticMarkup(
       <form className="patient-form">
         <PatientFields
@@ -22,9 +22,10 @@ describe('PatientFields phone prefix', () => {
       </form>,
     )
 
-    expect(markup).toContain('Otro')
-    expect(markup).toContain('Prefijo internacional')
+    expect(markup).toContain('class="country-code-manual-input"')
+    expect(markup).toContain('aria-label="Prefijo internacional"')
     expect(markup).toContain('value="+49"')
     expect(markup).toContain('value="1701234567"')
+    expect(markup).not.toContain('manual-country-code-field')
   })
 })

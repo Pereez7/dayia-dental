@@ -2355,17 +2355,17 @@
 
 .phone-control {
   display: grid;
-  grid-template-columns: minmax(170px, 0.75fr) minmax(150px, 1fr);
+  grid-template-columns: minmax(170px, 0.8fr) minmax(140px, 1fr);
   min-width: 0;
 }
 
-.phone-control select {
+.phone-control select,
+.phone-control .country-code-manual-input {
   border-bottom-right-radius: 0;
   border-top-right-radius: 0;
-  text-align: center;
 }
 
-.phone-control input {
+.phone-control .phone-number-input {
   border-bottom-left-radius: 0;
   border-left: 0;
   border-top-left-radius: 0;
@@ -2375,10 +2375,6 @@
 .phone-control input:focus {
   position: relative;
   z-index: 1;
-}
-
-.manual-country-code-field {
-  margin-top: 2px;
 }
 
 .patient-edit-form {
@@ -7213,14 +7209,15 @@
     grid-template-columns: 1fr;
   }
 
-  .phone-control select {
+  .phone-control select,
+  .phone-control .country-code-manual-input {
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
     border-top-right-radius: var(--radius-md);
     text-align: left;
   }
 
-  .phone-control input {
+  .phone-control .phone-number-input {
     border-top: 0;
     border-bottom-left-radius: var(--radius-md);
     border-left: 1px solid var(--color-border);

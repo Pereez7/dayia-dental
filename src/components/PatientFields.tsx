@@ -19,8 +19,6 @@ export function PatientFields({
   const usesFrequentCountryCode = frequentCountryCodes.some(
     (option) => option.code === values.countryCode,
   )
-  const countryCodeMode = usesFrequentCountryCode ? values.countryCode : 'other'
-
   return (
     <>
       <label>
@@ -65,24 +63,51 @@ export function PatientFields({
       <fieldset className="phone-field">
         <legend>Teléfono</legend>
         <div className="phone-control">
-          <select
-            aria-label="Prefijo de país"
-            disabled={disabled}
-            value={countryCodeMode}
-            onChange={(event) =>
-              onChange(
-                'countryCode',
-                event.target.value === 'other' ? '+' : event.target.value,
-              )
-            }
-          >
-            {frequentCountryCodes.map((option) => (
-              <option key={option.code} value={option.code}>
-                {option.country} {option.code}
-              </option>
-            ))}
-            <option value="other">Otro</option>
-          </select>
+          {usesFrequentCountryCode ? (
+            <select
+              aria-label="Prefijo de país"
+              disabled={disabled}
+              value={values.countryCode}
+              onChange={(event) =>
+                onChange(
+                  'countryCode',
+                  event.target.value === 'other' ? '+' : event.target.value,
+                )
+              }
+            >
+              {frequentCountryCodes.map((option) => (
+                <option key={option.code} value={option.code}>
+                  {option.code} · {option.country}
+                </option>
+              ))}
+              <option value="other">Otro</option>
+            </select>
+          ) : (
+            <input
+              aria-describedby={
+                errors.countryCode
+                  ? `${idPrefix}-country-code-error`
+                  : undefined
+              }
+              aria-invalid={Boolean(errors.countryCode)}
+              aria-label="Prefijo internacional"
+              autoComplete="tel-country-code"
+              className="country-code-manual-input"
+              disabled={disabled}
+              inputMode="tel"
+              placeholder="+49"
+              type="tel"
+              value={values.countryCode}
+              onChange={(event) => {
+                const nextCountryCode = event.target.value
+
+                onChange(
+                  'countryCode',
+                  nextCountryCode.trim() === '' ? '+591' : nextCountryCode,
+                )
+              }}
+            />
+          )}
 
           <input
             aria-describedby={
@@ -91,6 +116,7 @@ export function PatientFields({
             aria-invalid={Boolean(errors.localPhone)}
             aria-label="Número local"
             autoComplete="tel-national"
+            className="phone-number-input"
             disabled={disabled}
             inputMode="numeric"
             placeholder="70000000"
@@ -99,27 +125,6 @@ export function PatientFields({
             onChange={(event) => onChange('localPhone', event.target.value)}
           />
         </div>
-
-        {!usesFrequentCountryCode && (
-          <label className="manual-country-code-field">
-            <span>Prefijo internacional</span>
-            <input
-              aria-describedby={
-                errors.countryCode
-                  ? `${idPrefix}-country-code-error`
-                  : undefined
-              }
-              aria-invalid={Boolean(errors.countryCode)}
-              autoComplete="tel-country-code"
-              disabled={disabled}
-              inputMode="tel"
-              placeholder="+49"
-              type="tel"
-              value={values.countryCode}
-              onChange={(event) => onChange('countryCode', event.target.value)}
-            />
-          </label>
-        )}
 
         {errors.countryCode && (
           <small id={`${idPrefix}-country-code-error`}>
