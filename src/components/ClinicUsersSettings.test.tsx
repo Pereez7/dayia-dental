@@ -43,7 +43,8 @@ describe('ClinicUsersSettings', () => {
     expect(markup).toContain('Usuarios: <strong>2 de 4</strong>')
     expect(markup).toContain('Propietario del consultorio')
     expect(markup).toContain('Pendiente')
-    expect(markup).toContain('Invitado el')
+    expect(markup).toContain('Invitado el 10 jul')
+    expect(markup).not.toContain('10/07/2026')
   })
 
   it.each([

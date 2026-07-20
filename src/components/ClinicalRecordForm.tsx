@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import type {
   ClinicalRecordFormErrors,
   ClinicalRecordFormValues,
@@ -46,6 +46,7 @@ export function ClinicalRecordForm({
   const [successMessage, setSuccessMessage] = useState('')
   const [formError, setFormError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const submissionLock = useRef(false)
   const maxRecordDate = getTodayDateInputValue()
 
   function updateField(field: keyof ClinicalRecordFormValues, value: string) {
@@ -60,6 +61,10 @@ export function ClinicalRecordForm({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
+    if (submissionLock.current) {
+      return
+    }
+
     const validationErrors = validateClinicalRecordForm(formValues)
     setErrors(validationErrors)
 
@@ -67,11 +72,23 @@ export function ClinicalRecordForm({
       return
     }
 
+    submissionLock.current = true
     setIsSubmitting(true)
-    const result = await onCreateRecord(
-      normalizeClinicalRecordFormValues(formValues),
-    )
-    setIsSubmitting(false)
+    let result: Awaited<ReturnType<typeof onCreateRecord>>
+
+    try {
+      result = await onCreateRecord(
+        normalizeClinicalRecordFormValues(formValues),
+      )
+    } catch {
+      result = {
+        error: 'No pudimos guardar el registro clínico. Intenta nuevamente.',
+        success: false,
+      }
+    } finally {
+      submissionLock.current = false
+      setIsSubmitting(false)
+    }
 
     if (result && !result.success) {
       setFormError(
@@ -119,7 +136,7 @@ export function ClinicalRecordForm({
         </label>
 
         <label>
-          <span>Diagnostico</span>
+          <span>Diagnóstico</span>
           <input
             type="text"
             value={formValues.diagnosis}
@@ -139,7 +156,7 @@ export function ClinicalRecordForm({
             type="text"
             value={formValues.treatment}
             onChange={(event) => updateField('treatment', event.target.value)}
-            placeholder="Ej. Curacion dental"
+            placeholder="Ej. Curación dental"
           />
           {errors.treatment && (
             <small className="field-message field-message--error">
@@ -153,7 +170,7 @@ export function ClinicalRecordForm({
           <textarea
             value={formValues.notes}
             onChange={(event) => updateField('notes', event.target.value)}
-            placeholder="Notas adicionales de la evolucion clinica"
+            placeholder="Notas adicionales de la evolución clínica"
             rows={3}
           />
         </label>

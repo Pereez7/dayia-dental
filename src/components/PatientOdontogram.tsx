@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type {
   OdontogramEntry,
   OdontogramFormErrors,
@@ -54,6 +54,7 @@ export function PatientOdontogram({
   const [isToastVisible, setIsToastVisible] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const saveLock = useRef(false)
   const selectedEntry = selectedToothCode
     ? getToothEntry(entries, selectedToothCode)
     : undefined
@@ -111,7 +112,7 @@ export function PatientOdontogram({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (selectedToothCode === null) {
+    if (selectedToothCode === null || saveLock.current) {
       return
     }
 
@@ -122,13 +123,25 @@ export function PatientOdontogram({
       return
     }
 
+    saveLock.current = true
     setIsSaving(true)
     setSaveError('')
-    const result = await onSaveTooth(selectedToothCode, {
-      notes: normalizeOdontogramNotes(formValues.notes),
-      status: formValues.status,
-    })
-    setIsSaving(false)
+    let result: OdontogramSaveResult
+
+    try {
+      result = await onSaveTooth(selectedToothCode, {
+        notes: normalizeOdontogramNotes(formValues.notes),
+        status: formValues.status,
+      })
+    } catch {
+      result = {
+        error: 'No pudimos guardar la pieza dental. Intenta nuevamente.',
+        success: false,
+      }
+    } finally {
+      saveLock.current = false
+      setIsSaving(false)
+    }
 
     if (!result.success) {
       setSaveError(result.error ?? 'No pudimos guardar la pieza dental.')

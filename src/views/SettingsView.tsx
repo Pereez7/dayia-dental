@@ -31,6 +31,7 @@ interface SettingsViewProps {
   clinicUsersError?: string
   currentUserId?: string | null
   isClinicUsersLoading?: boolean
+  isLoading?: boolean
   clinicMembersMaxUsers: number
   clinicMembersCount: number
   isBusinessHoursConfigured?: boolean
@@ -80,6 +81,7 @@ export function SettingsView({
   clinicUsersError = '',
   currentUserId,
   isClinicUsersLoading = false,
+  isLoading = false,
   clinicMembersMaxUsers,
   clinicMembersCount,
   onBusinessHoursChange,
@@ -98,6 +100,15 @@ export function SettingsView({
   whatsappSettings,
   whatsappSettingsError = '',
 }: SettingsViewProps) {
+  if (isLoading) {
+    return (
+      <section className="module-loading-state" aria-live="polite">
+        <strong>Preparando configuración...</strong>
+        <span>Cargando horarios, tratamientos y preferencias.</span>
+      </section>
+    )
+  }
+
   const businessHoursKey = [
     businessHours.appointmentInterval,
     ...businessHours.weeklySchedule.map(

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Treatment, TreatmentId } from '../types/Treatment'
 import {
   allowedTreatmentDurations,
@@ -56,6 +56,11 @@ export function TreatmentsSettings({
   const [treatmentIdPendingDeactivation, setTreatmentIdPendingDeactivation] =
     useState<TreatmentId | null>(null)
   const [actionError, setActionError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [pendingTreatmentId, setPendingTreatmentId] =
+    useState<TreatmentId | null>(null)
+  const submissionLock = useRef(false)
+  const actionLock = useRef(false)
   const filteredTreatments = filterTreatmentsBySearch(treatments, searchText)
 
   useEffect(() => {
@@ -81,6 +86,10 @@ export function TreatmentsSettings({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
+    if (submissionLock.current) {
+      return
+    }
+
     const validationError = validateTreatmentName(treatments, treatmentName)
     const durationError = validateTreatmentDuration(treatmentDuration)
     setIsToastVisible(false)
@@ -92,11 +101,25 @@ export function TreatmentsSettings({
       return
     }
 
-    const result = await onCreateTreatment({
-      durationMinutes: treatmentDuration,
-      name: formatTreatmentName(treatmentName),
-      isActive: true,
-    })
+    submissionLock.current = true
+    setIsSubmitting(true)
+    let result: TreatmentActionResult
+
+    try {
+      result = await onCreateTreatment({
+        durationMinutes: treatmentDuration,
+        name: formatTreatmentName(treatmentName),
+        isActive: true,
+      })
+    } catch {
+      result = {
+        error: 'No pudimos guardar el tratamiento. Intenta nuevamente.',
+        success: false,
+      }
+    } finally {
+      submissionLock.current = false
+      setIsSubmitting(false)
+    }
 
     if (!result.success) {
       showActionError(result.error ?? 'No pudimos guardar el tratamiento.')
@@ -111,12 +134,30 @@ export function TreatmentsSettings({
   }
 
   async function toggleTreatment(treatmentId: TreatmentId) {
+    if (actionLock.current) {
+      return
+    }
+
     const targetTreatment = treatments.find(
       (treatment) => treatment.id === treatmentId,
     )
 
     const nextIsActive = !targetTreatment?.isActive
-    const result = await onSetTreatmentActive(treatmentId, nextIsActive)
+    actionLock.current = true
+    setPendingTreatmentId(treatmentId)
+    let result: TreatmentActionResult
+
+    try {
+      result = await onSetTreatmentActive(treatmentId, nextIsActive)
+    } catch {
+      result = {
+        error: 'No pudimos actualizar el tratamiento. Intenta nuevamente.',
+        success: false,
+      }
+    } finally {
+      actionLock.current = false
+      setPendingTreatmentId(null)
+    }
 
     if (!result.success) {
       showActionError(result.error ?? 'No pudimos actualizar el tratamiento.')
@@ -181,6 +222,10 @@ export function TreatmentsSettings({
   }
 
   async function saveEditing(treatmentId: TreatmentId) {
+    if (actionLock.current) {
+      return
+    }
+
     const targetTreatment = treatments.find(
       (treatment) => treatment.id === treatmentId,
     )
@@ -204,11 +249,25 @@ export function TreatmentsSettings({
       return
     }
 
-    const result = await onUpdateTreatment(treatmentId, {
-      durationMinutes: editingDuration,
-      isActive: targetTreatment.isActive,
-      name: formatTreatmentName(editingName),
-    })
+    actionLock.current = true
+    setPendingTreatmentId(treatmentId)
+    let result: TreatmentActionResult
+
+    try {
+      result = await onUpdateTreatment(treatmentId, {
+        durationMinutes: editingDuration,
+        isActive: targetTreatment.isActive,
+        name: formatTreatmentName(editingName),
+      })
+    } catch {
+      result = {
+        error: 'No pudimos actualizar el tratamiento. Intenta nuevamente.',
+        success: false,
+      }
+    } finally {
+      actionLock.current = false
+      setPendingTreatmentId(null)
+    }
 
     if (!result.success) {
       showActionError(result.error ?? 'No pudimos actualizar el tratamiento.')
@@ -266,7 +325,7 @@ export function TreatmentsSettings({
       <div className="section-heading">
         <h2 id="treatments-settings-title">Tratamientos del consultorio</h2>
         <p className="section-description">
-          Administra los tratamientos que estaran disponibles al crear una cita.
+          Administra los tratamientos que estarán disponibles al crear una cita.
         </p>
       </div>
 
@@ -281,6 +340,7 @@ export function TreatmentsSettings({
           <span>Nuevo tratamiento</span>
           <input
             type="text"
+            disabled={isSubmitting}
             value={treatmentName}
             onChange={(event) => updateTreatmentName(event.target.value)}
             placeholder="Ej. Implante dental"
@@ -290,6 +350,7 @@ export function TreatmentsSettings({
         <label>
           <span>Duración</span>
           <select
+            disabled={isSubmitting}
             value={treatmentDuration}
             onChange={(event) => updateTreatmentDuration(event.target.value)}
           >
@@ -301,8 +362,8 @@ export function TreatmentsSettings({
           </select>
         </label>
 
-        <button className="primary-action" type="submit">
-          Agregar tratamiento
+        <button className="primary-action" disabled={isSubmitting} type="submit">
+          {isSubmitting ? 'Agregando...' : 'Agregar tratamiento'}
         </button>
       </form>
 
@@ -353,6 +414,7 @@ export function TreatmentsSettings({
                 <div className="treatment-row-actions">
                   <button
                     className="warning-action"
+                    disabled={pendingTreatmentId === treatment.id}
                     type="button"
                     onClick={() => saveEditing(treatment.id)}
                   >
@@ -360,6 +422,7 @@ export function TreatmentsSettings({
                   </button>
                   <button
                     className="secondary-action"
+                    disabled={pendingTreatmentId === treatment.id}
                     type="button"
                     onClick={cancelEditing}
                   >
@@ -388,6 +451,7 @@ export function TreatmentsSettings({
                 <div className="treatment-row-actions">
                   <button
                     className="warning-action"
+                    disabled={pendingTreatmentId === treatment.id}
                     type="button"
                     onClick={() => startEditing(treatment)}
                   >
@@ -397,6 +461,7 @@ export function TreatmentsSettings({
                     className={
                       treatment.isActive ? 'danger-action' : 'success-action'
                     }
+                    disabled={pendingTreatmentId === treatment.id}
                     type="button"
                     onClick={() =>
                       treatment.isActive
@@ -415,13 +480,13 @@ export function TreatmentsSettings({
 
       {filteredTreatments.length === 0 && (
         <p className="dashboard-empty-state">
-          No encontramos tratamientos con esa busqueda.
+          No encontramos tratamientos con esa búsqueda.
         </p>
       )}
 
       <p className="settings-note">
         Desactivar tratamientos conserva las citas relacionadas y evita perder
-        referencias historicas.
+        referencias históricas.
       </p>
 
       <Toast

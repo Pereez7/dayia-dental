@@ -35,7 +35,7 @@ const sectionContent: Record<AppSection, { title: string; description: string }>
   },
   'whatsapp-reminders': {
     title: 'Recordatorios WhatsApp',
-    description: 'Mensajes y seguimiento automatizado de citas.',
+    description: 'Cola manual de mensajes y seguimiento de citas.',
   },
   administration: {
     title: 'Administración DayIA',

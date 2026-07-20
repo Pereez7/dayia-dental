@@ -46,7 +46,7 @@ export function SessionSummary() {
     return (
       <section
         className="session-card session-card--loading"
-        aria-label="Sesion actual"
+        aria-label="Sesión actual"
         aria-busy="true"
       >
         <div className="session-identity">
@@ -62,7 +62,7 @@ export function SessionSummary() {
   }
 
   return (
-    <section className="session-card" aria-label="Sesion actual">
+    <section className="session-card" aria-label="Sesión actual">
       <div className="session-identity">
         <strong>{userName}</strong>
       </div>

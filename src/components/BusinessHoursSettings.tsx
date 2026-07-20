@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type {
   AppointmentInterval,
   BusinessDaySchedule,
@@ -25,6 +25,7 @@ import {
 } from '../utils/businessHours'
 import { ConfirmDialog } from './ConfirmDialog'
 import { Toast, type ToastTone } from './Toast'
+import { formatAppDate } from '../utils/dateFormatters'
 
 interface BusinessHoursSettingsProps {
   calendarExceptions: CalendarException[]
@@ -94,6 +95,12 @@ export function BusinessHoursSettings({
   const [toastTone, setToastTone] = useState<ToastTone>('success')
   const [isToastVisible, setIsToastVisible] = useState(false)
   const [actionError, setActionError] = useState('')
+  const [isSavingHours, setIsSavingHours] = useState(false)
+  const [isSavingException, setIsSavingException] = useState(false)
+  const [isDeletingException, setIsDeletingException] = useState(false)
+  const hoursSubmissionLock = useRef(false)
+  const exceptionSubmissionLock = useRef(false)
+  const deletionLock = useRef(false)
   const sortedCalendarExceptions = [...calendarExceptions].sort((first, second) =>
     first.date.localeCompare(second.date),
   )
@@ -149,6 +156,11 @@ export function BusinessHoursSettings({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    if (hoursSubmissionLock.current) {
+      return
+    }
+
     blurActiveFormElement(event.currentTarget)
 
     const validationErrors = validateBusinessHours(settings)
@@ -164,7 +176,21 @@ export function BusinessHoursSettings({
       return
     }
 
-    const result = await onSettingsChange(settings)
+    hoursSubmissionLock.current = true
+    setIsSavingHours(true)
+    let result: BusinessSettingsActionResult
+
+    try {
+      result = await onSettingsChange(settings)
+    } catch {
+      result = {
+        error: 'No pudimos guardar los horarios. Intenta nuevamente.',
+        success: false,
+      }
+    } finally {
+      hoursSubmissionLock.current = false
+      setIsSavingHours(false)
+    }
 
     if (!result.success) {
       showActionError(result.error ?? 'No pudimos guardar los horarios.')
@@ -208,6 +234,11 @@ export function BusinessHoursSettings({
 
   async function handleCalendarExceptionSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    if (exceptionSubmissionLock.current) {
+      return
+    }
+
     blurActiveFormElement(event.currentTarget)
 
     const validationErrors = validateCalendarExceptionForm(
@@ -221,7 +252,21 @@ export function BusinessHoursSettings({
       return
     }
 
-    const result = await onCreateCalendarException(calendarExceptionValues)
+    exceptionSubmissionLock.current = true
+    setIsSavingException(true)
+    let result: BusinessSettingsActionResult
+
+    try {
+      result = await onCreateCalendarException(calendarExceptionValues)
+    } catch {
+      result = {
+        error: 'No pudimos agregar la excepción. Intenta nuevamente.',
+        success: false,
+      }
+    } finally {
+      exceptionSubmissionLock.current = false
+      setIsSavingException(false)
+    }
 
     if (!result.success) {
       showActionError(result.error ?? 'No pudimos agregar la excepción.')
@@ -245,13 +290,27 @@ export function BusinessHoursSettings({
   }
 
   async function confirmCalendarExceptionDeletion() {
-    if (calendarExceptionIdPendingDeletion === null) {
+    if (calendarExceptionIdPendingDeletion === null || deletionLock.current) {
       return
     }
 
-    const result = await onDeleteCalendarException(
-      calendarExceptionIdPendingDeletion,
-    )
+    deletionLock.current = true
+    setIsDeletingException(true)
+    let result: BusinessSettingsActionResult
+
+    try {
+      result = await onDeleteCalendarException(
+        calendarExceptionIdPendingDeletion,
+      )
+    } catch {
+      result = {
+        error: 'No pudimos eliminar la excepción. Intenta nuevamente.',
+        success: false,
+      }
+    } finally {
+      deletionLock.current = false
+      setIsDeletingException(false)
+    }
 
     if (!result.success) {
       showActionError(result.error ?? 'No pudimos eliminar la excepción.')
@@ -407,8 +466,8 @@ export function BusinessHoursSettings({
         </div>
 
         <div className="business-hours-actions">
-          <button className="primary-action" type="submit">
-            Guardar horarios
+          <button className="primary-action" disabled={isSavingHours} type="submit">
+            {isSavingHours ? 'Guardando...' : 'Guardar horarios'}
           </button>
         </div>
 
@@ -543,8 +602,8 @@ export function BusinessHoursSettings({
             )}
           </div>
 
-          <button className="primary-action" type="submit">
-            Agregar excepción
+          <button className="primary-action" disabled={isSavingException} type="submit">
+            {isSavingException ? 'Agregando...' : 'Agregar excepción'}
           </button>
         </form>
 
@@ -566,6 +625,7 @@ export function BusinessHoursSettings({
                 </div>
                 <button
                   className="danger-action"
+                  disabled={isDeletingException}
                   type="button"
                   onClick={() =>
                     requestCalendarExceptionDeletion(calendarException.id)
@@ -585,7 +645,8 @@ export function BusinessHoursSettings({
 
       <ConfirmDialog
         cancelLabel="Volver"
-        confirmLabel="Sí, eliminar"
+        confirmLabel={isDeletingException ? 'Eliminando...' : 'Sí, eliminar'}
+        isConfirmDisabled={isDeletingException}
         isOpen={calendarExceptionIdPendingDeletion !== null}
         message="¿Seguro que deseas eliminar esta excepción del calendario?"
         title="Eliminar excepción"
@@ -604,19 +665,7 @@ export function BusinessHoursSettings({
 }
 
 function formatCalendarExceptionDate(date: string) {
-  const parsedDate = new Date(`${date}T00:00:00`)
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return 'Fecha no disponible'
-  }
-
-  return new Intl.DateTimeFormat('es-BO', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
-    .format(parsedDate)
-    .replace('.', '')
+  return formatAppDate(date)
 }
 
 function getCalendarExceptionSummary(calendarException: CalendarException) {

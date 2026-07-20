@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 
 import { ConfirmDialog } from './ConfirmDialog'
 import { Toast, type ToastTone } from './Toast'
@@ -16,6 +16,7 @@ import {
   normalizeClinicUserFullName,
   validateClinicUserForm,
 } from '../utils/clinicUsers'
+import { formatAppDate } from '../utils/dateFormatters'
 
 interface ClinicUsersSettingsProps {
   canManageUsers: boolean
@@ -66,6 +67,7 @@ export function ClinicUsersSettings({
   const [isToastVisible, setIsToastVisible] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
   const [toastTone, setToastTone] = useState<ToastTone>('success')
+  const submissionLock = useRef(false)
 
   const sortedUsers = useMemo(
     () =>
@@ -99,6 +101,10 @@ export function ClinicUsersSettings({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
+    if (submissionLock.current) {
+      return
+    }
+
     const nextErrors = validateClinicUserForm(formValues)
     setFieldErrors(nextErrors)
     setFormMessage('')
@@ -112,13 +118,25 @@ export function ClinicUsersSettings({
       return
     }
 
+    submissionLock.current = true
     setIsSubmitting(true)
-    const result = await onCreateUser({
-      email: normalizeClinicUserEmail(formValues.email),
-      fullName: normalizeClinicUserFullName(formValues.fullName),
-      role: formValues.role,
-    })
-    setIsSubmitting(false)
+    let result: Awaited<ReturnType<typeof onCreateUser>>
+
+    try {
+      result = await onCreateUser({
+        email: normalizeClinicUserEmail(formValues.email),
+        fullName: normalizeClinicUserFullName(formValues.fullName),
+        role: formValues.role,
+      })
+    } catch {
+      result = {
+        error: 'No pudimos invitar al usuario. Intenta nuevamente.',
+        success: false,
+      }
+    } finally {
+      submissionLock.current = false
+      setIsSubmitting(false)
+    }
 
     if (!result.success) {
       const message = result.error ?? 'No pudimos crear el usuario.'
@@ -387,15 +405,5 @@ export function ClinicUsersSettings({
 }
 
 function formatClinicUserDate(value: string) {
-  const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) {
-    return 'fecha pendiente'
-  }
-
-  return date.toLocaleDateString('es-BO', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  })
+  return formatAppDate(value.slice(0, 10))
 }

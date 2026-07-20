@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type {
   Appointment,
   AppointmentId,
@@ -101,6 +101,7 @@ export function ResolvePastAppointmentDialog({
   const [reason, setReason] = useState('')
   const [feedback, setFeedback] = useState<ResolutionFeedback | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const submissionLock = useRef(false)
 
   if (!appointment) {
     return null
@@ -141,7 +142,7 @@ export function ResolvePastAppointmentDialog({
   )
 
   async function submitResolution() {
-    if (isSubmitting) {
+    if (submissionLock.current) {
       return
     }
 
@@ -194,6 +195,7 @@ export function ResolvePastAppointmentDialog({
       return
     }
 
+    submissionLock.current = true
     setFeedback(null)
     setIsSubmitting(true)
 
@@ -219,6 +221,7 @@ export function ResolvePastAppointmentDialog({
         success: false,
       }
     } finally {
+      submissionLock.current = false
       setIsSubmitting(false)
     }
 

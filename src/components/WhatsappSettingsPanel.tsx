@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type {
   WhatsappConnectionStatus,
   WhatsappSettings,
@@ -41,6 +41,8 @@ export function WhatsappSettingsPanel({
   const [toastMessage, setToastMessage] = useState('')
   const [toastTone, setToastTone] = useState<ToastTone>('success')
   const [isToastVisible, setIsToastVisible] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const submissionLock = useRef(false)
   const status = getWhatsappConnectionStatus(settings)
 
   useEffect(() => {
@@ -78,7 +80,25 @@ export function WhatsappSettingsPanel({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    const result = await onSaveSettings(formValues)
+    if (submissionLock.current) {
+      return
+    }
+
+    submissionLock.current = true
+    setIsSubmitting(true)
+    let result: Awaited<ReturnType<typeof onSaveSettings>>
+
+    try {
+      result = await onSaveSettings(formValues)
+    } catch {
+      result = {
+        error: 'No pudimos guardar la configuración. Intenta nuevamente.',
+        success: false,
+      }
+    } finally {
+      submissionLock.current = false
+      setIsSubmitting(false)
+    }
 
     if (!result.success) {
       showActionError(result.error ?? 'No pudimos guardar WhatsApp.')
@@ -133,6 +153,7 @@ export function WhatsappSettingsPanel({
             <span>Número de WhatsApp</span>
             <input
               type="text"
+              disabled={isSubmitting}
               placeholder="Ej. +59170012345"
               value={formValues.phoneNumber}
               onChange={(event) =>
@@ -153,6 +174,7 @@ export function WhatsappSettingsPanel({
               <span>Phone Number ID</span>
               <input
                 type="text"
+                disabled={isSubmitting}
                 value={formValues.phoneNumberId}
                 onChange={(event) =>
                   updateField('phoneNumberId', event.target.value)
@@ -164,6 +186,7 @@ export function WhatsappSettingsPanel({
               <span>Business Account ID</span>
               <input
                 type="text"
+                disabled={isSubmitting}
                 value={formValues.businessAccountId}
                 onChange={(event) =>
                   updateField('businessAccountId', event.target.value)
@@ -174,13 +197,13 @@ export function WhatsappSettingsPanel({
         </fieldset>
 
         <p className="whatsapp-info-note">
-          Cuando el número esté conectado, los recordatorios podrán enviarse
-          desde el WhatsApp autorizado del consultorio.
+          La integración automática todavía no está activa. Estos datos dejan
+          preparada la configuración del consultorio.
         </p>
 
         <div className="whatsapp-settings-actions">
-          <button className="primary-action" type="submit">
-            Guardar configuración
+          <button className="primary-action" disabled={isSubmitting} type="submit">
+            {isSubmitting ? 'Guardando...' : 'Guardar configuración'}
           </button>
         </div>
       </form>
@@ -208,7 +231,7 @@ function mapSettingsToFormValues(
 
 function getWhatsappStatusLabel(status: WhatsappConnectionStatus) {
   const labels: Record<WhatsappConnectionStatus, string> = {
-    connected: 'Conectado',
+    connected: 'Configuración completa',
     error: 'Revisar configuración',
     'not-configured': 'No configurado',
     pending: 'Pendiente de configuración',
@@ -219,7 +242,7 @@ function getWhatsappStatusLabel(status: WhatsappConnectionStatus) {
 
 function getWhatsappStatusDescription(status: WhatsappConnectionStatus) {
   const descriptions: Record<WhatsappConnectionStatus, string> = {
-    connected: 'El número está listo para usar recordatorios del consultorio.',
+    connected: 'Los datos están completos; el envío automático aún no está activo.',
     error: 'Revisa los datos antes de continuar con la conexión.',
     'not-configured': 'Agrega el número autorizado para iniciar la configuración.',
     pending: 'Hay datos guardados, pero la conexión aún no está completa.',

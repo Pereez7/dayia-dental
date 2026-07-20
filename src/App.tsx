@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import './App.css'
 import { useAuth } from './auth/AuthContext'
 import {
@@ -126,15 +126,66 @@ import {
   getStoredActiveSection,
   saveActiveSection,
 } from './utils/activeSectionStorage'
-import { PlatformAdminView } from './views/PlatformAdminView'
-import { AppointmentsView } from './views/AppointmentsView'
-import { ClinicalHistoryView } from './views/ClinicalHistoryView'
-import { DashboardView } from './views/DashboardView'
-import { OdontogramView } from './views/OdontogramView'
-import { PatientDetailView } from './views/PatientDetailView'
-import { PatientsView } from './views/PatientsView'
-import { SettingsView } from './views/SettingsView'
-import { WhatsAppRemindersView } from './views/WhatsAppRemindersView'
+
+const AppointmentsView = lazy(() =>
+  import('./views/AppointmentsView').then((module) => ({
+    default: module.AppointmentsView,
+  })),
+)
+const ClinicalHistoryView = lazy(() =>
+  import('./views/ClinicalHistoryView').then((module) => ({
+    default: module.ClinicalHistoryView,
+  })),
+)
+const DashboardView = lazy(() =>
+  import('./views/DashboardView').then((module) => ({
+    default: module.DashboardView,
+  })),
+)
+const OdontogramView = lazy(() =>
+  import('./views/OdontogramView').then((module) => ({
+    default: module.OdontogramView,
+  })),
+)
+const PatientDetailView = lazy(() =>
+  import('./views/PatientDetailView').then((module) => ({
+    default: module.PatientDetailView,
+  })),
+)
+const PatientsView = lazy(() =>
+  import('./views/PatientsView').then((module) => ({
+    default: module.PatientsView,
+  })),
+)
+const PlatformAdminView = lazy(() =>
+  import('./views/PlatformAdminView').then((module) => ({
+    default: module.PlatformAdminView,
+  })),
+)
+const SettingsView = lazy(() =>
+  import('./views/SettingsView').then((module) => ({
+    default: module.SettingsView,
+  })),
+)
+const WhatsAppRemindersView = lazy(() =>
+  import('./views/WhatsAppRemindersView').then((module) => ({
+    default: module.WhatsAppRemindersView,
+  })),
+)
+
+function ModuleLoadingFallback() {
+  return (
+    <section
+      aria-busy="true"
+      aria-live="polite"
+      className="module-loading-state"
+      role="status"
+    >
+      <strong>Cargando módulo…</strong>
+      <span>Estamos preparando esta sección.</span>
+    </section>
+  )
+}
 
 function App() {
   const {
@@ -170,21 +221,27 @@ function App() {
   const [appointmentPatientId, setAppointmentPatientId] =
     useState<PatientId | null>(null)
   const [treatments, setTreatments] =
-    useState<Treatment[]>(canLoadOperationalSettings ? initialTreatments : [])
+    useState<Treatment[]>(
+      isDemoMode && canLoadOperationalSettings ? initialTreatments : [],
+    )
   const [businessHours, setBusinessHours] =
     useState<BusinessHoursSettings>(
-      canLoadOperationalSettings
+      isDemoMode && canLoadOperationalSettings
         ? initialBusinessHours
         : getClosedBusinessHoursSettings(),
     )
   const [isBusinessHoursConfigured, setIsBusinessHoursConfigured] =
-    useState(canLoadOperationalSettings)
+    useState(isDemoMode && canLoadOperationalSettings)
+  const [isOperationalSettingsLoading, setIsOperationalSettingsLoading] =
+    useState(() => !isDemoMode && canLoadOperationalSettings)
   const [settingsError, setSettingsError] = useState('')
   const [treatmentsError, setTreatmentsError] = useState('')
   const [businessHoursError, setBusinessHoursError] = useState('')
   const [calendarExceptions, setCalendarExceptions] =
     useState<CalendarException[]>(
-      canLoadOperationalSettings ? initialCalendarExceptions : [],
+      isDemoMode && canLoadOperationalSettings
+        ? initialCalendarExceptions
+        : [],
     )
   const [reminders, setReminders] = useState<Reminder[]>([])
   const [isRemindersLoading, setIsRemindersLoading] = useState(
@@ -671,6 +728,7 @@ function App() {
         setTreatmentsError('')
         setBusinessHoursError('')
         setWhatsappSettingsError('')
+        setIsOperationalSettingsLoading(false)
         return
       }
 
@@ -684,6 +742,7 @@ function App() {
         setTreatmentsError('')
         setBusinessHoursError('')
         setWhatsappSettingsError('')
+        setIsOperationalSettingsLoading(false)
         return
       }
 
@@ -694,9 +753,11 @@ function App() {
         setWhatsappSettings(null)
         setIsBusinessHoursConfigured(false)
         setSettingsError('No hay consultorio activo para cargar configuración.')
+        setIsOperationalSettingsLoading(false)
         return
       }
 
+      setIsOperationalSettingsLoading(true)
       setSettingsError('')
       setTreatmentsError('')
       setBusinessHoursError('')
@@ -749,6 +810,8 @@ function App() {
       } else {
         setWhatsappSettings(whatsappSettingsResult.data ?? null)
       }
+
+      setIsOperationalSettingsLoading(false)
     }
 
     loadSettings()
@@ -1869,7 +1932,8 @@ function App() {
           businessHours={businessHours}
           calendarExceptions={calendarExceptions}
           errorMessage={appointmentsError}
-          isLoading={isAppointmentsLoading}
+          isLoading={isAppointmentsLoading || isOperationalSettingsLoading}
+          isSettingsLoading={isOperationalSettingsLoading}
           mode="agenda"
           patients={patients}
           treatments={treatments}
@@ -1894,6 +1958,7 @@ function App() {
           initialPatient={patients.find(
             (patient) => patient.id === appointmentPatientId,
           )}
+          isSettingsLoading={isOperationalSettingsLoading}
           patients={patients}
           treatments={treatments}
           onCreateAppointment={handleCreateAppointment}
@@ -1936,7 +2001,10 @@ function App() {
           businessHours={businessHours}
           calendarExceptions={calendarExceptions}
           errorMessage={remindersError}
-          isLoading={!isDemoMode && isRemindersLoading}
+          isLoading={
+            !isDemoMode &&
+            (isRemindersLoading || isOperationalSettingsLoading)
+          }
           onMarkReminderFailed={handleMarkReminderFailed}
           onMarkReminderSent={handleMarkReminderSent}
           onRescheduleAppointment={handleRescheduleAppointment}
@@ -1977,6 +2045,7 @@ function App() {
           clinicMembersMaxUsers={clinicMembersMaxUsers}
           currentUserId={profile?.id ?? user?.id}
           isBusinessHoursConfigured={isBusinessHoursConfigured}
+          isLoading={isOperationalSettingsLoading}
           isClinicUsersLoading={!isDemoMode && isClinicUsersLoading}
           onBusinessHoursChange={handleSaveBusinessHours}
           onCreateCalendarException={handleCreateCalendarException}
@@ -2012,7 +2081,9 @@ function App() {
       onSectionChange={handleSectionChange}
       permissions={permissions}
     >
-      {renderActiveView()}
+      <Suspense fallback={<ModuleLoadingFallback />}>
+        {renderActiveView()}
+      </Suspense>
     </AppLayout>
   )
 }

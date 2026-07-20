@@ -20,6 +20,7 @@ interface AppointmentsViewProps {
   calendarExceptions: CalendarException[]
   errorMessage?: string
   isLoading?: boolean
+  isSettingsLoading?: boolean
   initialPatient?: Patient
   patients: Patient[]
   treatments: Treatment[]
@@ -48,6 +49,7 @@ export function AppointmentsView({
   calendarExceptions,
   errorMessage = '',
   isLoading = false,
+  isSettingsLoading = false,
   initialPatient,
   patients,
   treatments,
@@ -63,6 +65,15 @@ export function AppointmentsView({
   }
 
   if (mode === 'new') {
+    if (isSettingsLoading) {
+      return (
+        <section className="module-loading-state" aria-live="polite">
+          <strong>Preparando la agenda...</strong>
+          <span>Cargando horarios y tratamientos del consultorio.</span>
+        </section>
+      )
+    }
+
     return (
       <AppointmentForm
         appointments={appointments}

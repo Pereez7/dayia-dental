@@ -11,9 +11,11 @@ const successfulAction = vi.fn().mockResolvedValue({ success: true })
 function renderSettings({
   canManageClinicUsers,
   canManageWhatsapp,
+  isLoading = false,
 }: {
   canManageClinicUsers: boolean
   canManageWhatsapp: boolean
+  isLoading?: boolean
 }) {
   return renderToStaticMarkup(
     <SettingsView
@@ -24,6 +26,7 @@ function renderSettings({
       clinicUsers={[]}
       clinicMembersCount={0}
       clinicMembersMaxUsers={4}
+      isLoading={isLoading}
       onBusinessHoursChange={successfulAction}
       onCreateCalendarException={successfulAction}
       onCreateClinicUser={successfulAction}
@@ -66,5 +69,18 @@ describe('SettingsView permissions', () => {
 
     expect(markup).toContain('Usuarios del consultorio')
     expect(markup).toContain('WhatsApp del consultorio')
+  })
+
+  it('does not expose settings data while the clinic configuration is loading', () => {
+    const markup = renderSettings({
+      canManageClinicUsers: true,
+      canManageWhatsapp: true,
+      isLoading: true,
+    })
+
+    expect(markup).toContain('Preparando configuración...')
+    expect(markup).not.toContain('Horarios del consultorio')
+    expect(markup).not.toContain('Tratamientos del consultorio')
+    expect(markup).not.toContain('WhatsApp del consultorio')
   })
 })

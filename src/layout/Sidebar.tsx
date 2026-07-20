@@ -26,7 +26,7 @@ export function Sidebar({
   const visibleQuickActions = getVisibleQuickActions(permissions)
 
   return (
-    <aside className="sidebar" aria-label="Navegacion principal">
+    <aside className="sidebar" aria-label="Navegación principal">
       <div className="sidebar-brand-card">
         <div className="sidebar-brand">
           <div className="brand-mark">D</div>
@@ -40,7 +40,7 @@ export function Sidebar({
       <SessionSummary />
 
       {!canAccessAdministration && visibleQuickActions.length > 0 && (
-        <section className="sidebar-section" aria-label="Acciones rapidas">
+        <section className="sidebar-section" aria-label="Acciones rápidas">
           <p className="sidebar-section-label">Acciones</p>
           <div className="quick-actions">
             {visibleQuickActions.map((action) => (
@@ -57,8 +57,8 @@ export function Sidebar({
         </section>
       )}
 
-      <section className="sidebar-section" aria-label="Modulos principales">
-        <p className="sidebar-section-label">Modulos</p>
+      <section className="sidebar-section" aria-label="Módulos principales">
+        <p className="sidebar-section-label">Módulos</p>
         <nav className="sidebar-nav">
           {visibleNavigationItems.map((item) => (
             <button

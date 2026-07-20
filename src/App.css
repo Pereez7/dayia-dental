@@ -1438,10 +1438,6 @@
   padding: 9px 10px;
 }
 
-.dashboard-attention-row {
-  border-left-width: 3px;
-}
-
 .dashboard-attention-row strong,
 .dashboard-activity-row span {
   color: var(--color-heading);
@@ -1459,19 +1455,19 @@
 }
 
 .dashboard-attention-row--amber {
-  border-left-color: #f0d487;
+  border-color: #f0d487;
 }
 
 .dashboard-attention-row--blue {
-  border-left-color: #b9ddec;
+  border-color: #b9ddec;
 }
 
 .dashboard-attention-row--red {
-  border-left-color: #fecdd3;
+  border-color: #fecdd3;
 }
 
 .dashboard-attention-row--violet {
-  border-left-color: #c7d2fe;
+  border-color: #c7d2fe;
 }
 
 .dashboard-month-summary {
@@ -5907,6 +5903,26 @@
   padding: 16px;
 }
 
+.module-loading-state {
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  min-height: 220px;
+  border-block: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  padding-block: 28px;
+}
+
+.module-loading-state strong {
+  color: var(--color-heading);
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+}
+
+.module-loading-state span {
+  font-size: var(--text-sm);
+}
+
 .reminder-summary-heading {
   display: flex;
   align-items: flex-start;
@@ -6904,7 +6920,7 @@
 
   .session-signout {
     justify-self: end;
-    min-height: 30px;
+    min-height: 44px;
     padding: 5px 8px;
     white-space: nowrap;
   }
@@ -6936,7 +6952,7 @@
 
   .quick-action {
     flex: 0 0 auto;
-    min-height: 36px;
+    min-height: 44px;
     padding: 8px 10px;
     white-space: nowrap;
   }
@@ -6958,7 +6974,7 @@
   .sidebar-link {
     flex: 0 0 auto;
     width: auto;
-    min-height: 36px;
+    min-height: 44px;
     padding: 8px 11px;
     white-space: nowrap;
   }
@@ -7032,7 +7048,21 @@
   }
 
   .confirm-dialog-actions button {
-    min-height: 40px;
+    min-height: 44px;
+  }
+
+  .primary-action,
+  .secondary-action,
+  .soft-action,
+  .warning-action,
+  .danger-action,
+  .success-action {
+    min-height: 44px;
+  }
+
+  form input:not([type='checkbox']),
+  form select {
+    min-height: 44px;
   }
 
   .appointment-resolution-options,

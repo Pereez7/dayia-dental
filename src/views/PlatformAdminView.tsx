@@ -16,6 +16,7 @@ import {
   getPlatformSubscriptionStatusLabel,
 } from '../utils/platformStatusLabels'
 import { createPlatformClinicAndRefresh } from '../utils/platformClinicCreation'
+import { formatAppDate } from '../utils/dateFormatters'
 
 interface PlatformAdminViewProps {
   canAccessPlatformAdmin: boolean
@@ -222,15 +223,5 @@ export function PlatformClinicsContent({
 }
 
 function formatPlatformDate(value: string) {
-  const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) {
-    return 'Fecha no disponible'
-  }
-
-  return new Intl.DateTimeFormat('es-BO', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(date)
+  return formatAppDate(value.slice(0, 10))
 }

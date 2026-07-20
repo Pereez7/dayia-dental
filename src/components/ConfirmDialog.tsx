@@ -32,23 +32,66 @@ export function ConfirmDialog({
   const titleId = useId()
   const messageId = useId()
   const cancelButtonRef = useRef<HTMLButtonElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const onCancelRef = useRef(onCancel)
+
+  useEffect(() => {
+    onCancelRef.current = onCancel
+  }, [onCancel])
 
   useEffect(() => {
     if (!isOpen) {
       return
     }
 
+    const previouslyFocusedElement = document.activeElement
+
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        onCancel()
+        event.preventDefault()
+        onCancelRef.current()
+        return
+      }
+
+      if (event.key !== 'Tab' || !dialogRef.current) {
+        return
+      }
+
+      const focusableElements = getDialogFocusableElements(dialogRef.current)
+
+      if (focusableElements.length === 0) {
+        event.preventDefault()
+        dialogRef.current.focus()
+        return
+      }
+
+      const firstElement = focusableElements[0]
+      const lastElement = focusableElements[focusableElements.length - 1]
+      const activeElement = document.activeElement
+
+      if (event.shiftKey && activeElement === firstElement) {
+        event.preventDefault()
+        lastElement.focus()
+      } else if (
+        !event.shiftKey &&
+        (activeElement === lastElement || !dialogRef.current.contains(activeElement))
+      ) {
+        event.preventDefault()
+        firstElement.focus()
       }
     }
 
     cancelButtonRef.current?.focus()
     window.addEventListener('keydown', handleKeyDown)
 
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onCancel])
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+
+      if (previouslyFocusedElement instanceof HTMLElement) {
+        previouslyFocusedElement.focus()
+      }
+    }
+  }, [isOpen])
 
   if (!isOpen) {
     return null
@@ -63,7 +106,9 @@ export function ConfirmDialog({
         className={`confirm-dialog confirm-dialog--${variant}${
           size === 'wide' ? ' confirm-dialog--wide' : ''
         }`}
+        ref={dialogRef}
         role="dialog"
+        tabIndex={-1}
       >
         <div className="confirm-dialog-content">
           <h2 id={titleId}>{title}</h2>
@@ -91,5 +136,13 @@ export function ConfirmDialog({
         </div>
       </div>
     </div>
+  )
+}
+
+function getDialogFocusableElements(dialog: HTMLElement) {
+  return Array.from(
+    dialog.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+    ),
   )
 }
