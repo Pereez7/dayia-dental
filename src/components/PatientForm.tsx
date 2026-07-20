@@ -8,6 +8,7 @@ import {
   hasPatientFormErrors,
   validatePatientForm,
 } from '../utils/patientValidators'
+import { PatientFields } from './PatientFields'
 import { Toast } from './Toast'
 
 const initialFormValues: PatientFormValues = {
@@ -18,15 +19,6 @@ const initialFormValues: PatientFormValues = {
   email: '',
   birthDate: '',
 }
-
-const countryCodeOptions = [
-  { country: 'Bolivia', code: '+591' },
-  { country: 'Argentina', code: '+54' },
-  { country: 'Brasil', code: '+55' },
-  { country: 'Chile', code: '+56' },
-  { country: 'Peru', code: '+51' },
-  { country: 'Paraguay', code: '+595' },
-]
 
 interface PatientFormProps {
   onCreatePatient: (
@@ -124,119 +116,13 @@ export function PatientForm({ onCreatePatient }: PatientFormProps) {
       </div>
 
       <form className="patient-form" onSubmit={handleSubmit}>
-        <label>
-          <span>Nombre</span>
-          <input
-            id="patient-first-name"
-            aria-describedby={
-              errors.firstName ? 'patient-first-name-error' : undefined
-            }
-            aria-invalid={Boolean(errors.firstName)}
-            autoComplete="given-name"
-            type="text"
-            placeholder="Ej. Charles"
-            value={formValues.firstName}
-            disabled={isSubmitting}
-            onChange={(event) => updateField('firstName', event.target.value)}
-          />
-          {errors.firstName && (
-            <small id="patient-first-name-error">{errors.firstName}</small>
-          )}
-        </label>
-
-        <label>
-          <span>Apellido</span>
-          <input
-            aria-describedby={
-              errors.lastName ? 'patient-last-name-error' : undefined
-            }
-            aria-invalid={Boolean(errors.lastName)}
-            autoComplete="family-name"
-            type="text"
-            placeholder="Ej. Pérez"
-            value={formValues.lastName}
-            disabled={isSubmitting}
-            onChange={(event) => updateField('lastName', event.target.value)}
-          />
-          {errors.lastName && (
-            <small id="patient-last-name-error">{errors.lastName}</small>
-          )}
-        </label>
-
-        <fieldset className="phone-field">
-          <legend>Teléfono</legend>
-          <div className="phone-control">
-            <select
-              aria-label="Prefijo de país"
-              value={formValues.countryCode}
-              disabled={isSubmitting}
-              onChange={(event) =>
-                updateField('countryCode', event.target.value)
-              }
-            >
-              {countryCodeOptions.map((option) => (
-                <option key={option.code} value={option.code}>
-                  {option.code}
-                </option>
-              ))}
-            </select>
-
-            <input
-              aria-describedby={
-                errors.localPhone ? 'patient-phone-error' : undefined
-              }
-              aria-invalid={Boolean(errors.localPhone)}
-              type="tel"
-              autoComplete="tel-national"
-              inputMode="numeric"
-              aria-label="Número local"
-              placeholder="70000000"
-              value={formValues.localPhone}
-              disabled={isSubmitting}
-              onChange={(event) =>
-                updateField('localPhone', event.target.value)
-              }
-            />
-          </div>
-          {errors.countryCode && <small>{errors.countryCode}</small>}
-          {errors.localPhone && (
-            <small id="patient-phone-error">{errors.localPhone}</small>
-          )}
-        </fieldset>
-
-        <label>
-          <span>Email opcional</span>
-          <input
-            aria-describedby={errors.email ? 'patient-email-error' : undefined}
-            aria-invalid={Boolean(errors.email)}
-            type="email"
-            autoComplete="email"
-            placeholder="correo@ejemplo.com"
-            value={formValues.email}
-            disabled={isSubmitting}
-            onChange={(event) => updateField('email', event.target.value)}
-          />
-          {errors.email && (
-            <small id="patient-email-error">{errors.email}</small>
-          )}
-        </label>
-
-        <label>
-          <span>Fecha de nacimiento opcional</span>
-          <input
-            aria-describedby={
-              errors.birthDate ? 'patient-birth-date-error' : undefined
-            }
-            aria-invalid={Boolean(errors.birthDate)}
-            type="date"
-            value={formValues.birthDate}
-            disabled={isSubmitting}
-            onChange={(event) => updateField('birthDate', event.target.value)}
-          />
-          {errors.birthDate && (
-            <small id="patient-birth-date-error">{errors.birthDate}</small>
-          )}
-        </label>
+        <PatientFields
+          disabled={isSubmitting}
+          errors={errors}
+          idPrefix="patient"
+          values={formValues}
+          onChange={updateField}
+        />
 
         {submitError && (
           <p className="field-message field-message--error" role="alert">

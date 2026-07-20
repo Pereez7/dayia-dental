@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabaseClient'
 import type { Patient, PatientFormValues } from '../types/Patient'
 import type { PatientRecord } from '../types/database'
-import { normalizeSentenceText } from '../utils/textNormalizers'
+import { normalizePersonName } from '../utils/textNormalizers'
 
 export interface PatientInput {
   birthDate?: string
@@ -25,9 +25,12 @@ type PatientUpdate = Partial<
 export function mapPatientRecordToPatient(record: PatientRecord): Patient {
   return {
     id: record.id,
+    countryCode: record.country_code,
     birthDate: record.birth_date ?? undefined,
     email: record.email ?? undefined,
+    firstName: record.first_name,
     fullName: `${record.first_name} ${record.last_name}`.trim(),
+    lastName: record.last_name,
     lastVisit: 'Sin registro',
     nextAppointment: null,
     phone: record.phone,
@@ -42,9 +45,9 @@ export function mapPatientFormValuesToPatientInput(
     birthDate: values.birthDate || undefined,
     countryCode: values.countryCode.trim(),
     email: values.email.trim().toLowerCase() || undefined,
-    firstName: normalizeSentenceText(values.firstName),
-    lastName: normalizeSentenceText(values.lastName),
-    localPhone: values.localPhone.trim(),
+    firstName: normalizePersonName(values.firstName),
+    lastName: normalizePersonName(values.lastName),
+    localPhone: values.localPhone.replace(/\D/g, ''),
   }
 }
 
@@ -55,12 +58,12 @@ export function mapPatientInputToPatientInsert(
   return {
     birth_date: input.birthDate || null,
     clinic_id: clinicId,
-    country_code: input.countryCode,
+    country_code: input.countryCode.trim(),
     email: input.email?.trim().toLowerCase() || null,
-    first_name: normalizeSentenceText(input.firstName),
-    last_name: normalizeSentenceText(input.lastName),
+    first_name: normalizePersonName(input.firstName),
+    last_name: normalizePersonName(input.lastName),
     notes: input.notes?.trim() || null,
-    phone: `${input.countryCode}${input.localPhone.trim()}`,
+    phone: `${input.countryCode.trim()}${input.localPhone.replace(/\D/g, '')}`,
   }
 }
 
@@ -69,12 +72,12 @@ export function mapPatientInputToPatientUpdate(
 ): PatientUpdate {
   return {
     birth_date: input.birthDate || null,
-    country_code: input.countryCode,
+    country_code: input.countryCode.trim(),
     email: input.email?.trim().toLowerCase() || null,
-    first_name: normalizeSentenceText(input.firstName),
-    last_name: normalizeSentenceText(input.lastName),
+    first_name: normalizePersonName(input.firstName),
+    last_name: normalizePersonName(input.lastName),
     notes: input.notes?.trim() || null,
-    phone: `${input.countryCode}${input.localPhone.trim()}`,
+    phone: `${input.countryCode.trim()}${input.localPhone.replace(/\D/g, '')}`,
   }
 }
 

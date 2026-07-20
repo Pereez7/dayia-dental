@@ -9,12 +9,14 @@ const patientStatusLabels: Record<Patient['status'], string> = {
 
 interface PatientCardProps {
   isHighlighted?: boolean
+  onEdit?: (patientId: Patient['id']) => void
   onViewDetail: (patientId: Patient['id']) => void
   patient: Patient
 }
 
 export function PatientCard({
   isHighlighted = false,
+  onEdit,
   onViewDetail,
   patient,
 }: PatientCardProps) {
@@ -51,6 +53,15 @@ export function PatientCard({
       </dl>
 
       <div className="patient-card-footer">
+        {onEdit && (
+          <button
+            className="soft-action"
+            type="button"
+            onClick={() => onEdit(patient.id)}
+          >
+            Editar
+          </button>
+        )}
         <button
           className="secondary-action"
           type="button"

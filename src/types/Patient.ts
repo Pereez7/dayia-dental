@@ -2,7 +2,10 @@ export type PatientId = number | string
 
 export interface Patient {
   id: PatientId
+  firstName?: string
+  lastName?: string
   fullName: string
+  countryCode?: string
   phone: string
   email?: string
   birthDate?: string

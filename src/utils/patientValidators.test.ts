@@ -76,15 +76,19 @@ describe('patientValidators', () => {
 
   it('rejects invalid country codes', () => {
     expect(validateCountryCode('591')).toBe(
-      'El prefijo debe iniciar con + y contener solo números',
+      'Usa + seguido de 1 a 4 dígitos',
     )
     expect(validateCountryCode('+BO')).toBe(
-      'El prefijo debe iniciar con + y contener solo números',
+      'Usa + seguido de 1 a 4 dígitos',
+    )
+    expect(validateCountryCode('+12345')).toBe(
+      'Usa + seguido de 1 a 4 dígitos',
     )
   })
 
   it('allows local phone numbers with digits only', () => {
     expect(validateLocalPhone('70012345')).toBe('')
+    expect(validateLocalPhone('700 123 45')).toBe('')
   })
 
   it('rejects local phone numbers with letters or symbols', () => {
@@ -106,7 +110,7 @@ describe('patientValidators', () => {
   it('validates optional email when it has a value', () => {
     expect(validateOptionalEmail('paciente@dayia.com')).toBe('')
     expect(validateOptionalEmail('correo-invalido')).toBe(
-      'El email debe tener un formato válido',
+      'Ingresa un correo válido.',
     )
   })
 
@@ -145,9 +149,9 @@ describe('patientValidators', () => {
       ),
     ).toEqual({
       firstName: 'El nombre solo debe contener letras y espacios',
-      countryCode: 'El prefijo debe iniciar con + y contener solo números',
+      countryCode: 'Usa + seguido de 1 a 4 dígitos',
       localPhone: 'El número local solo debe contener dígitos',
-      email: 'El email debe tener un formato válido',
+      email: 'Ingresa un correo válido.',
       birthDate: 'La fecha de nacimiento no puede ser futura',
     })
   })
@@ -190,7 +194,7 @@ describe('patientValidators', () => {
       'patient-1',
     )
     expect(getDuplicatePatientMessage(patients, validFormValues)).toBe(
-      'Ya existe un paciente registrado con este teléfono.',
+      'El teléfono ya está registrado en otro paciente.',
     )
   })
 
@@ -210,5 +214,49 @@ describe('patientValidators', () => {
         validFormValues,
       ),
     ).toBe('')
+  })
+
+  it('ignores the current patient and inactive records when editing', () => {
+    const patients: Patient[] = [
+      {
+        id: 'patient-1',
+        fullName: 'Lucia Vargas',
+        phone: '+59170000000',
+        lastVisit: 'Sin registro',
+        nextAppointment: null,
+        status: 'active',
+      },
+      {
+        id: 'patient-2',
+        fullName: 'Paciente inactivo',
+        phone: '+59170000000',
+        lastVisit: 'Sin registro',
+        nextAppointment: null,
+        status: 'inactive',
+      },
+    ]
+
+    expect(
+      getDuplicatePatientMessage(patients, validFormValues, 'patient-1'),
+    ).toBe('')
+  })
+
+  it('detects a duplicated active email case-insensitively', () => {
+    expect(
+      getDuplicatePatientMessage(
+        [
+          {
+            id: 'patient-1',
+            email: 'lucia@example.com',
+            fullName: 'Lucia Vargas',
+            phone: '+59171111111',
+            lastVisit: 'Sin registro',
+            nextAppointment: null,
+            status: 'active',
+          },
+        ],
+        { ...validFormValues, email: 'LUCIA@EXAMPLE.COM' },
+      ),
+    ).toBe('El correo ya está registrado en otro paciente.')
   })
 })

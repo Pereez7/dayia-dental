@@ -62,6 +62,9 @@ describe('auth permissions', () => {
     expect(getClinicalPermissions('platform_admin', 'pro').canAccessDashboard).toBe(
       false,
     )
+    expect(getClinicalPermissions('platform_admin', 'pro').canAccessPatients).toBe(
+      false,
+    )
   })
 
   it('allows owner and admin to access every core clinical module', () => {

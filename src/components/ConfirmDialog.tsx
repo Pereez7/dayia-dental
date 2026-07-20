@@ -6,21 +6,27 @@ interface ConfirmDialogProps {
   cancelLabel: string
   children?: ReactNode
   confirmLabel: string
+  confirmFormId?: string
+  confirmType?: 'button' | 'submit'
   isOpen: boolean
+  isCancelDisabled?: boolean
   isConfirmDisabled?: boolean
   message: string
   size?: 'default' | 'wide'
   title: string
   variant: ConfirmDialogVariant
   onCancel: () => void
-  onConfirm: () => void
+  onConfirm?: () => void
 }
 
 export function ConfirmDialog({
   cancelLabel,
   children,
   confirmLabel,
+  confirmFormId,
+  confirmType = 'button',
   isOpen,
+  isCancelDisabled = false,
   isConfirmDisabled = false,
   message,
   size = 'default',
@@ -119,6 +125,7 @@ export function ConfirmDialog({
         <div className="confirm-dialog-actions">
           <button
             className="secondary-action"
+            disabled={isCancelDisabled}
             ref={cancelButtonRef}
             type="button"
             onClick={onCancel}
@@ -128,7 +135,8 @@ export function ConfirmDialog({
           <button
             className={`confirm-dialog-confirm confirm-dialog-confirm--${variant}`}
             disabled={isConfirmDisabled}
-            type="button"
+            form={confirmFormId}
+            type={confirmType}
             onClick={onConfirm}
           >
             {confirmLabel}

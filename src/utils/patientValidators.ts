@@ -6,8 +6,8 @@ import type {
 import { normalizePatientSearchText } from './patientFilters'
 
 const namePattern = /^[\p{L}\s]+$/u
-const countryCodePattern = /^\+\d+$/
-const localPhonePattern = /^\d+$/
+const countryCodePattern = /^\+\d{1,4}$/
+const localPhonePattern = /^[\d\s]+$/
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const maxPatientAge = 120
 const minPhoneLength = 6
@@ -38,7 +38,7 @@ export function validateCountryCode(value: string) {
   }
 
   if (!countryCodePattern.test(trimmedValue)) {
-    return 'El prefijo debe iniciar con + y contener solo números'
+    return 'Usa + seguido de 1 a 4 dígitos'
   }
 
   return ''
@@ -55,7 +55,7 @@ export function validateLocalPhone(value: string) {
     return 'El número local solo debe contener dígitos'
   }
 
-  if (trimmedValue.length < minPhoneLength) {
+  if (trimmedValue.replace(/\D/g, '').length < minPhoneLength) {
     return 'El número local debe tener más de 5 dígitos'
   }
 
@@ -70,7 +70,7 @@ export function validateOptionalEmail(value: string) {
   }
 
   if (!emailPattern.test(trimmedValue)) {
-    return 'El email debe tener un formato válido'
+    return 'Ingresa un correo válido.'
   }
 
   return ''
@@ -156,6 +156,7 @@ export function hasPatientFormErrors(errors: PatientFormErrors) {
 export function findDuplicatePatient(
   patients: Patient[],
   values: PatientFormValues,
+  excludedPatientId?: Patient['id'],
 ) {
   const candidatePhone = normalizePhone(
     `${values.countryCode}${values.localPhone}`,
@@ -165,6 +166,10 @@ export function findDuplicatePatient(
   )
 
   return patients.find((patient) => {
+    if (patient.id === excludedPatientId || patient.status === 'inactive') {
+      return false
+    }
+
     const hasSamePhone = normalizePhone(patient.phone) === candidatePhone
     const hasSameIdentity =
       normalizePatientSearchText(patient.fullName) === candidateName &&
@@ -177,10 +182,36 @@ export function findDuplicatePatient(
 export function getDuplicatePatientMessage(
   patients: Patient[],
   values: PatientFormValues,
+  excludedPatientId?: Patient['id'],
 ) {
-  return findDuplicatePatient(patients, values)
-    ? 'Ya existe un paciente registrado con este teléfono.'
-    : ''
+  const candidatePhone = normalizePhone(
+    `${values.countryCode}${values.localPhone}`,
+  )
+  const candidateEmail = values.email.trim().toLocaleLowerCase('es-BO')
+  const activePatients = patients.filter(
+    (patient) =>
+      patient.id !== excludedPatientId && patient.status !== 'inactive',
+  )
+
+  if (
+    activePatients.some(
+      (patient) => normalizePhone(patient.phone) === candidatePhone,
+    )
+  ) {
+    return 'El teléfono ya está registrado en otro paciente.'
+  }
+
+  if (
+    candidateEmail &&
+    activePatients.some(
+      (patient) =>
+        patient.email?.trim().toLocaleLowerCase('es-BO') === candidateEmail,
+    )
+  ) {
+    return 'El correo ya está registrado en otro paciente.'
+  }
+
+  return ''
 }
 
 function normalizePhone(value: string) {

@@ -1,7 +1,10 @@
+import { useEffect, useState } from 'react'
 import { ClinicalRecordForm } from '../components/ClinicalRecordForm'
 import { ClinicalRecordsList } from '../components/ClinicalRecordsList'
 import { PatientAppointmentsList } from '../components/PatientAppointmentsList'
 import { PatientOdontogram } from '../components/PatientOdontogram'
+import { PatientEditDialog } from '../components/PatientEditDialog'
+import { Toast } from '../components/Toast'
 import type { Appointment } from '../types/Appointment'
 import type {
   ClinicalRecord,
@@ -13,7 +16,7 @@ import type {
   OdontogramSaveResult,
   ToothCode,
 } from '../types/Odontogram'
-import type { Patient } from '../types/Patient'
+import type { Patient, PatientFormValues } from '../types/Patient'
 import { getClinicalRecordsByPatient } from '../utils/clinicalRecords'
 import { formatOptionalCompactDateWithYear } from '../utils/dateFormatters'
 import { getOdontogramEntriesByPatient } from '../utils/odontogram'
@@ -32,6 +35,7 @@ interface PatientDetailViewProps {
   appointments: Appointment[]
   canAccessClinicalHistory: boolean
   canAccessOdontogram: boolean
+  canEditPatient?: boolean
   clinicalRecords: ClinicalRecord[]
   clinicalRecordsError?: string
   isClinicalRecordsLoading?: boolean
@@ -49,13 +53,19 @@ interface PatientDetailViewProps {
   ) => Promise<OdontogramSaveResult> | OdontogramSaveResult
   onBackToList: () => void
   onCreateAppointment?: () => void
+  onUpdatePatient?: (
+    patientId: Patient['id'],
+    values: PatientFormValues,
+  ) => Promise<{ error?: string; success: boolean }>
   patient: Patient
+  patients?: Patient[]
 }
 
 export function PatientDetailView({
   appointments,
   canAccessClinicalHistory,
   canAccessOdontogram,
+  canEditPatient = false,
   clinicalRecords,
   clinicalRecordsError = '',
   isClinicalRecordsLoading = false,
@@ -66,8 +76,22 @@ export function PatientDetailView({
   onSaveOdontogramTooth,
   onBackToList,
   onCreateAppointment,
+  onUpdatePatient,
   patient,
+  patients = [],
 }: PatientDetailViewProps) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
+
+  useEffect(() => {
+    if (!successMessage) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => setSuccessMessage(''), 3200)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [successMessage])
   const patientAppointments = getPatientAppointments(
     patient,
     appointments,
@@ -111,6 +135,15 @@ export function PatientDetailView({
         <button className="secondary-action" type="button" onClick={onBackToList}>
           Volver al listado
         </button>
+        {canEditPatient && onUpdatePatient && (
+          <button
+            className="soft-action"
+            type="button"
+            onClick={() => setIsEditing(true)}
+          >
+            Editar datos
+          </button>
+        )}
       </div>
 
       <section className="patient-detail-grid">
@@ -237,6 +270,23 @@ export function PatientDetailView({
           </article>
         )}
       </section>
+      {isEditing && onUpdatePatient && (
+        <PatientEditDialog
+          patient={patient}
+          patients={patients}
+          onCancel={() => setIsEditing(false)}
+          onUpdatePatient={onUpdatePatient}
+          onUpdated={() => {
+            setIsEditing(false)
+            setSuccessMessage('Paciente actualizado correctamente.')
+          }}
+        />
+      )}
+      <Toast
+        message={successMessage}
+        tone="success"
+        visible={Boolean(successMessage)}
+      />
     </section>
   )
 }

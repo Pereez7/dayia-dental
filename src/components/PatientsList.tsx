@@ -8,6 +8,7 @@ interface PatientsListProps {
   errorMessage?: string
   isLoading?: boolean
   highlightedPatientId?: Patient['id'] | null
+  onEditPatient?: (patientId: Patient['id']) => void
   onViewPatient: (patientId: Patient['id']) => void
   patients: Patient[]
 }
@@ -17,6 +18,7 @@ export function PatientsList({
   errorMessage = '',
   highlightedPatientId = null,
   isLoading = false,
+  onEditPatient,
   onViewPatient,
   patients,
 }: PatientsListProps) {
@@ -57,6 +59,7 @@ export function PatientsList({
             <PatientCard
               key={patient.id}
               isHighlighted={patient.id === highlightedPatientId}
+              onEdit={onEditPatient}
               onViewDetail={onViewPatient}
               patient={patient}
             />

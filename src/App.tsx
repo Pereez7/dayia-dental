@@ -27,6 +27,7 @@ import {
   createPatient,
   getPatientsByClinic,
   mapPatientFormValuesToPatientInput,
+  updatePatient as updatePatientInSupabase,
 } from './services/patientsService'
 import {
   createAppointment as createAppointmentInSupabase,
@@ -840,7 +841,10 @@ function App() {
       setPatients((currentPatients) => [
         {
           id: patientId,
+          countryCode: patientInput.countryCode,
+          firstName: patientInput.firstName,
           fullName: `${patientInput.firstName} ${patientInput.lastName}`,
+          lastName: patientInput.lastName,
           phone: `${patientInput.countryCode}${patientInput.localPhone}`,
           email: patientInput.email,
           birthDate: patientInput.birthDate,
@@ -878,6 +882,86 @@ function App() {
     setPatientsError('')
 
     return { patientId: data.id, success: true }
+  }
+
+  async function handleUpdatePatient(
+    patientId: Patient['id'],
+    values: PatientFormValues,
+  ) {
+    if (!permissions.canAccessPatients) {
+      return {
+        error: 'No tienes permiso para editar pacientes.',
+        success: false,
+      }
+    }
+
+    const duplicateMessage = getDuplicatePatientMessage(
+      patients,
+      values,
+      patientId,
+    )
+
+    if (duplicateMessage) {
+      return { error: duplicateMessage, success: false }
+    }
+
+    const patientInput = mapPatientFormValuesToPatientInput(values)
+
+    if (isDemoMode) {
+      setPatients((currentPatients) =>
+        currentPatients.map((patient) =>
+          patient.id === patientId
+            ? {
+                ...patient,
+                birthDate: patientInput.birthDate,
+                countryCode: patientInput.countryCode,
+                email: patientInput.email,
+                firstName: patientInput.firstName,
+                fullName: `${patientInput.firstName} ${patientInput.lastName}`,
+                lastName: patientInput.lastName,
+                phone: `${patientInput.countryCode}${patientInput.localPhone}`,
+              }
+            : patient,
+        ),
+      )
+      setPatientsError('')
+      return { success: true }
+    }
+
+    if (!currentClinic?.id) {
+      return {
+        error: 'No hay consultorio activo para editar pacientes.',
+        success: false,
+      }
+    }
+
+    const { data, error } = await updatePatientInSupabase(
+      currentClinic.id,
+      String(patientId),
+      patientInput,
+    )
+
+    if (error || !data) {
+      return {
+        error: error ?? 'No pudimos actualizar el paciente.',
+        success: false,
+      }
+    }
+
+    setPatients((currentPatients) =>
+      currentPatients.map((patient) =>
+        patient.id === patientId
+          ? {
+              ...data,
+              lastVisit: patient.lastVisit,
+              nextAppointment: patient.nextAppointment,
+              status: patient.status,
+            }
+          : patient,
+      ),
+    )
+    setPatientsError('')
+    return { success: true }
   }
 
   async function handleCreateAppointment(values: AppointmentFormValues) {
@@ -1855,6 +1939,7 @@ function App() {
     if (effectiveActiveSection === 'patients-list') {
       return (
         <PatientsView
+          canEditPatients={permissions.canAccessPatients}
           emptyMessage="No hay pacientes registrados en este consultorio."
           errorMessage={patientsError}
           initialMode="list"
@@ -1862,6 +1947,7 @@ function App() {
           onViewPatient={handleViewPatient}
           patients={patients}
           onCreatePatient={handleCreatePatient}
+          onUpdatePatient={handleUpdatePatient}
         />
       )
     }
@@ -1869,6 +1955,7 @@ function App() {
     if (effectiveActiveSection === 'patient-new') {
       return (
         <PatientsView
+          canEditPatients={permissions.canAccessPatients}
           emptyMessage="No hay pacientes registrados en este consultorio."
           errorMessage={patientsError}
           initialMode="new"
@@ -1876,6 +1963,7 @@ function App() {
           onViewPatient={handleViewPatient}
           patients={patients}
           onCreatePatient={handleCreatePatient}
+          onUpdatePatient={handleUpdatePatient}
         />
       )
     }
@@ -1888,6 +1976,7 @@ function App() {
       if (!selectedPatient) {
         return (
           <PatientsView
+            canEditPatients={permissions.canAccessPatients}
             emptyMessage="No hay pacientes registrados en este consultorio."
             errorMessage={patientsError}
             initialMode="list"
@@ -1895,6 +1984,7 @@ function App() {
             onViewPatient={handleViewPatient}
             patients={patients}
             onCreatePatient={handleCreatePatient}
+            onUpdatePatient={handleUpdatePatient}
           />
         )
       }
@@ -1904,6 +1994,7 @@ function App() {
           appointments={appointments}
           canAccessClinicalHistory={permissions.canAccessClinicalHistory}
           canAccessOdontogram={permissions.canAccessOdontogram}
+          canEditPatient={permissions.canAccessPatients}
           clinicalRecords={clinicalRecords}
           clinicalRecordsError={clinicalRecordsError}
           isClinicalRecordsLoading={isClinicalRecordsLoading}
@@ -1920,7 +2011,9 @@ function App() {
           onCreateAppointment={() =>
             handleCreateAppointmentForPatient(selectedPatient.id)
           }
+          onUpdatePatient={handleUpdatePatient}
           patient={selectedPatient}
+          patients={patients}
         />
       )
     }

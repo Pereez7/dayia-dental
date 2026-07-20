@@ -2355,7 +2355,7 @@
 
 .phone-control {
   display: grid;
-  grid-template-columns: 88px minmax(0, 1fr);
+  grid-template-columns: minmax(170px, 0.75fr) minmax(150px, 1fr);
   min-width: 0;
 }
 
@@ -2375,6 +2375,28 @@
 .phone-control input:focus {
   position: relative;
   z-index: 1;
+}
+
+.manual-country-code-field {
+  margin-top: 2px;
+}
+
+.patient-edit-form {
+  width: 100%;
+  max-width: none;
+  margin-top: 8px;
+}
+
+.patient-edit-form .field-message {
+  grid-column: 1 / -1;
+}
+
+.patient-edit-form .phone-field {
+  grid-column: 1 / -1;
+}
+
+.confirm-dialog .field-message--error {
+  color: #b42318;
 }
 
 .patient-form small {
@@ -4251,7 +4273,8 @@
   padding-top: 2px;
 }
 
-.patient-card-footer .secondary-action {
+.patient-card-footer .secondary-action,
+.patient-card-footer .soft-action {
   min-height: 34px;
   padding: 7px 11px;
 }
@@ -4416,6 +4439,8 @@
 
 .patient-detail-actions {
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   justify-content: flex-start;
 }
 
@@ -7185,7 +7210,21 @@
   }
 
   .phone-control {
-    grid-template-columns: 82px minmax(0, 1fr);
+    grid-template-columns: 1fr;
+  }
+
+  .phone-control select {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-top-right-radius: var(--radius-md);
+    text-align: left;
+  }
+
+  .phone-control input {
+    border-top: 0;
+    border-bottom-left-radius: var(--radius-md);
+    border-left: 1px solid var(--color-border);
+    border-top-right-radius: 0;
   }
 
   .patient-form .primary-action {
@@ -7329,7 +7368,8 @@
     display: grid;
   }
 
-  .patient-card-footer .secondary-action {
+  .patient-card-footer .secondary-action,
+  .patient-card-footer .soft-action {
     width: 100%;
   }
 

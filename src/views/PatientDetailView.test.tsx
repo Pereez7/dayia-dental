@@ -51,4 +51,39 @@ describe('PatientDetailView permissions', () => {
     expect(markup).toContain('Ver odontograma')
     expect(markup).toContain('Citas del paciente')
   })
+
+  it('shows patient editing only when patient management is allowed', () => {
+    const editableMarkup = renderToStaticMarkup(
+      <PatientDetailView
+        appointments={appointments}
+        canAccessClinicalHistory={false}
+        canAccessOdontogram={false}
+        canEditPatient
+        clinicalRecords={clinicalRecords}
+        odontogramEntries={odontogramEntries}
+        patient={patients[0]}
+        patients={patients}
+        onBackToList={vi.fn()}
+        onCreateClinicalRecord={vi.fn()}
+        onSaveOdontogramTooth={vi.fn()}
+        onUpdatePatient={vi.fn()}
+      />,
+    )
+    const readOnlyMarkup = renderToStaticMarkup(
+      <PatientDetailView
+        appointments={appointments}
+        canAccessClinicalHistory={false}
+        canAccessOdontogram={false}
+        clinicalRecords={clinicalRecords}
+        odontogramEntries={odontogramEntries}
+        patient={patients[0]}
+        onBackToList={vi.fn()}
+        onCreateClinicalRecord={vi.fn()}
+        onSaveOdontogramTooth={vi.fn()}
+      />,
+    )
+
+    expect(editableMarkup).toContain('Editar datos')
+    expect(readOnlyMarkup).not.toContain('Editar datos')
+  })
 })
