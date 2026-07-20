@@ -207,11 +207,17 @@ export function RemindersList({
                               </strong>
                             </div>
                             <div>
-                              <span>Programado para</span>
+                              <span>
+                                {reminder.reminderType === 'immediate'
+                                  ? 'Modalidad'
+                                  : 'Programado para'}
+                              </span>
                               <strong>
-                                {formatReminderScheduledDateTime(
-                                  reminder.scheduledFor,
-                                )}
+                                {reminder.reminderType === 'immediate'
+                                  ? 'Envío manual, sin programación'
+                                  : formatReminderScheduledDateTime(
+                                      reminder.scheduledFor,
+                                    )}
                               </strong>
                             </div>
                           </div>
@@ -220,7 +226,10 @@ export function RemindersList({
                             <span
                               className={`reminder-status ${statusClassName}`}
                             >
-                              {getReminderStateText(reminder.status)}
+                              {getReminderStateText(
+                                reminder.status,
+                                reminder.reminderType,
+                              )}
                             </span>
                             {reminder.statusNote && (
                               <p className="reminder-status-note">

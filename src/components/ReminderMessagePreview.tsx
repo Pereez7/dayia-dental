@@ -57,7 +57,7 @@ export function ReminderMessagePreview({
         <span
           className={`reminder-status ${getReminderStatusClassName(reminder.status)}`}
         >
-          {getReminderStateText(reminder.status)}
+          {getReminderStateText(reminder.status, reminder.reminderType)}
         </span>
       </div>
 
@@ -87,7 +87,9 @@ export function ReminderMessagePreview({
         </div>
         <div>
           <dt>Estado del recordatorio</dt>
-          <dd>{getReminderStateText(reminder.status)}</dd>
+          <dd>
+            {getReminderStateText(reminder.status, reminder.reminderType)}
+          </dd>
         </div>
         <div>
           <dt>Estado de la cita</dt>
@@ -110,7 +112,9 @@ export function ReminderMessagePreview({
           ? 'Este recordatorio ya no requiere una acción de envío.'
           : reminder.status === 'cancelled'
             ? 'Recordatorio cancelado junto con la cita.'
-            : 'Envío manual preparado. Todavía no hay envío automático por WhatsApp API.'}
+            : reminder.reminderType === 'immediate'
+              ? 'Esta cita está a menos de 2 horas. No se programó ningún envío; puedes abrir WhatsApp manualmente.'
+              : 'Envío manual preparado. Todavía no hay envío automático por WhatsApp API.'}
       </p>
       {isPastUnresolvedAppointment && canResolveAppointment && (
         <div className="reminder-preview-resolution">

@@ -1,5 +1,9 @@
 import type { AppointmentStatus } from '../types/Appointment'
-import type { Reminder, ReminderStatusFilter } from '../types/Reminder'
+import type {
+  Reminder,
+  ReminderStatusFilter,
+  ReminderType,
+} from '../types/Reminder'
 import { getAppointmentStatusLabel } from './appointmentFormatters'
 import { isAppointmentDateTimePast } from './reminderExpiration'
 import { getReminderStatusLabel } from './reminders'
@@ -55,7 +59,14 @@ export function filterRemindersBySearch(
   )
 }
 
-export function getReminderStateText(status: Exclude<ReminderStatusFilter, 'all'>) {
+export function getReminderStateText(
+  status: Exclude<ReminderStatusFilter, 'all'>,
+  reminderType?: ReminderType,
+) {
+  if (reminderType === 'immediate' && status === 'pending') {
+    return 'Acción manual pendiente'
+  }
+
   return `Recordatorio ${getReminderStatusLabel(status).toLocaleLowerCase('es-BO')}`
 }
 

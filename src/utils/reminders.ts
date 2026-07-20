@@ -26,7 +26,7 @@ const reminderHoursBeforeAppointment: Record<ScheduledReminderType, number> = {
 const late24HourReminderNote =
   'Recordatorio de 24h omitido por registro con poca anticipación.'
 const nearAppointmentReminderNote =
-  'Recordatorios de 24h y 2h omitidos por cita cercana.'
+  'Sin programación automática porque faltan menos de 2 horas para la cita.'
 
 const initialReminderSummary: ReminderSummary = {
   cancelled: 0,
@@ -204,7 +204,7 @@ export function getReminderTypeLabel(reminderType: ReminderType) {
   const labels: Record<ReminderType, string> = {
     '24h': '24 horas antes',
     '2h': '2 horas antes',
-    immediate: 'Confirmación inmediata',
+    immediate: 'Acción manual (cita cercana)',
   }
 
   return labels[reminderType]
@@ -583,13 +583,7 @@ function getAppointmentDateTime(date: string, time: string) {
 }
 
 function formatDateTimeValue(date: Date) {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  const hours = String(date.getHours()).padStart(2, '0')
-  const minutes = String(date.getMinutes()).padStart(2, '0')
-
-  return `${year}-${month}-${day}T${hours}:${minutes}`
+  return date.toISOString()
 }
 
 function formatReminderMessageDate(

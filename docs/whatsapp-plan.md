@@ -49,6 +49,7 @@ Prepara el futuro job programado. Busca recordatorios:
 - `channel = whatsapp`
 - `status in ('pending', 'scheduled')`
 - `scheduled_at <= now()`
+- `reminder_type != immediate`
 
 Procesa una tanda limitada y reutiliza la preparacion de envio. No procesa
 recordatorios `cancelled`, `skipped`, `sent` o `failed`. Antes de preparar una
@@ -56,6 +57,13 @@ entrega compara la fecha y hora real de la cita en `America/La_Paz`: las citas
 pasadas cambian a `skipped` con motivo `appointment_passed`, y las canceladas a
 `cancelled`. `scheduled_at <= now()` solo identifica recordatorios cuyo intento
 ya corresponde; no significa que la cita haya vencido.
+
+Las citas creadas con menos de dos horas de anticipacion no generan ventanas
+automaticas de 24 h o 2 h. Se conserva una accion `immediate` exclusivamente
+manual para abrir WhatsApp, pero `process-due-reminders` la excluye siempre. La
+interfaz la identifica como "Accion manual" y no muestra una hora programada.
+Los timestamps de los recordatorios automaticos se persisten en ISO 8601 con
+zona horaria para evitar desplazamientos entre Bolivia y UTC.
 
 ## Estados de la cola
 

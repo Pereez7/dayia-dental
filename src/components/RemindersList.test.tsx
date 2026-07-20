@@ -112,4 +112,45 @@ describe('RemindersList omitted state', () => {
     expect(markup).toContain('Marcar enviado')
     expect(markup).toContain('Marcar fallido')
   })
+
+  it('shows close appointments as manual actions without a scheduled time', () => {
+    const manualGroups: ReminderDateGroup[] = [
+      {
+        ...skippedDateGroups[0],
+        appointmentDate: '2027-01-15',
+        appointmentGroups: [
+          {
+            ...skippedDateGroups[0].appointmentGroups[0],
+            appointmentDate: '2027-01-15',
+            reminders: [
+              {
+                ...skippedDateGroups[0].appointmentGroups[0].reminders[0],
+                appointmentDate: '2027-01-15',
+                reminderType: 'immediate',
+                scheduledFor: '2027-01-15T16:30:00-04:00',
+                status: 'pending',
+              },
+            ],
+          },
+        ],
+      },
+    ]
+    const markup = renderToStaticMarkup(
+      <RemindersList
+        dateGroups={manualGroups}
+        emptyDescription=""
+        emptyMessage=""
+        selectedReminderId={null}
+        onMarkFailed={vi.fn()}
+        onMarkSent={vi.fn()}
+        onSelectReminder={vi.fn()}
+      />,
+    )
+
+    expect(markup).toContain('Acción manual (cita cercana)')
+    expect(markup).toContain('Envío manual, sin programación')
+    expect(markup).toContain('Acción manual pendiente')
+    expect(markup).not.toContain('Programado para')
+    expect(markup).not.toContain('15 ene, 16:30')
+  })
 })

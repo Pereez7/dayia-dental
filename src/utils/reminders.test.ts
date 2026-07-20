@@ -168,7 +168,7 @@ describe('generateAppointmentReminders', () => {
         'Recordatorio de 24h omitido por registro con poca anticipación.',
       ],
       reminderType: '2h',
-      scheduledFor: '2026-06-10T07:00',
+      scheduledFor: new Date('2026-06-10T07:00:00').toISOString(),
       status: 'pending',
     })
   })
@@ -196,10 +196,10 @@ describe('generateAppointmentReminders', () => {
       message:
         'Hola Mariana, te recordamos tu cita odontológica confirmada para Extracción simple hoy a las 09:00.',
       omittedReminderNotes: [
-        'Recordatorios de 24h y 2h omitidos por cita cercana.',
+        'Sin programación automática porque faltan menos de 2 horas para la cita.',
       ],
       reminderType: 'immediate',
-      scheduledFor: '2026-06-09T08:00',
+      scheduledFor: new Date('2026-06-09T08:00:00').toISOString(),
       status: 'pending',
     })
   })
@@ -267,7 +267,7 @@ describe('generateAppointmentReminders', () => {
       appointmentTime: '08:30',
       message:
         'Hola Ana, te recordamos que tu cita fue reprogramada para Retiro de brackets el 22 de junio a las 08:30. Por favor confirma tu asistencia.',
-      scheduledFor: '2026-06-21T08:30',
+      scheduledFor: new Date('2026-06-21T08:30:00').toISOString(),
     })
   })
 
@@ -301,11 +301,11 @@ describe('generateAppointmentReminders', () => {
 
 describe('getScheduledFor', () => {
   it('calculates the scheduled reminder date and time', () => {
-    expect(getScheduledFor('2026-06-10', '09:00', '24h')).toBe(
-      '2026-06-09T09:00',
+    expect(new Date(getScheduledFor('2026-06-10', '09:00', '24h'))).toEqual(
+      new Date('2026-06-09T09:00:00'),
     )
-    expect(getScheduledFor('2026-06-10', '09:00', '2h')).toBe(
-      '2026-06-10T07:00',
+    expect(new Date(getScheduledFor('2026-06-10', '09:00', '2h'))).toEqual(
+      new Date('2026-06-10T07:00:00'),
     )
   })
 })

@@ -24,6 +24,7 @@ Deno.serve(async (request) => {
     `)
     .eq('channel', 'whatsapp')
     .in('status', ['pending', 'scheduled'])
+    .neq('reminder_type', 'immediate')
     .lte('scheduled_at', new Date().toISOString())
     .order('scheduled_at', { ascending: true })
     .limit(25)
