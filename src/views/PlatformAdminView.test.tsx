@@ -21,11 +21,21 @@ const clinic: PlatformClinicSummary = {
   clinicName: 'Clínica Central',
   clinicStatus: 'active',
   createdAt: '2026-07-01T10:00:00.000Z',
+  currency: 'BOB',
+  currentPeriodEndsAt: '2026-08-01T10:00:00.000Z',
+  graceEndsAt: '2026-08-06T10:00:00.000Z',
+  isLifetime: false,
+  lastPaymentAt: null,
+  monthlyPrice: null,
+  planMonthlyPrices: {},
   ownerEmail: 'ana@clinic.test',
   ownerName: 'Dra. Ana Pérez',
   planId: 'medium',
   planName: 'Medium',
+  paymentStatus: 'paid',
+  payments: [],
   subscriptionStatus: 'active',
+  trialEndsAt: null,
 }
 
 describe('PlatformAdminView', () => {

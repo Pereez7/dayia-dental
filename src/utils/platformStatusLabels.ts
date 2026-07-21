@@ -15,7 +15,9 @@ const subscriptionStatusLabels: Record<
   string
 > = {
   active: 'Activa',
+  blocked: 'Bloqueada',
   canceled: 'Cancelada',
+  lifetime: 'Vitalicia',
   past_due: 'Pago pendiente',
   trialing: 'En prueba',
   unknown: 'Sin estado',

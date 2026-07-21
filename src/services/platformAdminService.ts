@@ -6,7 +6,10 @@ import type {
   PlatformClinicStatus,
   PlatformClinicSummary,
   PlatformSubscriptionStatus,
+  RegisterSubscriptionPaymentInput,
+  UpdateClinicSubscriptionInput,
 } from '../types/platform'
+import { getSubscriptionAccessState } from '../utils/subscriptionBilling'
 
 export interface PlatformAdminServiceResult {
   data: PlatformClinicSummary[] | null
@@ -16,6 +19,11 @@ export interface PlatformAdminServiceResult {
 export interface CreatePlatformClinicServiceResult {
   data: CreatePlatformClinicResponse | null
   error: string | null
+}
+
+export interface PlatformSubscriptionActionResult {
+  error: string | null
+  success: boolean
 }
 
 interface PlatformAdminFunctionClient {
@@ -29,7 +37,7 @@ interface PlatformAdminFunctionClient {
     invoke: (
       functionName: string,
       options: {
-        body?: CreatePlatformClinicInput
+        body?: unknown
         headers: { Authorization: string }
         method: 'POST'
       },
@@ -46,7 +54,9 @@ const clinicStatuses = new Set<PlatformClinicStatus>([
 
 const subscriptionStatuses = new Set<PlatformSubscriptionStatus>([
   'active',
+  'blocked',
   'canceled',
+  'lifetime',
   'past_due',
   'trialing',
   'unknown',
@@ -65,6 +75,18 @@ export async function createPlatformClinic(
     supabase as PlatformAdminFunctionClient | null,
     input,
   )
+}
+
+export async function registerSubscriptionPayment(
+  input: RegisterSubscriptionPaymentInput,
+): Promise<PlatformSubscriptionActionResult> {
+  return invokeSubscriptionAction('register-subscription-payment', input)
+}
+
+export async function updateClinicSubscription(
+  input: UpdateClinicSubscriptionInput,
+): Promise<PlatformSubscriptionActionResult> {
+  return invokeSubscriptionAction('update-clinic-subscription', input)
 }
 
 export async function createPlatformClinicWithClient(
@@ -159,17 +181,118 @@ export function mapPlatformClinicSummary(
       ? clinic.clinicStatus
       : 'unknown',
     createdAt: clinic.createdAt,
+    currency: clinic.currency?.trim() || 'BOB',
+    currentPeriodEndsAt: clinic.currentPeriodEndsAt ?? null,
+    graceEndsAt: clinic.graceEndsAt ?? null,
+    isLifetime: clinic.isLifetime === true,
+    lastPaymentAt: clinic.lastPaymentAt ?? null,
+    monthlyPrice:
+      clinic.monthlyPrice === null || clinic.monthlyPrice === undefined
+        ? null
+        : Math.max(0, Number(clinic.monthlyPrice)),
+    planMonthlyPrices: clinic.planMonthlyPrices ?? {},
     ownerEmail: clinic.ownerEmail?.trim() || null,
     ownerName: clinic.ownerName?.trim() || null,
     planId: clinic.planId?.trim() || null,
     planName: getPlatformPlanName(clinic.planId, clinic.planName),
-    subscriptionStatus:
-      clinic.subscriptionStatus &&
-      subscriptionStatuses.has(clinic.subscriptionStatus)
-        ? clinic.subscriptionStatus
-        : clinic.subscriptionStatus === null
-          ? null
-          : 'unknown',
+    paymentStatus: clinic.paymentStatus?.trim() || null,
+    payments: Array.isArray(clinic.payments) ? clinic.payments : [],
+    subscriptionStatus: getEffectiveSubscriptionStatus(clinic),
+    trialEndsAt: clinic.trialEndsAt ?? null,
+  }
+}
+
+function getEffectiveSubscriptionStatus(
+  clinic: PlatformClinicSummary,
+): PlatformSubscriptionStatus | null {
+  const normalizedStatus =
+    clinic.subscriptionStatus &&
+    subscriptionStatuses.has(clinic.subscriptionStatus)
+      ? clinic.subscriptionStatus
+      : clinic.subscriptionStatus === null
+        ? null
+        : 'unknown'
+
+  if (clinic.isLifetime || normalizedStatus === 'lifetime') return 'lifetime'
+  if (normalizedStatus === 'canceled' || normalizedStatus === 'blocked') {
+    return normalizedStatus
+  }
+  if (!normalizedStatus || normalizedStatus === 'unknown') return normalizedStatus
+
+  const statusForAccess =
+    normalizedStatus === 'trialing'
+      ? 'trialing'
+      : normalizedStatus === 'past_due'
+        ? 'past_due'
+        : 'active'
+  const access = getSubscriptionAccessState({
+    currentPeriodEndsAt: clinic.currentPeriodEndsAt ?? null,
+    graceEndsAt: clinic.graceEndsAt ?? null,
+    isLifetime: false,
+    status: statusForAccess,
+    trialEndsAt: clinic.trialEndsAt ?? null,
+  })
+
+  if (access.access === 'blocked') return 'blocked'
+  if (access.access === 'grace') return 'past_due'
+  return normalizedStatus
+}
+
+async function invokeSubscriptionAction(
+  functionName: 'register-subscription-payment' | 'update-clinic-subscription',
+  body: RegisterSubscriptionPaymentInput | UpdateClinicSubscriptionInput,
+): Promise<PlatformSubscriptionActionResult> {
+  return invokeSubscriptionActionWithClient(
+    supabase as PlatformAdminFunctionClient | null,
+    functionName,
+    body,
+  )
+}
+
+export async function invokeSubscriptionActionWithClient(
+  client: PlatformAdminFunctionClient | null,
+  functionName: 'register-subscription-payment' | 'update-clinic-subscription',
+  body: RegisterSubscriptionPaymentInput | UpdateClinicSubscriptionInput,
+): Promise<PlatformSubscriptionActionResult> {
+
+  if (!client) return { error: 'Supabase no está configurado.', success: false }
+
+  const { data: sessionData, error: sessionError } = await client.auth.getSession()
+  const accessToken = sessionData.session?.access_token
+
+  if (sessionError || !accessToken) {
+    return {
+      error: 'Tu sesión no es válida. Vuelve a iniciar sesión.',
+      success: false,
+    }
+  }
+
+  const { error } = await client.functions.invoke(functionName, {
+    body,
+    headers: { Authorization: `Bearer ${accessToken}` },
+    method: 'POST',
+  })
+
+  if (!error) return { error: null, success: true }
+
+  const status = getFunctionErrorStatus(error)
+  if (status === 400) {
+    const responseError = await getFunctionResponseError(error)
+    return {
+      error: responseError?.message ?? 'Revisa los datos ingresados.',
+      success: false,
+    }
+  }
+  if (status === 401) {
+    return { error: 'Tu sesión no es válida. Vuelve a iniciar sesión.', success: false }
+  }
+  if (status === 403) {
+    return { error: 'No tienes permiso para administrar suscripciones.', success: false }
+  }
+
+  return {
+    error: 'No pudimos actualizar la suscripción. Intenta nuevamente.',
+    success: false,
   }
 }
 

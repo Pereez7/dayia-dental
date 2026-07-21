@@ -3,6 +3,7 @@ import type {
   Clinic,
   ClinicMembershipRecord,
   ClinicSubscriptionRecord,
+  PlanRecord,
   UserProfile,
 } from '../types/database'
 
@@ -10,6 +11,9 @@ export interface ClinicSessionContext {
   activeMembership: ClinicMembershipRecord | null
   currentClinic: Clinic | null
   currentPlanId: string | null
+  currentPlanCurrency: string
+  currentPlanMonthlyPrice: number | null
+  currentSubscription: ClinicSubscriptionRecord | null
   profile: UserProfile
 }
 
@@ -45,6 +49,9 @@ export async function getClinicSessionContext(profile: UserProfile) {
         activeMembership,
         currentClinic: null,
         currentPlanId: null,
+        currentPlanCurrency: 'BOB',
+        currentPlanMonthlyPrice: null,
+        currentSubscription: null,
         profile: resolvedProfile,
       } satisfies ClinicSessionContext,
       error: null,
@@ -67,13 +74,36 @@ export async function getClinicSessionContext(profile: UserProfile) {
     }
   }
 
+  const subscription = subscriptionResult.data as ClinicSubscriptionRecord | null
+  const planId = getSubscriptionPlanId(subscription)
+  const planResult = planId
+    ? await supabase
+        .from('plans')
+        .select('monthly_price, currency')
+        .eq('id', planId)
+        .maybeSingle()
+    : { data: null, error: null }
+
+  if (planResult.error) {
+    return { data: null, error: planResult.error }
+  }
+  const plan = planResult.data as Pick<
+    PlanRecord,
+    'currency' | 'monthly_price'
+  > | null
+
   return {
     data: {
       activeMembership,
       currentClinic: clinicResult.data as Clinic | null,
-      currentPlanId: getSubscriptionPlanId(
-        subscriptionResult.data as ClinicSubscriptionRecord | null,
-      ),
+      currentPlanCurrency: plan?.currency?.trim() || 'BOB',
+      currentPlanId: planId,
+      currentPlanMonthlyPrice:
+        plan?.monthly_price === null ||
+        plan?.monthly_price === undefined
+          ? null
+          : Number(plan.monthly_price),
+      currentSubscription: subscription,
       profile: resolvedProfile,
     } satisfies ClinicSessionContext,
     error: null,

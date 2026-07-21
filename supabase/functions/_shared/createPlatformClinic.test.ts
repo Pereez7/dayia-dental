@@ -4,11 +4,21 @@ import {
   assertPlatformClinicCreationAllowed,
   createPlatformClinicRecords,
   CreatePlatformClinicError,
+  getInitialClinicTrial,
   normalizeCreatePlatformClinicPayload,
   type CreatePlatformClinicRepository,
 } from './createPlatformClinic'
 
 describe('create-platform-clinic helpers', () => {
+  it('creates a 15 day trial followed by 5 grace days', () => {
+    expect(
+      getInitialClinicTrial(new Date('2026-07-20T12:00:00.000Z')),
+    ).toEqual({
+      graceEndsAt: '2026-08-09T12:00:00.000Z',
+      trialEndsAt: '2026-08-04T12:00:00.000Z',
+      trialStartsAt: '2026-07-20T12:00:00.000Z',
+    })
+  })
   it('rejects a requester who is not platform_admin', () => {
     expect(() => assertPlatformClinicCreationAllowed(false, 'true')).toThrowError(
       expect.objectContaining({ code: 'FORBIDDEN', status: 403 }),

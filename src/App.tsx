@@ -3,8 +3,8 @@ import './App.css'
 import { useAuth } from './auth/AuthContext'
 import {
   canAccessPlatformAdministration,
-  getClinicalPermissions,
 } from './auth/permissions'
+import { getSubscriptionScopedPermissions } from './auth/subscriptionPermissions'
 import {
   getSensitiveDataAccess,
   runSensitiveLoader,
@@ -17,6 +17,10 @@ import { odontogramEntries as initialOdontogramEntries } from './data/odontogram
 import { patients as initialPatients } from './data/patients'
 import { treatments as initialTreatments } from './data/treatments'
 import { AppLayout } from './layout/AppLayout'
+import {
+  SubscriptionBlockedView,
+  SubscriptionNotice,
+} from './components/SubscriptionAccess'
 import {
   canAccessAppSection,
   getAuthorizedSection,
@@ -192,14 +196,25 @@ function ModuleLoadingFallback() {
 function App() {
   const {
     currentClinic,
+    currentPlanCurrency,
     currentPlanId,
+    currentPlanMonthlyPrice,
+    currentSubscription,
     isDemoMode,
     profile,
     signOut,
     user,
   } = useAuth()
   const canAccessAdministration = canAccessPlatformAdministration(profile)
-  const permissions = getClinicalPermissions(profile?.role, currentPlanId)
+  const subscriptionScope = getSubscriptionScopedPermissions({
+    isDemoMode,
+    isPlatformAdmin: canAccessAdministration,
+    planId: currentPlanId,
+    role: profile?.role,
+    subscription: currentSubscription,
+  })
+  const isClinicalAccessBlocked = subscriptionScope.isBlocked
+  const permissions = subscriptionScope.permissions
   const sensitiveDataAccess = getSensitiveDataAccess(permissions)
   const canLoadOperationalSettings =
     permissions.canAccessAppointments || permissions.canAccessSettings
@@ -1922,6 +1937,17 @@ function App() {
   }
 
   function renderActiveView() {
+    if (isClinicalAccessBlocked && currentClinic) {
+      return (
+        <SubscriptionBlockedView
+          clinic={currentClinic}
+          currency={currentPlanCurrency}
+          monthlyPrice={currentPlanMonthlyPrice}
+          planId={currentPlanId}
+        />
+      )
+    }
+
     if (
       isSensitiveSectionAccessDenied(
         activeSection,
@@ -2192,6 +2218,9 @@ function App() {
       onSectionChange={handleSectionChange}
       permissions={permissions}
     >
+      {!isClinicalAccessBlocked && !canAccessAdministration ? (
+        <SubscriptionNotice subscription={currentSubscription} />
+      ) : null}
       <Suspense fallback={<ModuleLoadingFallback />}>
         {renderActiveView()}
       </Suspense>

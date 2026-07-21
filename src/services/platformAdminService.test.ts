@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import {
   createPlatformClinicWithClient,
+  invokeSubscriptionActionWithClient,
   listPlatformClinicsWithClient,
   mapPlatformClinicSummary,
 } from './platformAdminService'
@@ -12,11 +13,21 @@ const clinicResponse = {
   clinicName: '  Clínica Central  ',
   clinicStatus: 'active' as const,
   createdAt: '2026-07-01T10:00:00.000Z',
+  currency: 'BOB',
+  currentPeriodEndsAt: '2099-08-01T10:00:00.000Z',
+  graceEndsAt: '2099-08-06T10:00:00.000Z',
+  isLifetime: false,
+  lastPaymentAt: null,
+  monthlyPrice: null,
+  planMonthlyPrices: {},
   ownerEmail: '  owner@clinic.test ',
   ownerName: '  Dra. Ana  ',
   planId: 'pro',
   planName: 'Pro',
+  paymentStatus: 'trial',
+  payments: [],
   subscriptionStatus: 'trialing' as const,
+  trialEndsAt: '2099-07-16T10:00:00.000Z',
 }
 
 function createClient(
@@ -37,6 +48,37 @@ function createClient(
 }
 
 describe('platform admin service', () => {
+  it('registers payments through the protected Function with the current JWT', async () => {
+    const client = createClient({ data: { paymentId: 'payment-1' }, error: null })
+    const body = {
+      amountPaid: 540,
+      billingCycle: 'six_months' as const,
+      clinicId: 'clinic-1',
+      customDays: null,
+      discountPercent: 10,
+      isLifetime: false,
+      notes: '',
+      paidAt: '2026-07-20T12:00:00.000Z',
+      planId: 'basic' as const,
+      reference: 'QR-100',
+    }
+
+    await expect(
+      invokeSubscriptionActionWithClient(
+        client,
+        'register-subscription-payment',
+        body,
+      ),
+    ).resolves.toEqual({ error: null, success: true })
+    expect(client.functions.invoke).toHaveBeenCalledWith(
+      'register-subscription-payment',
+      {
+        body,
+        headers: { Authorization: 'Bearer valid-token' },
+        method: 'POST',
+      },
+    )
+  })
   it('loads clinics and sends the current JWT', async () => {
     const client = createClient({
       data: { clinics: [clinicResponse] },

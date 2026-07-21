@@ -131,11 +131,11 @@ async function handleListPlatformClinics(request: Request) {
   }
 
   const clinicIds = clinics.map((clinic) => clinic.id)
-  const [subscriptionsResult, membershipsResult, plansResult] =
+  const [subscriptionsResult, membershipsResult, plansResult, paymentsResult] =
     await Promise.all([
       adminClient
         .from('clinic_subscriptions')
-        .select('clinic_id, plan_id, status')
+        .select('clinic_id, plan_id, status, trial_ends_at, current_period_ends_at, grace_ends_at, last_payment_at, payment_status, is_lifetime')
         .in('clinic_id', clinicIds),
       adminClient
         .from('clinic_memberships')
@@ -144,13 +144,19 @@ async function handleListPlatformClinics(request: Request) {
         .eq('status', 'active')
         .order('activated_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false }),
-      adminClient.from('plans').select('id, name'),
+      adminClient.from('plans').select('id, name, monthly_price, currency'),
+      adminClient
+        .from('subscription_payments')
+        .select('id, clinic_id, plan_id, billing_cycle, amount_paid, currency, discount_percent, reference, paid_at, recorded_by')
+        .in('clinic_id', clinicIds)
+        .order('paid_at', { ascending: false }),
     ])
 
   if (
     subscriptionsResult.error ||
     membershipsResult.error ||
-    plansResult.error
+    plansResult.error ||
+    paymentsResult.error
   ) {
     return dataQueryError()
   }
@@ -160,17 +166,21 @@ async function handleListPlatformClinics(request: Request) {
     (membership) => membership.role === 'clinic_owner',
   )
   const ownerIds = [...new Set(ownerMemberships.map((owner) => owner.user_id))]
+  const recorderIds = (paymentsResult.data ?? [])
+    .map((payment) => payment.recorded_by)
+    .filter((id): id is string => Boolean(id))
+  const profileIds = [...new Set([...ownerIds, ...recorderIds])]
   let ownerProfiles: Array<{
     email: string | null
     full_name: string | null
     id: string
   }> = []
 
-  if (ownerIds.length > 0) {
+  if (profileIds.length > 0) {
     const ownerProfilesResult = await adminClient
       .from('profiles')
       .select('id, full_name, email')
-      .in('id', ownerIds)
+      .in('id', profileIds)
 
     if (ownerProfilesResult.error) {
       return dataQueryError()
@@ -188,9 +198,19 @@ async function handleListPlatformClinics(request: Request) {
   const plansById = new Map(
     (plansResult.data ?? []).map((plan) => [plan.id, plan]),
   )
+  const planMonthlyPrices = Object.fromEntries(
+    (plansResult.data ?? []).map((plan) => [
+      plan.id,
+      plan.monthly_price === null ? null : Number(plan.monthly_price),
+    ]),
+  )
   const ownerProfilesById = new Map(
     ownerProfiles.map((profile) => [profile.id, profile]),
   )
+  const paymentsByClinic = new Map<
+    string,
+    NonNullable<typeof paymentsResult.data>
+  >()
   const activeMembersCountByClinic = new Map<string, number>()
   const ownerMembershipsByClinic = new Map<
     string,
@@ -208,6 +228,12 @@ async function handleListPlatformClinics(request: Request) {
     const clinicOwners = ownerMembershipsByClinic.get(membership.clinic_id) ?? []
     clinicOwners.push(membership)
     ownerMembershipsByClinic.set(membership.clinic_id, clinicOwners)
+  }
+
+  for (const payment of paymentsResult.data ?? []) {
+    const clinicPayments = paymentsByClinic.get(payment.clinic_id) ?? []
+    clinicPayments.push(payment)
+    paymentsByClinic.set(payment.clinic_id, clinicPayments)
   }
 
   return jsonResponse({
@@ -234,6 +260,35 @@ async function handleListPlatformClinics(request: Request) {
         ownerName: primaryOwner?.fullName ?? null,
         planId: subscription?.plan_id ?? null,
         planName: plan?.name ?? null,
+        monthlyPrice:
+          plan?.monthly_price === null || plan?.monthly_price === undefined
+            ? null
+            : Number(plan.monthly_price),
+        planMonthlyPrices,
+        currency: plan?.currency ?? 'BOB',
+        trialEndsAt: subscription?.trial_ends_at ?? null,
+        currentPeriodEndsAt: subscription?.current_period_ends_at ?? null,
+        graceEndsAt: subscription?.grace_ends_at ?? null,
+        lastPaymentAt: subscription?.last_payment_at ?? null,
+        paymentStatus: subscription?.payment_status ?? null,
+        isLifetime: subscription?.is_lifetime === true,
+        payments: (paymentsByClinic.get(clinic.id) ?? []).map((payment) => {
+          const recorder = payment.recorded_by
+            ? ownerProfilesById.get(payment.recorded_by)
+            : null
+
+          return {
+            amountPaid: Number(payment.amount_paid),
+            billingCycle: payment.billing_cycle,
+            currency: payment.currency,
+            discountPercent: Number(payment.discount_percent),
+            id: payment.id,
+            paidAt: payment.paid_at,
+            planId: payment.plan_id,
+            recordedBy: recorder?.full_name ?? recorder?.email ?? null,
+            reference: payment.reference,
+          }
+        }),
         subscriptionStatus: normalizeSubscriptionStatus(subscription?.status),
       }
     }),

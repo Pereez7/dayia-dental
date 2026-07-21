@@ -37,6 +37,17 @@ export interface CreatedPlatformClinicOwner {
   owner: PlatformClinicOwner
 }
 
+export function getInitialClinicTrial(referenceDate = new Date()) {
+  const trialEndsAt = new Date(referenceDate.getTime() + 15 * 86_400_000)
+  const graceEndsAt = new Date(trialEndsAt.getTime() + 5 * 86_400_000)
+
+  return {
+    graceEndsAt: graceEndsAt.toISOString(),
+    trialEndsAt: trialEndsAt.toISOString(),
+    trialStartsAt: referenceDate.toISOString(),
+  }
+}
+
 export interface CreatePlatformClinicRepository {
   createClinic: (name: string) => Promise<{ id: string }>
   createMembership: (

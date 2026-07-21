@@ -55,8 +55,9 @@ export type ClinicSubscriptionRecordStatus =
   | 'active'
   | 'cancelled'
   | 'past_due'
-  | 'suspended'
-  | 'trial'
+  | 'blocked'
+  | 'lifetime'
+  | 'trialing'
 
 export type ReminderRecordChannel = 'whatsapp'
 
@@ -77,17 +78,54 @@ export interface PlanRecord {
   id: PlanRecordId
   is_active: boolean
   max_users: number
+  monthly_price: number | null
   name: string
+  currency: string
 }
 
 export interface ClinicSubscriptionRecord {
+  billing_cycle: string | null
+  blocked_at: string | null
   clinic_id: string
   created_at: string
+  current_period_ends_at: string | null
+  current_period_starts_at: string | null
   ends_at: string | null
+  grace_ends_at: string | null
+  id: string
+  is_lifetime: boolean
+  last_payment_at: string | null
+  payment_status: string | null
   plan_id: string
   starts_at: string
   status: ClinicSubscriptionRecordStatus
+  trial_ends_at: string | null
+  trial_starts_at: string | null
   updated_at: string
+}
+
+export interface SubscriptionPaymentRecord {
+  amount_due: number
+  amount_paid: number
+  billing_cycle: string
+  clinic_id: string
+  created_at: string
+  currency: string
+  custom_days: number | null
+  discount_amount: number
+  discount_percent: number
+  id: string
+  months_covered: number | null
+  notes: string | null
+  paid_at: string
+  payment_method: string
+  period_ends_at: string | null
+  period_starts_at: string | null
+  plan_id: string
+  qr_plan_id: string | null
+  recorded_by: string | null
+  reference: string | null
+  subscription_id: string | null
 }
 
 export interface ClinicMembershipRecord {
@@ -279,6 +317,7 @@ export type TableRowMap = {
   plans: PlanRecord
   profiles: UserProfile
   reminders: ReminderRecord
+  subscription_payments: SubscriptionPaymentRecord
   treatments: TreatmentRecord
   whatsapp_settings: WhatsAppSettingsRecord
 }

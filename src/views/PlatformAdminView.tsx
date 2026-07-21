@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { ClinicOnboardingForm } from '../components/ClinicOnboardingForm'
+import { SubscriptionAdministration } from '../components/SubscriptionAdministration'
 import {
   createPlatformClinic,
   listPlatformClinics,
@@ -31,6 +32,7 @@ interface PlatformClinicsContentProps {
   errorMessage: string
   isLoading: boolean
   onRetry?: () => void
+  onManage?: (clinicId: string) => void
 }
 
 export function PlatformAdminView({
@@ -41,6 +43,7 @@ export function PlatformAdminView({
   const [clinics, setClinics] = useState<PlatformClinicSummary[]>([])
   const [errorMessage, setErrorMessage] = useState('')
   const [isLoading, setIsLoading] = useState(canAccessPlatformAdmin)
+  const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null)
 
   const loadPlatformClinics = useCallback(async () => {
     setIsLoading(true)
@@ -90,6 +93,8 @@ export function PlatformAdminView({
     )
   }
 
+  const selectedClinic = clinics.find(({ clinicId }) => clinicId === selectedClinicId)
+
   return (
     <div className="administration-view">
       <section
@@ -108,8 +113,17 @@ export function PlatformAdminView({
           errorMessage={errorMessage}
           isLoading={isLoading}
           onRetry={loadPlatformClinics}
+          onManage={setSelectedClinicId}
         />
       </section>
+
+      {selectedClinic ? (
+        <SubscriptionAdministration
+          clinic={selectedClinic}
+          onClose={() => setSelectedClinicId(null)}
+          onUpdated={loadPlatformClinics}
+        />
+      ) : null}
 
       <ClinicOnboardingForm
         onCreate={createClinicAndRefresh}
@@ -123,6 +137,7 @@ export function PlatformClinicsContent({
   errorMessage,
   isLoading,
   onRetry,
+  onManage,
 }: PlatformClinicsContentProps) {
   if (isLoading) {
     return (
@@ -176,6 +191,7 @@ export function PlatformClinicsContent({
             <th scope="col">Propietario</th>
             <th scope="col">Miembros</th>
             <th scope="col">Creación</th>
+            {onManage ? <th scope="col">Suscripción</th> : null}
           </tr>
         </thead>
         <tbody>
@@ -214,6 +230,17 @@ export function PlatformClinicsContent({
               <td data-label="Creación">
                 <strong>{formatPlatformDate(clinic.createdAt)}</strong>
               </td>
+              {onManage ? (
+                <td data-label="Suscripción">
+                  <button
+                    className="secondary-action"
+                    onClick={() => onManage(clinic.clinicId)}
+                    type="button"
+                  >
+                    Gestionar cobro
+                  </button>
+                </td>
+              ) : null}
             </tr>
           ))}
         </tbody>

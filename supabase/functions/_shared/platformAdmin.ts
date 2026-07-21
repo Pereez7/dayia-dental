@@ -6,7 +6,9 @@ export type ResolvedClinicStatus =
 
 export type ResolvedSubscriptionStatus =
   | 'active'
+  | 'blocked'
   | 'canceled'
+  | 'lifetime'
   | 'past_due'
   | 'trialing'
   | 'unknown'
@@ -72,7 +74,12 @@ export function normalizeSubscriptionStatus(
     return 'canceled'
   }
 
-  if (normalizedStatus === 'active' || normalizedStatus === 'past_due') {
+  if (
+    normalizedStatus === 'active' ||
+    normalizedStatus === 'past_due' ||
+    normalizedStatus === 'blocked' ||
+    normalizedStatus === 'lifetime'
+  ) {
     return normalizedStatus
   }
 

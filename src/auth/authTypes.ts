@@ -3,6 +3,7 @@ import type { Session, User } from '@supabase/supabase-js'
 import type {
   Clinic,
   ClinicMembershipRecord,
+  ClinicSubscriptionRecord,
   UserProfile,
 } from '../types/database'
 
@@ -11,6 +12,9 @@ export interface AuthState {
   authError: string
   currentClinic: Clinic | null
   currentPlanId: string | null
+  currentPlanCurrency: string
+  currentPlanMonthlyPrice: number | null
+  currentSubscription: ClinicSubscriptionRecord | null
   isDemoMode: boolean
   isLoading: boolean
   isSessionContextLoading: boolean

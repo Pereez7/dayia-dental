@@ -4,6 +4,7 @@ import {
   assertPlatformClinicCreationAllowed,
   createPlatformClinicRecords,
   CreatePlatformClinicError,
+  getInitialClinicTrial,
   normalizeCreatePlatformClinicPayload,
   type CreatePlatformClinicRepository,
   type PlatformClinicOwner,
@@ -379,10 +380,22 @@ function createRepository(
         )
       }
 
+      const trial = getInitialClinicTrial()
       const { error } = await adminClient.from('clinic_subscriptions').insert({
+        billing_cycle: 'trial',
+        blocked_at: null,
         clinic_id: clinicId,
+        current_period_ends_at: trial.trialEndsAt,
+        current_period_starts_at: trial.trialStartsAt,
+        ends_at: trial.trialEndsAt,
+        grace_ends_at: trial.graceEndsAt,
+        is_lifetime: false,
+        payment_status: 'trial',
         plan_id: planId,
-        status: 'active',
+        starts_at: trial.trialStartsAt,
+        status: 'trialing',
+        trial_ends_at: trial.trialEndsAt,
+        trial_starts_at: trial.trialStartsAt,
       })
 
       if (error) {
