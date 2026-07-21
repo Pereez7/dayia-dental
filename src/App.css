@@ -622,10 +622,8 @@
   max-height: calc(100dvh - 36px);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), #ffffff),
-    var(--color-surface);
-  box-shadow: 0 18px 46px rgba(16, 42, 67, 0.18);
+  background: var(--color-surface);
+  box-shadow: 0 8px 8px rgba(16, 42, 67, 0.12);
   color: var(--color-text);
   padding: 18px;
 }
@@ -766,14 +764,14 @@
 }
 
 .confirm-dialog-confirm--danger {
-  background: #fff1f2;
-  border-color: #fecdd3;
-  color: #be123c;
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+  color: #ffffff;
 }
 
 .confirm-dialog-confirm--danger:hover {
-  background: #ffe4e6;
-  border-color: #fda4af;
+  background: #9f1239;
+  border-color: #9f1239;
 }
 
 .confirm-dialog-confirm--warning {
@@ -918,7 +916,7 @@
 }
 
 .appointment-resolution-reason textarea {
-  resize: vertical;
+  resize: none;
 }
 
 .appointment-resolution-schedule input:focus-visible,
@@ -3399,8 +3397,8 @@
 
 .clinic-onboarding-form {
   display: grid;
-  gap: 20px;
-  width: min(100%, 780px);
+  gap: 24px;
+  width: min(100%, 920px);
 }
 
 .clinic-onboarding-grid {
@@ -3775,27 +3773,43 @@
   margin: 0;
 }
 
+.subscription-admin-header h2 {
+  color: var(--color-heading);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
 .subscription-admin-header p,
+.subscription-block-heading p,
 .subscription-payment-aside p,
 .subscription-payment-history p {
   color: var(--color-text-muted);
   font-size: var(--text-sm);
-  line-height: 1.5;
+  font-weight: 400;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.subscription-admin-header p {
+  margin-top: 4px;
 }
 
 .subscription-facts {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 1px;
+  display: flex;
+  flex-wrap: wrap;
   margin: 0;
   overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: var(--color-border);
+  background: var(--color-surface);
 }
 
 .subscription-facts div {
+  flex: 1 1 150px;
   min-width: 0;
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
   background: #f8fbfc;
   padding: 12px;
 }
@@ -3803,7 +3817,7 @@
 .subscription-facts dt {
   color: var(--color-text-muted);
   font-size: var(--text-xs);
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .subscription-facts dd {
@@ -3840,7 +3854,7 @@
   gap: 7px;
   color: var(--color-heading);
   font-size: var(--text-sm);
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .subscription-form-grid input,
@@ -3855,6 +3869,8 @@
   border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: 500;
   padding: 9px 11px;
 }
 
@@ -3871,6 +3887,12 @@
 .subscription-form-grid input[readonly] {
   background: #f3f7f9;
   color: var(--color-heading);
+  font-weight: 600;
+}
+
+.subscription-amount-field input {
+  color: var(--color-heading);
+  font-weight: 700;
 }
 
 .subscription-field-wide {
@@ -3966,12 +3988,20 @@
 
 .subscription-feedback {
   margin: 0;
+  border: 1px solid #b9ddec;
   border-radius: var(--radius-md);
   background: var(--color-soft-blue);
   color: var(--color-primary-dark);
   font-size: var(--text-sm);
-  font-weight: 650;
+  font-weight: 600;
+  line-height: 1.45;
   padding: 12px 14px;
+}
+
+.subscription-feedback--success {
+  border-color: #b7e4ce;
+  background: #e9f8f1;
+  color: #16643c;
 }
 
 .subscription-notice {
@@ -3982,7 +4012,7 @@
   background: #fff9e8;
   color: #704a00;
   font-size: var(--text-sm);
-  font-weight: 650;
+  font-weight: 600;
   padding: 11px 14px;
 }
 
@@ -4122,6 +4152,168 @@
   }
 }
 
+.clinic-onboarding-commercial {
+  display: grid;
+  gap: 18px;
+  padding-top: 22px;
+  border-top: 1px solid rgba(217, 232, 239, 0.82);
+}
+
+.clinic-onboarding-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.clinic-onboarding-section-heading h3,
+.clinic-onboarding-section-heading p {
+  margin: 0;
+}
+
+.clinic-onboarding-section-heading h3 {
+  font-size: 1rem;
+}
+
+.clinic-onboarding-section-heading p {
+  max-width: 58ch;
+  margin-top: 5px;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.clinic-onboarding-trial {
+  display: grid;
+  flex: 0 0 auto;
+  gap: 3px;
+  min-width: 190px;
+  border: 1px solid #b9ddec;
+  border-radius: var(--radius-md);
+  background: var(--color-soft-blue);
+  padding: 11px 13px;
+}
+
+.clinic-onboarding-trial span,
+.clinic-onboarding-trial small {
+  color: var(--color-primary-dark);
+  font-size: var(--text-xs);
+}
+
+.clinic-onboarding-trial strong {
+  color: var(--color-heading);
+  font-size: var(--text-sm);
+}
+
+.clinic-onboarding-choice-group {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.clinic-onboarding-choice-group legend {
+  margin-bottom: 8px;
+  color: var(--color-heading);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.clinic-onboarding-plan-options,
+.clinic-onboarding-tier-options {
+  display: grid;
+  gap: 10px;
+}
+
+.clinic-onboarding-plan-options {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.clinic-onboarding-tier-options {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.clinic-onboarding-choice {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  min-height: 68px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  padding: 12px 14px;
+  text-align: left;
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base);
+}
+
+.clinic-onboarding-choice:hover {
+  border-color: #91c9df;
+  background: #f8fcfd;
+}
+
+.clinic-onboarding-choice:focus-visible {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.clinic-onboarding-choice--selected {
+  border-color: var(--color-primary);
+  background: var(--color-soft-blue);
+}
+
+.clinic-onboarding-choice strong {
+  color: var(--color-heading);
+  font-size: var(--text-sm);
+}
+
+.clinic-onboarding-choice span {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+}
+
+.clinic-onboarding-choice--selected span {
+  color: var(--color-primary-dark);
+}
+
+.clinic-onboarding-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-border);
+  gap: 1px;
+}
+
+.clinic-onboarding-summary div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  background: #f8fbfc;
+  padding: 11px 12px;
+}
+
+.clinic-onboarding-summary dt {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+.clinic-onboarding-summary dd {
+  margin: 0;
+  color: var(--color-heading);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
 /* Subscription administration and clinic-owner renewal flow */
 .subscription-summary-block,
 .subscription-calculator-block,
@@ -4163,7 +4355,8 @@
 
 .subscription-inline-note {
   grid-column: 1 / -1;
-  border-left: 3px solid var(--color-primary);
+  border: 1px solid #b9ddec;
+  border-radius: var(--radius-md);
   background: #eef8fc;
   color: var(--color-text-secondary);
   font-size: var(--text-sm);
@@ -4176,6 +4369,8 @@
 .subscription-payment-aside h3 {
   color: var(--color-heading);
   font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.3;
 }
 
 .subscription-block-heading p,
@@ -4266,13 +4461,19 @@
 
 .subscription-field-wrapper {
   display: grid;
+  align-content: start;
   gap: 6px;
   min-width: 0;
 }
 
+.field-message--reserved {
+  visibility: hidden;
+}
+
 .subscription-inline-warning {
   grid-column: 1 / -1;
-  border-left: 3px solid #d58a12;
+  border: 1px solid #e8cf91;
+  border-radius: var(--radius-md);
   background: #fff8e6;
   color: #704a00;
   font-size: var(--text-sm);
@@ -4289,18 +4490,23 @@
   background: var(--color-border);
 }
 
-.subscription-calculation-summary p {
+.subscription-calculation-summary > div {
   display: grid;
   gap: 4px;
   background: #f8fbfc;
   padding: 11px 12px;
+}
+
+.subscription-calculation-summary span {
   color: var(--color-text-muted);
   font-size: var(--text-xs);
+  font-weight: 500;
 }
 
 .subscription-calculation-summary strong {
   color: var(--color-heading);
   font-size: var(--text-sm);
+  font-weight: 700;
 }
 
 .subscription-register-action {
@@ -4308,10 +4514,22 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding-top: 4px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 14px;
 }
 
-.subscription-register-action p {
+.subscription-register-action > div {
+  display: grid;
+  gap: 3px;
+}
+
+.subscription-register-action strong {
+  color: var(--color-heading);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.subscription-register-action span {
   max-width: 48ch;
   margin: 0;
   color: var(--color-text-muted);
@@ -4324,14 +4542,72 @@
   top: 18px;
   border: 1px solid #bcdce8;
   background: #f2fafc;
+  padding: 18px;
 }
 
-.subscription-payment-aside > strong {
-  color: var(--color-primary-dark);
-  font-size: 1.2rem;
+.subscription-payment-aside > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.subscription-payment-aside > div:first-child > span {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+
+.subscription-payment-aside h4 {
+  margin: 0;
+  color: var(--color-heading);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.subscription-payment-aside dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  margin: 0;
+  border: 1px solid #c9e0e9;
+  border-radius: var(--radius-md);
+  background: #c9e0e9;
+}
+
+.subscription-payment-aside dl > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  background: var(--color-surface);
+  padding: 10px;
+}
+
+.subscription-payment-aside dt {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+.subscription-payment-aside dd {
+  margin: 0;
+  color: var(--color-heading);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.subscription-payment-aside > p {
+  margin: 0;
+  font-size: var(--text-xs);
+  text-align: center;
+}
+
+.subscription-payment-aside .payment-qr-image,
+.subscription-payment-aside .payment-qr-placeholder {
+  width: min(100%, 220px);
 }
 
 .subscription-feedback--error {
+  border-color: #f1c7d2;
   background: #fff0f2;
   color: #8f1735;
 }
@@ -4370,7 +4646,7 @@
   align-content: start;
   border: 0;
   background: var(--color-surface);
-  padding: 16px;
+  padding: 20px;
 }
 
 .subscription-management-groups .subscription-action-row {
@@ -4385,19 +4661,23 @@
 .payment-review-summary {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0;
-  margin: 0;
-  border-top: 1px solid var(--color-border);
+  gap: 1px;
+  overflow: hidden;
+  margin: 4px 0 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-border);
 }
 
 .payment-review-summary div {
   min-width: 0;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--color-border);
+  background: #f8fbfc;
+  padding: 10px 11px;
 }
 
-.payment-review-summary div:nth-child(odd) {
-  padding-right: 14px;
+.payment-review-summary .summary-fact--wide {
+  grid-column: 1 / -1;
+  padding-right: 0;
 }
 
 .payment-review-summary dt {
@@ -4418,12 +4698,71 @@
   margin-top: 15px;
   color: var(--color-heading);
   font-size: var(--text-sm);
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .confirm-dialog-field textarea {
+  width: 100%;
+  height: 92px;
   min-height: 92px;
-  resize: vertical;
+  max-height: 92px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  line-height: 1.45;
+  overflow-y: auto;
+  padding: 10px 11px;
+  resize: none;
+}
+
+.confirm-dialog-field textarea:focus-visible {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.confirm-dialog-help {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.confirm-dialog-help--valid {
+  color: #16643c;
+}
+
+.void-payment-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow: hidden;
+  margin: 8px 0 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-border);
+  gap: 1px;
+}
+
+.void-payment-summary > div {
+  min-width: 0;
+  background: #f8fbfc;
+  padding: 10px 11px;
+}
+
+.void-payment-summary dt {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+.void-payment-summary dd {
+  margin: 3px 0 0;
+  color: var(--color-heading);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .subscription-membership-view {
@@ -4465,7 +4804,7 @@
   background: transparent;
   color: var(--color-primary-dark);
   cursor: pointer;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   font-weight: 700;
   padding: 4px 2px;
 }
@@ -4495,8 +4834,8 @@
 .subscription-membership-header p {
   margin-top: 0;
   color: var(--color-text-muted);
-  font-size: 0.92rem;
-  line-height: 1.5;
+  font-size: var(--text-sm);
+  line-height: 1.45;
 }
 
 .subscription-membership-facts {
@@ -4517,7 +4856,7 @@
 
 .subscription-membership-facts dt {
   color: var(--color-text-muted);
-  font-size: 0.73rem;
+  font-size: var(--text-xs);
   font-weight: 500;
   line-height: 1.25;
 }
@@ -4527,14 +4866,14 @@
   gap: 2px;
   margin: 4px 0 0;
   color: var(--color-heading);
-  font-size: 0.92rem;
+  font-size: var(--text-sm);
   font-weight: 700;
   line-height: 1.25;
 }
 
 .subscription-membership-facts dd small {
   color: var(--color-text-muted);
-  font-size: 0.68rem;
+  font-size: var(--text-xs);
   font-weight: 600;
 }
 
@@ -4557,7 +4896,7 @@
 
 .subscription-renewal-main .subscription-block-heading p {
   color: var(--color-text-muted);
-  font-size: 0.88rem;
+  font-size: var(--text-sm);
   line-height: 1.45;
 }
 
@@ -4588,12 +4927,11 @@
 .subscription-renewal-option--selected {
   border-color: var(--color-primary);
   background: var(--color-soft-blue);
-  box-shadow: inset 3px 0 0 var(--color-primary);
 }
 
 .subscription-renewal-option span {
   color: var(--color-text-muted);
-  font-size: 0.73rem;
+  font-size: var(--text-xs);
   font-weight: 500;
   line-height: 1.3;
 }
@@ -4608,7 +4946,7 @@
 .subscription-renewal-option small {
   min-height: 2.5em;
   color: var(--color-text-muted);
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   font-weight: 500;
   line-height: 1.25;
 }
@@ -4620,7 +4958,7 @@
   border-block: 1px solid var(--color-border);
   padding: 12px 0;
   color: var(--color-text-muted);
-  font-size: 0.78rem;
+  font-size: var(--text-xs);
 }
 
 .subscription-renewal-breakdown > div {
@@ -4630,7 +4968,7 @@
 
 .subscription-renewal-breakdown strong {
   color: var(--color-heading);
-  font-size: 0.86rem;
+  font-size: var(--text-sm);
   line-height: 1.3;
 }
 
@@ -4640,14 +4978,14 @@
   margin: 0;
   padding-left: 21px;
   color: var(--color-text-muted);
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
   line-height: 1.55;
 }
 
 .subscription-whatsapp-action {
   width: 100%;
   min-height: 44px;
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
 }
 
 .subscription-proof-form {
@@ -4662,7 +5000,7 @@
   gap: 7px;
   color: var(--color-heading);
   font-size: var(--text-sm);
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .subscription-proof-actions {
@@ -4672,7 +5010,8 @@
 }
 
 .subscription-owner-note {
-  border-left: 3px solid var(--color-primary);
+  border: 1px solid #b9ddec;
+  border-radius: var(--radius-md);
   background: var(--color-soft-blue);
   color: var(--color-primary-dark);
   font-size: var(--text-sm);
@@ -4700,7 +5039,7 @@
 
 .subscription-member-qr h2 {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 1rem;
   line-height: 1.25;
 }
 
@@ -4730,13 +5069,13 @@
 
 .subscription-member-qr dt {
   color: var(--color-text-muted);
-  font-size: 0.7rem;
+  font-size: var(--text-xs);
 }
 
 .subscription-member-qr dd {
   margin: 0;
   color: var(--color-heading);
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
   font-weight: 700;
   line-height: 1.3;
 }
@@ -4752,14 +5091,16 @@
   display: grid;
   gap: 4px;
   width: 100%;
-  border-left: 3px solid var(--color-primary);
+  border: 1px solid #b9ddec;
+  border-radius: var(--radius-md);
   background: var(--color-soft-blue);
-  padding: 10px 12px;
+  padding: 11px 12px;
 }
 
 .subscription-founder-setting span {
-  color: var(--color-text-muted);
+  color: var(--color-primary-dark);
   font-size: var(--text-xs);
+  font-weight: 500;
 }
 
 .subscription-founder-setting strong {
@@ -4770,7 +5111,7 @@
 
 .subscription-management-groups .section-heading {
   display: grid;
-  gap: 7px;
+  gap: 6px;
 }
 
 .subscription-management-groups .section-heading h4,
@@ -4781,7 +5122,21 @@
 
 .subscription-management-groups .section-description,
 .subscription-management-groups .subscription-action-row p {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: 400;
   line-height: 1.45;
+}
+
+.subscription-management-groups .section-heading h4 {
+  color: var(--color-heading);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.subscription-management-groups .subscription-action-row {
+  gap: 10px;
 }
 
 .subscription-owner-submission-list article {
@@ -4839,8 +5194,8 @@
     width: 100%;
   }
 
-  .payment-review-summary div:nth-child(odd) {
-    padding-right: 0;
+  .void-payment-summary {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -5797,7 +6152,7 @@
 }
 
 .clinical-form-grid textarea {
-  resize: vertical;
+  resize: none;
 }
 
 .clinical-form-grid input:focus,
@@ -8250,6 +8605,29 @@
   .clinic-onboarding-grid {
     grid-template-columns: 1fr;
     gap: 16px;
+  }
+
+  .clinic-onboarding-section-heading {
+    display: grid;
+    gap: 14px;
+  }
+
+  .clinic-onboarding-trial {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .clinic-onboarding-plan-options,
+  .clinic-onboarding-tier-options {
+    grid-template-columns: 1fr;
+  }
+
+  .clinic-onboarding-choice {
+    min-height: 62px;
+  }
+
+  .clinic-onboarding-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .clinic-onboarding-actions,

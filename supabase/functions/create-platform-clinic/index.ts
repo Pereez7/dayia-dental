@@ -364,10 +364,10 @@ function createRepository(
       }
     },
 
-    async createSubscription(clinicId, planId) {
+    async createSubscription(clinicId, planId, priceTier) {
       const { data: plan, error: planError } = await adminClient
         .from('plans')
-        .select('id')
+        .select('id, founder_monthly_price')
         .eq('id', planId)
         .eq('is_active', true)
         .maybeSingle()
@@ -377,6 +377,18 @@ function createRepository(
           'INVALID_PLAN',
           'El plan seleccionado no está disponible.',
           400,
+        )
+      }
+
+      if (
+        priceTier === 'founder' &&
+        (plan.founder_monthly_price === null ||
+          Number(plan.founder_monthly_price) <= 0)
+      ) {
+        throw new CreatePlatformClinicError(
+          'FOUNDER_PRICE_NOT_CONFIGURED',
+          'La tarifa fundador no está configurada para el plan seleccionado.',
+          409,
         )
       }
 
@@ -392,6 +404,8 @@ function createRepository(
         is_lifetime: false,
         payment_status: 'trial',
         plan_id: planId,
+        price_tier: priceTier,
+        founder_price_locked: priceTier === 'founder',
         starts_at: trial.trialStartsAt,
         status: 'trialing',
         trial_ends_at: trial.trialEndsAt,

@@ -44,19 +44,22 @@ describe('create-platform-clinic helpers', () => {
         ownerEmail: ' OWNER@EXAMPLE.COM ',
         ownerName: ' Dra.   Andrea Pérez ',
         planId: 'pro',
+        priceTier: 'founder',
       }),
     ).toEqual({
       clinicName: 'Clínica Norte',
       ownerEmail: 'owner@example.com',
       ownerName: 'Dra. Andrea Pérez',
       planId: 'pro',
+      priceTier: 'founder',
     })
   })
 
   it.each([
     [{}, 'INVALID_PAYLOAD'],
-    [{ clinicName: 'A', ownerName: 'B', ownerEmail: 'correo', planId: 'basic' }, 'INVALID_PAYLOAD'],
-    [{ clinicName: 'A', ownerName: 'B', ownerEmail: 'a@b.com', planId: 'enterprise' }, 'INVALID_PAYLOAD'],
+    [{ clinicName: 'A', ownerName: 'B', ownerEmail: 'correo', planId: 'basic', priceTier: 'standard' }, 'INVALID_PAYLOAD'],
+    [{ clinicName: 'A', ownerName: 'B', ownerEmail: 'a@b.com', planId: 'enterprise', priceTier: 'standard' }, 'INVALID_PAYLOAD'],
+    [{ clinicName: 'A', ownerName: 'B', ownerEmail: 'a@b.com', planId: 'basic', priceTier: 'custom' }, 'INVALID_PAYLOAD'],
   ])('rejects invalid payload %#', (payload, code) => {
     expect(() => normalizeCreatePlatformClinicPayload(payload)).toThrowError(
       expect.objectContaining({ code, status: 400 }),
@@ -70,6 +73,7 @@ describe('create-platform-clinic helpers', () => {
       ownerEmail: 'owner@example.com',
       ownerName: 'Dra. Andrea',
       planId: 'medium',
+      priceTier: 'founder',
     })
 
     await expect(createPlatformClinicRecords(input, repository)).resolves.toEqual({
@@ -81,6 +85,7 @@ describe('create-platform-clinic helpers', () => {
         ownerEmail: 'owner@example.com',
         ownerName: 'Dra. Andrea',
         planId: 'medium',
+        priceTier: 'founder',
       },
     })
     expect(repository.createOwnerInvitation).toHaveBeenCalledOnce()
@@ -88,6 +93,11 @@ describe('create-platform-clinic helpers', () => {
       'clinic-1',
       'owner-1',
       'pending_activation',
+    )
+    expect(repository.createSubscription).toHaveBeenCalledWith(
+      'clinic-1',
+      'medium',
+      'founder',
     )
   })
 
@@ -106,6 +116,7 @@ describe('create-platform-clinic helpers', () => {
         ownerEmail: 'owner@example.com',
         ownerName: 'Nombre nuevo',
         planId: 'basic',
+        priceTier: 'standard',
       }),
       repository,
     )
@@ -131,6 +142,7 @@ describe('create-platform-clinic helpers', () => {
           ownerEmail: 'owner@example.com',
           ownerName: 'Dra. Andrea',
           planId: 'basic',
+          priceTier: 'standard',
         }),
         repository,
       ),

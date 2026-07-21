@@ -11,6 +11,7 @@ interface ConfirmDialogProps {
   isOpen: boolean
   isCancelDisabled?: boolean
   isConfirmDisabled?: boolean
+  showConfirmAction?: boolean
   message: string
   size?: 'default' | 'wide'
   title: string
@@ -28,6 +29,7 @@ export function ConfirmDialog({
   isOpen,
   isCancelDisabled = false,
   isConfirmDisabled = false,
+  showConfirmAction = true,
   message,
   size = 'default',
   title,
@@ -132,15 +134,17 @@ export function ConfirmDialog({
           >
             {cancelLabel}
           </button>
-          <button
-            className={`confirm-dialog-confirm confirm-dialog-confirm--${variant}`}
-            disabled={isConfirmDisabled}
-            form={confirmFormId}
-            type={confirmType}
-            onClick={onConfirm}
-          >
-            {confirmLabel}
-          </button>
+          {showConfirmAction ? (
+            <button
+              className={`confirm-dialog-confirm confirm-dialog-confirm--${variant}`}
+              disabled={isConfirmDisabled}
+              form={confirmFormId}
+              type={confirmType}
+              onClick={onConfirm}
+            >
+              {confirmLabel}
+            </button>
+          ) : null}
         </div>
       </div>
     </div>

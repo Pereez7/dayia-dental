@@ -2,6 +2,7 @@ import { useRef, useState, type FormEvent } from 'react'
 
 import type {
   ClinicOnboardingFormErrors,
+  ClinicOnboardingPriceTier,
   ClinicOnboardingFormValues,
 } from '../types/ClinicOnboarding'
 import type { PlanId } from '../utils/planFeatures'
@@ -18,14 +19,32 @@ import { submitPlatformClinicOnce } from '../utils/platformClinicCreation'
 const initialValues: ClinicOnboardingFormValues = {
   clinicName: '',
   initialPlan: 'basic',
+  initialPriceTier: 'standard',
   ownerEmail: '',
   ownerName: '',
 }
 
-const planOptions: { label: string; value: PlanId }[] = [
-  { label: 'Basic', value: 'basic' },
-  { label: 'Medium', value: 'medium' },
-  { label: 'Pro', value: 'pro' },
+const planOptions: { description: string; label: string; value: PlanId }[] = [
+  { description: 'Plan esencial', label: 'Basic', value: 'basic' },
+  { description: 'Plan intermedio', label: 'Medium', value: 'medium' },
+  { description: 'Plan completo', label: 'Pro', value: 'pro' },
+]
+
+const priceTierOptions: {
+  description: string
+  label: string
+  value: ClinicOnboardingPriceTier
+}[] = [
+  {
+    description: 'Usa el precio mensual regular del plan.',
+    label: 'Tarifa estándar',
+    value: 'standard',
+  },
+  {
+    description: 'Aplica el precio fundador mensual configurado.',
+    label: 'Tarifa fundador',
+    value: 'founder',
+  },
 ]
 
 interface ClinicOnboardingFormProps {
@@ -94,6 +113,7 @@ export function ClinicOnboardingForm({
           ownerEmail: formValues.ownerEmail,
           ownerName: formValues.ownerName,
           planId: formValues.initialPlan,
+          priceTier: formValues.initialPriceTier,
         },
         submissionLock,
         onCreate,
@@ -202,31 +222,92 @@ export function ClinicOnboardingForm({
             )}
           </label>
 
-          <label className="clinic-onboarding-field">
-            <span>Plan inicial</span>
-            <select
-              aria-describedby={
-                fieldErrors.initialPlan ? 'clinic-plan-error' : undefined
-              }
-              aria-invalid={Boolean(fieldErrors.initialPlan)}
-              value={formValues.initialPlan}
-              onChange={(event) =>
-                updateField('initialPlan', event.target.value as PlanId)
-              }
+        </div>
+
+        <section className="clinic-onboarding-commercial" aria-labelledby="clinic-commercial-title">
+          <div className="clinic-onboarding-section-heading">
+            <div>
+              <h3 id="clinic-commercial-title">Configuración comercial</h3>
+              <p>Define el plan y la tarifa que tendrá el consultorio al terminar la prueba.</p>
+            </div>
+            <div className="clinic-onboarding-trial">
+              <span>Acceso inicial</span>
+              <strong>15 días de prueba</strong>
+              <small>Luego, 5 días de gracia</small>
+            </div>
+          </div>
+
+          <fieldset className="clinic-onboarding-choice-group">
+            <legend>Plan inicial</legend>
+            <div
+              aria-describedby={fieldErrors.initialPlan ? 'clinic-plan-error' : undefined}
+              className="clinic-onboarding-plan-options"
+              role="radiogroup"
             >
-              {planOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            {fieldErrors.initialPlan && (
+              {planOptions.map((option) => {
+                const isSelected = formValues.initialPlan === option.value
+
+                return (
+                  <button
+                    aria-checked={isSelected}
+                    className={`clinic-onboarding-choice${isSelected ? ' clinic-onboarding-choice--selected' : ''}`}
+                    key={option.value}
+                    onClick={() => updateField('initialPlan', option.value)}
+                    role="radio"
+                    type="button"
+                  >
+                    <strong>{option.label}</strong>
+                    <span>{option.description}</span>
+                  </button>
+                )
+              })}
+            </div>
+            {fieldErrors.initialPlan ? (
               <small className="field-message field-message--error" id="clinic-plan-error">
                 {fieldErrors.initialPlan}
               </small>
-            )}
-          </label>
-        </div>
+            ) : null}
+          </fieldset>
+
+          <fieldset className="clinic-onboarding-choice-group">
+            <legend>Tarifa inicial</legend>
+            <div
+              aria-describedby={fieldErrors.initialPriceTier ? 'clinic-price-tier-error' : undefined}
+              className="clinic-onboarding-tier-options"
+              role="radiogroup"
+            >
+              {priceTierOptions.map((option) => {
+                const isSelected = formValues.initialPriceTier === option.value
+
+                return (
+                  <button
+                    aria-checked={isSelected}
+                    className={`clinic-onboarding-choice${isSelected ? ' clinic-onboarding-choice--selected' : ''}`}
+                    key={option.value}
+                    onClick={() => updateField('initialPriceTier', option.value)}
+                    role="radio"
+                    type="button"
+                  >
+                    <strong>{option.label}</strong>
+                    <span>{option.description}</span>
+                  </button>
+                )
+              })}
+            </div>
+            {fieldErrors.initialPriceTier ? (
+              <small className="field-message field-message--error" id="clinic-price-tier-error">
+                {fieldErrors.initialPriceTier}
+              </small>
+            ) : null}
+          </fieldset>
+
+          <dl className="clinic-onboarding-summary" aria-live="polite">
+            <div><dt>Prueba</dt><dd>15 días</dd></div>
+            <div><dt>Plan</dt><dd>{getPlanLabel(formValues.initialPlan)}</dd></div>
+            <div><dt>Tarifa</dt><dd>{formValues.initialPriceTier === 'founder' ? 'Fundador' : 'Estándar'}</dd></div>
+            <div><dt>Activación</dt><dd>Al aceptar la invitación</dd></div>
+          </dl>
+        </section>
 
         <div className="clinic-onboarding-actions">
           <button className="primary-action" disabled={isSubmitting} type="submit">
@@ -242,6 +323,10 @@ export function ClinicOnboardingForm({
       </form>
     </section>
   )
+}
+
+function getPlanLabel(planId: PlanId) {
+  return planOptions.find((option) => option.value === planId)?.label ?? 'Basic'
 }
 
 export function ClinicOnboardingFeedback({

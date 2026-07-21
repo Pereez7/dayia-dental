@@ -5,6 +5,7 @@ import type {
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const validPlans = new Set(['basic', 'medium', 'pro'])
+const validPriceTiers = new Set(['standard', 'founder'])
 
 export function validateClinicOnboardingForm(
   values: ClinicOnboardingFormValues,
@@ -29,6 +30,10 @@ export function validateClinicOnboardingForm(
 
   if (!validPlans.has(values.initialPlan)) {
     errors.initialPlan = 'Selecciona un plan inicial válido.'
+  }
+
+  if (!validPriceTiers.has(values.initialPriceTier)) {
+    errors.initialPriceTier = 'Selecciona una tarifa inicial válida.'
   }
 
   return errors

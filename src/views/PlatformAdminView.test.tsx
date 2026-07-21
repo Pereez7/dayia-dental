@@ -126,6 +126,10 @@ describe('PlatformAdminView', () => {
     )
 
     expect(markup).toContain('Preparar consultorio')
+    expect(markup).toContain('15 días de prueba')
+    expect(markup).toContain('Tarifa estándar')
+    expect(markup).toContain('Tarifa fundador')
+    expect(markup).toContain('Plan completo')
     expect(markup).toContain(
       'Revisa los datos antes de preparar el consultorio.',
     )
@@ -171,6 +175,7 @@ describe('PlatformAdminView', () => {
           ownerEmail: 'owner@example.com',
           ownerName: 'Dra. Andrea',
           planId: 'basic',
+          priceTier: 'standard',
         },
       },
       error: null,
@@ -181,6 +186,7 @@ describe('PlatformAdminView', () => {
       ownerEmail: 'owner@example.com',
       ownerName: 'Dra. Andrea',
       planId: 'basic' as const,
+      priceTier: 'standard' as const,
     }
 
     await createPlatformClinicAndRefresh(input, createClinic, refreshClinics)
@@ -201,6 +207,7 @@ describe('PlatformAdminView', () => {
         ownerEmail: 'owner@example.com',
         ownerName: 'Dra. Andrea',
         planId: 'basic',
+        priceTier: 'standard',
       },
       createClinic,
       refreshClinics,
@@ -220,6 +227,7 @@ describe('PlatformAdminView', () => {
       ownerEmail: 'owner@example.com',
       ownerName: 'Dra. Andrea',
       planId: 'medium' as const,
+      priceTier: 'founder' as const,
     }
 
     await submitPlatformClinicOnce(input, submissionLock, createClinic)
@@ -241,6 +249,7 @@ describe('PlatformAdminView', () => {
       ownerEmail: 'owner@example.com',
       ownerName: 'Dra. Andrea',
       planId: 'basic' as const,
+      priceTier: 'standard' as const,
     }
 
     const firstSubmit = submitPlatformClinicOnce(
@@ -273,6 +282,7 @@ describe('PlatformAdminView', () => {
           ownerEmail: 'owner@example.com',
           ownerName: 'Dra. Andrea',
           planId: 'basic',
+          priceTier: 'standard',
         },
         submissionLock,
         createClinic,

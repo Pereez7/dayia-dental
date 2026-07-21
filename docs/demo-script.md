@@ -3,6 +3,12 @@
 Guion sugerido de 12 a 15 minutos para mostrar DayIA Dental a un odontólogo.
 Usar exclusivamente datos ficticios y una cuenta owner de un consultorio Pro.
 
+La cuenta interna de Charles Pérez se reserva para Administración DayIA y no
+se usa como propietario durante el recorrido clínico. La demo debe ejecutarse
+con una identidad separada, por ejemplo un alias controlado `+demo`, con
+`is_platform_admin = false` y membership `clinic_owner` activa en DayIA Dental
+Demo.
+
 ## Antes de empezar
 
 - Confirmar que el consultorio, horarios y tratamientos de prueba existen.
@@ -10,6 +16,7 @@ Usar exclusivamente datos ficticios y una cuenta owner de un consultorio Pro.
 - Mantener `DAYIA_PLATFORM_CREATE_ENABLED=false` y
   `WHATSAPP_SEND_ENABLED=false`.
 - Cerrar notificaciones, ocultar credenciales y no mostrar Supabase Dashboard.
+- Confirmar que la cuenta owner demo es distinta de la cuenta `platform_admin`.
 - Verificar que el navegador abre `wa.me` con una cuenta controlada o evitar
   completar esa navegación.
 
@@ -19,6 +26,7 @@ Usar exclusivamente datos ficticios y una cuenta owner de un consultorio Pro.
 
 Iniciar sesión como owner. Señalar el consultorio activo, el rol Propietario y
 el plan real. Explicar que cada usuario opera dentro de su membership activa.
+No iniciar este recorrido con la cuenta interna de Charles Pérez.
 
 ### 2. Dashboard
 
@@ -92,4 +100,3 @@ recorrido debería validarse primero en una prueba piloto.
 - Selector multi-consultorio.
 - Cumplimiento legal certificado o disponibilidad productiva sin la revisión
   descrita en `docs/production-readiness.md`.
-

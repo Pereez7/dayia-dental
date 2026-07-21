@@ -141,6 +141,7 @@ export interface CreatePlatformClinicInput {
   ownerEmail: string
   ownerName: string
   planId: PlatformClinicPlanId
+  priceTier: 'standard' | 'founder'
 }
 
 export interface CreatePlatformClinicResponse {
@@ -155,5 +156,6 @@ export interface CreatePlatformClinicResponse {
     ownerEmail: string | null
     ownerName: string | null
     planId: PlatformClinicPlanId
+    priceTier: CreatePlatformClinicInput['priceTier']
   }
 }

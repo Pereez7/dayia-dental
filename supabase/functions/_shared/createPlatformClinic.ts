@@ -8,6 +8,7 @@ export interface CreatePlatformClinicInput {
   ownerEmail: string
   ownerName: string
   planId: 'basic' | 'medium' | 'pro'
+  priceTier: 'standard' | 'founder'
 }
 
 export interface CreatePlatformClinicResponse {
@@ -22,6 +23,7 @@ export interface CreatePlatformClinicResponse {
     ownerEmail: string | null
     ownerName: string | null
     planId: CreatePlatformClinicInput['planId']
+    priceTier: CreatePlatformClinicInput['priceTier']
   }
 }
 
@@ -63,6 +65,7 @@ export interface CreatePlatformClinicRepository {
   createSubscription: (
     clinicId: string,
     planId: CreatePlatformClinicInput['planId'],
+    priceTier: CreatePlatformClinicInput['priceTier'],
   ) => Promise<void>
   deleteClinic: (clinicId: string) => Promise<void>
   deleteCreatedOwner: (ownerId: string) => Promise<void>
@@ -87,6 +90,7 @@ export class CreatePlatformClinicError extends Error {
 }
 
 const validPlans = new Set(['basic', 'medium', 'pro'])
+const validPriceTiers = new Set(['standard', 'founder'])
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function normalizeCreatePlatformClinicPayload(
@@ -107,6 +111,10 @@ export function normalizeCreatePlatformClinicPayload(
     typeof candidate.planId === 'string'
       ? candidate.planId.trim().toLowerCase()
       : ''
+  const priceTier =
+    typeof candidate.priceTier === 'string'
+      ? candidate.priceTier.trim().toLowerCase()
+      : ''
 
   if (!clinicName) {
     throw invalidPayload('Ingresa el nombre del consultorio.')
@@ -124,11 +132,16 @@ export function normalizeCreatePlatformClinicPayload(
     throw invalidPayload('Selecciona un plan válido.')
   }
 
+  if (!validPriceTiers.has(priceTier)) {
+    throw invalidPayload('Selecciona una tarifa inicial válida.')
+  }
+
   return {
     clinicName,
     ownerEmail,
     ownerName,
     planId: planId as CreatePlatformClinicInput['planId'],
+    priceTier: priceTier as CreatePlatformClinicInput['priceTier'],
   }
 }
 
@@ -201,7 +214,7 @@ export async function createPlatformClinicRecords(
       owner.id,
       owner.isActive ? 'active' : 'pending_activation',
     )
-    await repository.createSubscription(clinicId, input.planId)
+    await repository.createSubscription(clinicId, input.planId, input.priceTier)
 
     return {
       activation: { status: activationStatus },
@@ -212,6 +225,7 @@ export async function createPlatformClinicRecords(
         ownerEmail: owner.email,
         ownerName: owner.fullName,
         planId: input.planId,
+        priceTier: input.priceTier,
       },
     }
   } catch (error) {

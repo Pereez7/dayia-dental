@@ -409,6 +409,13 @@ async function getCreateClinicErrorMessage(error: unknown) {
       return responseError.message
     }
 
+    if (
+      responseError?.code === 'FOUNDER_PRICE_NOT_CONFIGURED' &&
+      responseError.message
+    ) {
+      return responseError.message
+    }
+
     return 'No pudimos crear el consultorio por un conflicto.'
   }
 
@@ -460,6 +467,8 @@ function isCreatePlatformClinicResponse(
       typeof candidate.clinic.clinicId === 'string' &&
       typeof candidate.clinic.clinicName === 'string' &&
       candidate.clinic.clinicStatus === 'pending_activation' &&
+      (candidate.clinic.priceTier === 'standard' ||
+        candidate.clinic.priceTier === 'founder') &&
       candidate.activation &&
       activationStatuses.has(candidate.activation.status ?? ''),
   )

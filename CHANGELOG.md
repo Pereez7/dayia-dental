@@ -6,6 +6,15 @@ Registro breve de cambios relevantes en DayIA Dental.
 
 ### Suscripciones y pagos QR
 
+- El alta de consultorios separa los 15 días de prueba del plan comercial y
+  permite elegir Basic, Medium o Pro con tarifa estándar o fundador.
+- La Edge Function valida la tarifa inicial y rechaza fundador cuando el plan
+  no tiene un precio fundador configurado.
+- La gestión de suscripciones reinicia formularios, alertas y modales al cambiar
+  de consultorio, y unifica jerarquía tipográfica, importes, QR y acciones.
+- El historial oculta referencias y anulaciones no disponibles; el detalle
+  conserva la auditoría y conduce a una confirmación destructiva con motivo.
+
 - El registro administrativo ahora bloquea Enter y exige una revisión y
   confirmación explícitas antes de escribir el pago.
 - Se añadió historial auditable con detalle y anulación lógica del último pago,

@@ -129,6 +129,12 @@ suscripción del consultorio.
 contexto clínico seleccionado, solo ve Administración DayIA. Un rol nulo o
 desconocido no obtiene módulos ni acciones.
 
+En operación real, la cuenta interna de plataforma debe mantenerse sin
+memberships clínicas activas. Las demostraciones se realizan con una cuenta
+separada `clinic_owner`; combinar ambos contextos sigue siendo compatible por
+arquitectura, pero no es la configuración recomendada para el administrador
+principal de DayIA Dental.
+
 La tabla `clinical_records` replica esta regla en RLS. Solo una membership
 activa `clinic_owner`, `clinic_admin` o `doctor` puede leer o escribir historial
 de su clinica. `receptionist`, el rol `platform_admin` por si solo y una

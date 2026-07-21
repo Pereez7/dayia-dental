@@ -151,11 +151,17 @@ Usar emails internos controlados y contraseñas fuera del repositorio.
 | Owner demo | Membership `clinic_owner` activa, plan Pro |
 | Doctor demo | Membership `doctor` activa en el mismo consultorio |
 | Recepción demo | Membership `receptionist` activa en el mismo consultorio |
-| Platform demo | `is_platform_admin=true`, preferiblemente sin clínica |
+| Platform admin | `is_platform_admin=true`, sin membership clínica activa |
 
 Clinic Admin es opcional para una segunda ronda. Verificar que Recepción no vea
 Historial, Odontograma ni Configuración y que Platform Admin no cargue módulos
 clínicos.
+
+La identidad del administrador interno y la del propietario demo deben ser
+cuentas distintas. Para un buzón Gmail controlado pueden utilizarse aliases
+`+demo`, `+doctor` y `+recepcion`; Supabase los registra como identidades
+separadas. Las contraseñas y enlaces de activación nunca se documentan ni se
+guardan en el repositorio.
 
 ## Datos ficticios sugeridos
 

@@ -9,6 +9,7 @@ import {
 const validValues: ClinicOnboardingFormValues = {
   clinicName: 'Clínica Dental Norte',
   initialPlan: 'basic',
+  initialPriceTier: 'standard',
   ownerEmail: 'doctora@clinicanorte.com',
   ownerName: 'Dra. Andrea Pérez',
 }
@@ -23,12 +24,14 @@ describe('validateClinicOnboardingForm', () => {
       validateClinicOnboardingForm({
         clinicName: ' ',
         initialPlan: 'unknown' as ClinicOnboardingFormValues['initialPlan'],
+        initialPriceTier: 'unknown' as ClinicOnboardingFormValues['initialPriceTier'],
         ownerEmail: '',
         ownerName: '',
       }),
     ).toEqual({
       clinicName: 'Ingresa el nombre del consultorio.',
       initialPlan: 'Selecciona un plan inicial válido.',
+      initialPriceTier: 'Selecciona una tarifa inicial válida.',
       ownerEmail: 'Ingresa el email del propietario.',
       ownerName: 'Ingresa el nombre del doctor propietario.',
     })

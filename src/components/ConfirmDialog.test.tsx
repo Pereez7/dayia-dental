@@ -22,4 +22,22 @@ describe('ConfirmDialog accessibility', () => {
     expect(markup).toContain('aria-modal="true"')
     expect(markup).toContain('tabindex="-1"')
   })
+
+  it('can render an informational detail without a confirm action', () => {
+    const markup = renderToStaticMarkup(
+      <ConfirmDialog
+        cancelLabel="Cerrar detalle"
+        confirmLabel="No visible"
+        isOpen
+        message="Consulta los datos del registro."
+        showConfirmAction={false}
+        title="Detalle"
+        variant="info"
+        onCancel={vi.fn()}
+      />,
+    )
+
+    expect(markup).toContain('Cerrar detalle')
+    expect(markup).not.toContain('No visible')
+  })
 })

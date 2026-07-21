@@ -116,6 +116,11 @@ DayIA. Sus acciones rápidas y loaders clínicos permanecen desactivados. El rol
 de plataforma no concede por sí mismo acceso a pacientes, citas, historial,
 odontograma, recordatorios o configuración clínica.
 
+La cuenta interna principal debe conservarse como `platform_admin` puro. El
+consultorio DayIA Dental Demo usa otra cuenta con `is_platform_admin = false` y
+membership `clinic_owner` activa, evitando mezclar administración comercial con
+datos clínicos durante una demostración.
+
 ## Alta de consultorios
 
 ## Alta protegida de consultorios
@@ -126,15 +131,19 @@ solo con JWT válido, `profiles.is_platform_admin = true` y
 RLS. La Function no lee ni inicializa `service_role` antes de superar esas
 barreras.
 
-El payload contiene `clinicName`, `ownerName`, `ownerEmail` y `planId`. Los
+El payload contiene `clinicName`, `ownerName`, `ownerEmail`, `planId` y
+`priceTier`. Los
 nombres se recortan y compactan, el email se normaliza a minúsculas y el plan
-solo admite `basic`, `medium` o `pro`. La respuesta nunca incluye tokens ni
-datos clínicos.
+solo admite `basic`, `medium` o `pro`. La tarifa inicial solo admite `standard`
+o `founder`; fundador exige que el plan tenga `founder_monthly_price`
+configurado. La respuesta nunca incluye tokens ni datos clínicos.
 
 El owner existente se reutiliza y su nombre solo se completa si está vacío. Un
 owner nuevo usa `inviteUserByEmail`, sin contraseña manual, y su membresía queda
 `pending_activation`; uno existente y confirmado puede quedar `active`. La
-suscripción MVP queda `active` y el consultorio `pending_activation`.
+suscripción comienza con 15 días en `trialing`, seguidos por 5 días de gracia,
+y el consultorio queda `pending_activation`. El plan y la tarifa elegidos
+definen la condición comercial que se usará al terminar la prueba.
 
 No existe una transacción Auth + Postgres única. Ante un fallo, la compensación
 elimina el consultorio, cuyas membresías y suscripción caen por cascada, y

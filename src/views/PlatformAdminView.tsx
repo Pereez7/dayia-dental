@@ -120,6 +120,7 @@ export function PlatformAdminView({
       {selectedClinic ? (
         <SubscriptionAdministration
           clinic={selectedClinic}
+          key={selectedClinic.clinicId}
           onClose={() => setSelectedClinicId(null)}
           onUpdated={loadPlatformClinics}
         />

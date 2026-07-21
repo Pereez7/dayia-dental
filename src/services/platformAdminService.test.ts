@@ -202,6 +202,7 @@ describe('platform admin service', () => {
         ownerEmail: 'owner@example.com',
         ownerName: 'Dra. Andrea',
         planId: 'basic',
+        priceTier: 'standard',
       },
     }
     const client = createClient({ data: response, error: null })
@@ -210,6 +211,7 @@ describe('platform admin service', () => {
       ownerEmail: 'owner@example.com',
       ownerName: 'Dra. Andrea',
       planId: 'basic' as const,
+      priceTier: 'standard' as const,
     }
 
     await expect(createPlatformClinicWithClient(client, input)).resolves.toEqual({
@@ -245,6 +247,7 @@ describe('platform admin service', () => {
         ownerEmail: 'owner@example.com',
         ownerName: 'Dra. Andrea',
         planId: 'basic',
+        priceTier: 'standard',
       }),
     ).resolves.toEqual({
       data: null,
@@ -255,6 +258,7 @@ describe('platform admin service', () => {
   it.each([
     [400, 'INVALID_PAYLOAD', 'Ingresa un email válido.', 'Ingresa un email válido.'],
     [403, 'FORBIDDEN', 'detalle interno', 'No tienes permiso para crear consultorios.'],
+    [409, 'FOUNDER_PRICE_NOT_CONFIGURED', 'La tarifa fundador no está configurada para el plan seleccionado.', 'La tarifa fundador no está configurada para el plan seleccionado.'],
     [409, 'UNKNOWN_CONFLICT', 'detalle interno', 'No pudimos crear el consultorio por un conflicto.'],
     [500, 'UNEXPECTED_ERROR', 'stack trace', 'No pudimos preparar el consultorio. Intenta nuevamente.'],
   ])(
@@ -274,6 +278,7 @@ describe('platform admin service', () => {
           ownerEmail: 'owner@example.com',
           ownerName: 'Dra. Andrea',
           planId: 'basic',
+          priceTier: 'standard',
         }),
       ).resolves.toEqual({ data: null, error: expectedMessage })
     },

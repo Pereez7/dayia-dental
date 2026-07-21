@@ -383,6 +383,12 @@ export function SubscriptionAdministration({
         </button>
       </header>
 
+      {feedback ? (
+        <p className={`subscription-feedback subscription-feedback--${feedbackTone}`} role={feedbackTone === 'error' ? 'alert' : 'status'}>
+          {feedback}
+        </p>
+      ) : null}
+
       <section
         className="subscription-summary-block"
         aria-labelledby="subscription-summary-title"
@@ -548,7 +554,7 @@ export function SubscriptionAdministration({
                 </label>
               </FieldWithError>
               <FieldWithError error={fieldErrors.finalAmount}>
-                <label>
+                <label className="subscription-amount-field">
                   Monto final ({clinic.currency})
                   <input
                     min="0.01"
@@ -651,12 +657,6 @@ export function SubscriptionAdministration({
         </div>
       </section>
 
-      {feedback ? (
-        <p className={`subscription-feedback subscription-feedback--${feedbackTone}`} role={feedbackTone === 'error' ? 'alert' : 'status'}>
-          {feedback}
-        </p>
-      ) : null}
-
       <AdministrativeActions
         changeKind={changeKind}
         clinic={clinic}
@@ -691,32 +691,38 @@ export function SubscriptionAdministration({
         ) : (
           <div className="platform-clinics-table-wrap">
             <table className="platform-clinics-table subscription-history-table">
-              <thead><tr><th>Fecha</th><th>Plan y periodo</th><th>Monto</th><th>Referencia</th><th>Estado</th><th>Registrado por</th><th>Acciones</th></tr></thead>
+              <thead><tr><th>Fecha</th><th>Plan y periodo</th><th>Monto</th><th>Estado</th><th>Registrado por</th><th>Acciones</th></tr></thead>
               <tbody>
-                {clinic.payments.map((payment) => (
-                  <tr key={payment.id}>
-                    <td data-label="Fecha">{formatDateTime(payment.paidAt)}</td>
-                    <td data-label="Plan y periodo"><strong>{getPlanName(payment.planId)}</strong><span>{payment.paymentType === 'upgrade_proration' ? 'Upgrade prorrateado' : cycleLabels[payment.billingCycle as BillingCycle] ?? payment.billingCycle}</span></td>
-                    <td data-label="Monto"><strong>{payment.amountPaid.toFixed(2)} {payment.currency}</strong></td>
-                    <td data-label="Referencia">{payment.reference ?? 'Sin referencia'}</td>
-                    <td data-label="Estado"><span className={`payment-ledger-status payment-ledger-status--${payment.status}`}>{payment.status === 'voided' ? 'Anulado' : 'Registrado'}</span></td>
-                    <td data-label="Registrado por">{payment.recordedBy ?? 'Administrador DayIA'}</td>
-                    <td data-label="Acciones">
-                      <div className="subscription-history-actions">
-                        <button className="secondary-action" onClick={() => setSelectedPayment(payment)} type="button">Ver detalle</button>
-                        <button
-                          className="danger-action"
-                          disabled={payment.status === 'voided' || payment.id !== latestRegisteredPaymentId || isSubmitting}
-                          title={payment.id !== latestRegisteredPaymentId ? 'Solo puede anularse el último pago vigente.' : undefined}
-                          onClick={() => setPaymentToVoid(payment)}
-                          type="button"
-                        >
-                          Anular pago
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {clinic.payments.map((payment) => {
+                  const canVoid =
+                    payment.status === 'registered' &&
+                    payment.id === latestRegisteredPaymentId
+
+                  return (
+                    <tr key={payment.id}>
+                      <td data-label="Fecha">{formatDateTime(payment.paidAt)}</td>
+                      <td data-label="Plan y periodo"><strong>{getPlanName(payment.planId)}</strong><span>{payment.paymentType === 'upgrade_proration' ? 'Upgrade prorrateado' : cycleLabels[payment.billingCycle as BillingCycle] ?? payment.billingCycle}</span></td>
+                      <td data-label="Monto"><strong>{payment.amountPaid.toFixed(2)} {payment.currency}</strong></td>
+                      <td data-label="Estado"><span className={`payment-ledger-status payment-ledger-status--${payment.status}`}>{payment.status === 'voided' ? 'Anulado' : 'Registrado'}</span></td>
+                      <td data-label="Registrado por">{payment.recordedBy ?? 'Administrador DayIA'}</td>
+                      <td data-label="Acciones">
+                        <div className="subscription-history-actions">
+                          <button className="secondary-action" onClick={() => setSelectedPayment(payment)} type="button">Ver detalle</button>
+                          {canVoid ? (
+                            <button
+                              className="danger-action"
+                              disabled={isSubmitting}
+                              onClick={() => setPaymentToVoid(payment)}
+                              type="button"
+                            >
+                              Anular pago
+                            </button>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -754,24 +760,33 @@ export function SubscriptionAdministration({
       />
 
       <ConfirmDialog
-        cancelLabel="Conservar pago"
+        cancelLabel="Volver sin anular"
         confirmLabel={isSubmitting ? 'Anulando...' : 'Confirmar anulación'}
         isCancelDisabled={isSubmitting}
         isConfirmDisabled={isSubmitting || voidReason.trim().length < 5}
         isOpen={Boolean(paymentToVoid)}
-        message="El pago seguirá en el historial y la suscripción volverá al estado anterior al registro."
+        message="Esta acción conservará el pago como anulado y restaurará el estado anterior de la suscripción."
         onCancel={() => {
           if (isSubmitting) return
           setPaymentToVoid(null)
           setVoidReason('')
         }}
         onConfirm={() => void confirmVoidPayment()}
-        title="Anular pago registrado"
+        title="Confirmar anulación del pago"
         variant="danger"
       >
+        {paymentToVoid ? (
+          <dl className="void-payment-summary">
+            <SummaryFact label="Pago" value={`${paymentToVoid.amountPaid.toFixed(2)} ${paymentToVoid.currency}`} />
+            <SummaryFact label="Plan y periodo" value={`${getPlanName(paymentToVoid.planId)} · ${cycleLabels[paymentToVoid.billingCycle as BillingCycle] ?? paymentToVoid.billingCycle}`} />
+            <SummaryFact label="Fecha" value={formatDateTime(paymentToVoid.paidAt)} />
+            <SummaryFact label="Referencia" value={paymentToVoid.reference ?? 'Sin referencia'} />
+          </dl>
+        ) : null}
         <label className="confirm-dialog-field">
           Motivo de anulación
           <textarea
+            aria-describedby="void-payment-reason-help"
             autoFocus
             maxLength={500}
             onChange={(event) => setVoidReason(event.target.value)}
@@ -779,7 +794,14 @@ export function SubscriptionAdministration({
             rows={4}
             value={voidReason}
           />
-          <span>Mínimo 5 caracteres. El motivo quedará en auditoría.</span>
+          <span
+            className={`confirm-dialog-help${voidReason.trim().length >= 5 ? ' confirm-dialog-help--valid' : ''}`}
+            id="void-payment-reason-help"
+          >
+            {voidReason.trim().length < 5
+              ? `Faltan ${5 - voidReason.trim().length} caracteres. El motivo quedará en auditoría.`
+              : 'Motivo válido. Quedará registrado en auditoría.'}
+          </span>
         </label>
       </ConfirmDialog>
 
@@ -801,8 +823,16 @@ export function SubscriptionAdministration({
   )
 }
 
-function SummaryFact({ label, value }: { label: string; value: string }) {
-  return <div><dt>{label}</dt><dd>{value}</dd></div>
+function SummaryFact({
+  label,
+  value,
+  wide = false,
+}: {
+  label: string
+  value: string
+  wide?: boolean
+}) {
+  return <div className={wide ? 'summary-fact--wide' : undefined}><dt>{label}</dt><dd>{value}</dd></div>
 }
 
 function FieldWithError({
@@ -812,7 +842,17 @@ function FieldWithError({
   children: React.ReactNode
   error?: string
 }) {
-  return <div className="subscription-field-wrapper">{children}{error ? <span className="field-message field-message--error">{error}</span> : null}</div>
+  return (
+    <div className="subscription-field-wrapper">
+      {children}
+      <span
+        aria-hidden={!error}
+        className={`field-message field-message--error${error ? '' : ' field-message--reserved'}`}
+      >
+        {error || '\u00a0'}
+      </span>
+    </div>
+  )
 }
 
 function PaymentConfirmationDialog({
@@ -880,15 +920,17 @@ function PaymentDetailDialog({
   return (
     <ConfirmDialog
       cancelLabel="Cerrar detalle"
-      confirmLabel={payment.status === 'voided' ? 'Pago anulado' : 'Anular pago'}
-      isConfirmDisabled={!canVoid}
+      confirmLabel="Continuar para anular"
       isOpen
-      message="Consulta los datos conservados en el historial administrativo."
+      message={canVoid
+        ? 'Revisa los datos. Continuar abrirá la confirmación final y solicitará el motivo.'
+        : 'Consulta los datos conservados en el historial administrativo.'}
       onCancel={onClose}
       onConfirm={() => onVoid(payment)}
+      showConfirmAction={canVoid}
       size="wide"
       title="Detalle del pago"
-      variant={payment.status === 'voided' ? 'info' : 'warning'}
+      variant={canVoid ? 'danger' : 'info'}
     >
       <dl className="payment-review-summary">
         <SummaryFact label="Estado" value={payment.status === 'voided' ? 'Anulado' : 'Registrado'} />
@@ -901,8 +943,8 @@ function PaymentDetailDialog({
         <SummaryFact label="Registrado por" value={payment.recordedBy ?? 'Administrador DayIA'} />
         <SummaryFact label="Vigencia desde" value={formatDateTime(payment.periodStartsAt)} />
         <SummaryFact label="Vigencia hasta" value={payment.periodEndsAt ? formatDateTime(payment.periodEndsAt) : 'Sin vencimiento'} />
-        <SummaryFact label="Notas" value={payment.notes ?? 'Sin notas'} />
-        {payment.status === 'voided' ? <SummaryFact label="Anulación" value={`${formatDateTime(payment.voidedAt)} · ${payment.voidedBy ?? 'Administrador DayIA'} · ${payment.voidReason ?? 'Sin motivo'}`} /> : null}
+        <SummaryFact label="Notas" value={payment.notes ?? 'Sin notas'} wide />
+        {payment.status === 'voided' ? <SummaryFact label="Anulación" value={`${formatDateTime(payment.voidedAt)} · ${payment.voidedBy ?? 'Administrador DayIA'} · ${payment.voidReason ?? 'Sin motivo'}`} wide /> : null}
       </dl>
     </ConfirmDialog>
   )

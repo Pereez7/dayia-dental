@@ -68,6 +68,10 @@ select {
   font: inherit;
 }
 
+textarea {
+  resize: none;
+}
+
 button {
   -webkit-tap-highlight-color: transparent;
 }
