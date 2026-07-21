@@ -3846,7 +3846,8 @@
 .subscription-form-grid input,
 .subscription-form-grid select,
 .subscription-form-grid textarea,
-.subscription-action-row input {
+.subscription-action-row input,
+.subscription-action-row select {
   width: 100%;
   min-width: 0;
   min-height: 42px;
@@ -3860,7 +3861,8 @@
 .subscription-form-grid input:focus,
 .subscription-form-grid select:focus,
 .subscription-form-grid textarea:focus,
-.subscription-action-row input:focus {
+.subscription-action-row input:focus,
+.subscription-action-row select:focus {
   border-color: var(--color-primary);
   outline: none;
   box-shadow: var(--shadow-focus);
@@ -3926,6 +3928,40 @@
 
 .subscription-action-row label {
   width: 145px;
+}
+
+.subscription-plan-change-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 132px;
+  align-items: center;
+  gap: 18px;
+}
+
+.subscription-action-row .subscription-checkbox {
+  display: flex;
+  width: auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.subscription-action-row .subscription-checkbox input {
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  padding: 0;
+}
+
+.subscription-upgrade-qr {
+  display: grid;
+  gap: 6px;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  text-align: center;
+}
+
+.subscription-upgrade-qr .payment-qr-image,
+.subscription-upgrade-qr .payment-qr-placeholder {
+  width: 112px;
 }
 
 .subscription-feedback {
@@ -4060,7 +4096,8 @@
 
 @media (max-width: 820px) {
   .subscription-admin-grid,
-  .subscription-blocked-view {
+  .subscription-blocked-view,
+  .subscription-plan-change-grid {
     grid-template-columns: 1fr;
   }
 

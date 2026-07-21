@@ -79,6 +79,7 @@ export interface PlanRecord {
   is_active: boolean
   max_users: number
   monthly_price: number | null
+  founder_monthly_price: number | null
   name: string
   currency: string
 }
@@ -90,13 +91,18 @@ export interface ClinicSubscriptionRecord {
   created_at: string
   current_period_ends_at: string | null
   current_period_starts_at: string | null
+  custom_monthly_price: number | null
   ends_at: string | null
   grace_ends_at: string | null
   id: string
   is_lifetime: boolean
+  founder_price_locked: boolean
   last_payment_at: string | null
   payment_status: string | null
   plan_id: string
+  price_tier: 'standard' | 'founder' | 'custom'
+  scheduled_plan_id: string | null
+  scheduled_plan_starts_at: string | null
   starts_at: string
   status: ClinicSubscriptionRecordStatus
   trial_ends_at: string | null
@@ -119,9 +125,13 @@ export interface SubscriptionPaymentRecord {
   notes: string | null
   paid_at: string
   payment_method: string
+  payment_type: 'regular' | 'upgrade_proration' | 'custom_days' | 'lifetime' | 'manual_adjustment'
   period_ends_at: string | null
   period_starts_at: string | null
   plan_id: string
+  previous_plan_id: string | null
+  new_plan_id: string | null
+  price_tier: 'standard' | 'founder' | 'custom'
   qr_plan_id: string | null
   recorded_by: string | null
   reference: string | null
@@ -338,7 +348,12 @@ export type Database = {
   public: {
     CompositeTypes: Record<string, never>
     Enums: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      apply_due_scheduled_plan: {
+        Args: { target_clinic_id: string }
+        Returns: boolean
+      }
+    }
     Tables: {
       [TableName in keyof TableRowMap]: {
         Insert: Insertable<TableRowMap[TableName]>

@@ -5,6 +5,9 @@ import {
   calculateSubscriptionPayment,
   getSubscriptionAccessState,
   getPlanQrPath,
+  getMonthlyPriceForTier,
+  getPlanChangeKind,
+  calculateUpgradeProration,
 } from './subscriptionBilling'
 
 describe('subscriptionBilling', () => {
@@ -126,5 +129,22 @@ describe('subscriptionBilling', () => {
     expect(getPlanQrPath('basic')).toBe('/payment-qr/basic.png')
     expect(getPlanQrPath('medium')).toBe('/payment-qr/medium.png')
     expect(getPlanQrPath('pro')).toBe('/payment-qr/pro.png')
+  })
+
+  it('resolves standard, founder and custom prices without losing founder during grace', () => {
+    expect(getMonthlyPriceForTier({ standardPrice: 199, founderPrice: 129, customPrice: null, priceTier: 'standard' })).toBe(199)
+    expect(getMonthlyPriceForTier({ standardPrice: 199, founderPrice: 129, customPrice: null, priceTier: 'founder' })).toBe(129)
+    expect(getMonthlyPriceForTier({ standardPrice: 199, founderPrice: 129, customPrice: 155, priceTier: 'custom' })).toBe(155)
+  })
+
+  it('calculates an upgrade proration and distinguishes a scheduled downgrade', () => {
+    expect(calculateUpgradeProration({
+      currentMonthlyPrice: 100,
+      newMonthlyPrice: 160,
+      currentPeriodEndsAt: '2026-08-04T00:00:00.000Z',
+      now: new Date('2026-07-20T00:00:00.000Z'),
+    })).toEqual({ amount: 30, daysRemaining: 15 })
+    expect(getPlanChangeKind('basic', 'pro')).toBe('upgrade')
+    expect(getPlanChangeKind('pro', 'medium')).toBe('downgrade')
   })
 })

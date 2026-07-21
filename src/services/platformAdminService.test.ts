@@ -19,7 +19,14 @@ const clinicResponse = {
   isLifetime: false,
   lastPaymentAt: null,
   monthlyPrice: null,
+  founderMonthlyPrice: null,
   planMonthlyPrices: {},
+  planFounderMonthlyPrices: {},
+  priceTier: 'standard' as const,
+  customMonthlyPrice: null,
+  founderPriceLocked: false,
+  scheduledPlanId: null,
+  scheduledPlanStartsAt: null,
   ownerEmail: '  owner@clinic.test ',
   ownerName: '  Dra. Ana  ',
   planId: 'pro',
@@ -72,6 +79,30 @@ describe('platform admin service', () => {
     ).resolves.toEqual({ error: null, success: true })
     expect(client.functions.invoke).toHaveBeenCalledWith(
       'register-subscription-payment',
+      {
+        body,
+        headers: { Authorization: 'Bearer valid-token' },
+        method: 'POST',
+      },
+    )
+  })
+  it('sends founder pricing changes only through the protected Function', async () => {
+    const client = createClient({ data: { success: true }, error: null })
+    const body = {
+      action: 'set_founder_price' as const,
+      clinicId: 'clinic-1',
+      notes: 'Beneficio comercial aprobado',
+    }
+
+    await expect(
+      invokeSubscriptionActionWithClient(
+        client,
+        'update-clinic-subscription',
+        body,
+      ),
+    ).resolves.toEqual({ error: null, success: true })
+    expect(client.functions.invoke).toHaveBeenCalledWith(
+      'update-clinic-subscription',
       {
         body,
         headers: { Authorization: 'Bearer valid-token' },

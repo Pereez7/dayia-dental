@@ -131,11 +131,21 @@ async function handleListPlatformClinics(request: Request) {
   }
 
   const clinicIds = clinics.map((clinic) => clinic.id)
+  const scheduledPlanResults = await Promise.all(
+    clinicIds.map((clinicId) =>
+      adminClient.rpc('apply_due_scheduled_plan', {
+        target_clinic_id: clinicId,
+      }),
+    ),
+  )
+  if (scheduledPlanResults.some((result) => result.error)) {
+    return dataQueryError()
+  }
   const [subscriptionsResult, membershipsResult, plansResult, paymentsResult] =
     await Promise.all([
       adminClient
         .from('clinic_subscriptions')
-        .select('clinic_id, plan_id, status, trial_ends_at, current_period_ends_at, grace_ends_at, last_payment_at, payment_status, is_lifetime')
+        .select('clinic_id, plan_id, status, trial_ends_at, current_period_ends_at, grace_ends_at, last_payment_at, payment_status, is_lifetime, price_tier, custom_monthly_price, founder_price_locked, scheduled_plan_id, scheduled_plan_starts_at')
         .in('clinic_id', clinicIds),
       adminClient
         .from('clinic_memberships')
@@ -144,10 +154,10 @@ async function handleListPlatformClinics(request: Request) {
         .eq('status', 'active')
         .order('activated_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false }),
-      adminClient.from('plans').select('id, name, monthly_price, currency'),
+      adminClient.from('plans').select('id, name, monthly_price, founder_monthly_price, currency'),
       adminClient
         .from('subscription_payments')
-        .select('id, clinic_id, plan_id, billing_cycle, amount_paid, currency, discount_percent, reference, paid_at, recorded_by')
+        .select('id, clinic_id, plan_id, billing_cycle, amount_paid, currency, discount_percent, reference, paid_at, recorded_by, payment_type, price_tier, previous_plan_id, new_plan_id')
         .in('clinic_id', clinicIds)
         .order('paid_at', { ascending: false }),
     ])
@@ -202,6 +212,12 @@ async function handleListPlatformClinics(request: Request) {
     (plansResult.data ?? []).map((plan) => [
       plan.id,
       plan.monthly_price === null ? null : Number(plan.monthly_price),
+    ]),
+  )
+  const planFounderMonthlyPrices = Object.fromEntries(
+    (plansResult.data ?? []).map((plan) => [
+      plan.id,
+      plan.founder_monthly_price === null ? null : Number(plan.founder_monthly_price),
     ]),
   )
   const ownerProfilesById = new Map(
@@ -264,7 +280,19 @@ async function handleListPlatformClinics(request: Request) {
           plan?.monthly_price === null || plan?.monthly_price === undefined
             ? null
             : Number(plan.monthly_price),
+        founderMonthlyPrice:
+          plan?.founder_monthly_price === null || plan?.founder_monthly_price === undefined
+            ? null
+            : Number(plan.founder_monthly_price),
         planMonthlyPrices,
+        planFounderMonthlyPrices,
+        priceTier: subscription?.price_tier ?? 'standard',
+        customMonthlyPrice: subscription?.custom_monthly_price === null || subscription?.custom_monthly_price === undefined
+          ? null
+          : Number(subscription.custom_monthly_price),
+        founderPriceLocked: subscription?.founder_price_locked === true,
+        scheduledPlanId: subscription?.scheduled_plan_id ?? null,
+        scheduledPlanStartsAt: subscription?.scheduled_plan_starts_at ?? null,
         currency: plan?.currency ?? 'BOB',
         trialEndsAt: subscription?.trial_ends_at ?? null,
         currentPeriodEndsAt: subscription?.current_period_ends_at ?? null,
@@ -285,6 +313,10 @@ async function handleListPlatformClinics(request: Request) {
             id: payment.id,
             paidAt: payment.paid_at,
             planId: payment.plan_id,
+            paymentType: payment.payment_type,
+            priceTier: payment.price_tier,
+            previousPlanId: payment.previous_plan_id,
+            newPlanId: payment.new_plan_id,
             recordedBy: recorder?.full_name ?? recorder?.email ?? null,
             reference: payment.reference,
           }

@@ -25,7 +25,14 @@ export interface PlatformClinicSummary {
   isLifetime: boolean
   lastPaymentAt: string | null
   monthlyPrice: number | null
+  founderMonthlyPrice: number | null
   planMonthlyPrices: Partial<Record<PlatformClinicPlanId, number | null>>
+  planFounderMonthlyPrices: Partial<Record<PlatformClinicPlanId, number | null>>
+  priceTier: import('../utils/subscriptionBilling').PriceTier
+  customMonthlyPrice: number | null
+  founderPriceLocked: boolean
+  scheduledPlanId: PlatformClinicPlanId | null
+  scheduledPlanStartsAt: string | null
   ownerEmail: string | null
   ownerName: string | null
   planId: string | null
@@ -44,6 +51,10 @@ export interface PlatformSubscriptionPayment {
   id: string
   paidAt: string
   planId: string
+  paymentType: import('../utils/subscriptionBilling').PaymentType
+  priceTier: import('../utils/subscriptionBilling').PriceTier
+  previousPlanId: string | null
+  newPlanId: string | null
   recordedBy: string | null
   reference: string | null
 }
@@ -58,6 +69,7 @@ export interface RegisterSubscriptionPaymentInput {
   notes: string
   paidAt: string
   planId: PlatformClinicPlanId
+  paymentType?: import('../utils/subscriptionBilling').PaymentType
   reference: string
 }
 
@@ -69,8 +81,13 @@ export interface UpdateClinicSubscriptionInput {
     | 'grant_extra_days'
     | 'mark_lifetime'
     | 'reactivate'
+    | 'set_custom_price'
+    | 'set_founder_price'
+    | 'set_standard_price'
+    | 'force_change_plan'
   clinicId: string
   days?: number
+  customMonthlyPrice?: number
   notes?: string
   planId?: PlatformClinicPlanId
 }

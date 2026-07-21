@@ -4,6 +4,8 @@ export type BillingCycle =
   | 'annual'
   | 'custom_days'
   | 'lifetime'
+export type PriceTier = 'standard' | 'founder' | 'custom'
+export type PaymentType = 'regular' | 'upgrade_proration' | 'custom_days' | 'lifetime' | 'manual_adjustment'
 
 export interface RegisterPaymentInput {
   amountPaid: number
@@ -16,6 +18,7 @@ export interface RegisterPaymentInput {
   notes: string
   paidAt: string
   planId: 'basic' | 'medium' | 'pro'
+  paymentType: PaymentType
   reference: string
 }
 
@@ -57,6 +60,8 @@ const cycles = new Set<BillingCycle>([
   'lifetime',
 ])
 const plans = new Set(['basic', 'medium', 'pro'])
+const paymentTypes = new Set<PaymentType>(['regular', 'upgrade_proration', 'custom_days', 'lifetime', 'manual_adjustment'])
+const planRanks = { basic: 0, medium: 1, pro: 2 } as const
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 export function normalizeRegisterPaymentPayload(
@@ -75,10 +80,15 @@ export function normalizeRegisterPaymentPayload(
   const discountPercent = numberValue(value.discountPercent, 0)
   const customDays = nullableInteger(value.customDays)
   const paidAt = stringValue(value.paidAt) || new Date().toISOString()
+  const defaultPaymentType = billingCycle === 'custom_days'
+    ? 'custom_days'
+    : isLifetime ? 'lifetime' : 'regular'
+  const paymentType = (stringValue(value.paymentType) || defaultPaymentType) as PaymentType
 
   if (!uuidPattern.test(clinicId)) throw invalid('Selecciona un consultorio válido.')
   if (!plans.has(planId)) throw invalid('Selecciona un plan válido.')
   if (!cycles.has(billingCycle)) throw invalid('Selecciona un periodo válido.')
+  if (!paymentTypes.has(paymentType)) throw invalid('Selecciona un tipo de pago válido.')
   if (!(amountPaid > 0)) throw invalid('Ingresa un monto pagado válido.')
   if (discountPercent < 0 || discountPercent > 100) {
     throw invalid('El descuento debe estar entre 0 y 100%.')
@@ -99,6 +109,7 @@ export function normalizeRegisterPaymentPayload(
     notes: stringValue(value.notes).slice(0, 1000),
     paidAt: new Date(paidAt).toISOString(),
     planId: planId as RegisterPaymentInput['planId'],
+    paymentType,
     reference: stringValue(value.reference).slice(0, 200),
   }
 }
@@ -128,17 +139,11 @@ export function calculatePaymentRegistration({
   }
 
   amountDue = round(amountDue)
-  const expectedPaid = round(amountDue * discountFactor)
-
-  if (monthlyPrice !== null && !input.isLifetime && Math.abs(expectedPaid - input.amountPaid) > 0.01) {
-    throw invalid('El monto pagado no coincide con el precio y descuento configurados.')
-  }
-
   if (input.isLifetime) {
     return {
       amountDue,
       amountPaid: input.amountPaid,
-      discountAmount: round(amountDue - input.amountPaid),
+      discountAmount: round(amountDue * (input.discountPercent / 100)),
       graceEndsAt: null,
       periodEndsAt: null,
       periodStartsAt: startsAt.toISOString(),
@@ -152,10 +157,64 @@ export function calculatePaymentRegistration({
   return {
     amountDue,
     amountPaid: input.amountPaid,
-    discountAmount: round(amountDue - input.amountPaid),
+    discountAmount: round(amountDue * (input.discountPercent / 100)),
     graceEndsAt: addUtcDays(periodEndsAt, 5).toISOString(),
     periodEndsAt: periodEndsAt.toISOString(),
     periodStartsAt: startsAt.toISOString(),
+  }
+}
+
+export function getEffectiveMonthlyPrice({
+  customPrice,
+  founderPrice,
+  priceTier,
+  standardPrice,
+}: {
+  customPrice: number | null
+  founderPrice: number | null
+  priceTier: PriceTier
+  standardPrice: number | null
+}) {
+  if (priceTier === 'custom') return customPrice
+  if (priceTier === 'founder') return founderPrice ?? standardPrice
+  return standardPrice
+}
+
+export function getPlanChangeKind(currentPlanId: string, newPlanId: string) {
+  const current = planRanks[currentPlanId as keyof typeof planRanks]
+  const next = planRanks[newPlanId as keyof typeof planRanks]
+  if (current === undefined || next === undefined || current === next) return 'same'
+  return next > current ? 'upgrade' : 'downgrade'
+}
+
+export function getScheduledDowngradeUpdate(
+  currentPeriodEndsAt: string | null,
+  newPlanId: 'basic' | 'medium' | 'pro',
+) {
+  const startsAt = parseDate(currentPeriodEndsAt)
+  if (!startsAt) throw invalid('Define primero el vencimiento del periodo actual.')
+  return {
+    scheduled_plan_id: newPlanId,
+    scheduled_plan_starts_at: startsAt.toISOString(),
+  }
+}
+
+export function calculateUpgradeProration({
+  currentMonthlyPrice,
+  currentPeriodEndsAt,
+  newMonthlyPrice,
+  now = new Date(),
+}: {
+  currentMonthlyPrice: number | null
+  currentPeriodEndsAt: string | null
+  newMonthlyPrice: number | null
+  now?: Date
+}) {
+  const end = parseDate(currentPeriodEndsAt)
+  const daysRemaining = end ? Math.max(0, Math.ceil((end.getTime() - now.getTime()) / 86_400_000)) : 0
+  return {
+    amount: round((Math.max(0, (newMonthlyPrice ?? 0) - (currentMonthlyPrice ?? 0)) / 30) * daysRemaining),
+    daysRemaining,
   }
 }
 

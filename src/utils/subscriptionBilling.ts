@@ -5,6 +5,14 @@ export type BillingCycle =
   | 'custom_days'
   | 'lifetime'
 
+export type PriceTier = 'standard' | 'founder' | 'custom'
+export type PaymentType =
+  | 'regular'
+  | 'upgrade_proration'
+  | 'custom_days'
+  | 'lifetime'
+  | 'manual_adjustment'
+
 export type SubscriptionStatus =
   | 'trialing'
   | 'active'
@@ -45,6 +53,7 @@ export interface PaymentCalculation {
 }
 
 const millisecondsPerDay = 86_400_000
+const planRanks = { basic: 0, medium: 1, pro: 2 } as const
 
 export const suggestedDiscounts: Record<BillingCycle, number> = {
   annual: 20,
@@ -192,6 +201,49 @@ export function getPlanQrPath(planId: string | null | undefined) {
   return planId === 'basic' || planId === 'medium' || planId === 'pro'
     ? `/payment-qr/${planId}.png`
     : null
+}
+
+export function getMonthlyPriceForTier({
+  customPrice,
+  founderPrice,
+  priceTier,
+  standardPrice,
+}: {
+  customPrice: number | null
+  founderPrice: number | null
+  priceTier: PriceTier
+  standardPrice: number | null
+}) {
+  if (priceTier === 'custom') return customPrice
+  if (priceTier === 'founder') return founderPrice ?? standardPrice
+  return standardPrice
+}
+
+export function getPlanChangeKind(currentPlanId: string, newPlanId: string) {
+  const current = planRanks[currentPlanId as keyof typeof planRanks]
+  const next = planRanks[newPlanId as keyof typeof planRanks]
+  if (current === undefined || next === undefined || current === next) return 'same'
+  return next > current ? 'upgrade' : 'downgrade'
+}
+
+export function calculateUpgradeProration({
+  currentMonthlyPrice,
+  currentPeriodEndsAt,
+  newMonthlyPrice,
+  now = new Date(),
+}: {
+  currentMonthlyPrice: number | null
+  currentPeriodEndsAt: string | null
+  newMonthlyPrice: number | null
+  now?: Date
+}) {
+  const periodEnd = parseDate(currentPeriodEndsAt)
+  const daysRemaining = periodEnd ? getDaysRemaining(periodEnd, now) : 0
+  const priceDifference = Math.max(0, (newMonthlyPrice ?? 0) - (currentMonthlyPrice ?? 0))
+  return {
+    amount: roundCurrency((priceDifference / 30) * daysRemaining),
+    daysRemaining,
+  }
 }
 
 function getMonthsForCycle(billingCycle: BillingCycle) {

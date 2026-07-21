@@ -2,7 +2,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 import {
   calculatePaymentRegistration,
+  calculateUpgradeProration,
   assertPlatformBillingAdmin,
+  getEffectiveMonthlyPrice,
+  getPlanChangeKind,
   normalizeRegisterPaymentPayload,
   SubscriptionBillingError,
 } from '../_shared/subscriptionBilling.ts'
@@ -50,36 +53,83 @@ Deno.serve(async (request) => {
     const admin = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     })
-    const [subscriptionResult, planResult] = await Promise.all([
+    const [subscriptionResult, plansResult] = await Promise.all([
       admin
         .from('clinic_subscriptions')
-        .select('id, current_period_ends_at')
+        .select('id, plan_id, current_period_starts_at, current_period_ends_at, grace_ends_at, price_tier, custom_monthly_price')
         .eq('clinic_id', input.clinicId)
         .maybeSingle(),
       admin
         .from('plans')
-        .select('id, monthly_price')
-        .eq('id', input.planId)
+        .select('id, monthly_price, founder_monthly_price')
+        .in('id', [input.planId])
         .eq('is_active', true)
-        .maybeSingle(),
     ])
 
     if (subscriptionResult.error || !subscriptionResult.data) {
       return errorResponse('SUBSCRIPTION_NOT_FOUND', 'No encontramos la suscripción del consultorio.', 404)
     }
-    if (planResult.error || !planResult.data) {
+    if (plansResult.error || !plansResult.data?.length) {
       return errorResponse('INVALID_PLAN', 'El plan seleccionado no está disponible.', 400)
     }
 
-    const calculation = calculatePaymentRegistration({
-      currentPeriodEndsAt: subscriptionResult.data.current_period_ends_at,
-      input,
-      monthlyPrice:
-        planResult.data.monthly_price === null
-          ? null
-          : Number(planResult.data.monthly_price),
+    const subscription = subscriptionResult.data
+    const targetPlan = plansResult.data.find((plan) => plan.id === input.planId)
+    const { data: currentPlan, error: currentPlanError } = await admin
+      .from('plans')
+      .select('id, monthly_price, founder_monthly_price')
+      .eq('id', subscription.plan_id)
+      .maybeSingle()
+    if (!targetPlan || currentPlanError || !currentPlan) {
+      return errorResponse('INVALID_PLAN', 'No pudimos calcular el cambio de plan.', 400)
+    }
+
+    const priceTier = subscription.price_tier === 'founder' || subscription.price_tier === 'custom'
+      ? subscription.price_tier
+      : 'standard'
+    const currentMonthlyPrice = getEffectiveMonthlyPrice({
+      customPrice: subscription.custom_monthly_price === null ? null : Number(subscription.custom_monthly_price),
+      founderPrice: currentPlan.founder_monthly_price === null ? null : Number(currentPlan.founder_monthly_price),
+      priceTier,
+      standardPrice: currentPlan.monthly_price === null ? null : Number(currentPlan.monthly_price),
+    })
+    const targetMonthlyPrice = getEffectiveMonthlyPrice({
+      customPrice: subscription.custom_monthly_price === null ? null : Number(subscription.custom_monthly_price),
+      founderPrice: targetPlan.founder_monthly_price === null ? null : Number(targetPlan.founder_monthly_price),
+      priceTier,
+      standardPrice: targetPlan.monthly_price === null ? null : Number(targetPlan.monthly_price),
+    })
+
+    const changeKind = getPlanChangeKind(subscription.plan_id, input.planId)
+    if (input.paymentType === 'upgrade_proration' && changeKind !== 'upgrade') {
+      return errorResponse('INVALID_UPGRADE', 'Selecciona un plan superior para registrar el upgrade.', 400)
+    }
+    if (input.paymentType !== 'upgrade_proration' && subscription.plan_id !== input.planId) {
+      return errorResponse('PLAN_CHANGE_REQUIRES_ACTION', 'Gestiona el cambio de plan desde la sección correspondiente.', 409)
+    }
+
+    const isUpgrade = input.paymentType === 'upgrade_proration'
+    const upgrade = calculateUpgradeProration({
+      currentMonthlyPrice,
+      currentPeriodEndsAt: subscription.current_period_ends_at,
+      newMonthlyPrice: targetMonthlyPrice,
       now: new Date(input.paidAt),
     })
+    const calculation = isUpgrade
+      ? {
+          amountDue: upgrade.amount,
+          amountPaid: input.amountPaid,
+          discountAmount: 0,
+          graceEndsAt: subscription.grace_ends_at,
+          periodEndsAt: subscription.current_period_ends_at,
+          periodStartsAt: subscription.current_period_starts_at ?? input.paidAt,
+        }
+      : calculatePaymentRegistration({
+          currentPeriodEndsAt: subscription.current_period_ends_at,
+          input,
+          monthlyPrice: targetMonthlyPrice,
+          now: new Date(input.paidAt),
+        })
 
     const { data: paymentId, error: paymentError } = await admin.rpc(
       'record_manual_subscription_payment',
@@ -99,6 +149,11 @@ Deno.serve(async (request) => {
         target_period_ends_at: calculation.periodEndsAt,
         target_period_starts_at: calculation.periodStartsAt,
         target_plan_id: input.planId,
+        target_payment_type: input.paymentType,
+        target_previous_plan_id: subscription.plan_id,
+        target_new_plan_id: input.planId,
+        target_price_tier: priceTier,
+        target_preserve_period: isUpgrade,
         target_recorded_by: userData.user.id,
         target_reference: input.reference,
       },

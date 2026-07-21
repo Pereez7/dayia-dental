@@ -2,10 +2,12 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import {
   assertPlatformBillingAdmin,
   calculateExtraDaysPeriod,
+  getPlanChangeKind,
+  getScheduledDowngradeUpdate,
   SubscriptionBillingError,
 } from '../_shared/subscriptionBilling.ts'
 
-type Action = 'change_plan' | 'grant_extra_days' | 'block' | 'reactivate' | 'mark_lifetime' | 'cancel'
+type Action = 'change_plan' | 'force_change_plan' | 'grant_extra_days' | 'block' | 'reactivate' | 'mark_lifetime' | 'cancel' | 'set_founder_price' | 'set_custom_price' | 'set_standard_price'
 
 const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -57,9 +59,41 @@ Deno.serve(async (request) => {
     const now = new Date()
     const updates: Record<string, unknown> = { updated_at: now.toISOString() }
 
+    let eventType = 'plan_changed'
     if (payload.action === 'change_plan') {
       if (!['basic', 'medium', 'pro'].includes(payload.planId)) return invalid('Selecciona un plan válido.')
+      if (getPlanChangeKind(subscription.plan_id, payload.planId) !== 'downgrade') {
+        return responseError('INVALID_DOWNGRADE', 'Los upgrades requieren registrar el pago prorrateado.', 409)
+      }
+      Object.assign(updates, getScheduledDowngradeUpdate(
+        subscription.current_period_ends_at,
+        payload.planId as 'basic' | 'medium' | 'pro',
+      ))
+      eventType = 'downgrade_scheduled'
+    } else if (payload.action === 'force_change_plan') {
+      if (!['basic', 'medium', 'pro'].includes(payload.planId)) return invalid('Selecciona un plan válido.')
+      if (!payload.notes) return invalid('Explica el motivo del cambio inmediato.')
       updates.plan_id = payload.planId
+      updates.scheduled_plan_id = null
+      updates.scheduled_plan_starts_at = null
+    } else if (payload.action === 'set_founder_price') {
+      updates.price_tier = 'founder'
+      updates.founder_price_locked = true
+      updates.custom_monthly_price = null
+      eventType = 'founder_enabled'
+    } else if (payload.action === 'set_custom_price') {
+      if (!Number.isFinite(payload.customMonthlyPrice) || payload.customMonthlyPrice < 0) {
+        return invalid('Ingresa un precio personalizado válido.')
+      }
+      updates.price_tier = 'custom'
+      updates.custom_monthly_price = payload.customMonthlyPrice
+      updates.founder_price_locked = false
+      eventType = 'custom_price_set'
+    } else if (payload.action === 'set_standard_price') {
+      updates.price_tier = 'standard'
+      updates.custom_monthly_price = null
+      updates.founder_price_locked = false
+      eventType = subscription.price_tier === 'founder' ? 'founder_removed' : 'standard_price_restored'
     } else if (payload.action === 'grant_extra_days') {
       if (!Number.isInteger(payload.days) || payload.days < 1 || payload.days > 3650) {
         return invalid('Ingresa entre 1 y 3650 días adicionales.')
@@ -76,14 +110,17 @@ Deno.serve(async (request) => {
       updates.status = 'active'
       updates.blocked_at = null
       updates.is_lifetime = false
+      eventType = 'extra_days_granted'
     } else if (payload.action === 'block') {
       updates.status = 'blocked'
       updates.blocked_at = now.toISOString()
+      eventType = 'blocked'
     } else if (payload.action === 'reactivate') {
       updates.status = 'active'
       updates.blocked_at = null
       const graceEnd = new Date(now.getTime() + 5 * 86_400_000)
       updates.grace_ends_at = graceEnd.toISOString()
+      eventType = 'reactivated'
     } else if (payload.action === 'mark_lifetime') {
       updates.status = 'lifetime'
       updates.is_lifetime = true
@@ -93,9 +130,11 @@ Deno.serve(async (request) => {
       updates.blocked_at = null
       updates.billing_cycle = 'lifetime'
       updates.payment_status = 'paid'
+      eventType = 'lifetime_enabled'
     } else {
       updates.status = 'cancelled'
       updates.payment_status = 'cancelled'
+      eventType = 'cancelled'
     }
 
     const { error: updateError } = await admin
@@ -103,6 +142,21 @@ Deno.serve(async (request) => {
       .update(updates)
       .eq('clinic_id', payload.clinicId)
     if (updateError) throw updateError
+
+    const { error: eventError } = await admin.from('subscription_events').insert({
+      clinic_id: payload.clinicId,
+      subscription_id: subscription.id,
+      event_type: eventType,
+      previous_plan_id: subscription.plan_id,
+      new_plan_id: payload.planId || subscription.plan_id,
+      notes: payload.notes || null,
+      metadata: {
+        action: payload.action,
+        custom_monthly_price: payload.action === 'set_custom_price' ? payload.customMonthlyPrice : null,
+      },
+      recorded_by: userData.user.id,
+    })
+    if (eventError) throw eventError
 
     return jsonResponse({ action: payload.action, clinicId: payload.clinicId, success: true })
   } catch (error) {
@@ -127,7 +181,7 @@ async function readPayload(request: Request) {
   }
   const clinicId = typeof value.clinicId === 'string' ? value.clinicId.trim() : ''
   const action = typeof value.action === 'string' ? value.action.trim() as Action : '' as Action
-  const allowed = new Set<Action>(['change_plan', 'grant_extra_days', 'block', 'reactivate', 'mark_lifetime', 'cancel'])
+  const allowed = new Set<Action>(['change_plan', 'force_change_plan', 'grant_extra_days', 'block', 'reactivate', 'mark_lifetime', 'cancel', 'set_founder_price', 'set_custom_price', 'set_standard_price'])
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
   if (!uuidPattern.test(clinicId) || !allowed.has(action)) {
     throw new SubscriptionBillingError(
@@ -140,6 +194,7 @@ async function readPayload(request: Request) {
     action,
     clinicId,
     days: Number(value.days),
+    customMonthlyPrice: Number(value.customMonthlyPrice),
     notes: typeof value.notes === 'string' ? value.notes.trim().slice(0, 1000) : '',
     planId: typeof value.planId === 'string' ? value.planId.trim().toLowerCase() : '',
   }

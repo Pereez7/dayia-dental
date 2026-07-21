@@ -3,6 +3,7 @@ import {
   calculateSubscriptionPayment,
   getSubscriptionAccessState,
 } from '../utils/subscriptionBilling'
+import type { PriceTier } from '../utils/subscriptionBilling'
 import { PaymentQr } from './PaymentQr'
 
 interface SubscriptionNoticeProps {
@@ -34,6 +35,7 @@ interface SubscriptionBlockedViewProps {
   currency: string
   monthlyPrice: number | null
   planId: string | null
+  priceTier?: PriceTier
 }
 
 export function SubscriptionBlockedView({
@@ -41,6 +43,7 @@ export function SubscriptionBlockedView({
   currency,
   monthlyPrice,
   planId,
+  priceTier = 'standard',
 }: SubscriptionBlockedViewProps) {
   const planName = getPlanName(planId)
   const periods = [
@@ -61,7 +64,11 @@ export function SubscriptionBlockedView({
         <dl>
           <div><dt>Plan actual</dt><dd>{planName}</dd></div>
           <div><dt>Precio mensual</dt><dd>{monthlyPrice === null ? 'Confirma el monto con DayIA' : `${monthlyPrice.toFixed(2)} ${currency}`}</dd></div>
+          <div><dt>Tarifa</dt><dd>{priceTier === 'founder' ? 'Fundador · se mantiene durante la gracia' : priceTier === 'custom' ? 'Personalizada' : 'Estándar'}</dd></div>
         </dl>
+        {priceTier === 'founder' ? (
+          <p>Precio fundador activo mientras mantengas tu suscripción al día.</p>
+        ) : null}
       </div>
 
       <div className="subscription-blocked-payment">

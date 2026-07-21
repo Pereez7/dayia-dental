@@ -190,7 +190,18 @@ export function mapPlatformClinicSummary(
       clinic.monthlyPrice === null || clinic.monthlyPrice === undefined
         ? null
         : Math.max(0, Number(clinic.monthlyPrice)),
+    founderMonthlyPrice: clinic.founderMonthlyPrice === null || clinic.founderMonthlyPrice === undefined
+      ? null
+      : Math.max(0, Number(clinic.founderMonthlyPrice)),
     planMonthlyPrices: clinic.planMonthlyPrices ?? {},
+    planFounderMonthlyPrices: clinic.planFounderMonthlyPrices ?? {},
+    priceTier: clinic.priceTier === 'founder' || clinic.priceTier === 'custom' ? clinic.priceTier : 'standard',
+    customMonthlyPrice: clinic.customMonthlyPrice === null || clinic.customMonthlyPrice === undefined
+      ? null
+      : Math.max(0, Number(clinic.customMonthlyPrice)),
+    founderPriceLocked: clinic.founderPriceLocked === true,
+    scheduledPlanId: clinic.scheduledPlanId ?? null,
+    scheduledPlanStartsAt: clinic.scheduledPlanStartsAt ?? null,
     ownerEmail: clinic.ownerEmail?.trim() || null,
     ownerName: clinic.ownerName?.trim() || null,
     planId: clinic.planId?.trim() || null,
@@ -288,6 +299,13 @@ export async function invokeSubscriptionActionWithClient(
   }
   if (status === 403) {
     return { error: 'No tienes permiso para administrar suscripciones.', success: false }
+  }
+  if (status === 409) {
+    const responseError = await getFunctionResponseError(error)
+    return {
+      error: responseError?.message ?? 'El cambio solicitado entra en conflicto con la suscripción actual.',
+      success: false,
+    }
   }
 
   return {

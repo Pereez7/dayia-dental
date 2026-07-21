@@ -3,6 +3,7 @@
 
 alter table public.plans
   add column if not exists monthly_price numeric(12, 2),
+  add column if not exists founder_monthly_price numeric(12, 2),
   add column if not exists currency text not null default 'BOB';
 
 alter table public.plans
@@ -10,7 +11,8 @@ alter table public.plans
 
 alter table public.plans
   add constraint plans_monthly_price_non_negative check (
-    monthly_price is null or monthly_price >= 0
+    (monthly_price is null or monthly_price >= 0)
+    and (founder_monthly_price is null or founder_monthly_price >= 0)
   );
 
 alter table public.clinic_subscriptions
@@ -24,7 +26,12 @@ alter table public.clinic_subscriptions
   add column if not exists blocked_at timestamptz,
   add column if not exists payment_status text,
   add column if not exists billing_cycle text,
-  add column if not exists is_lifetime boolean not null default false;
+  add column if not exists is_lifetime boolean not null default false,
+  add column if not exists price_tier text not null default 'standard',
+  add column if not exists custom_monthly_price numeric(12, 2),
+  add column if not exists founder_price_locked boolean not null default false,
+  add column if not exists scheduled_plan_id text references public.plans(id),
+  add column if not exists scheduled_plan_starts_at timestamptz;
 
 update public.clinic_subscriptions
 set id = gen_random_uuid()
@@ -68,6 +75,25 @@ alter table public.clinic_subscriptions
     billing_cycle is null or billing_cycle in ('trial', 'monthly', 'six_months', 'annual', 'custom_days', 'lifetime')
   );
 
+alter table public.clinic_subscriptions
+  drop constraint if exists clinic_subscriptions_price_tier_allowed;
+
+alter table public.clinic_subscriptions
+  drop constraint if exists clinic_subscriptions_custom_price_valid,
+  drop constraint if exists clinic_subscriptions_scheduled_plan_valid;
+
+alter table public.clinic_subscriptions
+  add constraint clinic_subscriptions_price_tier_allowed check (
+    price_tier in ('standard', 'founder', 'custom')
+  ),
+  add constraint clinic_subscriptions_custom_price_valid check (
+    custom_monthly_price is null or custom_monthly_price >= 0
+  ),
+  add constraint clinic_subscriptions_scheduled_plan_valid check (
+    (scheduled_plan_id is null and scheduled_plan_starts_at is null)
+    or (scheduled_plan_id is not null and scheduled_plan_starts_at is not null)
+  );
+
 update public.clinic_subscriptions
 set
   current_period_starts_at = coalesce(current_period_starts_at, starts_at),
@@ -109,6 +135,10 @@ create table if not exists public.subscription_payments (
   period_ends_at timestamptz,
   recorded_by uuid references public.profiles(id) on delete set null,
   created_at timestamptz not null default now(),
+  previous_plan_id text references public.plans(id),
+  new_plan_id text references public.plans(id),
+  payment_type text not null default 'regular',
+  price_tier text not null default 'standard',
   constraint subscription_payments_cycle_allowed check (
     billing_cycle in ('monthly', 'six_months', 'annual', 'custom_days', 'lifetime')
   ),
@@ -121,6 +151,51 @@ create table if not exists public.subscription_payments (
   constraint subscription_payments_period_valid check (
     (billing_cycle = 'lifetime' and period_ends_at is null)
     or billing_cycle <> 'lifetime'
+  ),
+  constraint subscription_payments_type_allowed check (
+    payment_type in ('regular', 'upgrade_proration', 'custom_days', 'lifetime', 'manual_adjustment')
+  ),
+  constraint subscription_payments_price_tier_allowed check (
+    price_tier in ('standard', 'founder', 'custom')
+  )
+);
+
+alter table public.subscription_payments
+  add column if not exists previous_plan_id text references public.plans(id),
+  add column if not exists new_plan_id text references public.plans(id),
+  add column if not exists payment_type text not null default 'regular',
+  add column if not exists price_tier text not null default 'standard';
+
+alter table public.subscription_payments
+  drop constraint if exists subscription_payments_type_allowed,
+  drop constraint if exists subscription_payments_price_tier_allowed;
+
+alter table public.subscription_payments
+  add constraint subscription_payments_type_allowed check (
+    payment_type in ('regular', 'upgrade_proration', 'custom_days', 'lifetime', 'manual_adjustment')
+  ),
+  add constraint subscription_payments_price_tier_allowed check (
+    price_tier in ('standard', 'founder', 'custom')
+  );
+
+create table if not exists public.subscription_events (
+  id uuid primary key default gen_random_uuid(),
+  clinic_id uuid not null references public.clinics(id) on delete restrict,
+  subscription_id uuid references public.clinic_subscriptions(id) on delete set null,
+  event_type text not null,
+  previous_plan_id text references public.plans(id),
+  new_plan_id text references public.plans(id),
+  notes text,
+  metadata jsonb not null default '{}'::jsonb,
+  recorded_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  constraint subscription_events_type_allowed check (
+    event_type in (
+      'plan_changed', 'payment_registered', 'founder_enabled',
+      'founder_removed', 'custom_price_set', 'extra_days_granted',
+      'blocked', 'reactivated', 'lifetime_enabled', 'downgrade_scheduled',
+      'standard_price_restored', 'cancelled'
+    )
   )
 );
 
@@ -170,13 +245,21 @@ create index if not exists subscription_payments_subscription_idx
 
 alter table public.subscription_payments enable row level security;
 alter table public.plan_billing_options enable row level security;
+alter table public.subscription_events enable row level security;
 
 revoke all on public.subscription_payments from anon, authenticated;
 revoke all on public.plan_billing_options from anon, authenticated;
+revoke all on public.subscription_events from anon, authenticated;
 grant select, insert on public.subscription_payments to service_role;
+grant select, insert on public.subscription_events to service_role;
 grant select on public.plan_billing_options to service_role;
 grant select, update on public.clinic_subscriptions to service_role;
 grant select, update on public.plans to service_role;
+
+drop function if exists public.record_manual_subscription_payment(
+  uuid, text, text, integer, integer, numeric, numeric, numeric, numeric,
+  text, text, timestamptz, timestamptz, timestamptz, timestamptz, uuid, boolean
+);
 
 create or replace function public.record_manual_subscription_payment(
   target_clinic_id uuid,
@@ -195,7 +278,12 @@ create or replace function public.record_manual_subscription_payment(
   target_period_ends_at timestamptz,
   target_grace_ends_at timestamptz,
   target_recorded_by uuid,
-  target_is_lifetime boolean
+  target_is_lifetime boolean,
+  target_payment_type text,
+  target_previous_plan_id text,
+  target_new_plan_id text,
+  target_price_tier text,
+  target_preserve_period boolean default false
 )
 returns uuid
 language plpgsql
@@ -234,7 +322,11 @@ begin
     paid_at,
     period_starts_at,
     period_ends_at,
-    recorded_by
+    recorded_by,
+    previous_plan_id,
+    new_plan_id,
+    payment_type,
+    price_tier
   ) values (
     target_clinic_id,
     target_subscription.id,
@@ -254,25 +346,52 @@ begin
     target_paid_at,
     target_period_starts_at,
     target_period_ends_at,
-    target_recorded_by
+    target_recorded_by,
+    target_previous_plan_id,
+    target_new_plan_id,
+    target_payment_type,
+    target_price_tier
   ) returning id into payment_id;
 
   update public.clinic_subscriptions
   set
     plan_id = target_plan_id,
     status = case when target_is_lifetime then 'lifetime' else 'active' end,
-    current_period_starts_at = target_period_starts_at,
-    current_period_ends_at = case when target_is_lifetime then null else target_period_ends_at end,
-    grace_ends_at = case when target_is_lifetime then null else target_grace_ends_at end,
+    current_period_starts_at = case when target_preserve_period then current_period_starts_at else target_period_starts_at end,
+    current_period_ends_at = case when target_preserve_period then current_period_ends_at when target_is_lifetime then null else target_period_ends_at end,
+    grace_ends_at = case when target_preserve_period then grace_ends_at when target_is_lifetime then null else target_grace_ends_at end,
     last_payment_at = target_paid_at,
     blocked_at = null,
     payment_status = 'paid',
     billing_cycle = target_billing_cycle,
     is_lifetime = target_is_lifetime,
-    starts_at = target_period_starts_at,
-    ends_at = case when target_is_lifetime then null else target_period_ends_at end,
+    price_tier = target_price_tier,
+    scheduled_plan_id = null,
+    scheduled_plan_starts_at = null,
+    starts_at = case when target_preserve_period then starts_at else target_period_starts_at end,
+    ends_at = case when target_preserve_period then ends_at when target_is_lifetime then null else target_period_ends_at end,
     updated_at = now()
   where clinic_id = target_clinic_id;
+
+  insert into public.subscription_events (
+    clinic_id,
+    subscription_id,
+    event_type,
+    previous_plan_id,
+    new_plan_id,
+    notes,
+    metadata,
+    recorded_by
+  ) values (
+    target_clinic_id,
+    target_subscription.id,
+    'payment_registered',
+    target_previous_plan_id,
+    target_new_plan_id,
+    nullif(btrim(target_notes), ''),
+    jsonb_build_object('payment_id', payment_id, 'payment_type', target_payment_type),
+    target_recorded_by
+  );
 
   return payment_id;
 end;
@@ -280,11 +399,13 @@ $$;
 
 revoke all on function public.record_manual_subscription_payment(
   uuid, text, text, integer, integer, numeric, numeric, numeric, numeric,
-  text, text, timestamptz, timestamptz, timestamptz, timestamptz, uuid, boolean
+  text, text, timestamptz, timestamptz, timestamptz, timestamptz, uuid, boolean,
+  text, text, text, text, boolean
 ) from public, anon, authenticated;
 grant execute on function public.record_manual_subscription_payment(
   uuid, text, text, integer, integer, numeric, numeric, numeric, numeric,
-  text, text, timestamptz, timestamptz, timestamptz, timestamptz, uuid, boolean
+  text, text, timestamptz, timestamptz, timestamptz, timestamptz, uuid, boolean,
+  text, text, text, text, boolean
 ) to service_role;
 
 comment on column public.plans.monthly_price is
@@ -293,6 +414,65 @@ comment on table public.subscription_payments is
   'Immutable manual payment ledger. Only trusted Edge Functions may insert rows.';
 comment on table public.plan_billing_options is
   'Suggested billing cycles and discounts for manual platform billing.';
+comment on table public.subscription_events is
+  'Administrative audit trail for subscription and pricing changes.';
+
+create or replace function public.apply_due_scheduled_plan(target_clinic_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  target_subscription public.clinic_subscriptions%rowtype;
+begin
+  if auth.role() <> 'service_role'
+    and not exists (
+      select 1 from public.clinic_memberships memberships
+      where memberships.clinic_id = target_clinic_id
+        and memberships.user_id = auth.uid()
+        and memberships.status = 'active'
+    )
+    and not exists (
+      select 1 from public.profiles profiles
+      where profiles.id = auth.uid() and profiles.is_platform_admin = true
+    ) then
+    raise exception 'FORBIDDEN';
+  end if;
+
+  select * into target_subscription
+  from public.clinic_subscriptions
+  where clinic_id = target_clinic_id
+  for update;
+
+  if target_subscription.scheduled_plan_id is null
+    or target_subscription.scheduled_plan_starts_at > now() then
+    return false;
+  end if;
+
+  update public.clinic_subscriptions
+  set plan_id = scheduled_plan_id,
+      scheduled_plan_id = null,
+      scheduled_plan_starts_at = null,
+      updated_at = now()
+  where clinic_id = target_clinic_id;
+
+  insert into public.subscription_events (
+    clinic_id, subscription_id, event_type, previous_plan_id, new_plan_id,
+    notes, metadata, recorded_by
+  ) values (
+    target_clinic_id, target_subscription.id, 'plan_changed',
+    target_subscription.plan_id, target_subscription.scheduled_plan_id,
+    'Cambio programado aplicado al finalizar el periodo.',
+    jsonb_build_object('scheduled', true), auth.uid()
+  );
+
+  return true;
+end;
+$$;
+
+revoke all on function public.apply_due_scheduled_plan(uuid) from public, anon;
+grant execute on function public.apply_due_scheduled_plan(uuid) to authenticated, service_role;
 
 create or replace function public.subscription_allows_clinical_access(
   target_clinic_id uuid,

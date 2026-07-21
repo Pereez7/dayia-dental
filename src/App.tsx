@@ -1944,6 +1944,7 @@ function App() {
           currency={currentPlanCurrency}
           monthlyPrice={currentPlanMonthlyPrice}
           planId={currentPlanId}
+          priceTier={currentSubscription?.price_tier ?? 'standard'}
         />
       )
     }

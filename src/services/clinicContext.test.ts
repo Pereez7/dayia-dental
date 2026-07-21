@@ -10,6 +10,7 @@ import {
   getSubscriptionPlanId,
   resolveProfileFromMembership,
   selectActiveClinicMembership,
+  shouldApplyScheduledPlan,
 } from './clinicContext'
 
 const legacyAdminProfile: UserProfile = {
@@ -108,6 +109,19 @@ describe('clinic session context', () => {
       'pro',
     )
     expect(getSubscriptionPlanId(null)).toBeNull()
+  })
+
+  it('calls the scheduled-plan RPC only after a real downgrade reaches its date', () => {
+    expect(shouldApplyScheduledPlan(null)).toBe(false)
+    expect(shouldApplyScheduledPlan({ scheduled_plan_id: null, scheduled_plan_starts_at: null })).toBe(false)
+    expect(shouldApplyScheduledPlan(
+      { scheduled_plan_id: 'basic', scheduled_plan_starts_at: '2026-08-01T00:00:00.000Z' },
+      new Date('2026-07-20T00:00:00.000Z'),
+    )).toBe(false)
+    expect(shouldApplyScheduledPlan(
+      { scheduled_plan_id: 'basic', scheduled_plan_starts_at: '2026-07-01T00:00:00.000Z' },
+      new Date('2026-07-20T00:00:00.000Z'),
+    )).toBe(true)
   })
 })
 

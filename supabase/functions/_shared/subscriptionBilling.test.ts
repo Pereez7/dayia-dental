@@ -5,6 +5,10 @@ import {
   calculateExtraDaysPeriod,
   assertPlatformBillingAdmin,
   normalizeRegisterPaymentPayload,
+  calculateUpgradeProration,
+  getEffectiveMonthlyPrice,
+  getPlanChangeKind,
+  getScheduledDowngradeUpdate,
 } from './subscriptionBilling.ts'
 
 const input = normalizeRegisterPaymentPayload({
@@ -69,6 +73,27 @@ describe('subscriptionBilling edge helpers', () => {
     ).toEqual({
       graceEndsAt: '2026-09-04T12:00:00.000Z',
       periodEndsAt: '2026-08-30T12:00:00.000Z',
+    })
+  })
+
+  it('uses the subscription price tier independently of the QR', () => {
+    expect(getEffectiveMonthlyPrice({ standardPrice: 199, founderPrice: 129, customPrice: null, priceTier: 'founder' })).toBe(129)
+    expect(getEffectiveMonthlyPrice({ standardPrice: 199, founderPrice: 129, customPrice: 175, priceTier: 'custom' })).toBe(175)
+    expect(getEffectiveMonthlyPrice({ standardPrice: 199, founderPrice: 129, customPrice: null, priceTier: 'standard' })).toBe(199)
+  })
+
+  it('calculates an immediate upgrade without extending the period', () => {
+    expect(calculateUpgradeProration({
+      currentMonthlyPrice: 129,
+      newMonthlyPrice: 199,
+      currentPeriodEndsAt: '2026-08-09T00:00:00.000Z',
+      now: new Date('2026-07-20T00:00:00.000Z'),
+    })).toEqual({ amount: 46.67, daysRemaining: 20 })
+    expect(getPlanChangeKind('basic', 'medium')).toBe('upgrade')
+    expect(getPlanChangeKind('pro', 'basic')).toBe('downgrade')
+    expect(getScheduledDowngradeUpdate('2026-08-09T00:00:00.000Z', 'basic')).toEqual({
+      scheduled_plan_id: 'basic',
+      scheduled_plan_starts_at: '2026-08-09T00:00:00.000Z',
     })
   })
 })

@@ -6,6 +6,7 @@ import type {
   PlanRecord,
   UserProfile,
 } from '../types/database'
+import { getMonthlyPriceForTier } from '../utils/subscriptionBilling'
 
 export interface ClinicSessionContext {
   activeMembership: ClinicMembershipRecord | null
@@ -74,12 +75,39 @@ export async function getClinicSessionContext(profile: UserProfile) {
     }
   }
 
-  const subscription = subscriptionResult.data as ClinicSubscriptionRecord | null
+  let subscription = subscriptionResult.data as ClinicSubscriptionRecord | null
+
+  if (shouldApplyScheduledPlan(subscription)) {
+    const rpcClient = supabase as unknown as {
+      rpc: (
+        functionName: 'apply_due_scheduled_plan',
+        args: { target_clinic_id: string },
+      ) => PromiseLike<{ error: unknown }>
+    }
+    const { error: scheduledPlanError } = await rpcClient.rpc(
+      'apply_due_scheduled_plan',
+      { target_clinic_id: clinicId },
+    )
+    if (scheduledPlanError) {
+      return { data: null, error: scheduledPlanError }
+    }
+
+    const refreshedSubscription = await supabase
+      .from('clinic_subscriptions')
+      .select('*')
+      .eq('clinic_id', clinicId)
+      .maybeSingle()
+    if (refreshedSubscription.error) {
+      return { data: null, error: refreshedSubscription.error }
+    }
+    subscription = refreshedSubscription.data as ClinicSubscriptionRecord | null
+  }
+
   const planId = getSubscriptionPlanId(subscription)
   const planResult = planId
     ? await supabase
         .from('plans')
-        .select('monthly_price, currency')
+        .select('*')
         .eq('id', planId)
         .maybeSingle()
     : { data: null, error: null }
@@ -87,10 +115,7 @@ export async function getClinicSessionContext(profile: UserProfile) {
   if (planResult.error) {
     return { data: null, error: planResult.error }
   }
-  const plan = planResult.data as Pick<
-    PlanRecord,
-    'currency' | 'monthly_price'
-  > | null
+  const plan = planResult.data as Partial<PlanRecord> | null
 
   return {
     data: {
@@ -98,16 +123,31 @@ export async function getClinicSessionContext(profile: UserProfile) {
       currentClinic: clinicResult.data as Clinic | null,
       currentPlanCurrency: plan?.currency?.trim() || 'BOB',
       currentPlanId: planId,
-      currentPlanMonthlyPrice:
-        plan?.monthly_price === null ||
-        plan?.monthly_price === undefined
-          ? null
-          : Number(plan.monthly_price),
+      currentPlanMonthlyPrice: getMonthlyPriceForTier({
+        customPrice: subscription?.custom_monthly_price ?? null,
+        founderPrice: plan?.founder_monthly_price === null || plan?.founder_monthly_price === undefined ? null : Number(plan.founder_monthly_price),
+        priceTier: subscription?.price_tier ?? 'standard',
+        standardPrice: plan?.monthly_price === null || plan?.monthly_price === undefined ? null : Number(plan.monthly_price),
+      }),
       currentSubscription: subscription,
       profile: resolvedProfile,
     } satisfies ClinicSessionContext,
     error: null,
   }
+}
+
+export function shouldApplyScheduledPlan(
+  subscription: Pick<
+    ClinicSubscriptionRecord,
+    'scheduled_plan_id' | 'scheduled_plan_starts_at'
+  > | null,
+  now = new Date(),
+) {
+  if (!subscription?.scheduled_plan_id || !subscription.scheduled_plan_starts_at) {
+    return false
+  }
+  const startsAt = new Date(subscription.scheduled_plan_starts_at)
+  return !Number.isNaN(startsAt.getTime()) && startsAt <= now
 }
 
 export function selectActiveClinicMembership(

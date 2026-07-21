@@ -17,6 +17,9 @@ Registro breve de cambios relevantes en DayIA Dental.
   plan, bloqueo, reactivación, vitalicio e historial.
 - La app clínica muestra avisos de vencimiento y gracia; fuera de gracia deja de
   montar servicios clínicos y presenta el pago sin cerrar sesión.
+- Billing distingue tarifa normal, fundador y personalizada sin multiplicar
+  los QR. Los upgrades se prorratean y conservan el vencimiento; los downgrades
+  quedan programados para el cierre del periodo y los cambios se auditan.
 
 ## 2026-07-20
 
