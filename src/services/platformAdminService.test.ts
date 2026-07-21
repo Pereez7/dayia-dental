@@ -9,6 +9,7 @@ import {
 
 const clinicResponse = {
   activeMembersCount: 3,
+  blockedAt: null,
   clinicId: 'clinic-1',
   clinicName: '  Clínica Central  ',
   clinicStatus: 'active' as const,
@@ -33,6 +34,7 @@ const clinicResponse = {
   planName: 'Pro',
   paymentStatus: 'trial',
   payments: [],
+  paymentSubmissions: [],
   subscriptionStatus: 'trialing' as const,
   trialEndsAt: '2099-07-16T10:00:00.000Z',
 }

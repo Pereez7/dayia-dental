@@ -2,6 +2,29 @@
 
 Registro breve de cambios relevantes en DayIA Dental.
 
+## 2026-07-21
+
+### Suscripciones y pagos QR
+
+- El registro administrativo ahora bloquea Enter y exige una revisión y
+  confirmación explícitas antes de escribir el pago.
+- Se añadió historial auditable con detalle y anulación lógica del último pago,
+  restaurando la vigencia previa sin borrar el ledger.
+- El propietario dispone de una vista de Suscripción con periodos de 1, 6 y 12
+  meses, descuentos, monto exacto, QR por plan y envío del comprobante por
+  WhatsApp para validación administrativa.
+- La migración `021_subscription_payment_workflow.sql` agrega estados de pago,
+  instantáneas de suscripción y avisos de comprobante protegidos por RLS.
+- Suscripción refresca silenciosamente la condición comercial al abrirse y
+  muestra si la tarifa es estándar, fundador o personalizada.
+- La tarifa fundador se aplica solo al periodo mensual; 6 y 12 meses vuelven a
+  calcularse desde el precio estándar con sus descuentos de periodo.
+- La tarifa fundador puede configurarse para cualquiera de los tres planes y
+  vence 24 horas después del bloqueo; el backend valida el límite con la hora
+  real del pago.
+- La revisión administrativa ya no interpreta el monto informado por el cliente
+  como una edición manual y las renovaciones bloqueadas comienzan en `paid_at`.
+
 ## 2026-07-20
 
 ### Cambios realizados

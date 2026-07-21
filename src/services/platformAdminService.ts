@@ -8,6 +8,7 @@ import type {
   PlatformSubscriptionStatus,
   RegisterSubscriptionPaymentInput,
   UpdateClinicSubscriptionInput,
+  VoidSubscriptionPaymentInput,
 } from '../types/platform'
 import { getSubscriptionAccessState } from '../utils/subscriptionBilling'
 
@@ -87,6 +88,12 @@ export async function updateClinicSubscription(
   input: UpdateClinicSubscriptionInput,
 ): Promise<PlatformSubscriptionActionResult> {
   return invokeSubscriptionAction('update-clinic-subscription', input)
+}
+
+export async function voidSubscriptionPayment(
+  input: VoidSubscriptionPaymentInput,
+): Promise<PlatformSubscriptionActionResult> {
+  return invokeSubscriptionAction('void-subscription-payment', input)
 }
 
 export async function createPlatformClinicWithClient(
@@ -175,6 +182,7 @@ export function mapPlatformClinicSummary(
     activeMembersCount: Number.isFinite(clinic.activeMembersCount)
       ? Math.max(0, clinic.activeMembersCount)
       : 0,
+    blockedAt: clinic.blockedAt ?? null,
     clinicId: clinic.clinicId,
     clinicName: clinic.clinicName.trim() || 'Consultorio sin nombre',
     clinicStatus: clinic.clinicStatus && clinicStatuses.has(clinic.clinicStatus)
@@ -208,6 +216,9 @@ export function mapPlatformClinicSummary(
     planName: getPlatformPlanName(clinic.planId, clinic.planName),
     paymentStatus: clinic.paymentStatus?.trim() || null,
     payments: Array.isArray(clinic.payments) ? clinic.payments : [],
+    paymentSubmissions: Array.isArray(clinic.paymentSubmissions)
+      ? clinic.paymentSubmissions
+      : [],
     subscriptionStatus: getEffectiveSubscriptionStatus(clinic),
     trialEndsAt: clinic.trialEndsAt ?? null,
   }
@@ -250,8 +261,14 @@ function getEffectiveSubscriptionStatus(
 }
 
 async function invokeSubscriptionAction(
-  functionName: 'register-subscription-payment' | 'update-clinic-subscription',
-  body: RegisterSubscriptionPaymentInput | UpdateClinicSubscriptionInput,
+  functionName:
+    | 'register-subscription-payment'
+    | 'update-clinic-subscription'
+    | 'void-subscription-payment',
+  body:
+    | RegisterSubscriptionPaymentInput
+    | UpdateClinicSubscriptionInput
+    | VoidSubscriptionPaymentInput,
 ): Promise<PlatformSubscriptionActionResult> {
   return invokeSubscriptionActionWithClient(
     supabase as PlatformAdminFunctionClient | null,
@@ -262,8 +279,14 @@ async function invokeSubscriptionAction(
 
 export async function invokeSubscriptionActionWithClient(
   client: PlatformAdminFunctionClient | null,
-  functionName: 'register-subscription-payment' | 'update-clinic-subscription',
-  body: RegisterSubscriptionPaymentInput | UpdateClinicSubscriptionInput,
+  functionName:
+    | 'register-subscription-payment'
+    | 'update-clinic-subscription'
+    | 'void-subscription-payment',
+  body:
+    | RegisterSubscriptionPaymentInput
+    | UpdateClinicSubscriptionInput
+    | VoidSubscriptionPaymentInput,
 ): Promise<PlatformSubscriptionActionResult> {
 
   if (!client) return { error: 'Supabase no está configurado.', success: false }

@@ -13,6 +13,7 @@ const restorableSections = new Set<AppSection>([
   'clinical-history',
   'odontogram',
   'whatsapp-reminders',
+  'subscription',
   'administration',
   'settings',
 ])

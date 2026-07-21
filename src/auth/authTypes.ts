@@ -14,6 +14,7 @@ export interface AuthState {
   currentPlanId: string | null
   currentPlanCurrency: string
   currentPlanMonthlyPrice: number | null
+  currentPlanStandardMonthlyPrice?: number | null
   currentSubscription: ClinicSubscriptionRecord | null
   isDemoMode: boolean
   isLoading: boolean
@@ -29,5 +30,6 @@ export interface SignInCredentials {
 }
 
 export interface AuthContextValue extends AuthState {
+  refreshClinicContext: () => Promise<void>
   signOut: () => Promise<void>
 }

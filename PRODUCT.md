@@ -20,6 +20,9 @@ El acceso comercial usa prueba de 15 días, 5 días de gracia y pagos manuales p
 QR. Vencer no cierra la sesión ni elimina datos; fuera de gracia se reemplazan
 los módulos clínicos por instrucciones de reactivación. Una licencia vitalicia
 no vence automáticamente y solo puede bloquearse desde Administración DayIA.
+El propietario paga por QR y envía el comprobante por WhatsApp; solo Platform
+Admin puede registrarlo y activar la vigencia. Los pagos erróneos se anulan de
+forma lógica y auditable, sin borrar el historial.
 
 DayIA Dental organiza pacientes, citas odontológicas, seguimiento clínico,
 odontograma y recordatorios persistidos sobre Supabase. El envío manual está

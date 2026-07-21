@@ -103,6 +103,20 @@ describe('permission-aware navigation', () => {
     expect(
       isSensitiveSectionAccessDenied('settings', permissions, false),
     ).toBe(false)
+    expect(getAuthorizedSection('subscription', permissions, false)).toBe(
+      'subscription',
+    )
+  })
+
+  it('keeps subscription details restricted to the clinic owner', () => {
+    const adminPermissions = getClinicalPermissions('clinic_admin', 'pro')
+
+    expect(getAuthorizedSection('subscription', adminPermissions, false)).toBe(
+      'dashboard',
+    )
+    expect(
+      isSensitiveSectionAccessDenied('subscription', adminPermissions, false),
+    ).toBe(true)
   })
 
   it('keeps pure platform admins away from clinical views', () => {

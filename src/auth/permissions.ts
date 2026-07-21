@@ -42,6 +42,7 @@ export interface ClinicalPermissions {
   canAccessPatients: boolean
   canAccessReminders: boolean
   canAccessSettings: boolean
+  canAccessSubscription: boolean
   canManageClinicUsers: boolean
   canManageWhatsapp: boolean
 }
@@ -101,6 +102,7 @@ export function getClinicalPermissions(
     canAccessPatients: hasClinicalAccess,
     canAccessReminders: isClinicManager || isReceptionist,
     canAccessSettings: isClinicManager,
+    canAccessSubscription: normalizedRole === 'clinic_owner',
     canManageClinicUsers:
       isClinicManager &&
       (normalizedPlan === 'medium' || normalizedPlan === 'pro'),

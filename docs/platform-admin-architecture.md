@@ -7,6 +7,14 @@ clínica. `list-platform-clinics` entrega resumen, precio configurable e histori
 de pagos. `register-subscription-payment` registra el pago y actualiza la
 suscripción de forma transaccional; `update-clinic-subscription` concentra
 cambio de plan, días extra, bloqueo, reactivación, cancelación y vitalicio.
+`void-subscription-payment` anula lógicamente el último pago vigente y restaura
+la instantánea anterior solo cuando no existen cambios administrativos
+posteriores.
+
+La interfaz separa resumen, calculadora, confirmación final e historial. Enter
+no registra pagos, la referencia es obligatoria y toda escritura definitiva se
+confirma en un modal. Los avisos enviados por propietarios aparecen pendientes
+para su revisión, pero nunca activan una suscripción por sí mismos.
 
 Todas las escrituras exigen JWT de un perfil con `is_platform_admin = true`.
 `service_role` se inicializa únicamente dentro de las Functions después de esa

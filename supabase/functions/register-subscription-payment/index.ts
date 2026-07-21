@@ -6,6 +6,7 @@ import {
   assertPlatformBillingAdmin,
   getEffectiveMonthlyPrice,
   getPlanChangeKind,
+  isFounderPricingEligible,
   normalizeRegisterPaymentPayload,
   SubscriptionBillingError,
 } from '../_shared/subscriptionBilling.ts'
@@ -49,14 +50,16 @@ Deno.serve(async (request) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     if (!serviceRoleKey) return configurationError()
 
-    const input = normalizeRegisterPaymentPayload(await readJson(request))
+    const requestPayload = await readJson(request)
+    const input = normalizeRegisterPaymentPayload(requestPayload)
+    const submissionId = getOptionalSubmissionId(requestPayload)
     const admin = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     })
     const [subscriptionResult, plansResult] = await Promise.all([
       admin
         .from('clinic_subscriptions')
-        .select('id, plan_id, current_period_starts_at, current_period_ends_at, grace_ends_at, price_tier, custom_monthly_price')
+        .select('id, plan_id, status, blocked_at, current_period_starts_at, current_period_ends_at, grace_ends_at, price_tier, custom_monthly_price')
         .eq('clinic_id', input.clinicId)
         .maybeSingle(),
       admin
@@ -87,18 +90,31 @@ Deno.serve(async (request) => {
     const priceTier = subscription.price_tier === 'founder' || subscription.price_tier === 'custom'
       ? subscription.price_tier
       : 'standard'
+    const founderPricingEligible = isFounderPricingEligible({
+      blockedAt: subscription.blocked_at,
+      paidAt: input.paidAt,
+    })
+    const paymentPriceTier = priceTier === 'founder' && !founderPricingEligible
+      ? 'standard'
+      : priceTier
     const currentMonthlyPrice = getEffectiveMonthlyPrice({
       customPrice: subscription.custom_monthly_price === null ? null : Number(subscription.custom_monthly_price),
       founderPrice: currentPlan.founder_monthly_price === null ? null : Number(currentPlan.founder_monthly_price),
-      priceTier,
+      priceTier: paymentPriceTier,
       standardPrice: currentPlan.monthly_price === null ? null : Number(currentPlan.monthly_price),
     })
     const targetMonthlyPrice = getEffectiveMonthlyPrice({
       customPrice: subscription.custom_monthly_price === null ? null : Number(subscription.custom_monthly_price),
       founderPrice: targetPlan.founder_monthly_price === null ? null : Number(targetPlan.founder_monthly_price),
-      priceTier,
+      priceTier: paymentPriceTier,
       standardPrice: targetPlan.monthly_price === null ? null : Number(targetPlan.monthly_price),
     })
+    const registrationMonthlyPrice =
+      paymentPriceTier === 'founder'
+        ? targetPlan.monthly_price === null
+          ? null
+          : Number(targetPlan.monthly_price)
+        : targetMonthlyPrice
 
     const changeKind = getPlanChangeKind(subscription.plan_id, input.planId)
     if (input.paymentType === 'upgrade_proration' && changeKind !== 'upgrade') {
@@ -125,9 +141,12 @@ Deno.serve(async (request) => {
           periodStartsAt: subscription.current_period_starts_at ?? input.paidAt,
         }
       : calculatePaymentRegistration({
-          currentPeriodEndsAt: subscription.current_period_ends_at,
+          currentPeriodEndsAt:
+            subscription.status === 'blocked'
+              ? null
+              : subscription.current_period_ends_at,
           input,
-          monthlyPrice: targetMonthlyPrice,
+          monthlyPrice: registrationMonthlyPrice,
           now: new Date(input.paidAt),
         })
 
@@ -152,10 +171,11 @@ Deno.serve(async (request) => {
         target_payment_type: input.paymentType,
         target_previous_plan_id: subscription.plan_id,
         target_new_plan_id: input.planId,
-        target_price_tier: priceTier,
+        target_price_tier: paymentPriceTier,
         target_preserve_period: isUpgrade,
         target_recorded_by: userData.user.id,
         target_reference: input.reference,
+        target_submission_id: submissionId,
       },
     )
 
@@ -173,6 +193,31 @@ Deno.serve(async (request) => {
     return errorResponse('REGISTER_PAYMENT_FAILED', 'No pudimos registrar el pago. Intenta nuevamente.', 500)
   }
 })
+
+function getOptionalSubmissionId(payload: unknown) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return null
+  }
+
+  const submissionId = (payload as { submissionId?: unknown }).submissionId
+
+  if (submissionId === undefined || submissionId === null || submissionId === '') {
+    return null
+  }
+
+  if (
+    typeof submissionId !== 'string' ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(submissionId)
+  ) {
+    throw new SubscriptionBillingError(
+      'INVALID_PAYMENT_SUBMISSION',
+      'La solicitud de pago no es válida.',
+      400,
+    )
+  }
+
+  return submissionId
+}
 
 async function readJson(request: Request) {
   try {

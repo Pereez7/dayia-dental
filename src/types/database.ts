@@ -135,7 +135,31 @@ export interface SubscriptionPaymentRecord {
   qr_plan_id: string | null
   recorded_by: string | null
   reference: string | null
+  status: 'registered' | 'voided'
   subscription_id: string | null
+  subscription_snapshot: Json | null
+  void_reason: string | null
+  voided_at: string | null
+  voided_by: string | null
+}
+
+export interface SubscriptionPaymentSubmissionRecord {
+  amount_expected: number
+  billing_cycle: 'monthly' | 'six_months' | 'annual'
+  clinic_id: string
+  created_at: string
+  currency: string
+  id: string
+  linked_payment_id: string | null
+  notes: string | null
+  plan_id: string
+  reference: string
+  review_notes: string | null
+  reviewed_at: string | null
+  reviewed_by: string | null
+  status: 'approved' | 'cancelled' | 'pending_review' | 'rejected'
+  submitted_by: string
+  updated_at: string
 }
 
 export interface ClinicMembershipRecord {
@@ -328,6 +352,7 @@ export type TableRowMap = {
   profiles: UserProfile
   reminders: ReminderRecord
   subscription_payments: SubscriptionPaymentRecord
+  subscription_payment_submissions: SubscriptionPaymentSubmissionRecord
   treatments: TreatmentRecord
   whatsapp_settings: WhatsAppSettingsRecord
 }

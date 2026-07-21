@@ -53,6 +53,14 @@ export function formatClinicalHistoryDate(
   return formatAppDate(date, referenceDate)
 }
 
+export function formatSubscriptionDate(
+  value: string | null | undefined,
+  fallback = 'No definido',
+) {
+  if (!value) return fallback
+  return formatAppDate(value.slice(0, 10))
+}
+
 function isDateInputValue(value: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return false

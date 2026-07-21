@@ -37,6 +37,10 @@ const sectionContent: Record<AppSection, { title: string; description: string }>
     title: 'Recordatorios WhatsApp',
     description: 'Cola manual de mensajes y seguimiento de citas.',
   },
+  subscription: {
+    title: 'Suscripción',
+    description: 'Plan, vigencia y opciones de renovación del consultorio.',
+  },
   administration: {
     title: 'Administración DayIA',
     description: 'Gestión interna de consultorios y planes.',

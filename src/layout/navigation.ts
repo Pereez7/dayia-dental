@@ -11,6 +11,7 @@ export type AppSection =
   | 'odontogram'
   | 'whatsapp-reminders'
   | 'administration'
+  | 'subscription'
   | 'settings'
 
 export interface NavigationItem {
@@ -25,6 +26,7 @@ export const navigationItems: NavigationItem[] = [
   { id: 'clinical-history', label: 'Historial clínico' },
   { id: 'odontogram', label: 'Odontograma' },
   { id: 'whatsapp-reminders', label: 'Recordatorios' },
+  { id: 'subscription', label: 'Suscripción' },
   { id: 'settings', label: 'Configuración' },
 ]
 
@@ -94,6 +96,10 @@ export function canAccessAppSection(
     return permissions.canAccessReminders
   }
 
+  if (section === 'subscription') {
+    return permissions.canAccessSubscription
+  }
+
   return permissions.canAccessSettings
 }
 
@@ -132,6 +138,10 @@ export function isSensitiveSectionAccessDenied(
 
   if (requestedSection === 'administration') {
     return !canAccessAdministration
+  }
+
+  if (requestedSection === 'subscription') {
+    return !permissions.canAccessSubscription
   }
 
   return false

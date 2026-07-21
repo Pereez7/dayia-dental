@@ -3,11 +3,15 @@ import { describe, expect, it } from 'vitest'
 import {
   calculateNewSubscriptionPeriod,
   calculateSubscriptionPayment,
+  calculateTieredSubscriptionPayment,
   getSubscriptionAccessState,
   getPlanQrPath,
   getMonthlyPriceForTier,
   getPlanChangeKind,
+  isFounderPricingEligible,
   calculateUpgradeProration,
+  shouldBlockImplicitPaymentSubmit,
+  validateSubscriptionPayment,
 } from './subscriptionBilling'
 
 describe('subscriptionBilling', () => {
@@ -146,5 +150,86 @@ describe('subscriptionBilling', () => {
     })).toEqual({ amount: 30, daysRemaining: 15 })
     expect(getPlanChangeKind('basic', 'pro')).toBe('upgrade')
     expect(getPlanChangeKind('pro', 'medium')).toBe('downgrade')
+  })
+
+  it('applies founder pricing only to the monthly renewal', () => {
+    expect(
+      calculateTieredSubscriptionPayment({
+        billingCycle: 'monthly',
+        effectiveMonthlyPrice: 249,
+        priceTier: 'founder',
+        standardMonthlyPrice: 299,
+      }),
+    ).toMatchObject({
+      amountDue: 299,
+      amountPaid: 249,
+      discountAmount: 50,
+    })
+
+    expect(
+      calculateTieredSubscriptionPayment({
+        billingCycle: 'six_months',
+        effectiveMonthlyPrice: 249,
+        priceTier: 'founder',
+        standardMonthlyPrice: 299,
+      }),
+    ).toMatchObject({
+      amountDue: 1794,
+      amountPaid: 1614.6,
+      discountAmount: 179.4,
+      discountPercent: 10,
+    })
+  })
+
+  it('keeps founder pricing during the first 24 hours after a block', () => {
+    expect(
+      isFounderPricingEligible({
+        blockedAt: '2026-07-20T20:00:00-04:00',
+        paidAt: '2026-07-21T20:00:00-04:00',
+      }),
+    ).toBe(true)
+  })
+
+  it('expires founder pricing when payment occurs after 24 hours', () => {
+    expect(
+      isFounderPricingEligible({
+        blockedAt: '2026-07-20T20:00:00-04:00',
+        paidAt: '2026-07-21T21:00:00-04:00',
+      }),
+    ).toBe(false)
+  })
+
+  it('blocks Enter as an implicit payment action', () => {
+    expect(shouldBlockImplicitPaymentSubmit('Enter')).toBe(true)
+    expect(shouldBlockImplicitPaymentSubmit('Tab')).toBe(false)
+  })
+
+  it('requires a valid amount, discount, date and reference before review', () => {
+    expect(
+      validateSubscriptionPayment({
+        billingCycle: 'monthly',
+        customDays: 30,
+        discountPercent: 101,
+        finalAmount: 0,
+        paidAt: '',
+        reference: ' ',
+      }),
+    ).toEqual({
+      discountPercent: 'El descuento debe estar entre 0 y 100%.',
+      finalAmount: 'El monto final debe ser mayor a 0.',
+      paidAt: 'Selecciona una fecha de pago válida.',
+      reference: 'Ingresa la referencia del comprobante.',
+    })
+
+    expect(
+      validateSubscriptionPayment({
+        billingCycle: 'annual',
+        customDays: 30,
+        discountPercent: 20,
+        finalAmount: 960,
+        paidAt: '2026-07-21',
+        reference: 'QR-1234',
+      }),
+    ).toEqual({})
   })
 })

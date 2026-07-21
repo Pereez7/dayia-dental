@@ -36,6 +36,8 @@ especialmente pensando en una futura integracion con WhatsApp.
 - Tipos compartidos en `src/types`.
 - Utilidades puras en `src/utils`.
 - Pruebas unitarias para formatters, filtros y validaciones.
+- Suscripciones QR con confirmación administrativa, ledger anulable sin borrado
+  y comprobantes enviados manualmente por WhatsApp.
 
 ## Dashboard
 

@@ -9,8 +9,14 @@ Los pagos se validan manualmente mediante `register-subscription-payment`; las
 acciones sin pago usan `update-clinic-subscription`. Ambas Functions son
 exclusivas de plataforma y no consultan tablas clínicas.
 
-Quedan pendientes auditoría administrativa general, pasarela, conciliación
-bancaria, comprobantes adjuntos y pagos recurrentes.
+La migración `021_subscription_payment_workflow.sql` agrega estados
+`registered|voided`, la instantánea previa necesaria para revertir el último
+pago y el soporte histórico de avisos `pending_review`. El flujo vigente envía
+el comprobante por WhatsApp. La Function `void-subscription-payment` exige
+Platform Admin y motivo; no elimina filas.
+
+Quedan pendientes pasarela, conciliación bancaria, carga de archivos de
+comprobante, rechazo administrativo de avisos y pagos recurrentes.
 
 DayIA Dental iniciara su fase backend con Supabase, manteniendo por ahora la app
 frontend/mock funcionando sin migrar modulos de golpe.

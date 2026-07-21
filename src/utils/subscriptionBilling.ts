@@ -63,6 +63,78 @@ export const suggestedDiscounts: Record<BillingCycle, number> = {
   six_months: 10,
 }
 
+export interface TieredPaymentCalculationInput
+  extends Omit<PaymentCalculationInput, 'monthlyPrice'> {
+  effectiveMonthlyPrice: number | null
+  priceTier: PriceTier
+  standardMonthlyPrice: number | null
+}
+
+export function shouldBlockImplicitPaymentSubmit(key: string) {
+  return key === 'Enter'
+}
+
+export function validateSubscriptionPayment({
+  billingCycle,
+  customDays,
+  discountPercent,
+  finalAmount,
+  paidAt,
+  reference,
+}: {
+  billingCycle: BillingCycle
+  customDays: number
+  discountPercent: number
+  finalAmount: number
+  paidAt: string
+  reference: string
+}) {
+  const errors: Record<string, string> = {}
+
+  if (
+    !Number.isFinite(discountPercent) ||
+    discountPercent < 0 ||
+    discountPercent > 100
+  ) {
+    errors.discountPercent = 'El descuento debe estar entre 0 y 100%.'
+  }
+  if (!Number.isFinite(finalAmount) || finalAmount <= 0) {
+    errors.finalAmount = 'El monto final debe ser mayor a 0.'
+  }
+  if (!paidAt || Number.isNaN(Date.parse(paidAt))) {
+    errors.paidAt = 'Selecciona una fecha de pago válida.'
+  }
+  if (!reference.trim()) {
+    errors.reference = 'Ingresa la referencia del comprobante.'
+  }
+  if (
+    billingCycle === 'custom_days' &&
+    (!Number.isInteger(customDays) || customDays < 1)
+  ) {
+    errors.customDays = 'Ingresa al menos un día de acceso.'
+  }
+
+  return errors
+}
+
+export function isFounderPricingEligible({
+  blockedAt,
+  paidAt,
+  graceHours = 24,
+}: {
+  blockedAt: string | null | undefined
+  paidAt: string | Date
+  graceHours?: number
+}) {
+  if (!blockedAt) return true
+
+  const blockedTime = new Date(blockedAt).getTime()
+  const paymentTime = new Date(paidAt).getTime()
+  if (!Number.isFinite(blockedTime) || !Number.isFinite(paymentTime)) return false
+
+  return paymentTime <= blockedTime + graceHours * 60 * 60 * 1000
+}
+
 export function calculateSubscriptionPayment({
   billingCycle,
   customDays,
@@ -106,6 +178,55 @@ export function calculateSubscriptionPayment({
     discountPercent: normalizedDiscount,
     monthsCovered,
   }
+}
+
+export function calculateTieredSubscriptionPayment({
+  billingCycle,
+  customDays,
+  discountPercent,
+  effectiveMonthlyPrice,
+  manualAmount,
+  priceTier,
+  standardMonthlyPrice,
+}: TieredPaymentCalculationInput): PaymentCalculation {
+  const usesFounderMonthlyPrice =
+    priceTier === 'founder' &&
+    billingCycle === 'monthly' &&
+    standardMonthlyPrice !== null &&
+    effectiveMonthlyPrice !== null
+
+  if (usesFounderMonthlyPrice) {
+    const amountDue = roundCurrency(standardMonthlyPrice)
+    const amountPaid = roundCurrency(
+      Math.min(amountDue, Math.max(0, effectiveMonthlyPrice)),
+    )
+    const discountAmount = roundCurrency(amountDue - amountPaid)
+
+    return {
+      amountDue,
+      amountPaid,
+      customDays: null,
+      discountAmount,
+      discountPercent:
+        amountDue > 0
+          ? roundCurrency((discountAmount / amountDue) * 100)
+          : 0,
+      monthsCovered: 1,
+    }
+  }
+
+  const monthlyPrice =
+    priceTier === 'founder'
+      ? standardMonthlyPrice
+      : effectiveMonthlyPrice
+
+  return calculateSubscriptionPayment({
+    billingCycle,
+    customDays,
+    discountPercent,
+    manualAmount,
+    monthlyPrice,
+  })
 }
 
 export function calculateNewSubscriptionPeriod({

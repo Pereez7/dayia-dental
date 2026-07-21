@@ -50,7 +50,8 @@ por consultorio sobre Supabase.
   autorización `platform_admin` y un feature flag exclusivo del servidor.
 - Suscripciones manuales con prueba de 15 días, gracia de 5 días, pagos por QR,
   tarifas normal, fundador o personalizada, periodos de 1, 6 y 12 meses, días
-  personalizados, upgrades prorrateados, downgrades programados y vitalicio.
+  personalizados, comprobante manual por WhatsApp, confirmación administrativa,
+  anulación lógica, upgrades prorrateados, downgrades programados y vitalicio.
 
 La guía funcional y de despliegue de cobros vive en
 [docs/billing-and-subscriptions.md](docs/billing-and-subscriptions.md).

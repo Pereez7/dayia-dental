@@ -44,16 +44,19 @@ Pendiente:
 
 ### Suscripciones y cobros
 
-Estado: base manual implementada.
+Estado: flujo manual auditable implementado.
 
 - Trial de 15 días y gracia de 5 días.
 - QR estático por plan y validación manual por Platform Admin.
 - Pagos de 1, 6 y 12 meses, días personalizados y vitalicio.
 - Bloqueo de módulos sin cerrar sesión ni borrar datos.
-- Historial de pagos y acciones administrativas principales.
+- Registro con revisión explícita, historial detallado y anulación lógica del
+  último pago vigente.
+- Vista del propietario con opciones de renovación y envío manual del
+  comprobante por WhatsApp para validación administrativa.
 
-Pendiente: precios comerciales definitivos, auditoría general, comprobantes
-adjuntos, pasarela, conciliación y renovaciones automáticas.
+Pendiente: precios comerciales definitivos, almacenamiento interno de
+comprobantes, pasarela, conciliación y renovaciones automáticas.
 
 ### Dashboard
 

@@ -77,6 +77,21 @@ Deno.serve(async (request) => {
       updates.scheduled_plan_id = null
       updates.scheduled_plan_starts_at = null
     } else if (payload.action === 'set_founder_price') {
+      const { data: currentPlan, error: planError } = await admin
+        .from('plans')
+        .select('founder_monthly_price')
+        .eq('id', subscription.plan_id)
+        .maybeSingle()
+
+      if (
+        planError ||
+        currentPlan?.founder_monthly_price === null ||
+        Number(currentPlan?.founder_monthly_price) <= 0
+      ) {
+        return invalid(
+          'Configura primero el precio fundador del plan actual.',
+        )
+      }
       updates.price_tier = 'founder'
       updates.founder_price_locked = true
       updates.custom_monthly_price = null

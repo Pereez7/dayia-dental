@@ -90,6 +90,9 @@ export function normalizeRegisterPaymentPayload(
   if (!cycles.has(billingCycle)) throw invalid('Selecciona un periodo válido.')
   if (!paymentTypes.has(paymentType)) throw invalid('Selecciona un tipo de pago válido.')
   if (!(amountPaid > 0)) throw invalid('Ingresa un monto pagado válido.')
+  if (!stringValue(value.reference)) {
+    throw invalid('Ingresa la referencia del comprobante.')
+  }
   if (discountPercent < 0 || discountPercent > 100) {
     throw invalid('El descuento debe estar entre 0 y 100%.')
   }
@@ -157,11 +160,29 @@ export function calculatePaymentRegistration({
   return {
     amountDue,
     amountPaid: input.amountPaid,
-    discountAmount: round(amountDue * (input.discountPercent / 100)),
+    discountAmount: round(Math.max(0, amountDue - input.amountPaid)),
     graceEndsAt: addUtcDays(periodEndsAt, 5).toISOString(),
     periodEndsAt: periodEndsAt.toISOString(),
     periodStartsAt: startsAt.toISOString(),
   }
+}
+
+export function isFounderPricingEligible({
+  blockedAt,
+  paidAt,
+  graceHours = 24,
+}: {
+  blockedAt: string | null | undefined
+  paidAt: string | Date
+  graceHours?: number
+}) {
+  if (!blockedAt) return true
+
+  const blockedTime = new Date(blockedAt).getTime()
+  const paymentTime = new Date(paidAt).getTime()
+  if (!Number.isFinite(blockedTime) || !Number.isFinite(paymentTime)) return false
+
+  return paymentTime <= blockedTime + graceHours * 60 * 60 * 1000
 }
 
 export function getEffectiveMonthlyPrice({

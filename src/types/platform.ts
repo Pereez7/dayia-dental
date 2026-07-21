@@ -15,6 +15,7 @@ export type PlatformSubscriptionStatus =
 
 export interface PlatformClinicSummary {
   activeMembersCount: number
+  blockedAt: string | null
   clinicId: string
   clinicName: string
   clinicStatus: PlatformClinicStatus | null
@@ -41,15 +42,24 @@ export interface PlatformClinicSummary {
   trialEndsAt: string | null
   paymentStatus: string | null
   payments: PlatformSubscriptionPayment[]
+  paymentSubmissions: PlatformPaymentSubmission[]
 }
 
 export interface PlatformSubscriptionPayment {
+  amountDue: number
   amountPaid: number
   billingCycle: string
+  createdAt: string
   currency: string
+  customDays: number | null
+  discountAmount: number
   discountPercent: number
   id: string
+  monthsCovered: number | null
+  notes: string | null
   paidAt: string
+  periodEndsAt: string | null
+  periodStartsAt: string | null
   planId: string
   paymentType: import('../utils/subscriptionBilling').PaymentType
   priceTier: import('../utils/subscriptionBilling').PriceTier
@@ -57,6 +67,23 @@ export interface PlatformSubscriptionPayment {
   newPlanId: string | null
   recordedBy: string | null
   reference: string | null
+  status: 'registered' | 'voided'
+  voidReason: string | null
+  voidedAt: string | null
+  voidedBy: string | null
+}
+
+export interface PlatformPaymentSubmission {
+  amountExpected: number
+  billingCycle: 'annual' | 'monthly' | 'six_months'
+  createdAt: string
+  currency: string
+  id: string
+  notes: string | null
+  planId: string
+  reference: string
+  status: 'approved' | 'cancelled' | 'pending_review' | 'rejected'
+  submittedBy: string | null
 }
 
 export interface RegisterSubscriptionPaymentInput {
@@ -71,6 +98,12 @@ export interface RegisterSubscriptionPaymentInput {
   planId: PlatformClinicPlanId
   paymentType?: import('../utils/subscriptionBilling').PaymentType
   reference: string
+  submissionId?: string
+}
+
+export interface VoidSubscriptionPaymentInput {
+  paymentId: string
+  reason: string
 }
 
 export interface UpdateClinicSubscriptionInput {

@@ -17,6 +17,7 @@ import {
 
 const clinic: PlatformClinicSummary = {
   activeMembersCount: 2,
+  blockedAt: null,
   clinicId: 'clinic-1',
   clinicName: 'Clínica Central',
   clinicStatus: 'active',
@@ -41,6 +42,7 @@ const clinic: PlatformClinicSummary = {
   planName: 'Medium',
   paymentStatus: 'paid',
   payments: [],
+  paymentSubmissions: [],
   subscriptionStatus: 'active',
   trialEndsAt: null,
 }

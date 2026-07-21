@@ -141,11 +141,17 @@ async function handleListPlatformClinics(request: Request) {
   if (scheduledPlanResults.some((result) => result.error)) {
     return dataQueryError()
   }
-  const [subscriptionsResult, membershipsResult, plansResult, paymentsResult] =
+  const [
+    subscriptionsResult,
+    membershipsResult,
+    plansResult,
+    paymentsResult,
+    submissionsResult,
+  ] =
     await Promise.all([
       adminClient
         .from('clinic_subscriptions')
-        .select('clinic_id, plan_id, status, trial_ends_at, current_period_ends_at, grace_ends_at, last_payment_at, payment_status, is_lifetime, price_tier, custom_monthly_price, founder_price_locked, scheduled_plan_id, scheduled_plan_starts_at')
+        .select('clinic_id, plan_id, status, trial_ends_at, current_period_ends_at, grace_ends_at, blocked_at, last_payment_at, payment_status, is_lifetime, price_tier, custom_monthly_price, founder_price_locked, scheduled_plan_id, scheduled_plan_starts_at')
         .in('clinic_id', clinicIds),
       adminClient
         .from('clinic_memberships')
@@ -157,16 +163,23 @@ async function handleListPlatformClinics(request: Request) {
       adminClient.from('plans').select('id, name, monthly_price, founder_monthly_price, currency'),
       adminClient
         .from('subscription_payments')
-        .select('id, clinic_id, plan_id, billing_cycle, amount_paid, currency, discount_percent, reference, paid_at, recorded_by, payment_type, price_tier, previous_plan_id, new_plan_id')
+        .select('id, clinic_id, plan_id, billing_cycle, months_covered, custom_days, amount_due, discount_percent, discount_amount, amount_paid, currency, reference, notes, paid_at, period_starts_at, period_ends_at, recorded_by, payment_type, price_tier, previous_plan_id, new_plan_id, status, voided_at, voided_by, void_reason, created_at')
         .in('clinic_id', clinicIds)
-        .order('paid_at', { ascending: false }),
+        .order('paid_at', { ascending: false })
+        .order('created_at', { ascending: false }),
+      adminClient
+        .from('subscription_payment_submissions')
+        .select('id, clinic_id, submitted_by, plan_id, billing_cycle, amount_expected, currency, reference, notes, status, created_at')
+        .in('clinic_id', clinicIds)
+        .order('created_at', { ascending: false }),
     ])
 
   if (
     subscriptionsResult.error ||
     membershipsResult.error ||
     plansResult.error ||
-    paymentsResult.error
+    paymentsResult.error ||
+    submissionsResult.error
   ) {
     return dataQueryError()
   }
@@ -177,9 +190,14 @@ async function handleListPlatformClinics(request: Request) {
   )
   const ownerIds = [...new Set(ownerMemberships.map((owner) => owner.user_id))]
   const recorderIds = (paymentsResult.data ?? [])
-    .map((payment) => payment.recorded_by)
+    .flatMap((payment) => [payment.recorded_by, payment.voided_by])
     .filter((id): id is string => Boolean(id))
-  const profileIds = [...new Set([...ownerIds, ...recorderIds])]
+  const submitterIds = (submissionsResult.data ?? [])
+    .map((submission) => submission.submitted_by)
+    .filter((id): id is string => Boolean(id))
+  const profileIds = [
+    ...new Set([...ownerIds, ...recorderIds, ...submitterIds]),
+  ]
   let ownerProfiles: Array<{
     email: string | null
     full_name: string | null
@@ -227,6 +245,10 @@ async function handleListPlatformClinics(request: Request) {
     string,
     NonNullable<typeof paymentsResult.data>
   >()
+  const submissionsByClinic = new Map<
+    string,
+    NonNullable<typeof submissionsResult.data>
+  >()
   const activeMembersCountByClinic = new Map<string, number>()
   const ownerMembershipsByClinic = new Map<
     string,
@@ -252,6 +274,13 @@ async function handleListPlatformClinics(request: Request) {
     paymentsByClinic.set(payment.clinic_id, clinicPayments)
   }
 
+  for (const submission of submissionsResult.data ?? []) {
+    const clinicSubmissions =
+      submissionsByClinic.get(submission.clinic_id) ?? []
+    clinicSubmissions.push(submission)
+    submissionsByClinic.set(submission.clinic_id, clinicSubmissions)
+  }
+
   return jsonResponse({
     clinics: clinics.map((clinic) => {
       const subscription = subscriptionsByClinic.get(clinic.id)
@@ -272,6 +301,7 @@ async function handleListPlatformClinics(request: Request) {
           subscription?.status,
         ),
         createdAt: clinic.created_at,
+        blockedAt: subscription?.blocked_at ?? null,
         ownerEmail: primaryOwner?.email ?? null,
         ownerName: primaryOwner?.fullName ?? null,
         planId: subscription?.plan_id ?? null,
@@ -306,12 +336,20 @@ async function handleListPlatformClinics(request: Request) {
             : null
 
           return {
+            amountDue: Number(payment.amount_due),
             amountPaid: Number(payment.amount_paid),
             billingCycle: payment.billing_cycle,
+            createdAt: payment.created_at,
             currency: payment.currency,
+            customDays: payment.custom_days,
+            discountAmount: Number(payment.discount_amount),
             discountPercent: Number(payment.discount_percent),
             id: payment.id,
+            monthsCovered: payment.months_covered,
+            notes: payment.notes,
             paidAt: payment.paid_at,
+            periodEndsAt: payment.period_ends_at,
+            periodStartsAt: payment.period_starts_at,
             planId: payment.plan_id,
             paymentType: payment.payment_type,
             priceTier: payment.price_tier,
@@ -319,6 +357,32 @@ async function handleListPlatformClinics(request: Request) {
             newPlanId: payment.new_plan_id,
             recordedBy: recorder?.full_name ?? recorder?.email ?? null,
             reference: payment.reference,
+            status: payment.status,
+            voidReason: payment.void_reason,
+            voidedAt: payment.voided_at,
+            voidedBy: payment.voided_by
+              ? ownerProfilesById.get(payment.voided_by)?.full_name ??
+                ownerProfilesById.get(payment.voided_by)?.email ??
+                null
+              : null,
+          }
+        }),
+        paymentSubmissions: (
+          submissionsByClinic.get(clinic.id) ?? []
+        ).map((submission) => {
+          const submitter = ownerProfilesById.get(submission.submitted_by)
+
+          return {
+            amountExpected: Number(submission.amount_expected),
+            billingCycle: submission.billing_cycle,
+            createdAt: submission.created_at,
+            currency: submission.currency,
+            id: submission.id,
+            notes: submission.notes,
+            planId: submission.plan_id,
+            reference: submission.reference,
+            status: submission.status,
+            submittedBy: submitter?.full_name ?? submitter?.email ?? null,
           }
         }),
         subscriptionStatus: normalizeSubscriptionStatus(subscription?.status),

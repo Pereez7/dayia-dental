@@ -2,18 +2,25 @@
 
 ## Billing manual
 
-Ejecuta `supabase/migrations/020_manual_billing_subscriptions.sql`, configura
+Ejecuta `supabase/migrations/020_manual_billing_subscriptions.sql` y luego
+`supabase/migrations/021_subscription_payment_workflow.sql`, configura
 `plans.monthly_price` y coloca los QR en `public/payment-qr/`. Despliega:
 
 ```bash
 npx supabase functions deploy create-platform-clinic
 npx supabase functions deploy list-platform-clinics
 npx supabase functions deploy register-subscription-payment
+npx supabase functions deploy void-subscription-payment
 npx supabase functions deploy update-clinic-subscription
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` permanece únicamente en secrets de Supabase y nunca
 debe copiarse a variables `VITE_*`.
+
+La migración `021` agrega anulación lógica al ledger y conserva
+`subscription_payment_submissions` para compatibilidad con avisos creados por la
+versión anterior. El flujo actual envía comprobantes por WhatsApp y la
+aprobación sigue siendo exclusiva de Platform Admin.
 
 Esta guia prepara DayIA Dental para probar el MVP con datos reales en Supabase.
 No reemplaza el modo demo: si faltan variables `.env`, la app sigue entrando en
@@ -68,6 +75,8 @@ Ejecuta en Supabase SQL Editor, en orden, los archivos de
 17. `017_clinical_records.sql`
 18. `018_odontogram_entries.sql`
 19. `019_appointment_resolution_statuses.sql`
+20. `020_manual_billing_subscriptions.sql`
+21. `021_subscription_payment_workflow.sql`
 
 Si usas Supabase CLI en el futuro, puedes adaptar este flujo a `supabase db
 push`, pero esta guia asume SQL Editor para una primera prueba controlada.
@@ -75,7 +84,7 @@ push`, pero esta guia asume SQL Editor para una primera prueba controlada.
 ### Inventario de preproducción
 
 Antes de una demo con Supabase real, confirma en el proyecto remoto que están
-aplicadas las migraciones `001` a `019`. El repositorio solo contiene los
+aplicadas las migraciones `001` a `021`. El repositorio solo contiene los
 archivos; no garantiza el estado del entorno remoto. La migración `003` es una
 plantilla de setup y no debe reemplazar un seed revisado.
 
@@ -86,6 +95,9 @@ npx supabase functions deploy list-platform-clinics
 npx supabase functions deploy create-platform-clinic
 npx supabase functions deploy invite-clinic-member
 npx supabase functions deploy complete-account-activation
+npx supabase functions deploy register-subscription-payment
+npx supabase functions deploy void-subscription-payment
+npx supabase functions deploy update-clinic-subscription
 npx supabase functions deploy process-due-reminders
 npx supabase functions deploy send-whatsapp-reminder
 npx supabase functions deploy whatsapp-webhook

@@ -1,7 +1,7 @@
 # Production readiness
 
 Checklist de DayIA Dental para demo comercial y revisión preproducción.
-Última revisión documental: 20 de julio de 2026.
+Última revisión documental: 21 de julio de 2026.
 
 ## Estado del MVP
 
@@ -10,9 +10,11 @@ planes y administración de plataforma tienen persistencia real. La navegación
 continúa por estado local, sin React Router, y las vistas principales usan
 `React.lazy` y `Suspense`.
 
-El bundle principal pasó de aproximadamente `616.91 kB` a `493.58 kB`
-minificado, una reducción cercana al 20 %. El build ya no supera el umbral de
-advertencia de 500 kB de Vite.
+El bundle principal bajó desde aproximadamente `616.91 kB`. Después del flujo
+de suscripciones queda en `501.94 kB` minificado y la experiencia completa de
+renovación se entrega en un chunk separado de `7.32 kB`. Vite mantiene una
+advertencia marginal sobre el chunk inicial, pendiente de una segunda ronda de
+separación de dependencias compartidas.
 
 ## Listo para demo
 
@@ -58,6 +60,7 @@ archivo real.
 | `VITE_SUPABASE_URL` | URL pública del proyecto Supabase | Obligatoria |
 | `VITE_SUPABASE_ANON_KEY` | Anon key protegida por RLS | Obligatoria |
 | `VITE_APP_URL` | Origen público usado en recuperación | Obligatoria |
+| `VITE_DAYIA_BILLING_WHATSAPP` | Número público para comprobantes QR | Obligatoria para cobros |
 | `VITE_ENABLE_DEMO_MODE` | Habilita mocks sin Supabase | `false` |
 
 `SUPABASE_SERVICE_ROLE_KEY`, flags de plataforma y tokens de WhatsApp nunca
@@ -85,6 +88,9 @@ Function devuelve un resultado `prepared`. No configurar tokens productivos.
 | Function | Requerida | Observación |
 | --- | --- | --- |
 | `list-platform-clinics` | Sí para Platform Admin | Solo resumen administrativo |
+| `register-subscription-payment` | Sí para cobros | Registro confirmado por Platform Admin |
+| `void-subscription-payment` | Sí para anulaciones | Anulación lógica con motivo |
+| `update-clinic-subscription` | Sí para gestión comercial | Plan, precio y acceso |
 | `create-platform-clinic` | Desplegable, bloqueada | Mantener flag en `false` |
 | `invite-clinic-member` | Sí para Usuarios | Owner/admin Medium o Pro |
 | `complete-account-activation` | Sí para invitaciones | Activa membership pendiente |
@@ -116,7 +122,7 @@ La ausencia de `WHATSAPP_SEND_ENABLED` mantiene el dry-run por defecto.
 
 ## Migraciones
 
-Aplicar y verificar `001` a `019` en orden. `003_initial_clinic_setup_template`
+Aplicar y verificar `001` a `021` en orden. `003_initial_clinic_setup_template`
 es una plantilla de referencia. La lista completa está en
 `docs/supabase-setup.md`. El repositorio no demuestra qué migraciones están
 aplicadas en un proyecto remoto. Dos consultas con `supabase migration list`

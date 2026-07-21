@@ -660,6 +660,17 @@ La primera separación redujo el bundle principal de aproximadamente `616.91 kB`
 a `493.58 kB` minificado. La navegación continúa por estado local y no se
 incorporó React Router.
 
+## Suscripciones y pagos manuales
+
+La vista clínica `subscription` está disponible solo para `clinic_owner`. Lee
+el plan y la vigencia del contexto activo, refresca ese contexto al abrirse y
+calcula opciones localmente. El comprobante se envía por un enlace `wa.me` con
+datos comerciales precargados; el frontend no modifica `clinic_subscriptions`.
+
+Platform Admin usa Edge Functions con JWT para registrar o anular. Los RPC
+transaccionales escriben el ledger, los eventos de auditoría y la vigencia. La
+anulación es lógica y usa una instantánea previa; nunca elimina pagos.
+
 ## Edición de pacientes
 
 `App.tsx` conserva la colección y el paciente seleccionado. Tras una edición

@@ -18,10 +18,6 @@ import { patients as initialPatients } from './data/patients'
 import { treatments as initialTreatments } from './data/treatments'
 import { AppLayout } from './layout/AppLayout'
 import {
-  SubscriptionBlockedView,
-  SubscriptionNotice,
-} from './components/SubscriptionAccess'
-import {
   canAccessAppSection,
   getAuthorizedSection,
   isSensitiveSectionAccessDenied,
@@ -178,6 +174,21 @@ const WhatsAppRemindersView = lazy(() =>
     default: module.WhatsAppRemindersView,
   })),
 )
+const SubscriptionMembershipView = lazy(() =>
+  import('./components/SubscriptionAccess').then((module) => ({
+    default: module.SubscriptionMembershipView,
+  })),
+)
+const SubscriptionBlockedView = lazy(() =>
+  import('./components/SubscriptionAccess').then((module) => ({
+    default: module.SubscriptionBlockedView,
+  })),
+)
+const SubscriptionNotice = lazy(() =>
+  import('./components/SubscriptionNotice').then((module) => ({
+    default: module.SubscriptionNotice,
+  })),
+)
 
 function ModuleLoadingFallback() {
   return (
@@ -199,9 +210,11 @@ function App() {
     currentPlanCurrency,
     currentPlanId,
     currentPlanMonthlyPrice,
+    currentPlanStandardMonthlyPrice,
     currentSubscription,
     isDemoMode,
     profile,
+    refreshClinicContext,
     signOut,
     user,
   } = useAuth()
@@ -1940,11 +1953,14 @@ function App() {
     if (isClinicalAccessBlocked && currentClinic) {
       return (
         <SubscriptionBlockedView
+          canSubmitPayment={profile?.role === 'clinic_owner'}
           clinic={currentClinic}
           currency={currentPlanCurrency}
           monthlyPrice={currentPlanMonthlyPrice}
+          onRefreshSubscription={refreshClinicContext}
           planId={currentPlanId}
-          priceTier={currentSubscription?.price_tier ?? 'standard'}
+          standardMonthlyPrice={currentPlanStandardMonthlyPrice}
+          subscription={currentSubscription}
         />
       )
     }
@@ -2078,6 +2094,21 @@ function App() {
             handleSectionChange('appointment-new')
           }
           onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
+        />
+      )
+    }
+
+    if (effectiveActiveSection === 'subscription' && currentClinic) {
+      return (
+        <SubscriptionMembershipView
+          canSubmitPayment={profile?.role === 'clinic_owner'}
+          clinic={currentClinic}
+          currency={currentPlanCurrency}
+          monthlyPrice={currentPlanMonthlyPrice}
+          onRefreshSubscription={refreshClinicContext}
+          planId={currentPlanId}
+          standardMonthlyPrice={currentPlanStandardMonthlyPrice}
+          subscription={currentSubscription}
         />
       )
     }
@@ -2219,9 +2250,11 @@ function App() {
       onSectionChange={handleSectionChange}
       permissions={permissions}
     >
-      {!isClinicalAccessBlocked && !canAccessAdministration ? (
-        <SubscriptionNotice subscription={currentSubscription} />
-      ) : null}
+      <Suspense fallback={null}>
+        {!isClinicalAccessBlocked && !canAccessAdministration ? (
+          <SubscriptionNotice subscription={currentSubscription} />
+        ) : null}
+      </Suspense>
       <Suspense fallback={<ModuleLoadingFallback />}>
         {renderActiveView()}
       </Suspense>

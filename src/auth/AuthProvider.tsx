@@ -40,6 +40,7 @@ const initialAuthState: AuthState = {
   currentPlanCurrency: 'BOB',
   currentPlanId: null,
   currentPlanMonthlyPrice: null,
+  currentPlanStandardMonthlyPrice: null,
   currentSubscription: null,
   isDemoMode: false,
   isLoading: true,
@@ -56,6 +57,7 @@ const demoAuthState: AuthState = {
   currentPlanCurrency: 'BOB',
   currentPlanId: 'basic',
   currentPlanMonthlyPrice: null,
+  currentPlanStandardMonthlyPrice: null,
   isDemoMode: true,
   isLoading: false,
   profile: demoProfile,
@@ -140,6 +142,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const loadSessionContext = useCallback(async (
     session: AuthState['session'],
     isMounted: boolean,
+    forceReload = false,
   ) => {
     if (!isMounted) {
       return
@@ -156,12 +159,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return
     }
 
-    if (
-      canReuseSessionContext(
-        sessionContextUserIdRef.current,
-        session.user.id,
-      )
-    ) {
+    const isSameUser = canReuseSessionContext(
+      sessionContextUserIdRef.current,
+      session.user.id,
+    )
+
+    if (isSameUser && !forceReload) {
       setAuthState((currentState) => ({
         ...currentState,
         session,
@@ -172,15 +175,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     sessionContextUserIdRef.current = session.user.id
 
-    setAuthState((currentState) => ({
-      ...initialAuthState,
-      authError: '',
-      isLoading:
-        !hasCompletedInitialLoadRef.current && !currentState.session,
-      isSessionContextLoading: true,
-      session,
-      user: session.user,
-    }))
+    setAuthState((currentState) =>
+      isSameUser && forceReload
+        ? {
+            ...currentState,
+            authError: '',
+            isSessionContextLoading: false,
+            session,
+            user: session.user,
+          }
+        : {
+            ...initialAuthState,
+            authError: '',
+            isLoading:
+              !hasCompletedInitialLoadRef.current && !currentState.session,
+            isSessionContextLoading: true,
+            session,
+            user: session.user,
+          },
+    )
 
     const { data: profile, error: profileError } =
       await getCurrentUserProfile(session)
@@ -268,6 +281,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         currentPlanCurrency: clinicContext.currentPlanCurrency,
         currentPlanId: clinicContext.currentPlanId,
         currentPlanMonthlyPrice: clinicContext.currentPlanMonthlyPrice,
+        currentPlanStandardMonthlyPrice:
+          clinicContext.currentPlanStandardMonthlyPrice,
         currentSubscription: clinicContext.currentSubscription,
         isDemoMode: false,
         isLoading: false,
@@ -289,6 +304,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         currentPlanCurrency: clinicContext.currentPlanCurrency,
         currentPlanId: clinicContext.currentPlanId,
         currentPlanMonthlyPrice: clinicContext.currentPlanMonthlyPrice,
+        currentPlanStandardMonthlyPrice:
+          clinicContext.currentPlanStandardMonthlyPrice,
         currentSubscription: clinicContext.currentSubscription,
         isDemoMode: false,
         isLoading: false,
@@ -309,6 +326,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         currentPlanCurrency: clinicContext.currentPlanCurrency,
         currentPlanId: clinicContext.currentPlanId,
         currentPlanMonthlyPrice: clinicContext.currentPlanMonthlyPrice,
+        currentPlanStandardMonthlyPrice:
+          clinicContext.currentPlanStandardMonthlyPrice,
         currentSubscription: clinicContext.currentSubscription,
         isDemoMode: false,
         isLoading: false,
@@ -329,6 +348,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         currentPlanCurrency: clinicContext.currentPlanCurrency,
         currentPlanId: clinicContext.currentPlanId,
         currentPlanMonthlyPrice: clinicContext.currentPlanMonthlyPrice,
+        currentPlanStandardMonthlyPrice:
+          clinicContext.currentPlanStandardMonthlyPrice,
         currentSubscription: clinicContext.currentSubscription,
         isDemoMode: false,
         isLoading: false,
@@ -348,6 +369,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       currentPlanCurrency: clinicContext.currentPlanCurrency,
       currentPlanId: clinicContext.currentPlanId,
       currentPlanMonthlyPrice: clinicContext.currentPlanMonthlyPrice,
+      currentPlanStandardMonthlyPrice:
+        clinicContext.currentPlanStandardMonthlyPrice,
       currentSubscription: clinicContext.currentSubscription,
       isDemoMode: false,
       isLoading: false,
@@ -358,6 +381,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     })
     markInitialLoadComplete()
   }, [markInitialLoadComplete])
+
+  const refreshClinicContext = useCallback(async () => {
+    if (!authState.session || authState.isDemoMode) return
+    await loadSessionContext(authState.session, true, true)
+  }, [authState.isDemoMode, authState.session, loadSessionContext])
 
   useEffect(() => {
     function updateActivationRoute() {
@@ -539,6 +567,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       <AuthContext.Provider
         value={{
           ...authState,
+          refreshClinicContext,
           signOut: handleSignOut,
         }}
       >
@@ -576,6 +605,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     <AuthContext.Provider
       value={{
         ...authState,
+        refreshClinicContext,
         signOut: handleSignOut,
       }}
     >

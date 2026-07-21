@@ -14,6 +14,7 @@ export interface ClinicSessionContext {
   currentPlanId: string | null
   currentPlanCurrency: string
   currentPlanMonthlyPrice: number | null
+  currentPlanStandardMonthlyPrice: number | null
   currentSubscription: ClinicSubscriptionRecord | null
   profile: UserProfile
 }
@@ -52,6 +53,7 @@ export async function getClinicSessionContext(profile: UserProfile) {
         currentPlanId: null,
         currentPlanCurrency: 'BOB',
         currentPlanMonthlyPrice: null,
+        currentPlanStandardMonthlyPrice: null,
         currentSubscription: null,
         profile: resolvedProfile,
       } satisfies ClinicSessionContext,
@@ -129,6 +131,10 @@ export async function getClinicSessionContext(profile: UserProfile) {
         priceTier: subscription?.price_tier ?? 'standard',
         standardPrice: plan?.monthly_price === null || plan?.monthly_price === undefined ? null : Number(plan.monthly_price),
       }),
+      currentPlanStandardMonthlyPrice:
+        plan?.monthly_price === null || plan?.monthly_price === undefined
+          ? null
+          : Number(plan.monthly_price),
       currentSubscription: subscription,
       profile: resolvedProfile,
     } satisfies ClinicSessionContext,

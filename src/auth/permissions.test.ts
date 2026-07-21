@@ -43,6 +43,7 @@ describe('auth permissions', () => {
         canAccessPatients: false,
         canAccessReminders: false,
         canAccessSettings: false,
+        canAccessSubscription: false,
         canManageClinicUsers: false,
         canManageWhatsapp: false,
       })
@@ -79,6 +80,13 @@ describe('auth permissions', () => {
       expect(permissions.canAccessReminders).toBe(true)
       expect(permissions.canAccessSettings).toBe(true)
     }
+  })
+
+  it('allows only the clinic owner to access subscription payment actions', () => {
+    expect(getClinicalPermissions('clinic_owner', 'basic').canAccessSubscription).toBe(true)
+    expect(getClinicalPermissions('clinic_admin', 'pro').canAccessSubscription).toBe(false)
+    expect(getClinicalPermissions('doctor', 'pro').canAccessSubscription).toBe(false)
+    expect(getClinicalPermissions('receptionist', 'pro').canAccessSubscription).toBe(false)
   })
 
   it('limits doctors to clinical care without users, reminders or settings', () => {

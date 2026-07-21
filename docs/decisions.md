@@ -748,3 +748,17 @@ son vacíos o cerrados. Las vistas dependientes muestran loading hasta recibir
 la configuración del consultorio activo. Los mocks quedan reservados
 exclusivamente para `isDemoMode`, evitando decisiones operativas sobre datos
 transitorios.
+
+## Los comprobantes no activan suscripciones
+
+El propietario envía el comprobante por WhatsApp mediante un enlace manual con
+plan, periodo y monto precargados. No escribe en la base de datos ni extiende su
+vigencia. La activación requiere que Platform Admin registre el pago mediante
+Edge Function. `subscription_payment_submissions` se conserva solo para avisos
+creados por la versión anterior.
+
+## Los pagos se anulan, no se eliminan
+
+El ledger conserva pagos erróneos con estado `voided`, actor, fecha y motivo.
+Solo se revierte el último pago vigente y se bloquea si hubo un cambio
+administrativo posterior, evitando sobrescribir una suscripción más reciente.

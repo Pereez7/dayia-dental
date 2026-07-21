@@ -4,11 +4,21 @@ import {
   formatClinicalHistoryDate,
   formatCompactDateWithYear,
   formatOptionalCompactDateWithYear,
+  formatSubscriptionDate,
 } from './dateFormatters'
 
 describe('formatCompactDateWithYear', () => {
   it('formats a date with day, short month and year', () => {
     expect(formatCompactDateWithYear('2026-06-09')).toBe('09-jun-2026')
+  })
+})
+
+describe('formatSubscriptionDate', () => {
+  it('uses the shared app format and a controlled fallback', () => {
+    expect(formatSubscriptionDate('2025-08-21T12:00:00.000Z')).toBe(
+      '21 ago 2025',
+    )
+    expect(formatSubscriptionDate(null)).toBe('No definido')
   })
 })
 
