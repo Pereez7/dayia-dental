@@ -1,5 +1,12 @@
 # Contexto del proyecto
 
+## Billing manual
+
+DayIA Dental dispone de prueba gratuita, gracia, cobro por QR e historial de
+pagos administrado por plataforma. Un consultorio bloqueado conserva sesión y
+datos, pero no monta módulos clínicos. Vitalicio no vence. No hay pasarela,
+verificación bancaria ni cobro recurrente automático.
+
 DayIA Dental es una aplicacion interna para consultorios dentales. El objetivo
 es ayudar a registrar pacientes, organizar citas y preparar recordatorios,
 especialmente pensando en una futura integracion con WhatsApp.

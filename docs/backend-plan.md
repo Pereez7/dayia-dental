@@ -1,5 +1,17 @@
 # Backend Plan
 
+## Billing manual por QR
+
+La migración `020_manual_billing_subscriptions.sql` amplía
+`clinic_subscriptions`, agrega `subscription_payments`,
+`plan_billing_options`, precios mensuales configurables y un RPC transaccional.
+Los pagos se validan manualmente mediante `register-subscription-payment`; las
+acciones sin pago usan `update-clinic-subscription`. Ambas Functions son
+exclusivas de plataforma y no consultan tablas clínicas.
+
+Quedan pendientes auditoría administrativa general, pasarela, conciliación
+bancaria, comprobantes adjuntos y pagos recurrentes.
+
 DayIA Dental iniciara su fase backend con Supabase, manteniendo por ahora la app
 frontend/mock funcionando sin migrar modulos de golpe.
 

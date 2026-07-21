@@ -16,6 +16,11 @@ desktop y mobile.
 
 ## Product Purpose
 
+El acceso comercial usa prueba de 15 días, 5 días de gracia y pagos manuales por
+QR. Vencer no cierra la sesión ni elimina datos; fuera de gracia se reemplazan
+los módulos clínicos por instrucciones de reactivación. Una licencia vitalicia
+no vence automáticamente y solo puede bloquearse desde Administración DayIA.
+
 DayIA Dental organiza pacientes, citas odontológicas, seguimiento clínico,
 odontograma y recordatorios persistidos sobre Supabase. El envío manual está
 disponible; WhatsApp Cloud API real todavía no está activo.

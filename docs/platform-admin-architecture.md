@@ -1,5 +1,17 @@
 # Administración de plataforma
 
+## Billing manual
+
+Platform Admin administra suscripciones sin consultar ni modificar información
+clínica. `list-platform-clinics` entrega resumen, precio configurable e historial
+de pagos. `register-subscription-payment` registra el pago y actualiza la
+suscripción de forma transaccional; `update-clinic-subscription` concentra
+cambio de plan, días extra, bloqueo, reactivación, cancelación y vitalicio.
+
+Todas las escrituras exigen JWT de un perfil con `is_platform_admin = true`.
+`service_role` se inicializa únicamente dentro de las Functions después de esa
+validación. Los usuarios clínicos no reciben acciones de billing.
+
 `Administración DayIA` es una superficie interna separada de los módulos
 clínicos. Solo un perfil autenticado con `profiles.is_platform_admin = true`
 puede consultar su listado de consultorios.

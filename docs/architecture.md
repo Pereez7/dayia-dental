@@ -1,5 +1,14 @@
 # Arquitectura
 
+## Suscripciones
+
+`AuthProvider` conserva `currentSubscription` junto al contexto clínico.
+`subscriptionBilling.ts` resuelve prueba, vencimiento, gracia, bloqueo y
+vitalicio. `subscriptionPermissions.ts` vacía capacidades clínicas cuando el
+acceso está bloqueado, por lo que los efectos de `App.tsx` no ejecutan servicios
+clínicos. `SubscriptionAccess` muestra avisos o la pantalla de pago, y
+`SubscriptionAdministration` gestiona cobros desde Administración DayIA.
+
 DayIA Dental empieza como una aplicacion frontend interna para clinicas
 dentales. Por ahora no incluye backend, base de datos ni autenticacion.
 

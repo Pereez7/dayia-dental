@@ -1,5 +1,13 @@
 # Arquitectura de Auth, Consultorios, Roles y Planes
 
+## Suscripción y sesión
+
+El vencimiento no invalida Auth ni ejecuta `signOut`. El contexto conserva la
+sesión, membership, consultorio, plan y suscripción. Durante prueba, periodo
+activo y gracia se aplican los permisos normales. Fuera de gracia, la matriz de
+permisos clínicos queda vacía antes de montar loaders y la app muestra una vista
+de pago. Vitalicio omite fechas y avisos de vencimiento.
+
 DayIA Dental separa identidad personal, pertenencia a consultorios y permisos
 comerciales. Esta base permite que el MVP funcione bien para un doctor dueño
 solo y tambien prepara consultorios con equipo sin mezclar conceptos.

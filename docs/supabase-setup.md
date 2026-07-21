@@ -1,5 +1,20 @@
 # Supabase Setup
 
+## Billing manual
+
+Ejecuta `supabase/migrations/020_manual_billing_subscriptions.sql`, configura
+`plans.monthly_price` y coloca los QR en `public/payment-qr/`. Despliega:
+
+```bash
+npx supabase functions deploy create-platform-clinic
+npx supabase functions deploy list-platform-clinics
+npx supabase functions deploy register-subscription-payment
+npx supabase functions deploy update-clinic-subscription
+```
+
+`SUPABASE_SERVICE_ROLE_KEY` permanece únicamente en secrets de Supabase y nunca
+debe copiarse a variables `VITE_*`.
+
 Esta guia prepara DayIA Dental para probar el MVP con datos reales en Supabase.
 No reemplaza el modo demo: si faltan variables `.env`, la app sigue entrando en
 modo demo/desarrollo.

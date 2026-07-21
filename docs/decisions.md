@@ -1,5 +1,17 @@
 # Decisiones tecnicas
 
+## Cobro manual antes que pasarela
+
+La primera versión valida comprobantes por QR manualmente. Un trial dura 15
+días y la gracia 5. El vencimiento no cierra sesión ni elimina datos: cambia la
+superficie disponible y evita cargar módulos clínicos. Los QR son estáticos por
+plan; descuentos y periodos se calculan, pero los precios comerciales se
+configuran en base de datos y no se inventan en frontend.
+
+Vitalicio significa licencia sin fecha de vencimiento del servicio DayIA. No
+incluye promesas de disponibilidad perpetua ni impide un bloqueo administrativo
+manual.
+
 Este documento registra decisiones iniciales para que el proyecto sea mas facil
 de entender cuando crezca.
 

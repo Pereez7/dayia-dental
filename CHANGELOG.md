@@ -4,6 +4,22 @@ Registro breve de cambios relevantes en DayIA Dental.
 
 ## 2026-07-20
 
+### Cambios realizados
+
+- Se agregó billing manual por QR con prueba de 15 días, gracia de 5 días,
+  bloqueo sin cierre de sesión y licencia vitalicia.
+- La migración `020` amplía suscripciones, crea historial de pagos y opciones de
+  cobro, agrega precios configurables y mantiene intactos los datos existentes.
+- `create-platform-clinic` crea nuevas cuentas en `trialing`.
+- Se agregaron `register-subscription-payment` y
+  `update-clinic-subscription`, exclusivas para `platform_admin`.
+- Platform Admin incorpora resumen, pago, QR por plan, días extra, cambio de
+  plan, bloqueo, reactivación, vitalicio e historial.
+- La app clínica muestra avisos de vencimiento y gracia; fuera de gracia deja de
+  montar servicios clínicos y presenta el pago sin cerrar sesión.
+
+## 2026-07-20
+
 ### Preparación de demo y preproducción
 
 - Se agrega un checklist de readiness con variables, secrets, Functions,

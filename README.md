@@ -48,6 +48,11 @@ por consultorio sobre Supabase.
 - Pruebas unitarias con Vitest.
 - Administración DayIA con listado real y alta de consultorios protegida por
   autorización `platform_admin` y un feature flag exclusivo del servidor.
+- Suscripciones manuales con prueba de 15 días, gracia de 5 días, pagos por QR,
+  periodos de 1, 6 y 12 meses, días personalizados y licencia vitalicia.
+
+La guía funcional y de despliegue de cobros vive en
+[docs/billing-and-subscriptions.md](docs/billing-and-subscriptions.md).
 
 ## Alta protegida de consultorios
 
