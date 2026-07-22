@@ -1,4 +1,10 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react'
+import {
+  useEffect,
+  useId,
+  useRef,
+  type ReactNode,
+  type RefObject,
+} from 'react'
 
 export type ConfirmDialogVariant = 'danger' | 'info' | 'warning'
 
@@ -11,6 +17,7 @@ interface ConfirmDialogProps {
   isOpen: boolean
   isCancelDisabled?: boolean
   isConfirmDisabled?: boolean
+  initialFocusRef?: RefObject<HTMLElement | null>
   showConfirmAction?: boolean
   message: string
   size?: 'default' | 'wide'
@@ -29,6 +36,7 @@ export function ConfirmDialog({
   isOpen,
   isCancelDisabled = false,
   isConfirmDisabled = false,
+  initialFocusRef,
   showConfirmAction = true,
   message,
   size = 'default',
@@ -89,7 +97,11 @@ export function ConfirmDialog({
       }
     }
 
-    cancelButtonRef.current?.focus()
+    if (initialFocusRef?.current) {
+      initialFocusRef.current.focus()
+    } else {
+      cancelButtonRef.current?.focus()
+    }
     window.addEventListener('keydown', handleKeyDown)
 
     return () => {
@@ -99,7 +111,7 @@ export function ConfirmDialog({
         previouslyFocusedElement.focus()
       }
     }
-  }, [isOpen])
+  }, [initialFocusRef, isOpen])
 
   if (!isOpen) {
     return null

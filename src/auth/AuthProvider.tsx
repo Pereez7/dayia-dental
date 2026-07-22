@@ -8,6 +8,8 @@ import {
 } from 'react'
 
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient'
+import { supabaseActivation } from '../lib/supabaseActivationClient'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { getClinicSessionContext } from '../services/clinicContext'
 import { clearStoredActiveSection } from '../utils/activeSectionStorage'
 import { isAccountActivationRoute } from '../utils/accountActivation'
@@ -16,6 +18,7 @@ import {
   getCurrentSession,
   getCurrentUserProfile,
   getPublicAuthErrorMessage,
+  getPublicPasswordResetErrorMessage,
   sendPasswordResetEmail,
   signInWithEmail,
   signOut as signOutFromSupabase,
@@ -133,6 +136,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const hasCompletedInitialLoadRef = useRef(false)
   const sessionContextUserIdRef = useRef<string | null>(null)
   const [loginError, setLoginError] = useState('')
+
+  const clearLoginError = useCallback(() => {
+    setLoginError('')
+  }, [])
 
   const markInitialLoadComplete = useCallback(() => {
     hasCompletedInitialLoadRef.current = true
@@ -538,17 +545,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   async function handleAccountActivated() {
     setLoginError('')
-    clearStoredActiveSection()
-    sessionContextUserIdRef.current = null
 
-    if (isSupabaseConfigured && supabase) {
-      await signOutFromSupabase()
+    if (supabaseActivation) {
+      await supabaseActivation.auth.signOut({ scope: 'local' })
     }
 
     window.history.replaceState(null, '', '/')
     setIsActivationRoute(false)
+
+    const { data, error } = await getCurrentSession()
+
+    if (!error && data.session) {
+      await loadSessionContext(data.session, true, true)
+      return
+    }
+
+    clearStoredActiveSection()
+    sessionContextUserIdRef.current = null
     setAuthState({
       ...initialAuthState,
+      authError: error ? 'No pudimos recuperar la sesión anterior.' : '',
       isLoading: false,
     })
     markInitialLoadComplete()
@@ -585,6 +601,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         errorMessage={loginError || authState.authError}
         isDemoModeEnabled={isDemoModeEnabled}
         isSupabaseConfigured={isSupabaseConfigured}
+        onClearLoginError={clearLoginError}
         onEnterDemoMode={handleEnterDemoMode}
         onSignIn={handleSignIn}
       />
@@ -618,12 +635,14 @@ function LoginScreen({
   errorMessage,
   isDemoModeEnabled,
   isSupabaseConfigured,
+  onClearLoginError,
   onEnterDemoMode,
   onSignIn,
 }: {
   errorMessage: string
   isDemoModeEnabled: boolean
   isSupabaseConfigured: boolean
+  onClearLoginError: () => void
   onEnterDemoMode: () => void
   onSignIn: (email: string, password: string) => Promise<void>
 }) {
@@ -631,8 +650,13 @@ function LoginScreen({
   const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({})
   const [formNotice, setFormNotice] = useState(getInitialLoginNotice)
   const [password, setPassword] = useState('')
+  const [isPasswordResetOpen, setIsPasswordResetOpen] = useState(false)
   const [isResetSubmitting, setIsResetSubmitting] = useState(false)
+  const [isResetSent, setIsResetSent] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [resetEmail, setResetEmail] = useState('')
+  const [resetError, setResetError] = useState('')
+  const resetEmailRef = useRef<HTMLInputElement>(null)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -649,46 +673,56 @@ function LoginScreen({
     setIsSubmitting(false)
   }
 
-  async function handlePasswordReset() {
-    setFormNotice('')
-    const emailValue = email.trim()
+  function openPasswordResetDialog() {
+    onClearLoginError()
+    setResetEmail(email.trim())
+    setResetError('')
+    setIsResetSent(false)
+    setIsPasswordResetOpen(true)
+  }
+
+  function closePasswordResetDialog() {
+    if (isResetSubmitting) {
+      return
+    }
+
+    setIsPasswordResetOpen(false)
+    setResetError('')
+    setIsResetSent(false)
+  }
+
+  async function handlePasswordReset(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const emailValue = resetEmail.trim()
 
     if (!emailValue) {
-      setFieldErrors((currentErrors) => ({
-        ...currentErrors,
-        email: 'Ingresa tu email para recuperar la contraseña.',
-      }))
+      setResetError('Ingresa tu email para recuperar la contraseña.')
       return
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) {
-      setFieldErrors((currentErrors) => ({
-        ...currentErrors,
-        email: 'Ingresa un email válido.',
-      }))
+      setResetError('Ingresa un email válido.')
       return
     }
 
+    setResetError('')
     setIsResetSubmitting(true)
     const { error } = await sendPasswordResetEmail(emailValue)
     setIsResetSubmitting(false)
 
     if (error) {
-      setFormNotice('')
-      setFieldErrors((currentErrors) => ({
-        ...currentErrors,
-        email: getPublicAuthErrorMessage(error.message),
-      }))
+      const errorCode =
+        'code' in error && typeof error.code === 'string'
+          ? error.code
+          : undefined
+      setResetError(
+        getPublicPasswordResetErrorMessage(error.message, errorCode),
+      )
       return
     }
 
-    setFieldErrors((currentErrors) => ({
-      ...currentErrors,
-      email: undefined,
-    }))
-    setFormNotice(
-      'Si el correo existe en Supabase, recibirás un enlace para definir una nueva contraseña.',
-    )
+    setResetEmail(emailValue)
+    setIsResetSent(true)
   }
 
   return (
@@ -717,6 +751,7 @@ function LoginScreen({
               onChange={(event) => {
                 const nextEmail = event.target.value
                 setEmail(nextEmail)
+                onClearLoginError()
                 setFormNotice('')
 
                 if (fieldErrors.email) {
@@ -748,6 +783,7 @@ function LoginScreen({
               onChange={(event) => {
                 const nextPassword = event.target.value
                 setPassword(nextPassword)
+                onClearLoginError()
 
                 if (fieldErrors.password) {
                   setFieldErrors(validateLoginForm(email, nextPassword))
@@ -792,13 +828,66 @@ function LoginScreen({
             className="auth-link-action"
             disabled={!isSupabaseConfigured || isSubmitting || isResetSubmitting}
             type="button"
-            onClick={handlePasswordReset}
+            onClick={openPasswordResetDialog}
           >
-            {isResetSubmitting
-              ? 'Enviando recuperación...'
-              : '¿Olvidaste tu contraseña?'}
+            ¿Olvidaste tu contraseña?
           </button>
         </form>
+
+        <ConfirmDialog
+          cancelLabel={isResetSent ? 'Cerrar' : 'Cancelar'}
+          confirmFormId="password-reset-form"
+          confirmLabel={isResetSubmitting ? 'Enviando enlace...' : 'Enviar enlace'}
+          confirmType="submit"
+          initialFocusRef={isResetSent ? undefined : resetEmailRef}
+          isCancelDisabled={isResetSubmitting}
+          isConfirmDisabled={isResetSubmitting}
+          isOpen={isPasswordResetOpen}
+          message={
+            isResetSent
+              ? `Si ${resetEmail} está registrado, recibirá un enlace para definir una nueva contraseña.`
+              : 'Ingresa el correo asociado a tu cuenta. Te enviaremos un enlace seguro para crear una nueva contraseña.'
+          }
+          showConfirmAction={!isResetSent}
+          title={isResetSent ? 'Revisa tu correo' : 'Recuperar contraseña'}
+          variant="info"
+          onCancel={closePasswordResetDialog}
+        >
+          {!isResetSent ? (
+            <form
+              className="password-reset-form"
+              id="password-reset-form"
+              noValidate
+              onSubmit={handlePasswordReset}
+            >
+              <label htmlFor="password-reset-email">Email</label>
+              <input
+                aria-describedby={resetError ? 'password-reset-error' : undefined}
+                aria-invalid={Boolean(resetError)}
+                autoComplete="email"
+                disabled={isResetSubmitting}
+                id="password-reset-email"
+                inputMode="email"
+                ref={resetEmailRef}
+                type="email"
+                value={resetEmail}
+                onChange={(event) => {
+                  setResetEmail(event.target.value)
+                  setResetError('')
+                }}
+              />
+              <small
+                aria-live="polite"
+                className={`field-message password-reset-message${
+                  resetError ? ' field-message--error' : ''
+                }`}
+                id="password-reset-error"
+              >
+                {resetError}
+              </small>
+            </form>
+          ) : null}
+        </ConfirmDialog>
 
         {isDemoModeEnabled && (
           <button

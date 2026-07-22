@@ -5,6 +5,12 @@ export type InvitableClinicRole =
 
 export type ManagedPlanId = 'medium' | 'pro'
 
+export const clinicMemberAvailableSubscriptionStatuses = [
+  'trial',
+  'trialing',
+  'active',
+] as const
+
 export interface InviteClinicMemberPayload {
   email: string
   fullName: string

@@ -1,6 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
 
-import { supabase } from '../lib/supabaseClient'
+import { supabaseActivation } from '../lib/supabaseActivationClient'
 import { completeAccountActivation } from '../services/accountActivationService'
 import {
   hasActivationPasswordErrors,
@@ -36,12 +36,12 @@ export function ActivateAccountView({ onActivated }: ActivateAccountViewProps) {
       return
     }
 
-    if (!supabase) {
+    if (!supabaseActivation) {
       setFormError('Supabase no está configurado para activar accesos.')
       return
     }
 
-    const activationClient = supabase
+    const activationClient = supabaseActivation
 
     if (submissionLock.current) {
       return

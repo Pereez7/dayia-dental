@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabaseClient'
+import { supabaseActivation } from '../lib/supabaseActivationClient'
 
 export interface CompleteAccountActivationResult {
   data: { clinicIds: string[]; status: 'active' } | null
@@ -25,7 +25,7 @@ interface AccountActivationFunctionClient {
 
 export async function completeAccountActivation(): Promise<CompleteAccountActivationResult> {
   return completeAccountActivationWithClient(
-    supabase as AccountActivationFunctionClient | null,
+    supabaseActivation as AccountActivationFunctionClient | null,
   )
 }
 

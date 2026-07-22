@@ -2537,6 +2537,47 @@
   text-decoration: none;
 }
 
+.password-reset-form {
+  display: grid;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.password-reset-form label {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.password-reset-form input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  padding: 10px 12px;
+}
+
+.password-reset-form input:focus-visible {
+  border-color: var(--color-primary);
+  outline: 3px solid var(--color-focus);
+}
+
+.password-reset-form input[aria-invalid='true'] {
+  border-color: #fda4af;
+  background: #fff8f8;
+}
+
+.password-reset-form input:disabled {
+  background: #f3f8fa;
+  color: var(--color-text-muted);
+}
+
+.password-reset-message {
+  min-height: 1.1rem;
+}
+
 .auth-demo-action {
   justify-self: center;
   min-height: 38px;

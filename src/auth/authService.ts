@@ -119,3 +119,37 @@ export function getPublicAuthErrorMessage(errorMessage: string) {
 
   return 'No pudimos iniciar sesión. Revisa tus datos e inténtalo nuevamente.'
 }
+
+export function getPublicPasswordResetErrorMessage(
+  errorMessage: string,
+  errorCode?: string,
+) {
+  const normalizedMessage = errorMessage.toLowerCase()
+  const normalizedCode = errorCode?.toLowerCase() ?? ''
+
+  if (
+    normalizedCode === 'over_email_send_rate_limit' ||
+    normalizedCode === 'over_request_rate_limit' ||
+    normalizedMessage.includes('rate limit') ||
+    normalizedMessage.includes('security purposes') ||
+    normalizedMessage.includes('after 60 seconds')
+  ) {
+    return 'Ya solicitaste varios enlaces. Espera unos minutos antes de intentarlo nuevamente.'
+  }
+
+  if (
+    normalizedMessage.includes('redirect') ||
+    normalizedMessage.includes('not allowed')
+  ) {
+    return 'La dirección de recuperación no está autorizada en Supabase.'
+  }
+
+  if (
+    normalizedMessage.includes('failed to fetch') ||
+    normalizedMessage.includes('network')
+  ) {
+    return 'No pudimos conectar con Supabase. Revisa tu conexión e inténtalo nuevamente.'
+  }
+
+  return 'No pudimos enviar el enlace de recuperación. Inténtalo nuevamente más tarde.'
+}

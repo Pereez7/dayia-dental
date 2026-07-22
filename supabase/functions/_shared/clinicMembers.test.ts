@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   assertMembershipLimit,
   assertNoClinicMembership,
+  clinicMemberAvailableSubscriptionStatuses,
   ClinicMemberError,
   getManagedPlanLimit,
   isCountedMembershipStatus,
@@ -53,6 +54,16 @@ describe('clinic member Edge Function rules', () => {
     )
     expect(getManagedPlanLimit('medium', 99)).toBe(4)
     expect(getManagedPlanLimit('pro', 99)).toBe(10)
+  })
+
+  it('allows user management during a modern trial subscription', () => {
+    expect(clinicMemberAvailableSubscriptionStatuses).toEqual([
+      'trial',
+      'trialing',
+      'active',
+    ])
+    expect(clinicMemberAvailableSubscriptionStatuses).not.toContain('past_due')
+    expect(clinicMemberAvailableSubscriptionStatuses).not.toContain('blocked')
   })
 
   it.each([

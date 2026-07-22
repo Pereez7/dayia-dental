@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import {
   assertMembershipLimit,
   assertNoClinicMembership,
+  clinicMemberAvailableSubscriptionStatuses,
   ClinicMemberError,
   getManagedPlanLimit,
   isCountedMembershipStatus,
@@ -125,7 +126,7 @@ async function handleClinicMembersRequest(request: Request) {
     .from('clinic_subscriptions')
     .select('plan_id, status')
     .eq('clinic_id', activeMembership.clinic_id)
-    .in('status', ['trial', 'active'])
+    .in('status', [...clinicMemberAvailableSubscriptionStatuses])
     .maybeSingle()
 
   if (subscriptionError || !subscription) {
