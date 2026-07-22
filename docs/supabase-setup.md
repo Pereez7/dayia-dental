@@ -77,6 +77,7 @@ Ejecuta en Supabase SQL Editor, en orden, los archivos de
 19. `019_appointment_resolution_statuses.sql`
 20. `020_manual_billing_subscriptions.sql`
 21. `021_subscription_payment_workflow.sql`
+22. `022_allow_trialing_member_invitations.sql`
 
 Si usas Supabase CLI en el futuro, puedes adaptar este flujo a `supabase db
 push`, pero esta guia asume SQL Editor para una primera prueba controlada.
@@ -84,7 +85,7 @@ push`, pero esta guia asume SQL Editor para una primera prueba controlada.
 ### Inventario de preproducción
 
 Antes de una demo con Supabase real, confirma en el proyecto remoto que están
-aplicadas las migraciones `001` a `021`. El repositorio solo contiene los
+aplicadas las migraciones `001` a `022`. El repositorio solo contiene los
 archivos; no garantiza el estado del entorno remoto. La migración `003` es una
 plantilla de setup y no debe reemplazar un seed revisado.
 
@@ -262,7 +263,11 @@ respuesta puede quedar `not_sent` hasta implementar reenvío de invitaciones.
 Prueba con owner/admin de Medium y Pro. Basic, doctor, recepción y un usuario
 sin membership activa deben recibir rechazo aunque invoquen la Function fuera
 de la UI. Confirma también que una membership pendiente pasa a `active` después
-de definir la contraseña en la vista de activación.
+de definir la contraseña en la vista de activación. Abre además una invitación
+en una pestaña donde ya exista una sesión DayIA: la activación debe usar una
+sesión temporal aislada y, al terminar, la pestaña debe recuperar la cuenta que
+estaba abierta. Este aislamiento es frontend y no requiere redeplegar las Edge
+Functions.
 
 Prueba primero los rechazos sin sesión, sin `is_platform_admin` y con feature
 flag deshabilitado. Cuando el secret esté habilitado, crea un consultorio sin

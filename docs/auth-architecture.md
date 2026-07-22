@@ -203,6 +203,14 @@ Reglas aplicadas:
 - activar la membership mediante `complete-account-activation` al completar la
   contraseña.
 
+La ruta `/activar-cuenta` no comparte la sesión persistente del cliente
+principal. El cliente normal desactiva `detectSessionInUrl` únicamente en esa
+ruta y un cliente de activación procesa el enlace con una clave propia en
+`sessionStorage`. Al terminar se cierra solo esa sesión temporal. Si el enlace
+se abrió en el mismo navegador donde había otra cuenta DayIA autenticada, la
+app recupera esa sesión principal; si no existía, vuelve al login. Esto evita
+que una invitación reemplace silenciosamente la sesión del usuario que invitó.
+
 La inserción final usa `insert_clinic_membership_with_limit`, un RPC restringido
 a `service_role` que bloquea por consultorio y aplica el cupo de forma atómica.
 

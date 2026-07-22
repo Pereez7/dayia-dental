@@ -122,7 +122,7 @@ La ausencia de `WHATSAPP_SEND_ENABLED` mantiene el dry-run por defecto.
 
 ## Migraciones
 
-Aplicar y verificar `001` a `021` en orden. `003_initial_clinic_setup_template`
+Aplicar y verificar `001` a `022` en orden. `003_initial_clinic_setup_template`
 es una plantilla de referencia. La lista completa está en
 `docs/supabase-setup.md`. El repositorio no demuestra qué migraciones están
 aplicadas en un proyecto remoto. Dos consultas con `supabase migration list`
@@ -176,7 +176,7 @@ No crear, corregir ni eliminar estos datos automáticamente desde el frontend.
 
 ## Checklist de despliegue
 
-- [ ] Confirmar migraciones `001`–`019` en staging.
+- [ ] Confirmar migraciones `001`–`022` en staging.
 - [ ] Desplegar únicamente las Functions necesarias.
 - [ ] Decidir si se despliega `whatsapp-webhook`; no es necesario para el flujo
   manual y actualmente falta en el remoto.

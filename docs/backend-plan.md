@@ -278,6 +278,10 @@ activa con el JWT, exige owner/admin, verifica la suscripción y el límite del
 plan y recién entonces usa `service_role`. `create-clinic-user` queda como
 referencia legacy/deprecated y ya no es invocada por React.
 
+La gestión de miembros admite suscripciones `trialing` y `active`, y conserva
+compatibilidad temporal con el estado legacy `trial`. Suscripciones vencidas,
+bloqueadas o canceladas no pueden listar ni invitar usuarios del consultorio.
+
 Medium admite hasta 4 miembros y Pro hasta 10. Cuentan los estados `active`,
 `pending` y `pending_activation`; `inactive` no consume cupo. Solo pueden
 invitarse `clinic_admin`, `doctor` y `receptionist`. Un email ya vinculado al
@@ -312,14 +316,19 @@ de validar JWT, membership activa, rol `clinic_owner`/`clinic_admin`, plan con
 La migración `016_atomic_clinic_member_invitation.sql` serializa las altas por
 consultorio y vuelve a comprobar plan, duplicado y cupo dentro de la misma
 transacción para evitar exceder el límite con invitaciones concurrentes.
+`022_allow_trialing_member_invitations.sql` conserva esa protección y agrega el
+estado moderno `trialing` a las suscripciones elegibles.
 
 La invitacion redirige a `/activar-cuenta`, donde el usuario invitado define su
 contrasena con `supabase.auth.updateUser({ password })`. Esa pantalla es
 publica dentro del frontend y tiene prioridad sobre el flujo normal de Auth
 para evitar enviar al usuario al dashboard antes de terminar su contrasena. Al
 activarse, la app llama a `complete-account-activation`, que marca el perfil y
-sus memberships pendientes, y luego cierra la sesión temporal para volver al
-login.
+sus memberships pendientes. El token del enlace se procesa con un cliente
+Supabase separado, persistido solo en `sessionStorage` bajo una clave propia;
+el cliente principal no detecta sesiones desde la URL en esta ruta. Al
+finalizar se cierra únicamente la sesión temporal: una sesión DayIA previa se
+recupera y, si no existía, se vuelve al login.
 
 La URL base del frontend puede definirse con `VITE_APP_URL`, por ejemplo
 `http://localhost:5173` en desarrollo local. En Supabase Auth tambien debe

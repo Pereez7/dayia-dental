@@ -2,6 +2,18 @@
 
 Registro breve de cambios relevantes en DayIA Dental.
 
+## En desarrollo
+
+- Los enlaces de invitación y recuperación usan un cliente Supabase temporal
+  aislado en `sessionStorage`; abrirlos en un navegador con una sesión DayIA
+  activa ya no sustituye ni cierra la cuenta que estaba usando la app.
+- La recuperación de contraseña se realiza en un diálogo dedicado, con errores
+  específicos para límites de correo y redirecciones de Supabase.
+- La gestión de usuarios del consultorio reconoce suscripciones modernas en
+  estado `trialing`, además de conservar compatibilidad con `trial` y `active`;
+  la migración `022_allow_trialing_member_invitations.sql` alinea la validación
+  atómica de límites con esta regla.
+
 ## 2026-07-21
 
 ### Suscripciones y pagos QR
