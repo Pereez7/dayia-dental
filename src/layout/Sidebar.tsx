@@ -37,7 +37,11 @@ export function Sidebar({
         </div>
       </div>
 
-      <SessionSummary />
+      <SessionSummary
+        canAccessSubscription={permissions.canAccessSubscription}
+        isSubscriptionActive={activeSection === 'subscription'}
+        onOpenSubscription={() => onSectionChange('subscription')}
+      />
 
       {!canAccessAdministration && visibleQuickActions.length > 0 && (
         <section className="sidebar-section" aria-label="Acciones rápidas">

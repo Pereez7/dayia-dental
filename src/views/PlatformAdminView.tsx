@@ -56,6 +56,15 @@ export function PlatformAdminView({
     setIsLoading(false)
   }, [loadClinics])
 
+  const refreshPlatformClinicsSilently = useCallback(async () => {
+    const result = await loadClinics()
+
+    if (result.data) {
+      setClinics(result.data)
+      setErrorMessage('')
+    }
+  }, [loadClinics])
+
   const createClinicAndRefresh = useCallback(
     (input: CreatePlatformClinicInput) =>
       createPlatformClinicAndRefresh(input, createClinic, loadPlatformClinics),
@@ -84,6 +93,24 @@ export function PlatformAdminView({
     }
   }, [canAccessPlatformAdmin, loadClinics])
 
+  useEffect(() => {
+    if (!canAccessPlatformAdmin) return
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void refreshPlatformClinicsSilently()
+      }
+    }
+    const intervalId = window.setInterval(refreshWhenVisible, 60_000)
+
+    window.addEventListener('focus', refreshWhenVisible)
+
+    return () => {
+      window.clearInterval(intervalId)
+      window.removeEventListener('focus', refreshWhenVisible)
+    }
+  }, [canAccessPlatformAdmin, refreshPlatformClinicsSilently])
+
   if (!canAccessPlatformAdmin) {
     return (
       <section className="platform-admin-access-denied" role="alert">
@@ -94,6 +121,10 @@ export function PlatformAdminView({
   }
 
   const selectedClinic = clinics.find(({ clinicId }) => clinicId === selectedClinicId)
+  const pendingPaymentsCount = clinics.reduce(
+    (total, clinic) => total + getPendingPaymentCount(clinic),
+    0,
+  )
 
   return (
     <div className="administration-view">
@@ -106,6 +137,7 @@ export function PlatformAdminView({
             <h2 id="platform-clinics-title">Consultorios</h2>
             <p>Resumen administrativo de las cuentas registradas en DayIA Dental.</p>
           </div>
+          <PlatformPaymentOverview count={pendingPaymentsCount} />
         </div>
 
         <PlatformClinicsContent
@@ -130,6 +162,17 @@ export function PlatformAdminView({
         onCreate={createClinicAndRefresh}
       />
     </div>
+  )
+}
+
+export function PlatformPaymentOverview({ count }: { count: number }) {
+  if (count <= 0) return null
+
+  return (
+    <span className="platform-payment-overview" role="status">
+      <strong>{count}</strong>
+      {count === 1 ? 'pago por revisar' : 'pagos por revisar'}
+    </span>
   )
 }
 
@@ -196,58 +239,82 @@ export function PlatformClinicsContent({
           </tr>
         </thead>
         <tbody>
-          {clinics.map((clinic) => (
-            <tr key={clinic.clinicId}>
-              <td data-label="Consultorio">
-                <strong>{clinic.clinicName}</strong>
-                <span
-                  className={`platform-status platform-status--${clinic.clinicStatus ?? 'unknown'}`}
-                >
-                  {getPlatformClinicStatusLabel(clinic.clinicStatus)}
-                </span>
-              </td>
-              <td data-label="Plan">
-                <strong>{clinic.planName ?? 'Sin plan'}</strong>
-                <span>
-                  {getPlatformSubscriptionStatusLabel(
-                    clinic.subscriptionStatus,
-                  )}
-                </span>
-              </td>
-              <td data-label="Propietario">
-                {clinic.ownerName || clinic.ownerEmail ? (
-                  <>
-                    <strong>{clinic.ownerName ?? 'Propietario sin nombre'}</strong>
-                    <span>{clinic.ownerEmail ?? 'Sin email registrado'}</span>
-                  </>
-                ) : (
-                  <strong>Sin propietario</strong>
-                )}
-              </td>
-              <td data-label="Miembros">
-                <strong>{clinic.activeMembersCount}</strong>
-                <span>activos</span>
-              </td>
-              <td data-label="Creación">
-                <strong>{formatPlatformDate(clinic.createdAt)}</strong>
-              </td>
-              {onManage ? (
-                <td data-label="Suscripción">
-                  <button
-                    className="secondary-action"
-                    onClick={() => onManage(clinic.clinicId)}
-                    type="button"
-                  >
-                    Gestionar cobro
-                  </button>
+          {clinics.map((clinic) => {
+            const pendingPaymentCount = getPendingPaymentCount(clinic)
+
+            return (
+              <tr key={clinic.clinicId}>
+                <td data-label="Consultorio">
+                  <strong>{clinic.clinicName}</strong>
+                  <div className="platform-clinic-statuses">
+                    <span
+                      className={`platform-status platform-status--${clinic.clinicStatus ?? 'unknown'}`}
+                    >
+                      {getPlatformClinicStatusLabel(clinic.clinicStatus)}
+                    </span>
+                    {pendingPaymentCount > 0 ? (
+                      <span className="platform-payment-badge">
+                        Revisar pago
+                        {pendingPaymentCount > 1
+                          ? ` (${pendingPaymentCount})`
+                          : ''}
+                      </span>
+                    ) : null}
+                  </div>
                 </td>
-              ) : null}
-            </tr>
-          ))}
+                <td data-label="Plan">
+                  <strong>{clinic.planName ?? 'Sin plan'}</strong>
+                  <span>
+                    {getPlatformSubscriptionStatusLabel(
+                      clinic.subscriptionStatus,
+                    )}
+                  </span>
+                </td>
+                <td data-label="Propietario">
+                  {clinic.ownerName || clinic.ownerEmail ? (
+                    <>
+                      <strong>
+                        {clinic.ownerName ?? 'Propietario sin nombre'}
+                      </strong>
+                      <span>
+                        {clinic.ownerEmail ?? 'Sin email registrado'}
+                      </span>
+                    </>
+                  ) : (
+                    <strong>Sin propietario</strong>
+                  )}
+                </td>
+                <td data-label="Miembros">
+                  <strong>{clinic.activeMembersCount}</strong>
+                  <span>activos</span>
+                </td>
+                <td data-label="Creación">
+                  <strong>{formatPlatformDate(clinic.createdAt)}</strong>
+                </td>
+                {onManage ? (
+                  <td data-label="Suscripción">
+                    <button
+                      className="secondary-action"
+                      onClick={() => onManage(clinic.clinicId)}
+                      type="button"
+                    >
+                      Gestionar cobro
+                    </button>
+                  </td>
+                ) : null}
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>
   )
+}
+
+function getPendingPaymentCount(clinic: PlatformClinicSummary) {
+  return clinic.paymentSubmissions.filter(
+    ({ status }) => status === 'pending_review',
+  ).length
 }
 
 function formatPlatformDate(value: string) {

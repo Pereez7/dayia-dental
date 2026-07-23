@@ -11,6 +11,7 @@ import {
   updateClinicSubscription,
   voidSubscriptionPayment,
 } from '../services/platformAdminService'
+import { isWhatsappPaymentNoticeReference } from '../services/subscriptionPaymentSubmissionService'
 import type {
   PlatformClinicPlanId,
   PlatformClinicSummary,
@@ -31,7 +32,6 @@ import {
 } from '../utils/subscriptionBilling'
 import { formatAppDate, formatSubscriptionDate } from '../utils/dateFormatters'
 import { ConfirmDialog } from './ConfirmDialog'
-import { PaymentQr } from './PaymentQr'
 
 interface SubscriptionAdministrationProps {
   clinic: PlatformClinicSummary
@@ -150,6 +150,10 @@ export function SubscriptionAdministration({
   const selectedSubmission = clinic.paymentSubmissions.find(
     (submission) => submission.id === selectedSubmissionId,
   )
+  const hasSubmittedAmountDifference =
+    selectedSubmission &&
+    Number.isFinite(finalAmount) &&
+    Math.abs(selectedSubmission.amountExpected - finalAmount) >= 0.01
 
   function handleCycleChange(cycle: BillingCycle) {
     setBillingCycle(cycle)
@@ -349,12 +353,20 @@ export function SubscriptionAdministration({
     setBillingCycle(submission.billingCycle)
     setDiscountPercent(suggestedDiscounts[submission.billingCycle])
     setAmountOverride('')
-    setReference(submission.reference)
-    setNotes(submission.notes ?? '')
+    setReference(
+      isWhatsappPaymentNoticeReference(submission.reference)
+        ? ''
+        : submission.reference,
+    )
+    setNotes(
+      isWhatsappPaymentNoticeReference(submission.reference)
+        ? ''
+        : submission.notes ?? '',
+    )
     setPaidAt(toLocalDateTimeInput(new Date(submission.createdAt)))
     setSelectedSubmissionId(submission.id)
     setFieldErrors({})
-    showFeedback('Solicitud cargada en la calculadora para su revisión.', 'success')
+    setFeedback('')
   }
 
   function clearFieldError(field: string) {
@@ -444,21 +456,41 @@ export function SubscriptionAdministration({
             <span className="subscription-count">{pendingSubmissions.length}</span>
           </div>
           <div className="subscription-submission-list">
-            {pendingSubmissions.map((submission) => (
-              <article key={submission.id}>
-                <div>
-                  <strong>{submission.submittedBy ?? 'Propietario del consultorio'}</strong>
-                  <span>{formatDateTime(submission.createdAt)} · {cycleLabels[submission.billingCycle]}</span>
-                </div>
-                <div>
-                  <strong>{submission.amountExpected.toFixed(2)} {submission.currency}</strong>
-                  <span>Ref. {submission.reference}</span>
-                </div>
-                <button className="secondary-action" onClick={() => populatePaymentSubmission(submission)} type="button">
-                  Revisar solicitud
-                </button>
-              </article>
-            ))}
+            {pendingSubmissions.map((submission) => {
+              const isSelected = submission.id === selectedSubmissionId
+
+              return (
+                <article
+                  className={
+                    isSelected
+                      ? 'subscription-submission--selected'
+                      : undefined
+                  }
+                  key={submission.id}
+                >
+                  <div>
+                    <strong>{submission.submittedBy ?? 'Propietario del consultorio'}</strong>
+                    <span>{formatDateTime(submission.createdAt)} · {cycleLabels[submission.billingCycle]}</span>
+                  </div>
+                  <div>
+                    <strong>{submission.amountExpected.toFixed(2)} {submission.currency}</strong>
+                    <span>
+                      {isWhatsappPaymentNoticeReference(submission.reference)
+                        ? 'Comprobante por WhatsApp'
+                        : `Ref. ${submission.reference}`}
+                    </span>
+                  </div>
+                  <button
+                    className="secondary-action"
+                    disabled={isSelected}
+                    onClick={() => populatePaymentSubmission(submission)}
+                    type="button"
+                  >
+                    {isSelected ? 'En revisión' : 'Revisar solicitud'}
+                  </button>
+                </article>
+              )
+            })}
           </div>
         </section>
       ) : null}
@@ -469,27 +501,18 @@ export function SubscriptionAdministration({
       >
         <div className="subscription-block-heading">
           <div>
-            <h3 id="payment-calculator-title">Calculadora de pago</h3>
-            <p>Enter no registra el pago. La acción final requiere revisión y confirmación.</p>
+            <h3 id="payment-calculator-title">Registrar pago</h3>
+            <p>Verifica los datos del comprobante antes de continuar.</p>
           </div>
         </div>
 
-        <div className="subscription-admin-grid">
-          <form
-            className="subscription-payment-form"
-            noValidate
-            onKeyDown={handlePaymentKeyDown}
-            onSubmit={handlePaymentReview}
-          >
+        <form
+          className="subscription-payment-form"
+          noValidate
+          onKeyDown={handlePaymentKeyDown}
+          onSubmit={handlePaymentReview}
+        >
             <div className="subscription-form-grid">
-              <label>
-                Plan actual
-                <input readOnly value={getPlanName(currentPlanId)} />
-              </label>
-              <label>
-                Tipo de precio
-                <input readOnly value={priceTierLabel(effectivePriceTier)} />
-              </label>
               <label>
                 Periodo
                 <select
@@ -530,12 +553,7 @@ export function SubscriptionAdministration({
                     value={manualAmount || ''}
                   />
                 </label>
-              ) : (
-                <label>
-                  Precio mensual
-                  <input readOnly value={formatMoney(monthlyPrice, clinic.currency)} />
-                </label>
-              )}
+              ) : null}
               <FieldWithError error={fieldErrors.discountPercent}>
                 <label>
                   Descuento (%)
@@ -607,9 +625,9 @@ export function SubscriptionAdministration({
               </label>
             </div>
 
-            {selectedSubmission ? (
-              <p className="subscription-inline-note" role="status">
-                Monto informado por el cliente: {selectedSubmission.amountExpected.toFixed(2)} {selectedSubmission.currency}. El monto final se recalcula con la tarifa vigente en la fecha y hora del pago.
+            {hasSubmittedAmountDifference && selectedSubmission ? (
+              <p className="subscription-inline-warning" role="status">
+                El cliente informó {selectedSubmission.amountExpected.toFixed(2)} {selectedSubmission.currency}, pero el cálculo actual es {finalAmount.toFixed(2)} {clinic.currency}. Verifica el importe antes de continuar.
               </p>
             ) : null}
 
@@ -640,21 +658,7 @@ export function SubscriptionAdministration({
                 Revisar registro
               </button>
             </div>
-          </form>
-
-          <aside className="subscription-payment-aside">
-            <div>
-              <span>QR de cobro</span>
-              <h4>Plan {getPlanName(currentPlanId)}</h4>
-            </div>
-            <PaymentQr planId={currentPlanId} planName={getPlanName(currentPlanId)} />
-            <dl>
-              <div><dt>Periodo</dt><dd>{cycleLabels[billingCycle]}</dd></div>
-              <div><dt>Monto exacto</dt><dd>{Number.isFinite(finalAmount) ? finalAmount.toFixed(2) : '0.00'} {clinic.currency}</dd></div>
-            </dl>
-            <p>El periodo modifica el monto, no la imagen del QR.</p>
-          </aside>
-        </div>
+        </form>
       </section>
 
       <AdministrativeActions

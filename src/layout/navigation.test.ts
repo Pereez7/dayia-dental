@@ -96,6 +96,9 @@ describe('permission-aware navigation', () => {
 
   it('allows clinic owners to open settings', () => {
     const permissions = getClinicalPermissions('clinic_owner', 'basic')
+    const visibleModuleIds = getVisibleNavigationItems(permissions, false).map(
+      (item) => item.id,
+    )
 
     expect(getAuthorizedSection('settings', permissions, false)).toBe(
       'settings',
@@ -106,6 +109,7 @@ describe('permission-aware navigation', () => {
     expect(getAuthorizedSection('subscription', permissions, false)).toBe(
       'subscription',
     )
+    expect(visibleModuleIds).not.toContain('subscription')
   })
 
   it('keeps subscription details restricted to the clinic owner', () => {

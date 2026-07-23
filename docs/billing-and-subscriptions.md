@@ -59,14 +59,17 @@ Cada plan usa una imagen estática:
 El periodo modifica el monto, no el QR. Si falta la imagen, la interfaz muestra
 `QR pendiente de configurar` sin romper el flujo. El propietario paga y abre
 WhatsApp con consultorio, plan, periodo y monto precargados para adjuntar el
-comprobante. No escribe referencias ni activa la suscripción. Platform Admin
-verifica el comprobante y registra el pago de forma explícita.
+comprobante. En ese momento la app crea un aviso `pending_review`; no solicita
+una referencia bancaria al doctor ni activa la suscripción. Platform Admin
+verifica el comprobante, completa la referencia y registra el pago de forma
+explícita.
 
 `VITE_DAYIA_BILLING_WHATSAPP` configura el número público que recibe los
-comprobantes, con código de país y solo dígitos. Las filas históricas de
-`subscription_payment_submissions` continúan visibles en Administración DayIA;
-un aviso `pending_review` pasa a `approved` cuando se revisa y se confirma su
-pago vinculado.
+comprobantes, con código de país y solo dígitos. Un propietario activo puede
+crear avisos únicamente para su consultorio mediante las políticas RLS de
+`subscription_payment_submissions`. La app reutiliza el aviso pendiente
+existente para no duplicarlo. Un aviso `pending_review` pasa a `approved` cuando
+se revisa y se confirma su pago vinculado.
 
 ## Registro, historial y anulación
 
@@ -108,6 +111,11 @@ suscripción en una sola transacción. El RPC
 instantánea en otra transacción. Los usuarios autenticados no pueden modificar
 el ledger; solo las Functions confiables pueden hacerlo. No contiene datos
 clínicos.
+
+El propietario sí puede insertar un aviso `pending_review` para su propio
+consultorio. RLS exige una membership `clinic_owner` activa y
+`submitted_by = auth.uid()`. Este aviso es informativo y nunca concede acceso,
+aprueba el cobro ni modifica `clinic_subscriptions`.
 
 `update-clinic-subscription` administra downgrades, excepciones inmediatas,
 precios fundador/personalizado/normal, días extra, bloqueo, reactivación,

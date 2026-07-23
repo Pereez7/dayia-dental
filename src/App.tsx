@@ -1960,6 +1960,7 @@ function App() {
           onRefreshSubscription={refreshClinicContext}
           planId={currentPlanId}
           standardMonthlyPrice={currentPlanStandardMonthlyPrice}
+          submittedByUserId={profile?.id ?? null}
           subscription={currentSubscription}
         />
       )
@@ -2108,6 +2109,7 @@ function App() {
           onRefreshSubscription={refreshClinicContext}
           planId={currentPlanId}
           standardMonthlyPrice={currentPlanStandardMonthlyPrice}
+          submittedByUserId={profile?.id ?? null}
           subscription={currentSubscription}
         />
       )

@@ -26,7 +26,6 @@ export const navigationItems: NavigationItem[] = [
   { id: 'clinical-history', label: 'Historial clínico' },
   { id: 'odontogram', label: 'Odontograma' },
   { id: 'whatsapp-reminders', label: 'Recordatorios' },
-  { id: 'subscription', label: 'Suscripción' },
   { id: 'settings', label: 'Configuración' },
 ]
 

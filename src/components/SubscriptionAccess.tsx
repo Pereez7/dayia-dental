@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import type { MouseEvent } from 'react'
 
 import type {
   Clinic,
@@ -19,6 +20,7 @@ import {
 import type { BillingCycle } from '../utils/subscriptionBilling'
 import { buildBillingWhatsappUrl } from '../utils/billingWhatsapp'
 import { formatSubscriptionDate } from '../utils/dateFormatters'
+import { submitSubscriptionPaymentNotice } from '../services/subscriptionPaymentSubmissionService'
 import { PaymentQr } from './PaymentQr'
 
 const renewalOptions: Array<{
@@ -45,6 +47,7 @@ interface SubscriptionMembershipViewProps {
   onRefreshSubscription?: () => Promise<void>
   planId: string | null
   standardMonthlyPrice?: number | null
+  submittedByUserId: string | null
   subscription: ClinicSubscriptionRecord | null
 }
 
@@ -57,13 +60,19 @@ export function SubscriptionMembershipView({
   onRefreshSubscription,
   planId,
   standardMonthlyPrice,
+  submittedByUserId,
   subscription,
 }: SubscriptionMembershipViewProps) {
   const normalizedPlanId = normalizePlan(planId)
   const [selectedCycle, setSelectedCycle] =
     useState<RenewalBillingCycle>('monthly')
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isSubmittingNotice, setIsSubmittingNotice] = useState(false)
+  const [noticeFeedback, setNoticeFeedback] = useState('')
+  const [noticeFeedbackTone, setNoticeFeedbackTone] =
+    useState<'error' | 'success'>('success')
   const refreshedClinicId = useRef<string | null>(null)
+  const noticeSubmissionLock = useRef(false)
   const accessState = getSubscriptionAccessState(mapSubscription(subscription))
   const founderPricingEligible = isFounderPricingEligible({
     blockedAt: subscription?.blocked_at,
@@ -122,6 +131,61 @@ export function SubscriptionMembershipView({
     refreshedClinicId.current = clinic.id
     void refreshSubscription()
   }, [clinic.id, onRefreshSubscription, refreshSubscription])
+
+  function handlePaymentNoticeClick(
+    event: MouseEvent<HTMLAnchorElement>,
+  ) {
+    if (noticeSubmissionLock.current || isSubmittingNotice) {
+      event.preventDefault()
+      return
+    }
+
+    if (!submittedByUserId || selectedPayment.amountPaid <= 0) {
+      event.preventDefault()
+      setNoticeFeedbackTone('error')
+      setNoticeFeedback(
+        'No pudimos preparar el aviso de pago. Actualiza la suscripción e inténtalo nuevamente.',
+      )
+      return
+    }
+
+    noticeSubmissionLock.current = true
+    setIsSubmittingNotice(true)
+    setNoticeFeedback('')
+
+    void submitSubscriptionPaymentNotice({
+      amountExpected: selectedPayment.amountPaid,
+      billingCycle: selectedCycle,
+      clinicId: clinic.id,
+      currency,
+      planId: normalizedPlanId,
+      submittedBy: submittedByUserId,
+    })
+      .then((result) => {
+        if (result.error) {
+          setNoticeFeedbackTone('error')
+          setNoticeFeedback(result.error)
+          return
+        }
+
+        setNoticeFeedbackTone('success')
+        setNoticeFeedback(
+          result.data?.alreadyPending
+            ? 'Ya existe un aviso pendiente. Administración DayIA lo revisará.'
+            : 'Aviso enviado. Administración DayIA ya puede revisar tu pago.',
+        )
+      })
+      .catch(() => {
+        setNoticeFeedbackTone('error')
+        setNoticeFeedback(
+          'No pudimos avisar a Administración DayIA. Inténtalo nuevamente.',
+        )
+      })
+      .finally(() => {
+        noticeSubmissionLock.current = false
+        setIsSubmittingNotice(false)
+      })
+  }
 
   return (
     <section
@@ -226,12 +290,16 @@ export function SubscriptionMembershipView({
             {canSubmitPayment ? (
               billingWhatsappUrl ? (
                 <a
+                  aria-disabled={isSubmittingNotice}
                   className="primary-action subscription-whatsapp-action"
                   href={billingWhatsappUrl}
+                  onClick={handlePaymentNoticeClick}
                   rel="noreferrer"
                   target="_blank"
                 >
-                  Enviar comprobante por WhatsApp
+                  {isSubmittingNotice
+                    ? 'Avisando a Administración...'
+                    : 'Enviar comprobante por WhatsApp'}
                 </a>
               ) : (
                 <p className="subscription-owner-note">
@@ -241,6 +309,14 @@ export function SubscriptionMembershipView({
             ) : (
               <p className="subscription-owner-note">Solo el propietario del consultorio puede gestionar la renovación. Contacta al propietario para continuar.</p>
             )}
+            {noticeFeedback ? (
+              <p
+                className={`subscription-payment-feedback subscription-payment-feedback--${noticeFeedbackTone}`}
+                role={noticeFeedbackTone === 'error' ? 'alert' : 'status'}
+              >
+                {noticeFeedback}
+              </p>
+            ) : null}
           </div>
 
           <aside className="subscription-payment-aside subscription-member-qr">

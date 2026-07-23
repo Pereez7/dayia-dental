@@ -6,6 +6,7 @@ import {
   ClinicOnboardingFeedback,
   ClinicOnboardingForm,
 } from '../components/ClinicOnboardingForm'
+import { SubscriptionAdministration } from '../components/SubscriptionAdministration'
 import {
   createPlatformClinicAndRefresh,
   submitPlatformClinicOnce,
@@ -13,6 +14,7 @@ import {
 import {
   PlatformAdminView,
   PlatformClinicsContent,
+  PlatformPaymentOverview,
 } from './PlatformAdminView'
 
 const clinic: PlatformClinicSummary = {
@@ -104,6 +106,68 @@ describe('PlatformAdminView', () => {
 
     expect(markup).toContain('Sin propietario')
     expect(markup).not.toContain('Sin email registrado')
+  })
+
+  it('marks the affected clinic with a compact payment-review badge', () => {
+    const markup = renderToStaticMarkup(
+      <PlatformClinicsContent
+        clinics={[
+          {
+            ...clinic,
+            paymentSubmissions: [
+              {
+                amountExpected: 249,
+                billingCycle: 'monthly',
+                createdAt: '2026-07-23T14:00:00.000Z',
+                currency: 'BOB',
+                id: 'notice-1',
+                notes: null,
+                planId: 'pro',
+                reference: 'dayia-whatsapp',
+                status: 'pending_review',
+                submittedBy: 'Dra. Ana Pérez',
+              },
+            ],
+          },
+        ]}
+        errorMessage=""
+        isLoading={false}
+        onManage={vi.fn()}
+      />,
+    )
+
+    expect(markup).toContain('Revisar pago')
+    expect(markup).toContain('Gestionar cobro')
+    expect(markup).not.toContain('aviso de pago por revisar')
+  })
+
+  it('summarizes many payment notices without listing clinic names', () => {
+    const markup = renderToStaticMarkup(
+      <PlatformPaymentOverview count={10} />,
+    )
+
+    expect(markup).toContain('<strong>10</strong>')
+    expect(markup).toContain('pagos por revisar')
+    expect(markup).not.toContain('Clínica Central')
+  })
+
+  it('keeps the administrative payment form focused on verification data', () => {
+    const markup = renderToStaticMarkup(
+      <SubscriptionAdministration
+        clinic={{
+          ...clinic,
+          planMonthlyPrices: { medium: 199 },
+        }}
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+      />,
+    )
+
+    expect(markup).toContain('Registrar pago')
+    expect(markup.match(/Plan actual/g)).toHaveLength(1)
+    expect(markup).not.toContain('QR de cobro')
+    expect(markup).not.toContain('Tipo de precio')
+    expect(markup).not.toContain('Enter no registra el pago')
   })
 
   it('denies access without starting the platform loader', () => {

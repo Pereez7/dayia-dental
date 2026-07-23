@@ -11,9 +11,11 @@ exclusivas de plataforma y no consultan tablas clínicas.
 
 La migración `021_subscription_payment_workflow.sql` agrega estados
 `registered|voided`, la instantánea previa necesaria para revertir el último
-pago y el soporte histórico de avisos `pending_review`. El flujo vigente envía
-el comprobante por WhatsApp. La Function `void-subscription-payment` exige
-Platform Admin y motivo; no elimina filas.
+pago y avisos `pending_review`. El flujo vigente registra el aviso bajo RLS
+cuando el propietario abre WhatsApp para enviar el comprobante. El aviso no
+activa ni extiende la suscripción; Platform Admin conserva la validación y el
+registro definitivo. La Function `void-subscription-payment` exige Platform
+Admin y motivo; no elimina filas.
 
 Quedan pendientes pasarela, conciliación bancaria, carga de archivos de
 comprobante, rechazo administrativo de avisos y pagos recurrentes.

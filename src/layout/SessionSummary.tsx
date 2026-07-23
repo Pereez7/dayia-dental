@@ -5,7 +5,17 @@ import { canAccessPlatformAdministration } from '../auth/permissions'
 import { normalizePersonName } from '../utils/textNormalizers'
 import { getSessionPlanLabel, getSessionRoleLabel } from './sessionRole'
 
-export function SessionSummary() {
+interface SessionSummaryProps {
+  canAccessSubscription: boolean
+  isSubscriptionActive: boolean
+  onOpenSubscription: () => void
+}
+
+export function SessionSummary({
+  canAccessSubscription,
+  isSubscriptionActive,
+  onOpenSubscription,
+}: SessionSummaryProps) {
   const {
     currentClinic,
     currentPlanId,
@@ -90,14 +100,31 @@ export function SessionSummary() {
           )}
           <small>{clinicName}</small>
         </div>
-        <button
-          className="session-signout"
-          disabled={isSigningOut}
-          onClick={handleSignOut}
-          type="button"
+        <div
+          className={`session-actions${
+            canAccessSubscription ? ' session-actions--with-subscription' : ''
+          }`}
         >
-          {isSigningOut ? 'Cerrando...' : 'Cerrar sesión'}
-        </button>
+          {canAccessSubscription && (
+            <button
+              aria-current={isSubscriptionActive ? 'page' : undefined}
+              aria-label="Abrir suscripción, plan y pagos"
+              className="session-subscription-action"
+              onClick={onOpenSubscription}
+              type="button"
+            >
+              Suscripción
+            </button>
+          )}
+          <button
+            className="session-signout"
+            disabled={isSigningOut}
+            onClick={handleSignOut}
+            type="button"
+          >
+            {isSigningOut ? 'Cerrando...' : 'Cerrar sesión'}
+          </button>
+        </div>
       </div>
     </section>
   )

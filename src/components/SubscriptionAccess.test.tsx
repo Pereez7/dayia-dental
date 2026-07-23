@@ -28,6 +28,7 @@ describe('SubscriptionAccess', () => {
         currency="BOB"
         monthlyPrice={200}
         planId="medium"
+        submittedByUserId="owner-1"
         subscription={null}
       />,
     )
@@ -76,6 +77,7 @@ describe('SubscriptionAccess', () => {
         monthlyPrice={249}
         planId="pro"
         standardMonthlyPrice={299}
+        submittedByUserId="owner-1"
         subscription={subscription}
       />,
     )

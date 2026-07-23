@@ -16,6 +16,18 @@ no registra pagos, la referencia es obligatoria y toda escritura definitiva se
 confirma en un modal. Los avisos enviados por propietarios aparecen pendientes
 para su revisión, pero nunca activan una suscripción por sí mismos.
 
+El listado principal suma los avisos `pending_review` en un contador compacto y
+muestra un badge ámbar `Revisar pago` junto al estado de cada consultorio
+afectado. No enumera consultorios en una segunda bandeja, por lo que mantiene la
+misma densidad aunque aumenten las solicitudes. La lista se actualiza
+silenciosamente al recuperar el foco de la pestaña y cada minuto mientras
+permanece visible.
+
+La gestión de cobro conserva el resumen comercial y elimina del formulario los
+datos de solo lectura ya visibles arriba. El QR permanece en la experiencia del
+propietario; Platform Admin revisa únicamente periodo, importe, fecha,
+referencia y notas antes de confirmar el registro.
+
 Todas las escrituras exigen JWT de un perfil con `is_platform_admin = true`.
 `service_role` se inicializa únicamente dentro de las Functions después de esa
 validación. Los usuarios clínicos no reciben acciones de billing.

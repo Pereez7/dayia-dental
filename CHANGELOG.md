@@ -13,6 +13,14 @@ Registro breve de cambios relevantes en DayIA Dental.
   estado `trialing`, además de conservar compatibilidad con `trial` y `active`;
   la migración `022_allow_trialing_member_invitations.sql` alinea la validación
   atómica de límites con esta regla.
+- Enviar el comprobante por WhatsApp crea un aviso `pending_review` protegido
+  por RLS, sin activar la suscripción ni pedir una referencia bancaria al
+  propietario.
+- Administración DayIA incorpora un contador compacto de pagos por revisar y
+  un badge ámbar junto al estado de cada consultorio afectado, sin duplicar la
+  lista de cuentas.
+- La gestión de cobro elimina el QR y los campos de solo lectura repetidos del
+  formulario administrativo; el QR se mantiene en la vista del propietario.
 
 ## 2026-07-21
 

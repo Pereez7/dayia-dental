@@ -243,8 +243,15 @@
   font-size: var(--text-xs);
 }
 
+.session-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-start;
+}
+
+.session-subscription-action,
 .session-signout {
-  justify-self: start;
   min-height: 32px;
   border: 1px solid #cbe8f2;
   border-radius: 7px;
@@ -261,14 +268,32 @@
     color var(--transition-base);
 }
 
+.session-subscription-action {
+  background: rgba(234, 247, 251, 0.78);
+}
+
+.session-subscription-action:hover,
 .session-signout:hover {
   border-color: #b9ddec;
   background: var(--color-soft-blue);
 }
 
+.session-subscription-action[aria-current='page'] {
+  border-color: #9ed2e6;
+  background: var(--color-soft-blue);
+  color: var(--color-primary-dark);
+  font-weight: 700;
+}
+
+.session-subscription-action:focus-visible,
 .session-signout:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
+}
+
+.session-subscription-action:active,
+.session-signout:active {
+  transform: translateY(1px);
 }
 
 .session-signout:disabled {
@@ -3588,6 +3613,28 @@
   min-width: 0;
 }
 
+.platform-payment-overview {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #e5bd58;
+  border-radius: 999px;
+  background: #fff3cd;
+  color: #855200;
+  font-size: var(--text-xs);
+  font-weight: 650;
+  line-height: 1;
+  padding: 7px 10px;
+  white-space: nowrap;
+}
+
+.platform-payment-overview strong {
+  color: inherit;
+  font-size: var(--text-sm);
+  font-weight: 800;
+}
+
 .platform-clinics-table-wrap {
   min-width: 0;
   overflow-x: auto;
@@ -3643,14 +3690,38 @@
   line-height: 1.4;
 }
 
+.platform-clinic-statuses {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
 .platform-status {
   width: fit-content;
-  margin-top: 7px;
+  margin-top: 0;
   border-radius: 999px;
   background: #edf2f5;
   color: #52606d;
   font-size: 0.72rem;
   font-weight: 700;
+  line-height: 1;
+  padding: 5px 7px;
+}
+
+.platform-clinic-statuses {
+  margin-top: 7px;
+}
+
+.platform-payment-badge {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  border-radius: 999px;
+  background: #fff3cd;
+  color: #855200;
+  font-size: 0.72rem;
+  font-weight: 750;
   line-height: 1;
   padding: 5px 7px;
 }
@@ -3726,6 +3797,10 @@
 }
 
 @media (max-width: 760px) {
+  .platform-payment-overview {
+    width: fit-content;
+  }
+
   .platform-clinics-table-wrap {
     overflow: visible;
   }
@@ -3872,19 +3947,16 @@
   overflow-wrap: anywhere;
 }
 
-.subscription-admin-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(220px, 0.65fr);
-  gap: 24px;
-  align-items: start;
-}
-
 .subscription-payment-form,
 .subscription-actions,
 .subscription-payment-history {
   display: grid;
   gap: 16px;
   min-width: 0;
+}
+
+.subscription-calculator-block > .subscription-payment-form {
+  width: min(100%, 820px);
 }
 
 .subscription-form-grid {
@@ -3917,6 +3989,13 @@
   font-size: var(--text-sm);
   font-weight: 500;
   padding: 9px 11px;
+}
+
+.subscription-form-grid textarea {
+  height: 82px;
+  max-height: 82px;
+  overflow-y: auto;
+  resize: none;
 }
 
 .subscription-form-grid input:focus,
@@ -4170,7 +4249,6 @@
 }
 
 @media (max-width: 820px) {
-  .subscription-admin-grid,
   .subscription-blocked-view,
   .subscription-plan-change-grid {
     grid-template-columns: 1fr;
@@ -4398,17 +4476,6 @@
   margin: 0;
 }
 
-.subscription-inline-note {
-  grid-column: 1 / -1;
-  border: 1px solid #b9ddec;
-  border-radius: var(--radius-md);
-  background: #eef8fc;
-  color: var(--color-text-secondary);
-  font-size: var(--text-sm);
-  line-height: 1.5;
-  padding: 10px 12px;
-}
-
 .subscription-block-heading h2,
 .subscription-block-heading h3,
 .subscription-payment-aside h3 {
@@ -4488,6 +4555,19 @@
   align-items: center;
   padding: 13px 0;
   border-bottom: 1px solid var(--color-border);
+}
+
+.subscription-submission-list .subscription-submission--selected {
+  border-left: 3px solid var(--color-primary);
+  background: #f4fafc;
+  padding-left: 11px;
+}
+
+.subscription-submission--selected .secondary-action:disabled {
+  border-color: #b9ddec;
+  background: var(--color-soft-blue);
+  color: var(--color-primary-dark);
+  opacity: 1;
 }
 
 .subscription-submission-list article > div,
@@ -5031,6 +5111,32 @@
   width: 100%;
   min-height: 44px;
   font-size: var(--text-sm);
+}
+
+.subscription-whatsapp-action[aria-disabled="true"] {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.subscription-payment-feedback {
+  margin: 0;
+  border: 1px solid;
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+
+.subscription-payment-feedback--success {
+  border-color: #b8dfca;
+  background: var(--color-soft-green);
+  color: var(--color-success);
+}
+
+.subscription-payment-feedback--error {
+  border-color: #f1c7d2;
+  background: #fff3f5;
+  color: var(--color-danger);
 }
 
 .subscription-proof-form {
@@ -8436,8 +8542,13 @@
     max-width: 100%;
   }
 
+  .session-actions {
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+  }
+
+  .session-subscription-action,
   .session-signout {
-    justify-self: end;
     min-height: 44px;
     padding: 5px 8px;
     white-space: nowrap;
@@ -8541,6 +8652,24 @@
 }
 
 @media (max-width: 600px) {
+  .session-meta-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .session-actions {
+    justify-content: flex-start;
+  }
+
+  .session-actions--with-subscription {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .session-actions--with-subscription button {
+    width: 100%;
+  }
+
   .odontogram-view-heading,
   .odontogram-patient-context {
     align-items: flex-start;

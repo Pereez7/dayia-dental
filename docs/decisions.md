@@ -752,10 +752,12 @@ transitorios.
 ## Los comprobantes no activan suscripciones
 
 El propietario envía el comprobante por WhatsApp mediante un enlace manual con
-plan, periodo y monto precargados. No escribe en la base de datos ni extiende su
-vigencia. La activación requiere que Platform Admin registre el pago mediante
-Edge Function. `subscription_payment_submissions` se conserva solo para avisos
-creados por la versión anterior.
+plan, periodo y monto precargados. Al abrir el enlace se crea un aviso
+`pending_review` en `subscription_payment_submissions`, protegido por RLS y sin
+referencia bancaria aportada por el doctor. El aviso no extiende vigencia ni
+modifica el estado comercial. La activación requiere que Platform Admin
+verifique el comprobante, complete la referencia bancaria y registre el pago
+mediante Edge Function.
 
 ## Los pagos se anulan, no se eliminan
 
