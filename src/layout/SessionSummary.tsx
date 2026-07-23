@@ -1,15 +1,14 @@
 import { useState } from 'react'
 
 import { useAuth } from '../auth/AuthContext'
-import {
-  canAccessPlatformAdministration,
-} from '../auth/permissions'
-import { getSessionRoleLabel } from './sessionRole'
+import { canAccessPlatformAdministration } from '../auth/permissions'
 import { normalizePersonName } from '../utils/textNormalizers'
+import { getSessionPlanLabel, getSessionRoleLabel } from './sessionRole'
 
 export function SessionSummary() {
   const {
     currentClinic,
+    currentPlanId,
     isDemoMode,
     isSessionContextLoading,
     profile,
@@ -29,6 +28,10 @@ export function SessionSummary() {
   const roleLabel = getSessionRoleLabel({
     isDemoMode,
     isPlatformAdministration,
+    role: profile?.role,
+  })
+  const planLabel = getSessionPlanLabel({
+    planId: currentPlanId,
     role: profile?.role,
   })
   const clinicName = isPlatformAdministration
@@ -68,7 +71,23 @@ export function SessionSummary() {
       <div className="session-meta-row">
         <div className="session-details">
           <span>{roleLabel}</span>
-          <span aria-hidden="true">·</span>
+          <span
+            aria-hidden="true"
+            className="session-mobile-separator"
+          >
+            ·
+          </span>
+          {planLabel && (
+            <>
+              <span>{planLabel}</span>
+              <span
+                aria-hidden="true"
+                className="session-mobile-separator"
+              >
+                ·
+              </span>
+            </>
+          )}
           <small>{clinicName}</small>
         </div>
         <button

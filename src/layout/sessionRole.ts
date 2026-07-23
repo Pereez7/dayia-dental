@@ -10,6 +10,12 @@ const compactRoleLabels: Record<UserRole, string> = {
   unknown: 'Rol no válido',
 }
 
+const sessionPlanLabels = {
+  basic: 'Plan Basic',
+  medium: 'Plan Medium',
+  pro: 'Plan Pro',
+} as const
+
 export function getSessionRoleLabel({
   isDemoMode,
   isPlatformAdministration,
@@ -28,4 +34,22 @@ export function getSessionRoleLabel({
   }
 
   return compactRoleLabels[normalizeUserRole(role)]
+}
+
+export function getSessionPlanLabel({
+  planId,
+  role,
+}: {
+  planId: string | null | undefined
+  role: string | null | undefined
+}) {
+  if (normalizeUserRole(role) !== 'clinic_owner') {
+    return null
+  }
+
+  if (planId === 'basic' || planId === 'medium' || planId === 'pro') {
+    return sessionPlanLabels[planId]
+  }
+
+  return null
 }

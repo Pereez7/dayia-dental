@@ -213,6 +213,10 @@
   gap: 5px;
 }
 
+.session-details .session-mobile-separator {
+  display: none;
+}
+
 .session-identity strong,
 .session-details span,
 .session-meta-row small {
@@ -8415,7 +8419,8 @@
     max-width: 105px;
   }
 
-  .session-details span[aria-hidden='true'] {
+  .session-details .session-mobile-separator {
+    display: inline;
     flex: 0 0 auto;
     color: #8aa7b8;
   }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { getSessionRoleLabel } from './sessionRole'
+import { getSessionPlanLabel, getSessionRoleLabel } from './sessionRole'
 
 describe('session role label', () => {
   it('shows owner for the resolved clinic owner role', () => {
@@ -38,5 +38,30 @@ describe('session role label', () => {
         role: 'invalid',
       }),
     ).toBe('Rol no válido')
+  })
+
+  it('shows the real plan only for clinic owners', () => {
+    expect(
+      getSessionPlanLabel({ planId: 'basic', role: 'clinic_owner' }),
+    ).toBe('Plan Basic')
+    expect(
+      getSessionPlanLabel({ planId: 'medium', role: 'clinic_owner' }),
+    ).toBe('Plan Medium')
+    expect(
+      getSessionPlanLabel({ planId: 'pro', role: 'clinic_owner' }),
+    ).toBe('Plan Pro')
+    expect(getSessionPlanLabel({ planId: 'pro', role: 'doctor' })).toBeNull()
+    expect(
+      getSessionPlanLabel({ planId: 'pro', role: 'receptionist' }),
+    ).toBeNull()
+  })
+
+  it('does not invent a plan when the subscription is unresolved', () => {
+    expect(
+      getSessionPlanLabel({ planId: null, role: 'clinic_owner' }),
+    ).toBeNull()
+    expect(
+      getSessionPlanLabel({ planId: 'enterprise', role: 'clinic_owner' }),
+    ).toBeNull()
   })
 })
