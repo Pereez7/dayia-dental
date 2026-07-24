@@ -4,6 +4,27 @@ Registro breve de cambios relevantes en DayIA Dental.
 
 ## En desarrollo
 
+- Administración DayIA incorpora membresías vitalicias reversibles. Una
+  concesión administrativa guarda y restaura la vigencia anterior; una
+  membresía originada por pago se retira anulando ese pago. Ambos caminos
+  exigen motivo, confirmación y auditoría.
+- Los resultados generales de la gestión de suscripciones usan ahora el Toast
+  flotante de DayIA, visible sin importar la posición de scroll. Los errores de
+  pagos, rechazos y anulaciones permanecen dentro de su diálogo cuando
+  requieren una corrección antes de continuar.
+- Aumentar días requiere ahora una revisión explícita con consultorio, cantidad,
+  vencimiento actual, nuevo vencimiento y nueva fecha de gracia antes de
+  escribir en Supabase. Las acciones administrativas bloquean clics duplicados.
+- La anulación del último pago permite conservar extensiones de días realizadas
+  después del cobro: restaura la instantánea anterior y vuelve a aplicar la
+  extensión exacta en una sola transacción. Otros cambios comerciales
+  posteriores continúan bloqueando la anulación.
+- Los errores al anular pagos ahora se muestran dentro del diálogo de
+  confirmación. Los conflictos por cambios posteriores y los fallos de red ya
+  no quedan ocultos detrás del modal.
+- Administración DayIA permite rechazar avisos de pago pendientes con
+  confirmación y motivo obligatorio. El rechazo no crea pagos ni cambia la
+  vigencia, y queda registrado en la auditoría de la suscripción.
 - Los enlaces de invitación y recuperación usan un cliente Supabase temporal
   aislado en `sessionStorage`; abrirlos en un navegador con una sesión DayIA
   activa ya no sustituye ni cierra la cuenta que estaba usando la app.

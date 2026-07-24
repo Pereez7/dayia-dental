@@ -6,6 +6,7 @@ import type {
   PlatformClinicStatus,
   PlatformClinicSummary,
   PlatformSubscriptionStatus,
+  RejectPaymentSubmissionInput,
   RegisterSubscriptionPaymentInput,
   UpdateClinicSubscriptionInput,
   VoidSubscriptionPaymentInput,
@@ -94,6 +95,15 @@ export async function voidSubscriptionPayment(
   input: VoidSubscriptionPaymentInput,
 ): Promise<PlatformSubscriptionActionResult> {
   return invokeSubscriptionAction('void-subscription-payment', input)
+}
+
+export async function rejectPaymentSubmission(
+  input: RejectPaymentSubmissionInput,
+): Promise<PlatformSubscriptionActionResult> {
+  return invokeSubscriptionAction(
+    'reject-subscription-payment-submission',
+    input,
+  )
 }
 
 export async function createPlatformClinicWithClient(
@@ -235,10 +245,10 @@ function getEffectiveSubscriptionStatus(
         ? null
         : 'unknown'
 
-  if (clinic.isLifetime || normalizedStatus === 'lifetime') return 'lifetime'
   if (normalizedStatus === 'canceled' || normalizedStatus === 'blocked') {
     return normalizedStatus
   }
+  if (clinic.isLifetime || normalizedStatus === 'lifetime') return 'lifetime'
   if (!normalizedStatus || normalizedStatus === 'unknown') return normalizedStatus
 
   const statusForAccess =
@@ -263,10 +273,12 @@ function getEffectiveSubscriptionStatus(
 async function invokeSubscriptionAction(
   functionName:
     | 'register-subscription-payment'
+    | 'reject-subscription-payment-submission'
     | 'update-clinic-subscription'
     | 'void-subscription-payment',
   body:
     | RegisterSubscriptionPaymentInput
+    | RejectPaymentSubmissionInput
     | UpdateClinicSubscriptionInput
     | VoidSubscriptionPaymentInput,
 ): Promise<PlatformSubscriptionActionResult> {
@@ -281,59 +293,85 @@ export async function invokeSubscriptionActionWithClient(
   client: PlatformAdminFunctionClient | null,
   functionName:
     | 'register-subscription-payment'
+    | 'reject-subscription-payment-submission'
     | 'update-clinic-subscription'
     | 'void-subscription-payment',
   body:
     | RegisterSubscriptionPaymentInput
+    | RejectPaymentSubmissionInput
     | UpdateClinicSubscriptionInput
     | VoidSubscriptionPaymentInput,
 ): Promise<PlatformSubscriptionActionResult> {
 
   if (!client) return { error: 'Supabase no está configurado.', success: false }
 
-  const { data: sessionData, error: sessionError } = await client.auth.getSession()
-  const accessToken = sessionData.session?.access_token
+  try {
+    const { data: sessionData, error: sessionError } =
+      await client.auth.getSession()
+    const accessToken = sessionData.session?.access_token
 
-  if (sessionError || !accessToken) {
+    if (sessionError || !accessToken) {
+      return {
+        error: 'Tu sesión no es válida. Vuelve a iniciar sesión.',
+        success: false,
+      }
+    }
+
+    const { error } = await client.functions.invoke(functionName, {
+      body,
+      headers: { Authorization: `Bearer ${accessToken}` },
+      method: 'POST',
+    })
+
+    if (!error) return { error: null, success: true }
+
+    const status = getFunctionErrorStatus(error)
+    if (status === 400) {
+      const responseError = await getFunctionResponseError(error)
+      return {
+        error: responseError?.message ?? 'Revisa los datos ingresados.',
+        success: false,
+      }
+    }
+    if (status === 401) {
+      return {
+        error: 'Tu sesión no es válida. Vuelve a iniciar sesión.',
+        success: false,
+      }
+    }
+    if (status === 403) {
+      return {
+        error: 'No tienes permiso para administrar suscripciones.',
+        success: false,
+      }
+    }
+    if (status === 404) {
+      const responseError = await getFunctionResponseError(error)
+      return {
+        error: responseError?.message ?? 'No encontramos la solicitud.',
+        success: false,
+      }
+    }
+    if (status === 409) {
+      const responseError = await getFunctionResponseError(error)
+      return {
+        error:
+          responseError?.message ??
+          'El cambio solicitado entra en conflicto con la suscripción actual.',
+        success: false,
+      }
+    }
+
     return {
-      error: 'Tu sesión no es válida. Vuelve a iniciar sesión.',
+      error: 'No pudimos actualizar la suscripción. Intenta nuevamente.',
       success: false,
     }
-  }
-
-  const { error } = await client.functions.invoke(functionName, {
-    body,
-    headers: { Authorization: `Bearer ${accessToken}` },
-    method: 'POST',
-  })
-
-  if (!error) return { error: null, success: true }
-
-  const status = getFunctionErrorStatus(error)
-  if (status === 400) {
-    const responseError = await getFunctionResponseError(error)
+  } catch {
     return {
-      error: responseError?.message ?? 'Revisa los datos ingresados.',
+      error:
+        'No pudimos comunicarnos con el servicio de suscripciones. Intenta nuevamente.',
       success: false,
     }
-  }
-  if (status === 401) {
-    return { error: 'Tu sesión no es válida. Vuelve a iniciar sesión.', success: false }
-  }
-  if (status === 403) {
-    return { error: 'No tienes permiso para administrar suscripciones.', success: false }
-  }
-  if (status === 409) {
-    const responseError = await getFunctionResponseError(error)
-    return {
-      error: responseError?.message ?? 'El cambio solicitado entra en conflicto con la suscripción actual.',
-      success: false,
-    }
-  }
-
-  return {
-    error: 'No pudimos actualizar la suscripción. Intenta nuevamente.',
-    success: false,
   }
 }
 

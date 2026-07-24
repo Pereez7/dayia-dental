@@ -6,7 +6,11 @@ import {
   ClinicOnboardingFeedback,
   ClinicOnboardingForm,
 } from '../components/ClinicOnboardingForm'
-import { SubscriptionAdministration } from '../components/SubscriptionAdministration'
+import {
+  ExtraDaysReview,
+  LifetimeMembershipReview,
+  SubscriptionAdministration,
+} from '../components/SubscriptionAdministration'
 import {
   createPlatformClinicAndRefresh,
   submitPlatformClinicOnce,
@@ -168,6 +172,90 @@ describe('PlatformAdminView', () => {
     expect(markup).not.toContain('QR de cobro')
     expect(markup).not.toContain('Tipo de precio')
     expect(markup).not.toContain('Enter no registra el pago')
+    expect(markup).toContain('Revisar aumento')
+    expect(markup).not.toContain('>Aumentar días<')
+    expect(markup).toContain('Asignar membresía vitalicia')
+  })
+
+  it('reviews the effect of extra days before applying them', () => {
+    const markup = renderToStaticMarkup(
+      <ExtraDaysReview
+        clinic={clinic}
+        days={2}
+        graceEndsAt="2026-08-15T10:00:00.000Z"
+        periodEndsAt="2026-08-10T10:00:00.000Z"
+      />,
+    )
+
+    expect(markup).toContain('Clínica Central')
+    expect(markup).toContain('2 días')
+    expect(markup).toContain('Vencimiento actual')
+    expect(markup).toContain('Nuevo vencimiento')
+    expect(markup).toContain('Nueva gracia hasta')
+  })
+
+  it('explains a reversible lifetime membership before assigning it', () => {
+    const markup = renderToStaticMarkup(
+      <LifetimeMembershipReview action="enable" clinic={clinic} />,
+    )
+
+    expect(markup).toContain('Clínica Central')
+    expect(markup).toContain('Plan que conserva')
+    expect(markup).toContain('Acceso sin vencimiento')
+    expect(markup).toContain('Vencimiento actual')
+  })
+
+  it('offers removal and disables extra days while lifetime is active', () => {
+    const markup = renderToStaticMarkup(
+      <SubscriptionAdministration
+        clinic={{
+          ...clinic,
+          currentPeriodEndsAt: null,
+          graceEndsAt: null,
+          isLifetime: true,
+          subscriptionStatus: 'lifetime',
+        }}
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+      />,
+    )
+
+    expect(markup).toContain('Activa · acceso sin vencimiento')
+    expect(markup).toContain('Retirar membresía vitalicia')
+    expect(markup).toContain(
+      'Retira primero la membresía vitalicia para asignar una vigencia',
+    )
+    expect(markup).toMatch(/Días adicionales<input[^>]*disabled/)
+  })
+
+  it('offers a separate rejection action for pending payment notices', () => {
+    const markup = renderToStaticMarkup(
+      <SubscriptionAdministration
+        clinic={{
+          ...clinic,
+          paymentSubmissions: [
+            {
+              amountExpected: 199,
+              billingCycle: 'monthly',
+              createdAt: '2026-07-23T12:00:00.000Z',
+              currency: 'BOB',
+              id: 'submission-1',
+              notes: null,
+              planId: 'medium',
+              reference: 'dayia-whatsapp',
+              status: 'pending_review',
+              submittedBy: 'Dra. Ana Pérez',
+            },
+          ],
+          planMonthlyPrices: { medium: 199 },
+        }}
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+      />,
+    )
+
+    expect(markup).toContain('Revisar solicitud')
+    expect(markup).toContain('Rechazar solicitud')
   })
 
   it('denies access without starting the platform loader', () => {

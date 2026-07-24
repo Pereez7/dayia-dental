@@ -7,7 +7,7 @@ import {
   SubscriptionBillingError,
 } from '../_shared/subscriptionBilling.ts'
 
-type Action = 'change_plan' | 'force_change_plan' | 'grant_extra_days' | 'block' | 'reactivate' | 'mark_lifetime' | 'cancel' | 'set_founder_price' | 'set_custom_price' | 'set_standard_price'
+type Action = 'change_plan' | 'force_change_plan' | 'grant_extra_days' | 'block' | 'reactivate' | 'enable_lifetime' | 'disable_lifetime' | 'cancel' | 'set_founder_price' | 'set_custom_price' | 'set_standard_price'
 
 const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -54,6 +54,66 @@ Deno.serve(async (request) => {
       .maybeSingle()
     if (readError || !subscription) {
       return responseError('SUBSCRIPTION_NOT_FOUND', 'No encontramos la suscripción del consultorio.', 404)
+    }
+
+    if (
+      payload.action === 'enable_lifetime' ||
+      payload.action === 'disable_lifetime'
+    ) {
+      if (payload.notes.length < 5) {
+        return invalid(
+          'Explica el motivo con al menos 5 caracteres.',
+        )
+      }
+
+      const { data, error } = await admin.rpc(
+        'set_subscription_lifetime_membership',
+        {
+          target_clinic_id: payload.clinicId,
+          target_enabled: payload.action === 'enable_lifetime',
+          target_reason: payload.notes,
+          target_updated_by: userData.user.id,
+        },
+      )
+
+      if (error) {
+        if (error.message.includes('LIFETIME_ALREADY_ENABLED')) {
+          return responseError(
+            'LIFETIME_ALREADY_ENABLED',
+            'La membresía vitalicia ya está activa.',
+            409,
+          )
+        }
+        if (error.message.includes('LIFETIME_NOT_ENABLED')) {
+          return responseError(
+            'LIFETIME_NOT_ENABLED',
+            'La membresía vitalicia ya no está activa.',
+            409,
+          )
+        }
+        if (error.message.includes('LIFETIME_PAYMENT_REQUIRES_VOID')) {
+          return responseError(
+            'LIFETIME_PAYMENT_REQUIRES_VOID',
+            'Esta membresía proviene de un pago vitalicio. Anula ese pago desde el historial.',
+            409,
+          )
+        }
+        if (error.message.includes('LIFETIME_RESTORE_STATE_MISSING')) {
+          return responseError(
+            'LIFETIME_RESTORE_STATE_MISSING',
+            'No encontramos una vigencia anterior segura para restaurar.',
+            409,
+          )
+        }
+
+        return responseError(
+          'LIFETIME_UPDATE_FAILED',
+          'No pudimos actualizar la membresía vitalicia.',
+          500,
+        )
+      }
+
+      return jsonResponse({ action: payload.action, ...data, success: true })
     }
 
     const now = new Date()
@@ -136,16 +196,6 @@ Deno.serve(async (request) => {
       const graceEnd = new Date(now.getTime() + 5 * 86_400_000)
       updates.grace_ends_at = graceEnd.toISOString()
       eventType = 'reactivated'
-    } else if (payload.action === 'mark_lifetime') {
-      updates.status = 'lifetime'
-      updates.is_lifetime = true
-      updates.current_period_ends_at = null
-      updates.grace_ends_at = null
-      updates.ends_at = null
-      updates.blocked_at = null
-      updates.billing_cycle = 'lifetime'
-      updates.payment_status = 'paid'
-      eventType = 'lifetime_enabled'
     } else {
       updates.status = 'cancelled'
       updates.payment_status = 'cancelled'
@@ -168,6 +218,7 @@ Deno.serve(async (request) => {
       metadata: {
         action: payload.action,
         custom_monthly_price: payload.action === 'set_custom_price' ? payload.customMonthlyPrice : null,
+        days: payload.action === 'grant_extra_days' ? payload.days : null,
       },
       recorded_by: userData.user.id,
     })
@@ -196,7 +247,7 @@ async function readPayload(request: Request) {
   }
   const clinicId = typeof value.clinicId === 'string' ? value.clinicId.trim() : ''
   const action = typeof value.action === 'string' ? value.action.trim() as Action : '' as Action
-  const allowed = new Set<Action>(['change_plan', 'force_change_plan', 'grant_extra_days', 'block', 'reactivate', 'mark_lifetime', 'cancel', 'set_founder_price', 'set_custom_price', 'set_standard_price'])
+  const allowed = new Set<Action>(['change_plan', 'force_change_plan', 'grant_extra_days', 'block', 'reactivate', 'enable_lifetime', 'disable_lifetime', 'cancel', 'set_founder_price', 'set_custom_price', 'set_standard_price'])
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
   if (!uuidPattern.test(clinicId) || !allowed.has(action)) {
     throw new SubscriptionBillingError(

@@ -112,6 +112,109 @@ describe('platform admin service', () => {
       },
     )
   })
+
+  it('updates lifetime membership only through the protected Function', async () => {
+    const client = createClient({ data: { enabled: true }, error: null })
+    const body = {
+      action: 'enable_lifetime' as const,
+      clinicId: 'clinic-1',
+      notes: 'Beneficio comercial aprobado.',
+    }
+
+    await expect(
+      invokeSubscriptionActionWithClient(
+        client,
+        'update-clinic-subscription',
+        body,
+      ),
+    ).resolves.toEqual({ error: null, success: true })
+    expect(client.functions.invoke).toHaveBeenCalledWith(
+      'update-clinic-subscription',
+      {
+        body,
+        headers: { Authorization: 'Bearer valid-token' },
+        method: 'POST',
+      },
+    )
+  })
+
+  it('rejects a payment notice through the protected Function with its reason', async () => {
+    const client = createClient({
+      data: { status: 'rejected', submissionId: 'submission-1' },
+      error: null,
+    })
+    const body = {
+      reason: 'El importe no coincide con el comprobante.',
+      submissionId: 'submission-1',
+    }
+
+    await expect(
+      invokeSubscriptionActionWithClient(
+        client,
+        'reject-subscription-payment-submission',
+        body,
+      ),
+    ).resolves.toEqual({ error: null, success: true })
+    expect(client.functions.invoke).toHaveBeenCalledWith(
+      'reject-subscription-payment-submission',
+      {
+        body,
+        headers: { Authorization: 'Bearer valid-token' },
+        method: 'POST',
+      },
+    )
+  })
+
+  it('preserves the safe conflict message when a later subscription change blocks a void', async () => {
+    const response = new Response(
+      JSON.stringify({
+        code: 'SUBSCRIPTION_CHANGED_AFTER_PAYMENT',
+        message:
+          'La suscripción tuvo cambios posteriores que no se pueden restaurar automáticamente. Revisa el historial antes de anular.',
+      }),
+      { status: 409 },
+    )
+    const client = createClient({
+      data: null,
+      error: { context: response, status: 409 },
+    })
+
+    await expect(
+      invokeSubscriptionActionWithClient(
+        client,
+        'void-subscription-payment',
+        {
+          paymentId: 'payment-1',
+          reason: 'Pago registrado para una prueba.',
+        },
+      ),
+    ).resolves.toEqual({
+      error:
+        'La suscripción tuvo cambios posteriores que no se pueden restaurar automáticamente. Revisa el historial antes de anular.',
+      success: false,
+    })
+  })
+
+  it('converts a network exception into a visible subscription error', async () => {
+    const client = createClient({ data: null, error: null })
+    client.functions.invoke.mockRejectedValueOnce(new Error('Network failure'))
+
+    await expect(
+      invokeSubscriptionActionWithClient(
+        client,
+        'void-subscription-payment',
+        {
+          paymentId: 'payment-1',
+          reason: 'Pago registrado para una prueba.',
+        },
+      ),
+    ).resolves.toEqual({
+      error:
+        'No pudimos comunicarnos con el servicio de suscripciones. Intenta nuevamente.',
+      success: false,
+    })
+  })
+
   it('loads clinics and sends the current JWT', async () => {
     const client = createClient({
       data: { clinics: [clinicResponse] },
@@ -180,6 +283,16 @@ describe('platform admin service', () => {
       planName: null,
       subscriptionStatus: 'unknown',
     })
+  })
+
+  it('keeps a blocked lifetime clinic visibly blocked', () => {
+    expect(
+      mapPlatformClinicSummary({
+        ...clinicResponse,
+        isLifetime: true,
+        subscriptionStatus: 'blocked',
+      }).subscriptionStatus,
+    ).toBe('blocked')
   })
 
   it('uses canonical labels for known plans', () => {

@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -7,6 +8,7 @@ import {
 } from 'react'
 
 import {
+  rejectPaymentSubmission,
   registerSubscriptionPayment,
   updateClinicSubscription,
   voidSubscriptionPayment,
@@ -21,6 +23,7 @@ import type {
 } from '../types/platform'
 import {
   calculateTieredSubscriptionPayment,
+  calculateExtraDaysPreview,
   calculateUpgradeProration,
   getMonthlyPriceForTier,
   getPlanChangeKind,
@@ -32,6 +35,7 @@ import {
 } from '../utils/subscriptionBilling'
 import { formatAppDate, formatSubscriptionDate } from '../utils/dateFormatters'
 import { ConfirmDialog } from './ConfirmDialog'
+import { Toast, type ToastTone } from './Toast'
 
 interface SubscriptionAdministrationProps {
   clinic: PlatformClinicSummary
@@ -46,6 +50,8 @@ const cycleLabels: Record<BillingCycle, string> = {
   monthly: '1 mes',
   six_months: '6 meses',
 }
+
+type LifetimeMembershipAction = 'disable' | 'enable'
 
 export function SubscriptionAdministration({
   clinic,
@@ -68,10 +74,17 @@ export function SubscriptionAdministration({
   const [paidAt, setPaidAt] = useState(() => toLocalDateTimeInput(new Date()))
   const [extraDays, setExtraDays] = useState(5)
   const [feedback, setFeedback] = useState('')
-  const [feedbackTone, setFeedbackTone] = useState<'error' | 'success'>('success')
+  const [feedbackTone, setFeedbackTone] = useState<ToastTone>('success')
+  const [isFeedbackVisible, setIsFeedbackVisible] = useState(false)
+  const [paymentRegistrationError, setPaymentRegistrationError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false)
+  const [isExtraDaysDialogOpen, setIsExtraDaysDialogOpen] = useState(false)
+  const [lifetimeAction, setLifetimeAction] =
+    useState<LifetimeMembershipAction | null>(null)
+  const [lifetimeReason, setLifetimeReason] = useState('')
+  const [lifetimeError, setLifetimeError] = useState('')
   const [pendingPayment, setPendingPayment] =
     useState<RegisterSubscriptionPaymentInput | null>(null)
   const [selectedPayment, setSelectedPayment] =
@@ -79,7 +92,12 @@ export function SubscriptionAdministration({
   const [paymentToVoid, setPaymentToVoid] =
     useState<PlatformSubscriptionPayment | null>(null)
   const [voidReason, setVoidReason] = useState('')
+  const [voidPaymentError, setVoidPaymentError] = useState('')
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null)
+  const [submissionToReject, setSubmissionToReject] =
+    useState<PlatformClinicSummary['paymentSubmissions'][number] | null>(null)
+  const [rejectionReason, setRejectionReason] = useState('')
+  const [rejectionError, setRejectionError] = useState('')
   const submissionLock = useRef(false)
 
   const configuredMonthlyPrice = getMonthlyPriceForTier({
@@ -141,9 +159,18 @@ export function SubscriptionAdministration({
     currentPeriodEndsAt: clinic.currentPeriodEndsAt,
     newMonthlyPrice: targetMonthlyPrice,
   })
+  const extraDaysPreview = calculateExtraDaysPreview(
+    clinic.currentPeriodEndsAt,
+    extraDays,
+  )
   const latestRegisteredPaymentId = clinic.payments.find(
     (payment) => payment.status === 'registered',
   )?.id
+  const registeredLifetimePayment = clinic.payments.find(
+    (payment) =>
+      payment.status === 'registered' &&
+      payment.billingCycle === 'lifetime',
+  )
   const pendingSubmissions = clinic.paymentSubmissions.filter(
     (submission) => submission.status === 'pending_review',
   )
@@ -154,6 +181,25 @@ export function SubscriptionAdministration({
     selectedSubmission &&
     Number.isFinite(finalAmount) &&
     Math.abs(selectedSubmission.amountExpected - finalAmount) >= 0.01
+
+  useEffect(() => {
+    if (!isFeedbackVisible) return
+
+    const timeoutId = window.setTimeout(
+      () => setIsFeedbackVisible(false),
+      3600,
+    )
+
+    return () => window.clearTimeout(timeoutId)
+  }, [feedback, isFeedbackVisible])
+
+  useEffect(() => {
+    if (isFeedbackVisible || !feedback) return
+
+    const timeoutId = window.setTimeout(() => setFeedback(''), 220)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [feedback, isFeedbackVisible])
 
   function handleCycleChange(cycle: BillingCycle) {
     setBillingCycle(cycle)
@@ -194,6 +240,7 @@ export function SubscriptionAdministration({
     }
 
     setFeedback('')
+    setPaymentRegistrationError('')
     setPendingPayment({
       amountPaid: finalAmount,
       billingCycle,
@@ -214,13 +261,15 @@ export function SubscriptionAdministration({
 
     submissionLock.current = true
     setIsSubmitting(true)
-    setFeedback('')
+    setPaymentRegistrationError('')
 
     try {
       const result = await registerSubscriptionPayment(pendingPayment)
 
       if (!result.success) {
-        showFeedback(result.error ?? 'No pudimos registrar el pago.', 'error')
+        setPaymentRegistrationError(
+          result.error ?? 'No pudimos registrar el pago.',
+        )
         return
       }
 
@@ -229,8 +278,13 @@ export function SubscriptionAdministration({
       setNotes('')
       setAmountOverride('')
       setSelectedSubmissionId(null)
+      setPaymentRegistrationError('')
       showFeedback('Pago registrado y suscripción actualizada.', 'success')
       await onUpdated()
+    } catch {
+      setPaymentRegistrationError(
+        'No pudimos completar el registro. Revisa tu conexión e intenta nuevamente.',
+      )
     } finally {
       submissionLock.current = false
       setIsSubmitting(false)
@@ -295,7 +349,8 @@ export function SubscriptionAdministration({
   }
 
   async function runAction(input: UpdateClinicSubscriptionInput) {
-    if (isSubmitting) return
+    if (isSubmitting || submissionLock.current) return
+    submissionLock.current = true
     setIsSubmitting(true)
     setFeedback('')
 
@@ -307,6 +362,57 @@ export function SubscriptionAdministration({
       )
       if (result.success) await onUpdated()
     } finally {
+      submissionLock.current = false
+      setIsSubmitting(false)
+    }
+  }
+
+  async function confirmLifetimeMembership() {
+    if (
+      !lifetimeAction ||
+      lifetimeReason.trim().length < 5 ||
+      isSubmitting ||
+      submissionLock.current
+    ) {
+      return
+    }
+
+    submissionLock.current = true
+    setIsSubmitting(true)
+    setLifetimeError('')
+
+    try {
+      const result = await updateClinicSubscription({
+        action:
+          lifetimeAction === 'enable'
+            ? 'enable_lifetime'
+            : 'disable_lifetime',
+        clinicId: clinic.clinicId,
+        notes: lifetimeReason.trim(),
+      })
+
+      if (!result.success) {
+        setLifetimeError(
+          result.error ?? 'No pudimos actualizar la membresía vitalicia.',
+        )
+        return
+      }
+
+      const successMessage =
+        lifetimeAction === 'enable'
+          ? 'Membresía vitalicia asignada correctamente.'
+          : 'Membresía vitalicia retirada y vigencia anterior restaurada.'
+      setLifetimeAction(null)
+      setLifetimeReason('')
+      setLifetimeError('')
+      showFeedback(successMessage, 'success')
+      await onUpdated()
+    } catch {
+      setLifetimeError(
+        'No pudimos completar el cambio. Revisa tu conexión e intenta nuevamente.',
+      )
+    } finally {
+      submissionLock.current = false
       setIsSubmitting(false)
     }
   }
@@ -324,6 +430,7 @@ export function SubscriptionAdministration({
 
     submissionLock.current = true
     setIsSubmitting(true)
+    setVoidPaymentError('')
 
     try {
       const result = await voidSubscriptionPayment({
@@ -332,15 +439,75 @@ export function SubscriptionAdministration({
       })
 
       if (!result.success) {
-        showFeedback(result.error ?? 'No pudimos anular el pago.', 'error')
+        setVoidPaymentError(
+          result.error ?? 'No pudimos anular el pago. Intenta nuevamente.',
+        )
         return
       }
 
       setPaymentToVoid(null)
       setSelectedPayment(null)
       setVoidReason('')
+      setVoidPaymentError('')
       showFeedback('Pago anulado y vigencia recalculada.', 'success')
       await onUpdated()
+    } catch {
+      setVoidPaymentError(
+        'No pudimos completar la anulación. Revisa tu conexión e intenta nuevamente.',
+      )
+    } finally {
+      submissionLock.current = false
+      setIsSubmitting(false)
+    }
+  }
+
+  async function confirmSubmissionRejection() {
+    if (!submissionToReject || isSubmitting || submissionLock.current) return
+
+    if (rejectionReason.trim().length < 5) {
+      showFeedback(
+        'Explica el motivo del rechazo con al menos 5 caracteres.',
+        'error',
+      )
+      return
+    }
+
+    submissionLock.current = true
+    setIsSubmitting(true)
+    setRejectionError('')
+
+    try {
+      const result = await rejectPaymentSubmission({
+        reason: rejectionReason.trim(),
+        submissionId: submissionToReject.id,
+      })
+
+      if (!result.success) {
+        setRejectionError(
+          result.error ?? 'No pudimos rechazar la solicitud.',
+        )
+        return
+      }
+
+      if (selectedSubmissionId === submissionToReject.id) {
+        setSelectedSubmissionId(null)
+        setPendingPayment(null)
+        setReference('')
+        setNotes('')
+        setAmountOverride('')
+      }
+      setSubmissionToReject(null)
+      setRejectionReason('')
+      setRejectionError('')
+      showFeedback(
+        'Solicitud rechazada. No se registró ningún pago.',
+        'success',
+      )
+      await onUpdated()
+    } catch {
+      setRejectionError(
+        'No pudimos completar el rechazo. Revisa tu conexión e intenta nuevamente.',
+      )
     } finally {
       submissionLock.current = false
       setIsSubmitting(false)
@@ -376,6 +543,7 @@ export function SubscriptionAdministration({
   function showFeedback(message: string, tone: 'error' | 'success') {
     setFeedback(message)
     setFeedbackTone(tone)
+    setIsFeedbackVisible(true)
   }
 
   return (
@@ -394,12 +562,6 @@ export function SubscriptionAdministration({
           Cerrar gestión
         </button>
       </header>
-
-      {feedback ? (
-        <p className={`subscription-feedback subscription-feedback--${feedbackTone}`} role={feedbackTone === 'error' ? 'alert' : 'status'}>
-          {feedback}
-        </p>
-      ) : null}
 
       <section
         className="subscription-summary-block"
@@ -480,14 +642,29 @@ export function SubscriptionAdministration({
                         : `Ref. ${submission.reference}`}
                     </span>
                   </div>
-                  <button
-                    className="secondary-action"
-                    disabled={isSelected}
-                    onClick={() => populatePaymentSubmission(submission)}
-                    type="button"
-                  >
-                    {isSelected ? 'En revisión' : 'Revisar solicitud'}
-                  </button>
+                  <div className="subscription-submission-actions">
+                    <button
+                      className="secondary-action"
+                      disabled={isSelected || isSubmitting}
+                      onClick={() => populatePaymentSubmission(submission)}
+                      type="button"
+                    >
+                      {isSelected ? 'En revisión' : 'Revisar solicitud'}
+                    </button>
+                    <button
+                      className="danger-action"
+                      disabled={isSubmitting}
+                      onClick={() => {
+                        setSubmissionToReject(submission)
+                        setRejectionReason('')
+                        setRejectionError('')
+                        setFeedback('')
+                      }}
+                      type="button"
+                    >
+                      Rechazar solicitud
+                    </button>
+                  </div>
                 </article>
               )
             })}
@@ -495,10 +672,19 @@ export function SubscriptionAdministration({
         </section>
       ) : null}
 
-      <section
-        className="subscription-calculator-block"
-        aria-labelledby="payment-calculator-title"
-      >
+      {clinic.isLifetime ? (
+        <div className="subscription-lifetime-state">
+          <strong>No se requieren pagos mientras la membresía vitalicia esté activa.</strong>
+          <span>
+            Retira la membresía desde Ajustes administrativos antes de registrar
+            una nueva vigencia.
+          </span>
+        </div>
+      ) : (
+        <section
+          className="subscription-calculator-block"
+          aria-labelledby="payment-calculator-title"
+        >
         <div className="subscription-block-heading">
           <div>
             <h3 id="payment-calculator-title">Registrar pago</h3>
@@ -659,7 +845,8 @@ export function SubscriptionAdministration({
               </button>
             </div>
         </form>
-      </section>
+        </section>
+      )}
 
       <AdministrativeActions
         changeKind={changeKind}
@@ -674,6 +861,19 @@ export function SubscriptionAdministration({
         onBlock={() => setIsBlockDialogOpen(true)}
         onCustomMonthlyPriceChange={setCustomMonthlyPrice}
         onExtraDaysChange={setExtraDays}
+        onReviewExtraDays={() => setIsExtraDaysDialogOpen(true)}
+        onReviewLifetime={() => {
+          if (clinic.isLifetime && registeredLifetimePayment) {
+            setPaymentToVoid(registeredLifetimePayment)
+            setVoidReason('')
+            setVoidPaymentError('')
+            return
+          }
+
+          setLifetimeAction(clinic.isLifetime ? 'disable' : 'enable')
+          setLifetimeReason('')
+          setLifetimeError('')
+        }}
         onForcePlanChange={setForcePlanChange}
         onPlanChange={setPlanId}
         onRunAction={runAction}
@@ -716,7 +916,11 @@ export function SubscriptionAdministration({
                             <button
                               className="danger-action"
                               disabled={isSubmitting}
-                              onClick={() => setPaymentToVoid(payment)}
+                              onClick={() => {
+                                setPaymentToVoid(payment)
+                                setVoidReason('')
+                                setVoidPaymentError('')
+                              }}
                               type="button"
                             >
                               Anular pago
@@ -734,6 +938,7 @@ export function SubscriptionAdministration({
       </section>
 
       <PaymentConfirmationDialog
+        errorMessage={paymentRegistrationError}
         clinic={clinic}
         priceTier={effectivePriceTier}
         isSubmitting={isSubmitting}
@@ -746,7 +951,11 @@ export function SubscriptionAdministration({
               }
             : calculation
         }
-        onCancel={() => !isSubmitting && setPendingPayment(null)}
+        onCancel={() => {
+          if (isSubmitting) return
+          setPendingPayment(null)
+          setPaymentRegistrationError('')
+        }}
         onConfirm={() => void confirmPaymentRegistration()}
       />
 
@@ -760,8 +969,77 @@ export function SubscriptionAdministration({
         onVoid={(payment) => {
           setSelectedPayment(null)
           setPaymentToVoid(payment)
+          setVoidReason('')
+          setVoidPaymentError('')
         }}
       />
+
+      <ConfirmDialog
+        cancelLabel="Conservar solicitud"
+        confirmLabel={isSubmitting ? 'Rechazando...' : 'Confirmar rechazo'}
+        isCancelDisabled={isSubmitting}
+        isConfirmDisabled={isSubmitting || rejectionReason.trim().length < 5}
+        isOpen={Boolean(submissionToReject)}
+        message="No se registrará ningún pago ni se modificará la vigencia del consultorio. El motivo quedará en auditoría."
+        onCancel={() => {
+          if (isSubmitting) return
+          setSubmissionToReject(null)
+          setRejectionReason('')
+          setRejectionError('')
+        }}
+        onConfirm={() => void confirmSubmissionRejection()}
+        title="Rechazar solicitud de pago"
+        variant="danger"
+      >
+        {submissionToReject ? (
+          <dl className="void-payment-summary">
+            <SummaryFact
+              label="Enviado por"
+              value={
+                submissionToReject.submittedBy ??
+                'Propietario del consultorio'
+              }
+            />
+            <SummaryFact
+              label="Importe informado"
+              value={`${submissionToReject.amountExpected.toFixed(2)} ${submissionToReject.currency}`}
+            />
+            <SummaryFact
+              label="Periodo"
+              value={cycleLabels[submissionToReject.billingCycle]}
+            />
+            <SummaryFact
+              label="Fecha"
+              value={formatDateTime(submissionToReject.createdAt)}
+            />
+          </dl>
+        ) : null}
+        <label className="confirm-dialog-field">
+          Motivo del rechazo
+          <textarea
+            aria-describedby="reject-submission-reason-help"
+            autoFocus
+            maxLength={500}
+            onChange={(event) => setRejectionReason(event.target.value)}
+            placeholder="Ej.: el importe no coincide con el comprobante recibido"
+            rows={4}
+            value={rejectionReason}
+          />
+          <span
+            className={`confirm-dialog-help${rejectionReason.trim().length >= 5 ? ' confirm-dialog-help--valid' : ''}`}
+            id="reject-submission-reason-help"
+          >
+            {rejectionReason.trim().length < 5
+              ? `Faltan ${5 - rejectionReason.trim().length} caracteres. El motivo es obligatorio.`
+              : 'Motivo válido. Quedará registrado en auditoría.'}
+          </span>
+        </label>
+        {rejectionError ? (
+          <p className="confirm-dialog-action-error" role="alert">
+            {rejectionError}
+          </p>
+        ) : null}
+      </ConfirmDialog>
 
       <ConfirmDialog
         cancelLabel="Volver sin anular"
@@ -774,6 +1052,7 @@ export function SubscriptionAdministration({
           if (isSubmitting) return
           setPaymentToVoid(null)
           setVoidReason('')
+          setVoidPaymentError('')
         }}
         onConfirm={() => void confirmVoidPayment()}
         title="Confirmar anulación del pago"
@@ -807,6 +1086,112 @@ export function SubscriptionAdministration({
               : 'Motivo válido. Quedará registrado en auditoría.'}
           </span>
         </label>
+        {voidPaymentError ? (
+          <p className="confirm-dialog-action-error" role="alert">
+            {voidPaymentError}
+          </p>
+        ) : null}
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        cancelLabel="Volver sin aumentar"
+        confirmLabel={isSubmitting ? 'Aumentando...' : 'Confirmar aumento'}
+        isCancelDisabled={isSubmitting}
+        isConfirmDisabled={isSubmitting || !extraDaysPreview}
+        isOpen={isExtraDaysDialogOpen}
+        message="La extensión se aplicará sobre el vencimiento vigente y quedará registrada en la auditoría."
+        onCancel={() => {
+          if (!isSubmitting) setIsExtraDaysDialogOpen(false)
+        }}
+        onConfirm={() => {
+          if (!extraDaysPreview) return
+          setIsExtraDaysDialogOpen(false)
+          void runAction({
+            action: 'grant_extra_days',
+            clinicId: clinic.clinicId,
+            days: extraDays,
+            notes,
+          })
+        }}
+        title="Confirmar días adicionales"
+        variant="info"
+      >
+        <ExtraDaysReview
+          clinic={clinic}
+          days={extraDays}
+          graceEndsAt={extraDaysPreview?.graceEndsAt ?? null}
+          periodEndsAt={extraDaysPreview?.periodEndsAt ?? null}
+        />
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        cancelLabel="Conservar condición actual"
+        confirmLabel={
+          isSubmitting
+            ? 'Actualizando...'
+            : lifetimeAction === 'enable'
+              ? 'Asignar membresía vitalicia'
+              : 'Retirar membresía vitalicia'
+        }
+        isCancelDisabled={isSubmitting}
+        isConfirmDisabled={
+          isSubmitting || lifetimeReason.trim().length < 5
+        }
+        isOpen={lifetimeAction !== null}
+        message={
+          lifetimeAction === 'enable'
+            ? 'El consultorio conservará su plan y tendrá acceso sin vencimiento ni periodo de gracia.'
+            : 'Se retirará la concesión vitalicia y se restaurará la vigencia que tenía antes de asignarla.'
+        }
+        onCancel={() => {
+          if (isSubmitting) return
+          setLifetimeAction(null)
+          setLifetimeReason('')
+          setLifetimeError('')
+        }}
+        onConfirm={() => void confirmLifetimeMembership()}
+        title={
+          lifetimeAction === 'enable'
+            ? 'Asignar membresía vitalicia'
+            : 'Retirar membresía vitalicia'
+        }
+        variant={lifetimeAction === 'enable' ? 'info' : 'warning'}
+      >
+        {lifetimeAction ? (
+          <LifetimeMembershipReview
+            action={lifetimeAction}
+            clinic={clinic}
+          />
+        ) : null}
+        <label className="confirm-dialog-field">
+          Motivo administrativo
+          <textarea
+            aria-describedby="lifetime-membership-reason-help"
+            autoFocus
+            maxLength={500}
+            onChange={(event) => setLifetimeReason(event.target.value)}
+            placeholder={
+              lifetimeAction === 'enable'
+                ? 'Ej.: beneficio comercial aprobado'
+                : 'Ej.: finalización del acuerdo comercial'
+            }
+            rows={4}
+            value={lifetimeReason}
+          />
+          <span
+            className={`confirm-dialog-help${lifetimeReason.trim().length >= 5 ? ' confirm-dialog-help--valid' : ''}`}
+            id="lifetime-membership-reason-help"
+          >
+            {lifetimeReason.trim().length < 5
+              ? `Faltan ${5 - lifetimeReason.trim().length} caracteres. El motivo es obligatorio.`
+              : 'Motivo válido. Quedará registrado en auditoría.'}
+          </span>
+        </label>
+        {lifetimeError ? (
+          <p className="confirm-dialog-action-error" role="alert">
+            {lifetimeError}
+          </p>
+        ) : null}
       </ConfirmDialog>
 
       <ConfirmDialog
@@ -822,6 +1207,12 @@ export function SubscriptionAdministration({
         }}
         title="¿Bloquear acceso clínico?"
         variant="warning"
+      />
+
+      <Toast
+        message={feedback}
+        tone={feedbackTone}
+        visible={isFeedbackVisible}
       />
     </section>
   )
@@ -862,6 +1253,7 @@ function FieldWithError({
 function PaymentConfirmationDialog({
   calculation,
   clinic,
+  errorMessage,
   isSubmitting,
   onCancel,
   onConfirm,
@@ -870,6 +1262,7 @@ function PaymentConfirmationDialog({
 }: {
   calculation: { amountDue: number; discountAmount: number }
   clinic: PlatformClinicSummary
+  errorMessage: string
   isSubmitting: boolean
   onCancel: () => void
   onConfirm: () => void
@@ -904,6 +1297,11 @@ function PaymentConfirmationDialog({
         <SummaryFact label="Referencia" value={payment.reference} />
         <SummaryFact label="Notas" value={payment.notes.trim() || 'Sin notas'} />
       </dl>
+      {errorMessage ? (
+        <p className="confirm-dialog-action-error" role="alert">
+          {errorMessage}
+        </p>
+      ) : null}
     </ConfirmDialog>
   )
 }
@@ -965,6 +1363,8 @@ function AdministrativeActions({
   onBlock,
   onCustomMonthlyPriceChange,
   onExtraDaysChange,
+  onReviewExtraDays,
+  onReviewLifetime,
   onForcePlanChange,
   onPlanChange,
   onRunAction,
@@ -982,6 +1382,8 @@ function AdministrativeActions({
   onBlock: () => void
   onCustomMonthlyPriceChange: (value: number) => void
   onExtraDaysChange: (value: number) => void
+  onReviewExtraDays: () => void
+  onReviewLifetime: () => void
   onForcePlanChange: (value: boolean) => void
   onPlanChange: (value: PlatformClinicPlanId) => void
   onRunAction: (input: UpdateClinicSubscriptionInput) => Promise<void>
@@ -992,6 +1394,8 @@ function AdministrativeActions({
   const currentPlanId = normalizePlan(clinic.planId)
   const founderPrice = clinic.planFounderMonthlyPrices[currentPlanId] ?? null
   const hasFounderPrice = founderPrice !== null && founderPrice > 0
+  const hasValidExtraDays =
+    Number.isInteger(extraDays) && extraDays >= 1 && extraDays <= 3650
 
   return (
     <section className="subscription-management-block" aria-labelledby="subscription-management-title">
@@ -1022,14 +1426,135 @@ function AdministrativeActions({
         <div className="subscription-actions">
           <div className="section-heading"><h4>Acceso</h4><p className="section-description">Las acciones sensibles conservan auditoría y no eliminan datos.</p></div>
           <div className="subscription-action-row">
-            <label>Días adicionales<input min="1" onChange={(event) => onExtraDaysChange(Number(event.target.value))} type="number" value={extraDays} /></label>
-            <button className="secondary-action" disabled={isSubmitting} onClick={() => void onRunAction({ action: 'grant_extra_days', clinicId: clinic.clinicId, days: extraDays, notes })} type="button">Aumentar días</button>
+            <div className="subscription-lifetime-setting">
+              <span>Membresía vitalicia</span>
+              <strong>
+                {clinic.isLifetime
+                  ? 'Activa · acceso sin vencimiento'
+                  : 'No asignada'}
+              </strong>
+              <p>
+                {clinic.isLifetime
+                  ? 'Retirarla restaurará la vigencia anterior o anulará el pago vitalicio que la originó.'
+                  : 'Es una concesión comercial independiente del plan y requiere un motivo.'}
+              </p>
+            </div>
+            <button
+              className={clinic.isLifetime ? 'danger-action' : 'secondary-action'}
+              disabled={isSubmitting}
+              onClick={onReviewLifetime}
+              type="button"
+            >
+              {clinic.isLifetime
+                ? 'Retirar membresía vitalicia'
+                : 'Asignar membresía vitalicia'}
+            </button>
+            <label>
+              Días adicionales
+              <input
+                disabled={clinic.isLifetime}
+                max="3650"
+                min="1"
+                onChange={(event) =>
+                  onExtraDaysChange(Number(event.target.value))
+                }
+                type="number"
+                value={extraDays}
+              />
+            </label>
+            <button
+              className="secondary-action"
+              disabled={
+                isSubmitting || clinic.isLifetime || !hasValidExtraDays
+              }
+              onClick={onReviewExtraDays}
+              type="button"
+            >
+              Revisar aumento
+            </button>
+            {clinic.isLifetime ? (
+              <p>
+                Retira primero la membresía vitalicia para asignar una vigencia
+                por días.
+              </p>
+            ) : null}
             <button className="secondary-action" disabled={isSubmitting} onClick={() => void onRunAction({ action: 'reactivate', clinicId: clinic.clinicId })} type="button">Reactivar acceso</button>
             <button className="danger-action" disabled={isSubmitting} onClick={onBlock} type="button">Bloquear consultorio</button>
           </div>
         </div>
       </div>
     </section>
+  )
+}
+
+export function ExtraDaysReview({
+  clinic,
+  days,
+  graceEndsAt,
+  periodEndsAt,
+}: {
+  clinic: PlatformClinicSummary
+  days: number
+  graceEndsAt: string | null
+  periodEndsAt: string | null
+}) {
+  return (
+    <dl className="payment-review-summary">
+      <SummaryFact label="Consultorio" value={clinic.clinicName} />
+      <SummaryFact
+        label="Días adicionales"
+        value={`${days} ${days === 1 ? 'día' : 'días'}`}
+      />
+      <SummaryFact
+        label="Vencimiento actual"
+        value={formatOptionalDate(clinic.currentPeriodEndsAt)}
+      />
+      <SummaryFact
+        label="Nuevo vencimiento"
+        value={formatOptionalDate(periodEndsAt)}
+      />
+      <SummaryFact
+        label="Nueva gracia hasta"
+        value={formatOptionalDate(graceEndsAt)}
+        wide
+      />
+    </dl>
+  )
+}
+
+export function LifetimeMembershipReview({
+  action,
+  clinic,
+}: {
+  action: LifetimeMembershipAction
+  clinic: PlatformClinicSummary
+}) {
+  return (
+    <dl className="payment-review-summary">
+      <SummaryFact label="Consultorio" value={clinic.clinicName} />
+      <SummaryFact label="Plan que conserva" value={getPlanName(clinic.planId)} />
+      <SummaryFact
+        label="Condición actual"
+        value={clinic.isLifetime ? 'Vitalicia' : getSubscriptionStatusLabel(clinic)}
+      />
+      <SummaryFact
+        label="Resultado"
+        value={
+          action === 'enable'
+            ? 'Acceso sin vencimiento'
+            : 'Restaurar vigencia anterior'
+        }
+      />
+      <SummaryFact
+        label="Vencimiento actual"
+        value={
+          clinic.isLifetime
+            ? 'Sin vencimiento'
+            : formatOptionalDate(clinic.currentPeriodEndsAt)
+        }
+        wide
+      />
+    </dl>
   )
 }
 
@@ -1067,7 +1592,6 @@ function formatMoney(value: number | null, currency: string) {
 }
 
 function getSubscriptionStatusLabel(clinic: PlatformClinicSummary) {
-  if (clinic.isLifetime) return 'Vitalicio'
   const labels: Record<string, string> = {
     active: 'Activa',
     blocked: 'Bloqueada',
@@ -1075,6 +1599,13 @@ function getSubscriptionStatusLabel(clinic: PlatformClinicSummary) {
     past_due: 'En gracia',
     trialing: 'En prueba',
   }
+  if (
+    clinic.subscriptionStatus === 'blocked' ||
+    clinic.subscriptionStatus === 'canceled'
+  ) {
+    return labels[clinic.subscriptionStatus]
+  }
+  if (clinic.isLifetime) return 'Vitalicio'
   return labels[clinic.subscriptionStatus ?? ''] ?? 'Estado no definido'
 }
 

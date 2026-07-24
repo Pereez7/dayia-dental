@@ -10,6 +10,7 @@ Ejecuta `supabase/migrations/020_manual_billing_subscriptions.sql` y luego
 npx supabase functions deploy create-platform-clinic
 npx supabase functions deploy list-platform-clinics
 npx supabase functions deploy register-subscription-payment
+npx supabase functions deploy reject-subscription-payment-submission
 npx supabase functions deploy void-subscription-payment
 npx supabase functions deploy update-clinic-subscription
 ```
@@ -78,6 +79,9 @@ Ejecuta en Supabase SQL Editor, en orden, los archivos de
 20. `020_manual_billing_subscriptions.sql`
 21. `021_subscription_payment_workflow.sql`
 22. `022_allow_trialing_member_invitations.sql`
+23. `023_reject_subscription_payment_submissions.sql`
+24. `024_preserve_extra_days_when_voiding_payment.sql`
+25. `025_reversible_lifetime_memberships.sql`
 
 Si usas Supabase CLI en el futuro, puedes adaptar este flujo a `supabase db
 push`, pero esta guia asume SQL Editor para una primera prueba controlada.
@@ -85,7 +89,7 @@ push`, pero esta guia asume SQL Editor para una primera prueba controlada.
 ### Inventario de preproducción
 
 Antes de una demo con Supabase real, confirma en el proyecto remoto que están
-aplicadas las migraciones `001` a `022`. El repositorio solo contiene los
+aplicadas las migraciones `001` a `025`. El repositorio solo contiene los
 archivos; no garantiza el estado del entorno remoto. La migración `003` es una
 plantilla de setup y no debe reemplazar un seed revisado.
 
@@ -97,6 +101,7 @@ npx supabase functions deploy create-platform-clinic
 npx supabase functions deploy invite-clinic-member
 npx supabase functions deploy complete-account-activation
 npx supabase functions deploy register-subscription-payment
+npx supabase functions deploy reject-subscription-payment-submission
 npx supabase functions deploy void-subscription-payment
 npx supabase functions deploy update-clinic-subscription
 npx supabase functions deploy process-due-reminders

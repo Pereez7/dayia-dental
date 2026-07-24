@@ -106,13 +106,19 @@ export interface VoidSubscriptionPaymentInput {
   reason: string
 }
 
+export interface RejectPaymentSubmissionInput {
+  reason: string
+  submissionId: string
+}
+
 export interface UpdateClinicSubscriptionInput {
   action:
     | 'block'
     | 'cancel'
     | 'change_plan'
     | 'grant_extra_days'
-    | 'mark_lifetime'
+    | 'enable_lifetime'
+    | 'disable_lifetime'
     | 'reactivate'
     | 'set_custom_price'
     | 'set_founder_price'

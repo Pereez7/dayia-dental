@@ -111,7 +111,15 @@ Deno.serve(async (request) => {
     if (error.message.includes('SUBSCRIPTION_CHANGED_AFTER_PAYMENT')) {
       return errorResponse(
         'SUBSCRIPTION_CHANGED_AFTER_PAYMENT',
-        'La suscripción cambió después de este pago. Revisa el historial antes de anularlo.',
+        'La suscripción tuvo cambios posteriores que no se pueden restaurar automáticamente. Revisa el historial antes de anular.',
+        409,
+      )
+    }
+
+    if (error.message.includes('EXTRA_DAYS_CANNOT_BE_PRESERVED')) {
+      return errorResponse(
+        'EXTRA_DAYS_CANNOT_BE_PRESERVED',
+        'No pudimos conservar los días adicionales con seguridad. Revisa las fechas de la suscripción.',
         409,
       )
     }

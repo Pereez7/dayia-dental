@@ -59,7 +59,7 @@ Deno.serve(async (request) => {
     const [subscriptionResult, plansResult] = await Promise.all([
       admin
         .from('clinic_subscriptions')
-        .select('id, plan_id, status, blocked_at, current_period_starts_at, current_period_ends_at, grace_ends_at, price_tier, custom_monthly_price')
+        .select('id, plan_id, status, blocked_at, current_period_starts_at, current_period_ends_at, grace_ends_at, price_tier, custom_monthly_price, is_lifetime')
         .eq('clinic_id', input.clinicId)
         .maybeSingle(),
       admin
@@ -77,6 +77,13 @@ Deno.serve(async (request) => {
     }
 
     const subscription = subscriptionResult.data
+    if (subscription.is_lifetime || subscription.status === 'lifetime') {
+      return errorResponse(
+        'LIFETIME_MEMBERSHIP_ACTIVE',
+        'Retira primero la membresía vitalicia antes de registrar otro pago.',
+        409,
+      )
+    }
     const targetPlan = plansResult.data.find((plan) => plan.id === input.planId)
     const { data: currentPlan, error: currentPlanError } = await admin
       .from('plans')

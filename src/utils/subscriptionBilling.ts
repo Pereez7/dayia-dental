@@ -367,6 +367,25 @@ export function calculateUpgradeProration({
   }
 }
 
+export function calculateExtraDaysPreview(
+  currentPeriodEndsAt: string | null,
+  days: number,
+  now = new Date(),
+) {
+  if (!Number.isInteger(days) || days < 1 || days > 3650) {
+    return null
+  }
+
+  const existingEnd = parseDate(currentPeriodEndsAt)
+  const startsAt = existingEnd && existingEnd > now ? existingEnd : now
+  const periodEndsAt = addUtcDays(startsAt, days)
+
+  return {
+    graceEndsAt: addUtcDays(periodEndsAt, 5).toISOString(),
+    periodEndsAt: periodEndsAt.toISOString(),
+  }
+}
+
 function getMonthsForCycle(billingCycle: BillingCycle) {
   if (billingCycle === 'monthly') return 1
   if (billingCycle === 'six_months') return 6

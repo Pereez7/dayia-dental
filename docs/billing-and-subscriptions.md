@@ -97,10 +97,25 @@ se revisa y se confirma su pago vinculado.
 - Vitalicio sigue siendo una acción exclusiva de Platform Admin y no aparece
   como plan comercial público.
 
+### Membresía vitalicia reversible
+
+Platform Admin puede asignar una concesión vitalicia administrativa con motivo
+obligatorio. El RPC `set_subscription_lifetime_membership` guarda una
+instantánea de la condición de acceso anterior, elimina vencimiento y gracia, y
+registra `lifetime_enabled` de forma atómica. Retirar la concesión restaura esa
+instantánea y registra `lifetime_disabled`; si las fechas ya vencieron, vuelve
+a `past_due` para que las reglas normales de gracia y bloqueo determinen el
+acceso.
+
+Una membresía vitalicia originada al registrar un pago no se retira como
+concesión: se anula el pago vitalicio desde el historial para restaurar su
+instantánea y mantener el ledger coherente. Mientras vitalicio esté activo, la
+UI deshabilita días adicionales para evitar sustituirlo accidentalmente.
+
 ## Seguridad y escritura
 
-`register-subscription-payment`, `void-subscription-payment` y
-`update-clinic-subscription` validan JWT y
+`register-subscription-payment`, `reject-subscription-payment-submission`,
+`void-subscription-payment` y `update-clinic-subscription` validan JWT y
 `profiles.is_platform_admin = true` antes de crear un cliente con
 `SUPABASE_SERVICE_ROLE_KEY`. Un usuario clínico no puede registrar pagos ni
 reactivarse. El frontend nunca recibe esa clave.
@@ -112,10 +127,23 @@ instantánea en otra transacción. Los usuarios autenticados no pueden modificar
 el ledger; solo las Functions confiables pueden hacerlo. No contiene datos
 clínicos.
 
+Si después del último pago solo se concedieron días adicionales, la anulación
+calcula la extensión acumulada comparando la fecha final del pago con la fecha
+vigente, restaura la instantánea y vuelve a aplicar esa extensión. Los eventos
+de días extra permanecen en la auditoría. Un cambio posterior de plan, precio,
+bloqueo, reactivación, vitalicio o cancelación continúa bloqueando la
+anulación para evitar sobrescribir estado comercial.
+
 El propietario sí puede insertar un aviso `pending_review` para su propio
 consultorio. RLS exige una membership `clinic_owner` activa y
 `submitted_by = auth.uid()`. Este aviso es informativo y nunca concede acceso,
 aprueba el cobro ni modifica `clinic_subscriptions`.
+
+Platform Admin puede rechazar exclusivamente avisos que sigan en
+`pending_review`. La Function exige un motivo de 5 a 500 caracteres y el RPC
+`reject_subscription_payment_submission` cambia el aviso a `rejected` y crea
+el evento `payment_submission_rejected` en una sola transacción. No inserta
+filas en `subscription_payments` ni altera fechas, plan o acceso.
 
 `update-clinic-subscription` administra downgrades, excepciones inmediatas,
 precios fundador/personalizado/normal, días extra, bloqueo, reactivación,
@@ -124,14 +152,19 @@ vitalicio y cancelación. Pagos y cambios administrativos quedan auditados en
 
 ## Despliegue
 
-1. Ejecutar `supabase/migrations/020_manual_billing_subscriptions.sql` y luego
-   `supabase/migrations/021_subscription_payment_workflow.sql`.
+1. Ejecutar las migraciones
+   `020_manual_billing_subscriptions.sql`,
+   `021_subscription_payment_workflow.sql` y
+   `023_reject_subscription_payment_submissions.sql` y
+   `024_preserve_extra_days_when_voiding_payment.sql` y
+   `025_reversible_lifetime_memberships.sql`, en ese orden.
 2. Configurar `monthly_price` y, cuando corresponda,
    `founder_monthly_price` de Basic, Medium y Pro en `public.plans`.
 3. Colocar las tres imágenes QR en `public/payment-qr/`.
 4. Desplegar `create-platform-clinic`, `list-platform-clinics`,
-   `register-subscription-payment`, `void-subscription-payment` y
-   `update-clinic-subscription`.
+   `register-subscription-payment`,
+   `reject-subscription-payment-submission`,
+   `void-subscription-payment` y `update-clinic-subscription`.
 5. Validar trial, gracia, bloqueo, pago y vitalicio en un proyecto de pruebas.
 
 Los pagos automáticos, la conciliación bancaria y el almacenamiento interno de

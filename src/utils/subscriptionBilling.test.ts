@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  calculateExtraDaysPreview,
   calculateNewSubscriptionPeriod,
   calculateSubscriptionPayment,
   calculateTieredSubscriptionPayment,
@@ -15,6 +16,25 @@ import {
 } from './subscriptionBilling'
 
 describe('subscriptionBilling', () => {
+  it('previews extra days from the current expiration without changing data', () => {
+    expect(
+      calculateExtraDaysPreview(
+        '2026-08-08T19:35:01.373Z',
+        2,
+        new Date('2026-07-23T12:00:00.000Z'),
+      ),
+    ).toEqual({
+      graceEndsAt: '2026-08-15T19:35:01.373Z',
+      periodEndsAt: '2026-08-10T19:35:01.373Z',
+    })
+  })
+
+  it('rejects invalid extra-day previews', () => {
+    expect(calculateExtraDaysPreview(null, 0)).toBeNull()
+    expect(calculateExtraDaysPreview(null, 1.5)).toBeNull()
+    expect(calculateExtraDaysPreview(null, 3651)).toBeNull()
+  })
+
   it.each([
     ['monthly', 1, 0, 100],
     ['six_months', 6, 10, 540],

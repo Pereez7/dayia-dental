@@ -4110,24 +4110,6 @@
   width: 112px;
 }
 
-.subscription-feedback {
-  margin: 0;
-  border: 1px solid #b9ddec;
-  border-radius: var(--radius-md);
-  background: var(--color-soft-blue);
-  color: var(--color-primary-dark);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  line-height: 1.45;
-  padding: 12px 14px;
-}
-
-.subscription-feedback--success {
-  border-color: #b7e4ce;
-  background: #e9f8f1;
-  color: #16643c;
-}
-
 .subscription-notice {
   width: min(100%, 1120px);
   margin: 0 auto 14px;
@@ -4550,7 +4532,7 @@
 .subscription-submission-list article,
 .subscription-owner-submission-list article {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(140px, 0.45fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(140px, 0.45fr) minmax(190px, auto);
   gap: 16px;
   align-items: center;
   padding: 13px 0;
@@ -4575,6 +4557,19 @@
   display: grid;
   gap: 3px;
   min-width: 0;
+}
+
+.subscription-submission-list .subscription-submission-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.subscription-submission-actions .secondary-action,
+.subscription-submission-actions .danger-action {
+  min-height: 36px;
+  padding: 7px 10px;
 }
 
 .subscription-submission-list span,
@@ -4731,12 +4726,6 @@
   width: min(100%, 220px);
 }
 
-.subscription-feedback--error {
-  border-color: #f1c7d2;
-  background: #fff0f2;
-  color: #8f1735;
-}
-
 .subscription-history-empty,
 .subscription-lifetime-state {
   border: 1px dashed var(--color-border);
@@ -4858,6 +4847,17 @@
 
 .confirm-dialog-help--valid {
   color: #16643c;
+}
+
+.confirm-dialog-action-error {
+  margin: 12px 0 0;
+  border-radius: var(--radius-md);
+  background: #fff0f2;
+  color: #8f1735;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.45;
+  padding: 10px 11px;
 }
 
 .void-payment-summary {
@@ -5238,7 +5238,8 @@
   line-height: 1.45;
 }
 
-.subscription-founder-setting {
+.subscription-founder-setting,
+.subscription-lifetime-setting {
   display: grid;
   gap: 4px;
   width: 100%;
@@ -5248,16 +5249,26 @@
   padding: 11px 12px;
 }
 
-.subscription-founder-setting span {
+.subscription-founder-setting span,
+.subscription-lifetime-setting span {
   color: var(--color-primary-dark);
   font-size: var(--text-xs);
   font-weight: 500;
 }
 
-.subscription-founder-setting strong {
+.subscription-founder-setting strong,
+.subscription-lifetime-setting strong {
   color: var(--color-heading);
   font-size: var(--text-sm);
   line-height: 1.35;
+}
+
+.subscription-lifetime-setting p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  line-height: 1.4;
 }
 
 .subscription-management-groups .section-heading {
@@ -5327,6 +5338,11 @@
   .subscription-admin,
   .subscription-membership-view {
     padding: 16px;
+  }
+
+  .subscription-submission-list .subscription-submission-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .subscription-membership-header,
