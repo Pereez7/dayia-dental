@@ -51,9 +51,12 @@ Estado: flujo manual auditable implementado.
 - Pagos de 1, 6 y 12 meses, días personalizados y vitalicio.
 - Bloqueo de módulos sin cerrar sesión ni borrar datos.
 - Registro con revisión explícita, historial detallado y anulación lógica del
-  último pago vigente.
+  último pago vigente, conservando extensiones de días posteriores.
 - Vista del propietario con opciones de renovación y envío manual del
   comprobante por WhatsApp para validación administrativa.
+- Rechazo auditable de avisos de pago pendientes.
+- Concesión vitalicia administrativa reversible y separación del vitalicio
+  originado por un pago.
 
 Pendiente: precios comerciales definitivos, almacenamiento interno de
 comprobantes, pasarela, conciliación y renovaciones automáticas.

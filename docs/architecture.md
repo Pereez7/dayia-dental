@@ -7,10 +7,9 @@
 vitalicio. `subscriptionPermissions.ts` vacía capacidades clínicas cuando el
 acceso está bloqueado, por lo que los efectos de `App.tsx` no ejecutan servicios
 clínicos. `SubscriptionAccess` muestra avisos o la pantalla de pago, y
-`SubscriptionAdministration` gestiona cobros desde Administración DayIA.
-
-DayIA Dental empieza como una aplicacion frontend interna para clinicas
-dentales. Por ahora no incluye backend, base de datos ni autenticacion.
+`SubscriptionAdministration` gestiona cobros y cambios administrativos desde
+Administración DayIA. Supabase Auth, PostgreSQL, RLS y Edge Functions forman el
+backend real; los mocks se reservan para el modo demo.
 
 ## Base tecnica
 
@@ -670,6 +669,18 @@ datos comerciales precargados; el frontend no modifica `clinic_subscriptions`.
 Platform Admin usa Edge Functions con JWT para registrar o anular. Los RPC
 transaccionales escriben el ledger, los eventos de auditoría y la vigencia. La
 anulación es lógica y usa una instantánea previa; nunca elimina pagos.
+
+Los avisos enviados por propietarios no activan acceso. Platform Admin puede
+rechazarlos mediante `reject-subscription-payment-submission`, con motivo y
+auditoría atómica. Si después del último pago solo se agregaron días, la
+anulación restaura la instantánea del pago y vuelve a aplicar esa extensión;
+otros cambios comerciales posteriores siguen bloqueando la operación.
+
+`set_subscription_lifetime_membership` distingue una concesión administrativa
+de un pago vitalicio. La concesión guarda la vigencia previa y la restaura al
+retirarse. Un pago vitalicio se revierte exclusivamente mediante la anulación
+del pago. Mientras cualquiera de los dos esté activo no se admiten nuevos pagos
+ni días adicionales.
 
 ## Edición de pacientes
 

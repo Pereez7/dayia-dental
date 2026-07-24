@@ -764,3 +764,27 @@ mediante Edge Function.
 El ledger conserva pagos erróneos con estado `voided`, actor, fecha y motivo.
 Solo se revierte el último pago vigente y se bloquea si hubo un cambio
 administrativo posterior, evitando sobrescribir una suscripción más reciente.
+
+Si el único cambio posterior fue una concesión de días adicionales, la
+anulación conserva esa extensión: restaura la instantánea anterior al pago y
+vuelve a aplicar los días en la misma transacción. El evento original permanece
+en auditoría.
+
+## Vitalicio administrativo y vitalicio pagado siguen caminos distintos
+
+Una concesión vitalicia administrativa guarda una instantánea de la vigencia
+que reemplaza y puede retirarse restaurando ese estado. Un vitalicio originado
+por un pago se retira anulando el pago correspondiente. Esta separación evita
+romper el ledger o perder el origen comercial de la licencia.
+
+Ambos cambios exigen confirmación y motivo. Mientras vitalicio está activo se
+bloquean pagos y días adicionales para impedir que una acción secundaria
+sustituya silenciosamente una condición sin vencimiento.
+
+## El feedback sensible permanece cerca de la acción
+
+Las acciones que necesitan corregir datos muestran errores dentro de su
+diálogo. Los éxitos generales usan el Toast flotante común para seguir visibles
+independientemente del scroll. Aumentar días, rechazar avisos, anular pagos y
+cambiar vitalicio bloquean dobles envíos y exigen una revisión explícita antes
+de escribir.

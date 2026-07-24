@@ -51,7 +51,9 @@ por consultorio sobre Supabase.
 - Suscripciones manuales con prueba de 15 días, gracia de 5 días, pagos por QR,
   tarifas normal, fundador o personalizada, periodos de 1, 6 y 12 meses, días
   personalizados, comprobante manual por WhatsApp, confirmación administrativa,
-  anulación lógica, upgrades prorrateados, downgrades programados y vitalicio.
+  rechazo de avisos pendientes, anulación lógica que conserva extensiones
+  posteriores, upgrades prorrateados, downgrades programados y membresía
+  vitalicia reversible.
 
 La guía funcional y de despliegue de cobros vive en
 [docs/billing-and-subscriptions.md](docs/billing-and-subscriptions.md).
@@ -157,6 +159,31 @@ Revisar reglas de lint:
 ```bash
 npm run lint
 ```
+
+## Retomar el proyecto en otro equipo
+
+El código y la documentación se sincronizan por Git, pero `.env` permanece
+ignorado y debe existir localmente en cada equipo. Para continuar:
+
+```bash
+git switch main
+git pull --ff-only origin main
+npm install
+```
+
+Si el equipo todavía no tiene `.env`, crear uno a partir de `.env.example` y
+completar los valores locales. No sobrescribir un `.env` existente ni subirlo
+al repositorio. Después se recomienda ejecutar:
+
+```bash
+npm run lint
+npm run test
+npm run build
+npm run dev
+```
+
+El punto funcional más reciente y los servicios ya desplegados están resumidos
+en [Contexto del proyecto](docs/project-context.md#punto-de-continuidad).
 
 ## Documentacion
 

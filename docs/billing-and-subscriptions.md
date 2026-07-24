@@ -154,8 +154,8 @@ vitalicio y cancelación. Pagos y cambios administrativos quedan auditados en
 
 1. Ejecutar las migraciones
    `020_manual_billing_subscriptions.sql`,
-   `021_subscription_payment_workflow.sql` y
-   `023_reject_subscription_payment_submissions.sql` y
+   `021_subscription_payment_workflow.sql`,
+   `023_reject_subscription_payment_submissions.sql`,
    `024_preserve_extra_days_when_voiding_payment.sql` y
    `025_reversible_lifetime_memberships.sql`, en ese orden.
 2. Configurar `monthly_price` y, cuando corresponda,

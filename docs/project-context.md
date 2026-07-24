@@ -1,11 +1,41 @@
 # Contexto del proyecto
 
+## Punto de continuidad
+
+El último bloque terminado es la estabilización de suscripciones y pagos
+manuales de Administración DayIA:
+
+- Los avisos de pago pendientes pueden aprobarse o rechazarse con motivo y
+  auditoría.
+- La anulación del último pago conserva los días adicionales concedidos después
+  del cobro y restaura el resto de la instantánea anterior.
+- Aumentar días exige confirmación previa y muestra el resultado mediante el
+  Toast flotante común.
+- La membresía vitalicia administrativa puede asignarse y retirarse. Al
+  asignarla guarda la vigencia anterior; al retirarla la restaura.
+- Una membresía vitalicia originada por pago se retira anulando ese pago, no
+  mediante la acción administrativa.
+- Mientras vitalicio está activo se bloquean nuevos pagos y días adicionales
+  para evitar sustituir accidentalmente la condición comercial.
+
+Supabase ya tiene aplicadas las migraciones `023`, `024` y `025`. Las Edge
+Functions `reject-subscription-payment-submission`,
+`void-subscription-payment`, `update-clinic-subscription` y
+`register-subscription-payment` están desplegadas. La prueba remota de
+asignación y retiro vitalicio se ejecutó dentro de una transacción revertida,
+por lo que no modificó suscripciones reales.
+
+El bloque cerró con lint, 624 pruebas y build correctos. Para continuar desde
+otro equipo se debe actualizar `main` desde `origin`, conservar su `.env` local
+y seguir la guía de [Retomar el proyecto en otro equipo](../README.md#retomar-el-proyecto-en-otro-equipo).
+
 ## Billing manual
 
 DayIA Dental dispone de prueba gratuita, gracia, cobro por QR e historial de
 pagos administrado por plataforma. Un consultorio bloqueado conserva sesión y
-datos, pero no monta módulos clínicos. Vitalicio no vence. No hay pasarela,
-verificación bancaria ni cobro recurrente automático.
+datos, pero no monta módulos clínicos. Vitalicio no vence y puede retirarse de
+forma auditable restaurando la vigencia previa. No hay pasarela, verificación
+bancaria ni cobro recurrente automático.
 
 DayIA Dental es una aplicacion interna para consultorios dentales. El objetivo
 es ayudar a registrar pacientes, organizar citas y preparar recordatorios,
@@ -37,7 +67,8 @@ especialmente pensando en una futura integracion con WhatsApp.
 - Utilidades puras en `src/utils`.
 - Pruebas unitarias para formatters, filtros y validaciones.
 - Suscripciones QR con confirmación administrativa, ledger anulable sin borrado
-  y comprobantes enviados manualmente por WhatsApp.
+  y comprobantes enviados manualmente por WhatsApp. Incluye rechazo de avisos,
+  conservación de días posteriores al anular y membresía vitalicia reversible.
 
 ## Dashboard
 
