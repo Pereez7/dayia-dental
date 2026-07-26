@@ -9,6 +9,7 @@ export type PriceTier = 'standard' | 'founder' | 'custom'
 export type PaymentType =
   | 'regular'
   | 'upgrade_proration'
+  | 'reactivation_plan_change'
   | 'custom_days'
   | 'lifetime'
   | 'manual_adjustment'

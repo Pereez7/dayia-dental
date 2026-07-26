@@ -1,95 +1,113 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const queryMocks = vi.hoisted(() => {
-  const limit = vi.fn()
-  const statusEq = vi.fn(() => ({ limit }))
-  const clinicEq = vi.fn(() => ({ eq: statusEq }))
-  const selectPending = vi.fn(() => ({ eq: clinicEq }))
-  const single = vi.fn()
-  const selectInserted = vi.fn(() => ({ single }))
-  const insert = vi.fn(() => ({ select: selectInserted }))
-  const from = vi.fn(() => ({
-    insert,
-    select: selectPending,
-  }))
-
-  return {
-    clinicEq,
-    from,
-    insert,
-    limit,
-    selectInserted,
-    selectPending,
-    single,
-    statusEq,
-  }
-})
+const clientMocks = vi.hoisted(() => ({
+  getSession: vi.fn(),
+  invoke: vi.fn(),
+}))
 
 vi.mock('../lib/supabaseClient', () => ({
-  supabase: { from: queryMocks.from },
+  supabase: {
+    auth: { getSession: clientMocks.getSession },
+    functions: { invoke: clientMocks.invoke },
+  },
 }))
 
 import {
   isWhatsappPaymentNoticeReference,
+  scheduleSubscriptionDowngrade,
   submitSubscriptionPaymentNotice,
-  whatsappPaymentNoticeReference,
 } from './subscriptionPaymentSubmissionService'
-
-const input = {
-  amountExpected: 249,
-  billingCycle: 'monthly' as const,
-  clinicId: 'clinic-1',
-  currency: 'BOB',
-  planId: 'pro',
-  submittedBy: 'owner-1',
-}
 
 describe('subscription payment submission service', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    queryMocks.limit.mockResolvedValue({ data: [], error: null })
-    queryMocks.single.mockResolvedValue({
-      data: { id: 'notice-1' },
+    clientMocks.getSession.mockResolvedValue({
+      data: { session: { access_token: 'owner-token' } },
+      error: null,
+    })
+    clientMocks.invoke.mockResolvedValue({
+      data: {
+        alreadyPending: false,
+        amountExpected: 249,
+        id: 'notice-1',
+        paymentType: 'regular',
+        planId: 'pro',
+        success: true,
+      },
       error: null,
     })
   })
 
-  it('creates a pending administrative notice without asking for a bank reference', async () => {
-    const result = await submitSubscriptionPaymentNotice(input)
+  it('asks the secure function to calculate and create the payment notice', async () => {
+    const result = await submitSubscriptionPaymentNotice({
+      billingCycle: 'monthly',
+      clinicId: 'clinic-1',
+      planId: 'pro',
+    })
 
-    expect(queryMocks.from).toHaveBeenCalledWith(
-      'subscription_payment_submissions',
+    expect(clientMocks.invoke).toHaveBeenCalledWith(
+      'manage-owner-subscription-plan',
+      {
+        body: {
+          action: 'submit_payment_notice',
+          billingCycle: 'monthly',
+          clinicId: 'clinic-1',
+          planId: 'pro',
+        },
+        headers: { Authorization: 'Bearer owner-token' },
+        method: 'POST',
+      },
     )
-    expect(queryMocks.insert).toHaveBeenCalledWith(
+    expect(result).toEqual({
+      data: expect.objectContaining({
+        amountExpected: 249,
+        id: 'notice-1',
+        success: true,
+      }),
+      error: null,
+    })
+  })
+
+  it('schedules downgrades without creating a payment in the browser', async () => {
+    clientMocks.invoke.mockResolvedValue({
+      data: {
+        effectiveAt: '2026-09-21T00:00:00.000Z',
+        planId: 'medium',
+        success: true,
+      },
+      error: null,
+    })
+
+    await scheduleSubscriptionDowngrade({
+      clinicId: 'clinic-1',
+      planId: 'medium',
+    })
+
+    expect(clientMocks.invoke).toHaveBeenCalledWith(
+      'manage-owner-subscription-plan',
       expect.objectContaining({
-        amount_expected: 249,
-        billing_cycle: 'monthly',
-        clinic_id: 'clinic-1',
-        plan_id: 'pro',
-        reference: whatsappPaymentNoticeReference,
-        status: 'pending_review',
-        submitted_by: 'owner-1',
+        body: expect.objectContaining({
+          action: 'schedule_downgrade',
+          planId: 'medium',
+        }),
       }),
     )
-    expect(result).toEqual({
-      data: { alreadyPending: false, id: 'notice-1' },
-      error: null,
-    })
   })
 
-  it('reuses an existing pending notice instead of creating duplicates', async () => {
-    queryMocks.limit.mockResolvedValue({
-      data: [{ id: 'notice-existing' }],
+  it('does not call the function without a valid session', async () => {
+    clientMocks.getSession.mockResolvedValue({
+      data: { session: null },
       error: null,
     })
 
-    const result = await submitSubscriptionPaymentNotice(input)
-
-    expect(queryMocks.insert).not.toHaveBeenCalled()
-    expect(result).toEqual({
-      data: { alreadyPending: true, id: 'notice-existing' },
-      error: null,
+    const result = await submitSubscriptionPaymentNotice({
+      billingCycle: 'monthly',
+      clinicId: 'clinic-1',
+      planId: 'pro',
     })
+
+    expect(clientMocks.invoke).not.toHaveBeenCalled()
+    expect(result.error).toContain('sesión')
   })
 
   it('identifies the internal WhatsApp marker so it is not treated as a bank reference', () => {

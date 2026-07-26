@@ -52,8 +52,9 @@ por consultorio sobre Supabase.
   tarifas normal, fundador o personalizada, periodos de 1, 6 y 12 meses, días
   personalizados, comprobante manual por WhatsApp, confirmación administrativa,
   rechazo de avisos pendientes, anulación lógica que conserva extensiones
-  posteriores, upgrades prorrateados, downgrades programados y membresía
-  vitalicia reversible.
+  posteriores, upgrades prorrateados, downgrades programados y cancelables,
+  cambio de plan al reactivar y membresía vitalicia reversible. Los importes
+  solicitados por propietarios se calculan y validan en servidor.
 
 La guía funcional y de despliegue de cobros vive en
 [docs/billing-and-subscriptions.md](docs/billing-and-subscriptions.md).

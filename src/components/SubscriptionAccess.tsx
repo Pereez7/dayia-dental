@@ -13,14 +13,25 @@ import type {
 } from '../types/database'
 import type { PlatformClinicPlanId } from '../types/platform'
 import {
+  calculateUpgradeProration,
   calculateTieredSubscriptionPayment,
+  getMonthlyPriceForTier,
+  getPlanChangeKind,
   getSubscriptionAccessState,
   isFounderPricingEligible,
 } from '../utils/subscriptionBilling'
 import type { BillingCycle } from '../utils/subscriptionBilling'
 import { buildBillingWhatsappUrl } from '../utils/billingWhatsapp'
 import { formatSubscriptionDate } from '../utils/dateFormatters'
-import { submitSubscriptionPaymentNotice } from '../services/subscriptionPaymentSubmissionService'
+import {
+  cancelScheduledSubscriptionDowngrade,
+  scheduleSubscriptionDowngrade,
+  submitSubscriptionPaymentNotice,
+} from '../services/subscriptionPaymentSubmissionService'
+import {
+  listSubscriptionPlans,
+  type SubscriptionPlanOption,
+} from '../services/subscriptionPlansService'
 import { PaymentQr } from './PaymentQr'
 
 const renewalOptions: Array<{
@@ -46,6 +57,7 @@ interface SubscriptionMembershipViewProps {
   monthlyPrice: number | null
   onRefreshSubscription?: () => Promise<void>
   planId: string | null
+  planOptions?: SubscriptionPlanOption[]
   standardMonthlyPrice?: number | null
   submittedByUserId: string | null
   subscription: ClinicSubscriptionRecord | null
@@ -59,11 +71,18 @@ export function SubscriptionMembershipView({
   monthlyPrice,
   onRefreshSubscription,
   planId,
+  planOptions,
   standardMonthlyPrice,
   submittedByUserId,
   subscription,
 }: SubscriptionMembershipViewProps) {
   const normalizedPlanId = normalizePlan(planId)
+  const [selectedPlanId, setSelectedPlanId] =
+    useState<PlatformClinicPlanId>(normalizedPlanId)
+  const [availablePlans, setAvailablePlans] = useState<
+    SubscriptionPlanOption[]
+  >([])
+  const [plansError, setPlansError] = useState('')
   const [selectedCycle, setSelectedCycle] =
     useState<RenewalBillingCycle>('monthly')
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -78,41 +97,102 @@ export function SubscriptionMembershipView({
     blockedAt: subscription?.blocked_at,
     paidAt: new Date(),
   })
+  const displayedPlans =
+    planOptions && planOptions.length > 0
+      ? planOptions
+      : availablePlans.length > 0
+      ? availablePlans
+      : [
+          {
+            currency,
+            founderMonthlyPrice:
+              subscription?.price_tier === 'founder'
+                ? monthlyPrice
+                : null,
+            id: normalizedPlanId,
+            monthlyPrice: standardMonthlyPrice ?? monthlyPrice,
+            name: getPlanName(normalizedPlanId),
+          },
+        ]
+  const selectedPlan =
+    displayedPlans.find((plan) => plan.id === selectedPlanId) ??
+    displayedPlans[0]
+  const changeKind = getPlanChangeKind(
+    normalizedPlanId,
+    selectedPlan?.id ?? normalizedPlanId,
+  )
   const billingPriceTier =
     subscription?.price_tier === 'founder' && !founderPricingEligible
       ? 'standard'
       : subscription?.price_tier ?? 'standard'
   const billingMonthlyPrice =
-    subscription?.price_tier === 'founder' && !founderPricingEligible
-      ? standardMonthlyPrice ?? monthlyPrice
+    selectedPlan
+      ? getMonthlyPriceForTier({
+          customPrice: subscription?.custom_monthly_price ?? null,
+          founderPrice: selectedPlan.founderMonthlyPrice,
+          priceTier: billingPriceTier,
+          standardPrice: selectedPlan.monthlyPrice,
+        })
       : monthlyPrice
-  const selectedPayment = useMemo(
+  const selectedStandardMonthlyPrice =
+    selectedPlan?.monthlyPrice ?? standardMonthlyPrice ?? monthlyPrice
+  const isImmediateUpgrade = changeKind === 'upgrade' && !isBlocked
+  const isScheduledDowngrade = changeKind === 'downgrade' && !isBlocked
+  const upgradeProration = useMemo(
     () =>
-      calculateTieredSubscriptionPayment({
-        billingCycle: selectedCycle,
-        effectiveMonthlyPrice: billingMonthlyPrice,
-        priceTier: billingPriceTier,
-        standardMonthlyPrice: standardMonthlyPrice ?? monthlyPrice,
+      calculateUpgradeProration({
+        currentMonthlyPrice: monthlyPrice,
+        currentPeriodEndsAt: subscription?.current_period_ends_at ?? null,
+        newMonthlyPrice: billingMonthlyPrice,
       }),
     [
       billingMonthlyPrice,
-      billingPriceTier,
       monthlyPrice,
+      subscription?.current_period_ends_at,
+    ],
+  )
+  const selectedPayment = useMemo(
+    () => {
+      if (isImmediateUpgrade) {
+        return {
+          amountDue: upgradeProration.amount,
+          amountPaid: upgradeProration.amount,
+          customDays: null,
+          discountAmount: 0,
+          discountPercent: 0,
+          monthsCovered: null,
+        }
+      }
+
+      return calculateTieredSubscriptionPayment({
+        billingCycle: selectedCycle,
+        effectiveMonthlyPrice: billingMonthlyPrice,
+        priceTier: billingPriceTier,
+        standardMonthlyPrice: selectedStandardMonthlyPrice,
+      })
+    },
+    [
+      billingMonthlyPrice,
+      billingPriceTier,
+      isImmediateUpgrade,
       selectedCycle,
-      standardMonthlyPrice,
+      selectedStandardMonthlyPrice,
+      upgradeProration.amount,
     ],
   )
   const daysRemaining = accessState.daysRemaining
   const selectedCycleLabel =
-    renewalOptions.find((option) => option.cycle === selectedCycle)?.label ??
-    selectedCycle
+    isImmediateUpgrade
+      ? `Upgrade por ${upgradeProration.daysRemaining} días`
+      : renewalOptions.find((option) => option.cycle === selectedCycle)
+          ?.label ?? selectedCycle
   const billingWhatsappUrl = buildBillingWhatsappUrl({
     amount: selectedPayment.amountPaid,
     billingCycleLabel: selectedCycleLabel,
     clinicName: clinic.name,
     currency,
     phone: import.meta.env.VITE_DAYIA_BILLING_WHATSAPP,
-    planName: getPlanName(normalizedPlanId),
+    planName: getPlanName(selectedPlan?.id ?? normalizedPlanId),
   })
 
   const refreshSubscription = useCallback(async () => {
@@ -121,6 +201,20 @@ export function SubscriptionMembershipView({
     await onRefreshSubscription()
     setIsRefreshing(false)
   }, [isRefreshing, onRefreshSubscription])
+
+  useEffect(() => {
+    let isMounted = true
+
+    void listSubscriptionPlans().then((result) => {
+      if (!isMounted) return
+      setAvailablePlans(result.data)
+      setPlansError(result.error ?? '')
+    })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   useEffect(() => {
     if (
@@ -140,7 +234,11 @@ export function SubscriptionMembershipView({
       return
     }
 
-    if (!submittedByUserId || selectedPayment.amountPaid <= 0) {
+    if (
+      !submittedByUserId ||
+      !selectedPlan ||
+      selectedPayment.amountPaid <= 0
+    ) {
       event.preventDefault()
       setNoticeFeedbackTone('error')
       setNoticeFeedback(
@@ -154,12 +252,9 @@ export function SubscriptionMembershipView({
     setNoticeFeedback('')
 
     void submitSubscriptionPaymentNotice({
-      amountExpected: selectedPayment.amountPaid,
       billingCycle: selectedCycle,
       clinicId: clinic.id,
-      currency,
-      planId: normalizedPlanId,
-      submittedBy: submittedByUserId,
+      planId: selectedPlan.id,
     })
       .then((result) => {
         if (result.error) {
@@ -185,6 +280,81 @@ export function SubscriptionMembershipView({
         noticeSubmissionLock.current = false
         setIsSubmittingNotice(false)
       })
+  }
+
+  async function handleScheduleDowngrade() {
+    if (
+      !selectedPlan ||
+      !submittedByUserId ||
+      isSubmittingNotice ||
+      noticeSubmissionLock.current
+    ) {
+      return
+    }
+
+    noticeSubmissionLock.current = true
+    setIsSubmittingNotice(true)
+    setNoticeFeedback('')
+
+    try {
+      const result = await scheduleSubscriptionDowngrade({
+        clinicId: clinic.id,
+        planId: selectedPlan.id,
+      })
+      if (result.error) {
+        setNoticeFeedbackTone('error')
+        setNoticeFeedback(result.error)
+        return
+      }
+
+      setNoticeFeedbackTone('success')
+      setNoticeFeedback(
+        `${getPlanName(selectedPlan.id)} comenzará al finalizar el periodo actual.`,
+      )
+      await onRefreshSubscription?.()
+    } catch {
+      setNoticeFeedbackTone('error')
+      setNoticeFeedback(
+        'No pudimos programar el cambio. Inténtalo nuevamente.',
+      )
+    } finally {
+      noticeSubmissionLock.current = false
+      setIsSubmittingNotice(false)
+    }
+  }
+
+  async function handleCancelScheduledDowngrade() {
+    if (
+      isSubmittingNotice ||
+      noticeSubmissionLock.current
+    ) {
+      return
+    }
+
+    noticeSubmissionLock.current = true
+    setIsSubmittingNotice(true)
+    setNoticeFeedback('')
+
+    try {
+      const result = await cancelScheduledSubscriptionDowngrade(clinic.id)
+      if (result.error) {
+        setNoticeFeedbackTone('error')
+        setNoticeFeedback(result.error)
+        return
+      }
+
+      setNoticeFeedbackTone('success')
+      setNoticeFeedback('El cambio programado fue cancelado.')
+      await onRefreshSubscription?.()
+    } catch {
+      setNoticeFeedbackTone('error')
+      setNoticeFeedback(
+        'No pudimos cancelar el cambio programado. Inténtalo nuevamente.',
+      )
+    } finally {
+      noticeSubmissionLock.current = false
+      setIsSubmittingNotice(false)
+    }
   }
 
   if (subscription?.is_lifetime && !isBlocked) {
@@ -324,105 +494,358 @@ export function SubscriptionMembershipView({
           <span>Administración DayIA conserva el historial y la condición comercial.</span>
         </div>
       ) : (
-        <div className="subscription-renewal-layout">
-          <div className="subscription-renewal-main">
-            <div className="subscription-block-heading">
-              <div><h2>Elige un periodo</h2><p>El descuento se aplica sobre el precio mensual de tu tarifa actual.</p></div>
-            </div>
-            <div className="subscription-renewal-options" role="radiogroup" aria-label="Periodo de renovación">
-              {renewalOptions.map((option) => {
-                const payment = calculateTieredSubscriptionPayment({
-                  billingCycle: option.cycle,
-                  effectiveMonthlyPrice: billingMonthlyPrice,
-                  priceTier: billingPriceTier,
-                  standardMonthlyPrice: standardMonthlyPrice ?? monthlyPrice,
-                })
-                const isSelected = selectedCycle === option.cycle
-
-                return (
-                  <button
-                    aria-checked={isSelected}
-                    className={`subscription-renewal-option${isSelected ? ' subscription-renewal-option--selected' : ''}`}
-                    key={option.cycle}
-                    onClick={() => {
-                      setSelectedCycle(option.cycle)
-                    }}
-                    role="radio"
-                    type="button"
-                  >
-                    <span>{option.label}</span>
-                    <strong>{payment.amountPaid > 0 ? `${payment.amountPaid.toFixed(2)} ${currency}` : 'Monto por confirmar'}</strong>
-                    <small>
-                      {getRenewalOptionCaption(
-                        option.discount,
-                        billingPriceTier,
-                      )}
-                    </small>
-                  </button>
-                )
-              })}
-            </div>
-
-            <div className="subscription-renewal-breakdown">
-              <div><span>Precio base</span><strong>{selectedPayment.amountDue.toFixed(2)} {currency}</strong></div>
-              <div><span>Descuento</span><strong>{selectedPayment.discountAmount.toFixed(2)} {currency}</strong></div>
-              <div><span>Total a pagar</span><strong>{selectedPayment.amountPaid.toFixed(2)} {currency}</strong></div>
-            </div>
-
-            {subscription?.price_tier === 'founder' && !founderPricingEligible ? (
-              <p className="subscription-inline-warning" role="status">
-                La tarifa fundador venció al pasar más de 24 horas desde el bloqueo. Esta renovación usa la tarifa estándar.
-              </p>
-            ) : null}
-
-            <ol className="subscription-payment-steps">
-              <li>Escanea el QR y paga el monto exacto mostrado.</li>
-              <li>Guarda la imagen o captura de tu comprobante.</li>
-              <li>Envíala por WhatsApp para que Administración DayIA habilite tu pago.</li>
-            </ol>
-
-            {canSubmitPayment ? (
-              billingWhatsappUrl ? (
-                <a
-                  aria-disabled={isSubmittingNotice}
-                  className="primary-action subscription-whatsapp-action"
-                  href={billingWhatsappUrl}
-                  onClick={handlePaymentNoticeClick}
-                  rel="noreferrer"
-                  target="_blank"
+        <>
+          {subscription?.scheduled_plan_id ? (
+            <div className="subscription-scheduled-change" role="status">
+              <div>
+                <strong>
+                  Cambio programado a{' '}
+                  {getPlanName(subscription.scheduled_plan_id)}
+                </strong>
+                <span>
+                  Comenzará el{' '}
+                  {formatOptionalDate(
+                    subscription.scheduled_plan_starts_at,
+                  )}
+                  . Hasta entonces conservarás {getPlanName(normalizedPlanId)}.
+                </span>
+              </div>
+              {canSubmitPayment ? (
+                <button
+                  className="secondary-action"
+                  disabled={isSubmittingNotice}
+                  onClick={() => void handleCancelScheduledDowngrade()}
+                  type="button"
                 >
                   {isSubmittingNotice
-                    ? 'Avisando a Administración...'
-                    : 'Enviar comprobante por WhatsApp'}
-                </a>
-              ) : (
-                <p className="subscription-owner-note">
-                  Configura el WhatsApp de pagos para habilitar el envío del comprobante.
-                </p>
-              )
-            ) : (
-              <p className="subscription-owner-note">Solo el propietario del consultorio puede gestionar la renovación. Contacta al propietario para continuar.</p>
-            )}
-            {noticeFeedback ? (
-              <p
-                className={`subscription-payment-feedback subscription-payment-feedback--${noticeFeedbackTone}`}
-                role={noticeFeedbackTone === 'error' ? 'alert' : 'status'}
-              >
-                {noticeFeedback}
-              </p>
-            ) : null}
-          </div>
+                    ? 'Cancelando...'
+                    : 'Cancelar cambio programado'}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
 
-          <aside className="subscription-payment-aside subscription-member-qr">
-            <div><span>Pago por QR</span><h2>Plan {getPlanName(normalizedPlanId)}</h2></div>
-            <PaymentQr planId={normalizedPlanId} planName={getPlanName(normalizedPlanId)} />
-            <dl>
-              <div><dt>Periodo</dt><dd>{renewalOptions.find((option) => option.cycle === selectedCycle)?.label}</dd></div>
-              <div><dt>Monto exacto</dt><dd>{selectedPayment.amountPaid.toFixed(2)} {currency}</dd></div>
-            </dl>
-            <p>El QR corresponde al plan. El periodo cambia únicamente el monto.</p>
-          </aside>
-        </div>
+          {!subscription?.scheduled_plan_id ? (
+            <div className="subscription-renewal-layout">
+              <div className="subscription-renewal-main">
+              <div className="subscription-block-heading">
+                <div>
+                  <h2>Elige el plan</h2>
+                  <p>
+                    Verás el importe y la fecha de aplicación antes de
+                    continuar.
+                  </p>
+                </div>
+              </div>
+
+              <div
+                aria-label="Plan de suscripción"
+                className="subscription-plan-options"
+                role="radiogroup"
+              >
+                {displayedPlans.map((plan) => {
+                  const planMonthlyPrice = getMonthlyPriceForTier({
+                    customPrice:
+                      subscription?.custom_monthly_price ?? null,
+                    founderPrice: plan.founderMonthlyPrice,
+                    priceTier: billingPriceTier,
+                    standardPrice: plan.monthlyPrice,
+                  })
+                  const isSelected = plan.id === selectedPlanId
+                  const isCurrent = plan.id === normalizedPlanId
+
+                  return (
+                    <button
+                      aria-checked={isSelected}
+                      className={`subscription-plan-option${isSelected ? ' subscription-plan-option--selected' : ''}`}
+                      key={plan.id}
+                      onClick={() => {
+                        setSelectedPlanId(plan.id)
+                        setNoticeFeedback('')
+                      }}
+                      role="radio"
+                      type="button"
+                    >
+                      <span>
+                        {plan.name}
+                        {isCurrent ? <small>Plan actual</small> : null}
+                      </span>
+                      <strong>
+                        {planMonthlyPrice === null
+                          ? 'Precio por confirmar'
+                          : `${planMonthlyPrice.toFixed(2)} ${plan.currency} / mes`}
+                      </strong>
+                    </button>
+                  )
+                })}
+              </div>
+
+              {plansError ? (
+                <p className="subscription-inline-warning" role="status">
+                  {plansError} Puedes continuar renovando el plan actual.
+                </p>
+              ) : null}
+
+              {isScheduledDowngrade ? (
+                <div className="subscription-plan-change-explanation">
+                  <strong>
+                    {getPlanName(selectedPlanId)} comenzará al finalizar tu
+                    periodo actual.
+                  </strong>
+                  <p>
+                    Conservarás {getPlanName(normalizedPlanId)} hasta el{' '}
+                    {formatOptionalDate(
+                      subscription?.current_period_ends_at ?? null,
+                    )}
+                    . No se realizará ningún cobro ahora.
+                  </p>
+                  {canSubmitPayment ? (
+                    <button
+                      className="primary-action"
+                      disabled={
+                        isSubmittingNotice ||
+                        Boolean(subscription?.scheduled_plan_id)
+                      }
+                      onClick={() => void handleScheduleDowngrade()}
+                      type="button"
+                    >
+                      {isSubmittingNotice
+                        ? 'Programando cambio...'
+                        : `Programar cambio a ${getPlanName(selectedPlanId)}`}
+                    </button>
+                  ) : (
+                    <p className="subscription-owner-note">
+                      Solo el propietario puede programar el cambio de plan.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <>
+                  {isImmediateUpgrade ? (
+                    <div className="subscription-plan-change-explanation">
+                      <strong>
+                        El upgrade se activa después de validar el pago.
+                      </strong>
+                      <p>
+                        Pagarás la diferencia por{' '}
+                        {upgradeProration.daysRemaining} días y conservarás el
+                        vencimiento del{' '}
+                        {formatOptionalDate(
+                          subscription?.current_period_ends_at ?? null,
+                        )}
+                        .
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="subscription-block-heading subscription-period-heading">
+                        <div>
+                          <h2>Elige un periodo</h2>
+                          <p>
+                            El descuento se aplica al precio mensual del plan
+                            seleccionado.
+                          </p>
+                        </div>
+                      </div>
+                      <div
+                        aria-label="Periodo de renovación"
+                        className="subscription-renewal-options"
+                        role="radiogroup"
+                      >
+                        {renewalOptions.map((option) => {
+                          const payment =
+                            calculateTieredSubscriptionPayment({
+                              billingCycle: option.cycle,
+                              effectiveMonthlyPrice: billingMonthlyPrice,
+                              priceTier: billingPriceTier,
+                              standardMonthlyPrice:
+                                selectedStandardMonthlyPrice,
+                            })
+                          const isSelected =
+                            selectedCycle === option.cycle
+
+                          return (
+                            <button
+                              aria-checked={isSelected}
+                              className={`subscription-renewal-option${isSelected ? ' subscription-renewal-option--selected' : ''}`}
+                              key={option.cycle}
+                              onClick={() =>
+                                setSelectedCycle(option.cycle)
+                              }
+                              role="radio"
+                              type="button"
+                            >
+                              <span>{option.label}</span>
+                              <strong>
+                                {payment.amountPaid > 0
+                                  ? `${payment.amountPaid.toFixed(2)} ${selectedPlan?.currency ?? currency}`
+                                  : 'Monto por confirmar'}
+                              </strong>
+                              <small>
+                                {getRenewalOptionCaption(
+                                  option.discount,
+                                  billingPriceTier,
+                                )}
+                              </small>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </>
+                  )}
+
+                  <div className="subscription-renewal-breakdown">
+                    <div>
+                      <span>
+                        {isImmediateUpgrade
+                          ? 'Diferencia prorrateada'
+                          : 'Precio base'}
+                      </span>
+                      <strong>
+                        {selectedPayment.amountDue.toFixed(2)}{' '}
+                        {selectedPlan?.currency ?? currency}
+                      </strong>
+                    </div>
+                    <div>
+                      <span>Descuento</span>
+                      <strong>
+                        {selectedPayment.discountAmount.toFixed(2)}{' '}
+                        {selectedPlan?.currency ?? currency}
+                      </strong>
+                    </div>
+                    <div>
+                      <span>Total a pagar</span>
+                      <strong>
+                        {selectedPayment.amountPaid.toFixed(2)}{' '}
+                        {selectedPlan?.currency ?? currency}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {subscription?.price_tier === 'founder' &&
+                  !founderPricingEligible ? (
+                    <p
+                      className="subscription-inline-warning"
+                      role="status"
+                    >
+                      La tarifa fundador venció al pasar más de 24 horas desde
+                      el bloqueo. Esta operación usa la tarifa estándar.
+                    </p>
+                  ) : null}
+
+                  <ol className="subscription-payment-steps">
+                    <li>Escanea el QR y paga el monto exacto mostrado.</li>
+                    <li>Guarda la imagen o captura de tu comprobante.</li>
+                    <li>
+                      Envíala por WhatsApp para que Administración DayIA valide
+                      el pago.
+                    </li>
+                  </ol>
+
+                  {canSubmitPayment ? (
+                    billingWhatsappUrl ? (
+                      <a
+                        aria-disabled={isSubmittingNotice}
+                        className="primary-action subscription-whatsapp-action"
+                        href={billingWhatsappUrl}
+                        onClick={handlePaymentNoticeClick}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        {isSubmittingNotice
+                          ? 'Avisando a Administración...'
+                          : 'Enviar comprobante por WhatsApp'}
+                      </a>
+                    ) : (
+                      <p className="subscription-owner-note">
+                        Configura el WhatsApp de pagos para habilitar el envío
+                        del comprobante.
+                      </p>
+                    )
+                  ) : (
+                    <p className="subscription-owner-note">
+                      Solo el propietario puede gestionar la renovación.
+                      Contacta al propietario para continuar.
+                    </p>
+                  )}
+                </>
+              )}
+
+              {noticeFeedback ? (
+                <p
+                  className={`subscription-payment-feedback subscription-payment-feedback--${noticeFeedbackTone}`}
+                  role={noticeFeedbackTone === 'error' ? 'alert' : 'status'}
+                >
+                  {noticeFeedback}
+                </p>
+              ) : null}
+              </div>
+
+              <aside
+                className={`subscription-payment-aside${isScheduledDowngrade ? ' subscription-plan-change-aside' : ' subscription-member-qr'}`}
+              >
+              {isScheduledDowngrade ? (
+                <>
+                  <div>
+                    <span>Cambio al renovar</span>
+                    <h2>Plan {getPlanName(selectedPlanId)}</h2>
+                  </div>
+                  <dl>
+                    <div>
+                      <dt>Aplicación</dt>
+                      <dd>
+                        {formatOptionalDate(
+                          subscription?.current_period_ends_at ?? null,
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Cobro ahora</dt>
+                      <dd>0.00 {selectedPlan?.currency ?? currency}</dd>
+                    </div>
+                  </dl>
+                  <p>
+                    El plan actual conserva sus funciones hasta el vencimiento.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <span>Pago por QR</span>
+                    <h2>
+                      Plan{' '}
+                      {getPlanName(selectedPlan?.id ?? normalizedPlanId)}
+                    </h2>
+                  </div>
+                  <PaymentQr
+                    planId={selectedPlan?.id ?? normalizedPlanId}
+                    planName={getPlanName(
+                      selectedPlan?.id ?? normalizedPlanId,
+                    )}
+                  />
+                  <dl>
+                    <div>
+                      <dt>Concepto</dt>
+                      <dd>{selectedCycleLabel}</dd>
+                    </div>
+                    <div>
+                      <dt>Monto exacto</dt>
+                      <dd>
+                        {selectedPayment.amountPaid.toFixed(2)}{' '}
+                        {selectedPlan?.currency ?? currency}
+                      </dd>
+                    </div>
+                  </dl>
+                  <p>
+                    El QR corresponde al plan seleccionado. Verifica el monto
+                    antes de pagar.
+                  </p>
+                </>
+              )}
+              </aside>
+            </div>
+          ) : null}
+        </>
       )}
     </section>
   )

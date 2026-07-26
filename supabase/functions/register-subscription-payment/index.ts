@@ -7,6 +7,7 @@ import {
   getEffectiveMonthlyPrice,
   getPlanChangeKind,
   isFounderPricingEligible,
+  isSubscriptionAccessBlocked,
   normalizeRegisterPaymentPayload,
   SubscriptionBillingError,
 } from '../_shared/subscriptionBilling.ts'
@@ -56,17 +57,24 @@ Deno.serve(async (request) => {
     const admin = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     })
-    const [subscriptionResult, plansResult] = await Promise.all([
+    const [subscriptionResult, plansResult, submissionResult] = await Promise.all([
       admin
         .from('clinic_subscriptions')
-        .select('id, plan_id, status, blocked_at, current_period_starts_at, current_period_ends_at, grace_ends_at, price_tier, custom_monthly_price, is_lifetime')
+        .select('id, plan_id, status, blocked_at, trial_ends_at, current_period_starts_at, current_period_ends_at, grace_ends_at, price_tier, custom_monthly_price, is_lifetime')
         .eq('clinic_id', input.clinicId)
         .maybeSingle(),
       admin
         .from('plans')
         .select('id, monthly_price, founder_monthly_price')
         .in('id', [input.planId])
-        .eq('is_active', true)
+        .eq('is_active', true),
+      submissionId
+        ? admin
+            .from('subscription_payment_submissions')
+            .select('id, clinic_id, plan_id, billing_cycle, payment_type, status')
+            .eq('id', submissionId)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
     ])
 
     if (subscriptionResult.error || !subscriptionResult.data) {
@@ -77,6 +85,29 @@ Deno.serve(async (request) => {
     }
 
     const subscription = subscriptionResult.data
+    const submission = submissionResult.data
+    if (submissionResult.error) {
+      return errorResponse(
+        'PAYMENT_SUBMISSION_QUERY_FAILED',
+        'No pudimos validar la solicitud de pago.',
+        500,
+      )
+    }
+    if (
+      submissionId &&
+      (!submission ||
+        submission.status !== 'pending_review' ||
+        submission.clinic_id !== input.clinicId ||
+        submission.plan_id !== input.planId ||
+        submission.billing_cycle !== input.billingCycle ||
+        submission.payment_type !== input.paymentType)
+    ) {
+      return errorResponse(
+        'PAYMENT_SUBMISSION_MISMATCH',
+        'La solicitud cambió. Vuelve a cargarla antes de registrar el pago.',
+        409,
+      )
+    }
     if (subscription.is_lifetime || subscription.status === 'lifetime') {
       return errorResponse(
         'LIFETIME_MEMBERSHIP_ACTIVE',
@@ -124,10 +155,31 @@ Deno.serve(async (request) => {
         : targetMonthlyPrice
 
     const changeKind = getPlanChangeKind(subscription.plan_id, input.planId)
+    const isAccessBlocked = isSubscriptionAccessBlocked({
+      currentPeriodEndsAt: subscription.current_period_ends_at,
+      graceEndsAt: subscription.grace_ends_at,
+      status: subscription.status,
+      trialEndsAt: subscription.trial_ends_at,
+      now: new Date(input.paidAt),
+    })
     if (input.paymentType === 'upgrade_proration' && changeKind !== 'upgrade') {
       return errorResponse('INVALID_UPGRADE', 'Selecciona un plan superior para registrar el upgrade.', 400)
     }
-    if (input.paymentType !== 'upgrade_proration' && subscription.plan_id !== input.planId) {
+    if (
+      input.paymentType === 'reactivation_plan_change' &&
+      (!submissionId || !isAccessBlocked || changeKind === 'same')
+    ) {
+      return errorResponse(
+        'INVALID_REACTIVATION_PLAN_CHANGE',
+        'Este cambio requiere una solicitud pendiente y una suscripción sin acceso vigente.',
+        409,
+      )
+    }
+    if (
+      input.paymentType !== 'upgrade_proration' &&
+      input.paymentType !== 'reactivation_plan_change' &&
+      subscription.plan_id !== input.planId
+    ) {
       return errorResponse('PLAN_CHANGE_REQUIRES_ACTION', 'Gestiona el cambio de plan desde la sección correspondiente.', 409)
     }
 
@@ -148,10 +200,9 @@ Deno.serve(async (request) => {
           periodStartsAt: subscription.current_period_starts_at ?? input.paidAt,
         }
       : calculatePaymentRegistration({
-          currentPeriodEndsAt:
-            subscription.status === 'blocked'
-              ? null
-              : subscription.current_period_ends_at,
+          currentPeriodEndsAt: isAccessBlocked
+            ? null
+            : subscription.current_period_ends_at,
           input,
           monthlyPrice: registrationMonthlyPrice,
           now: new Date(input.paidAt),

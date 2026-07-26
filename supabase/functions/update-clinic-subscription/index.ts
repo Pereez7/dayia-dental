@@ -2,8 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import {
   assertPlatformBillingAdmin,
   calculateExtraDaysPeriod,
-  getPlanChangeKind,
-  getScheduledDowngradeUpdate,
+  getReactivationUpdate,
   SubscriptionBillingError,
 } from '../_shared/subscriptionBilling.ts'
 
@@ -116,27 +115,80 @@ Deno.serve(async (request) => {
       return jsonResponse({ action: payload.action, ...data, success: true })
     }
 
+    if (
+      payload.action === 'change_plan' ||
+      payload.action === 'force_change_plan'
+    ) {
+      if (!['basic', 'medium', 'pro'].includes(payload.planId)) {
+        return invalid('Selecciona un plan válido.')
+      }
+      if (
+        payload.action === 'force_change_plan' &&
+        payload.notes.length < 5
+      ) {
+        return invalid(
+          'Explica el motivo del cambio inmediato con al menos 5 caracteres.',
+        )
+      }
+
+      const { data, error } = await admin.rpc(
+        'apply_admin_subscription_plan_change',
+        {
+          target_clinic_id: payload.clinicId,
+          target_immediate: payload.action === 'force_change_plan',
+          target_plan_id: payload.planId,
+          target_reason: payload.notes,
+          target_recorded_by: userData.user.id,
+        },
+      )
+
+      if (error) {
+        if (error.message.includes('PLAN_UNCHANGED')) {
+          return responseError(
+            'PLAN_UNCHANGED',
+            'Selecciona un plan diferente al actual.',
+            409,
+          )
+        }
+        if (
+          error.message.includes('INVALID_DOWNGRADE') ||
+          error.message.includes('CURRENT_PERIOD_NOT_ACTIVE')
+        ) {
+          return responseError(
+            'DOWNGRADE_NOT_AVAILABLE',
+            'No puedes programar este downgrade en el estado actual.',
+            409,
+          )
+        }
+        if (error.message.includes('PLAN_CHANGE_REASON_INVALID')) {
+          return invalid(
+            'Explica el motivo del cambio inmediato con al menos 5 caracteres.',
+          )
+        }
+        if (error.message.includes('INVALID_PLAN')) {
+          return invalid('El plan seleccionado no está disponible.')
+        }
+
+        return responseError(
+          'PLAN_CHANGE_FAILED',
+          'No pudimos actualizar el plan.',
+          500,
+        )
+      }
+
+      return jsonResponse({
+        action: payload.action,
+        clinicId: payload.clinicId,
+        effectiveAt: data,
+        success: true,
+      })
+    }
+
     const now = new Date()
     const updates: Record<string, unknown> = { updated_at: now.toISOString() }
 
-    let eventType = 'plan_changed'
-    if (payload.action === 'change_plan') {
-      if (!['basic', 'medium', 'pro'].includes(payload.planId)) return invalid('Selecciona un plan válido.')
-      if (getPlanChangeKind(subscription.plan_id, payload.planId) !== 'downgrade') {
-        return responseError('INVALID_DOWNGRADE', 'Los upgrades requieren registrar el pago prorrateado.', 409)
-      }
-      Object.assign(updates, getScheduledDowngradeUpdate(
-        subscription.current_period_ends_at,
-        payload.planId as 'basic' | 'medium' | 'pro',
-      ))
-      eventType = 'downgrade_scheduled'
-    } else if (payload.action === 'force_change_plan') {
-      if (!['basic', 'medium', 'pro'].includes(payload.planId)) return invalid('Selecciona un plan válido.')
-      if (!payload.notes) return invalid('Explica el motivo del cambio inmediato.')
-      updates.plan_id = payload.planId
-      updates.scheduled_plan_id = null
-      updates.scheduled_plan_starts_at = null
-    } else if (payload.action === 'set_founder_price') {
+    let eventType = 'subscription_updated'
+    if (payload.action === 'set_founder_price') {
       const { data: currentPlan, error: planError } = await admin
         .from('plans')
         .select('founder_monthly_price')
@@ -187,14 +239,39 @@ Deno.serve(async (request) => {
       updates.is_lifetime = false
       eventType = 'extra_days_granted'
     } else if (payload.action === 'block') {
+      if (subscription.status === 'blocked') {
+        return responseError(
+          'SUBSCRIPTION_ALREADY_BLOCKED',
+          'El consultorio ya está bloqueado.',
+          409,
+        )
+      }
+      if (subscription.status === 'cancelled') {
+        return responseError(
+          'SUBSCRIPTION_CANCELLED',
+          'No puedes bloquear una suscripción cancelada.',
+          409,
+        )
+      }
       updates.status = 'blocked'
       updates.blocked_at = now.toISOString()
       eventType = 'blocked'
     } else if (payload.action === 'reactivate') {
-      updates.status = 'active'
-      updates.blocked_at = null
-      const graceEnd = new Date(now.getTime() + 5 * 86_400_000)
-      updates.grace_ends_at = graceEnd.toISOString()
+      if (payload.notes.length < 5) {
+        return invalid('Explica el motivo de la reactivación con al menos 5 caracteres.')
+      }
+      Object.assign(
+        updates,
+        getReactivationUpdate({
+          currentPeriodEndsAt: subscription.current_period_ends_at,
+          graceEndsAt: subscription.grace_ends_at,
+          isLifetime: subscription.is_lifetime === true,
+          now,
+          paymentStatus: subscription.payment_status,
+          status: subscription.status,
+          trialEndsAt: subscription.trial_ends_at,
+        }),
+      )
       eventType = 'reactivated'
     } else {
       updates.status = 'cancelled'

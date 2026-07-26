@@ -2,9 +2,20 @@
 
 ## Punto de continuidad
 
-El último bloque terminado es la estabilización de suscripciones y pagos
-manuales de Administración DayIA:
+El último bloque terminado es la estabilización de cambios de plan,
+suscripciones y pagos manuales:
 
+- El propietario elige Basic, Medium o Pro desde Suscripción. Un upgrade activo
+  cobra la diferencia prorrateada y conserva el vencimiento; un downgrade se
+  programa para el cierre del periodo y puede cancelarse.
+- Si la cuenta está vencida o bloqueada, puede elegir otro plan y pagar el
+  periodo completo. El plan y la nueva vigencia se aplican únicamente cuando
+  Platform Admin valida el pago.
+- `manage-owner-subscription-plan` calcula el importe en servidor, valida al
+  propietario y crea el aviso pendiente. React no inserta directamente en
+  `subscription_payment_submissions`.
+- Un cambio administrativo inmediato es una excepción con motivo obligatorio,
+  confirmación y escritura atómica de suscripción más auditoría.
 - Los avisos de pago pendientes pueden aprobarse o rechazarse con motivo y
   auditoría.
 - La anulación del último pago conserva los días adicionales concedidos después
@@ -18,14 +29,16 @@ manuales de Administración DayIA:
 - Mientras vitalicio está activo se bloquean nuevos pagos y días adicionales
   para evitar sustituir accidentalmente la condición comercial.
 
-Supabase ya tiene aplicadas las migraciones `023`, `024` y `025`. Las Edge
-Functions `reject-subscription-payment-submission`,
-`void-subscription-payment`, `update-clinic-subscription` y
-`register-subscription-payment` están desplegadas. La prueba remota de
-asignación y retiro vitalicio se ejecutó dentro de una transacción revertida,
-por lo que no modificó suscripciones reales.
+Supabase ya tiene aplicadas las migraciones `023`, `024`, `025` y `026`. Las
+Edge Functions `manage-owner-subscription-plan`,
+`reject-subscription-payment-submission`, `void-subscription-payment`,
+`update-clinic-subscription`, `register-subscription-payment` y
+`list-platform-clinics` están desplegadas. La migración `026` se validó primero
+dentro de una transacción con rollback y luego se aplicó. Las cuatro Functions
+modificadas figuran `ACTIVE` y la nueva Function rechaza llamadas sin JWT con
+`401`.
 
-El bloque cerró con lint, 624 pruebas y build correctos. Para continuar desde
+El bloque cerró con lint, 639 pruebas y build correctos. Para continuar desde
 otro equipo se debe actualizar `main` desde `origin`, conservar su `.env` local
 y seguir la guía de [Retomar el proyecto en otro equipo](../README.md#retomar-el-proyecto-en-otro-equipo).
 
@@ -68,7 +81,8 @@ especialmente pensando en una futura integracion con WhatsApp.
 - Pruebas unitarias para formatters, filtros y validaciones.
 - Suscripciones QR con confirmación administrativa, ledger anulable sin borrado
   y comprobantes enviados manualmente por WhatsApp. Incluye rechazo de avisos,
-  conservación de días posteriores al anular y membresía vitalicia reversible.
+  conservación de días posteriores al anular, cambios de plan seguros y
+  membresía vitalicia reversible.
 
 ## Dashboard
 

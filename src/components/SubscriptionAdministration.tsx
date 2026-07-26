@@ -34,7 +34,12 @@ import {
   type BillingCycle,
 } from '../utils/subscriptionBilling'
 import { formatAppDate, formatSubscriptionDate } from '../utils/dateFormatters'
+import {
+  formatNumericInput,
+  parseNumericInput,
+} from '../utils/numericInput'
 import { ConfirmDialog } from './ConfirmDialog'
+import { NumericInput } from './NumericInput'
 import { Toast, type ToastTone } from './Toast'
 
 interface SubscriptionAdministrationProps {
@@ -52,6 +57,11 @@ const cycleLabels: Record<BillingCycle, string> = {
 }
 
 type LifetimeMembershipAction = 'disable' | 'enable'
+type PlanChangeReview = {
+  changeKind: 'downgrade' | 'upgrade'
+  immediate: boolean
+  planId: PlatformClinicPlanId
+}
 
 export function SubscriptionAdministration({
   clinic,
@@ -61,18 +71,22 @@ export function SubscriptionAdministration({
   const currentPlanId = normalizePlan(clinic.planId)
   const [planId, setPlanId] = useState<PlatformClinicPlanId>(currentPlanId)
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly')
-  const [customDays, setCustomDays] = useState(30)
-  const [discountPercent, setDiscountPercent] = useState(0)
-  const [manualAmount, setManualAmount] = useState(0)
-  const [amountOverride, setAmountOverride] = useState('')
-  const [customMonthlyPrice, setCustomMonthlyPrice] = useState(
-    clinic.customMonthlyPrice ?? 0,
+  const [customDaysInput, setCustomDaysInput] = useState('30')
+  const [discountPercentInput, setDiscountPercentInput] = useState('0')
+  const [manualAmountInput, setManualAmountInput] = useState('')
+  const [amountOverride, setAmountOverride] = useState<string | null>(null)
+  const [customMonthlyPriceInput, setCustomMonthlyPriceInput] = useState(
+    formatNumericInput(clinic.customMonthlyPrice ?? 0),
   )
   const [forcePlanChange, setForcePlanChange] = useState(false)
+  const [planChangeReview, setPlanChangeReview] =
+    useState<PlanChangeReview | null>(null)
+  const [planChangeReason, setPlanChangeReason] = useState('')
+  const [planChangeError, setPlanChangeError] = useState('')
   const [reference, setReference] = useState('')
   const [notes, setNotes] = useState('')
   const [paidAt, setPaidAt] = useState(() => toLocalDateTimeInput(new Date()))
-  const [extraDays, setExtraDays] = useState(5)
+  const [extraDaysInput, setExtraDaysInput] = useState('5')
   const [feedback, setFeedback] = useState('')
   const [feedbackTone, setFeedbackTone] = useState<ToastTone>('success')
   const [isFeedbackVisible, setIsFeedbackVisible] = useState(false)
@@ -80,6 +94,10 @@ export function SubscriptionAdministration({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false)
+  const [isReactivationDialogOpen, setIsReactivationDialogOpen] =
+    useState(false)
+  const [reactivationReason, setReactivationReason] = useState('')
+  const [reactivationError, setReactivationError] = useState('')
   const [isExtraDaysDialogOpen, setIsExtraDaysDialogOpen] = useState(false)
   const [lifetimeAction, setLifetimeAction] =
     useState<LifetimeMembershipAction | null>(null)
@@ -99,6 +117,15 @@ export function SubscriptionAdministration({
   const [rejectionReason, setRejectionReason] = useState('')
   const [rejectionError, setRejectionError] = useState('')
   const submissionLock = useRef(false)
+  const customDays =
+    parseNumericInput(customDaysInput) ?? Number.NaN
+  const discountPercent =
+    parseNumericInput(discountPercentInput) ?? Number.NaN
+  const manualAmount = parseNumericInput(manualAmountInput) ?? 0
+  const customMonthlyPrice =
+    parseNumericInput(customMonthlyPriceInput) ?? Number.NaN
+  const extraDays =
+    parseNumericInput(extraDaysInput) ?? Number.NaN
 
   const configuredMonthlyPrice = getMonthlyPriceForTier({
     customPrice: clinic.customMonthlyPrice,
@@ -124,8 +151,10 @@ export function SubscriptionAdministration({
     () =>
       calculateTieredSubscriptionPayment({
         billingCycle,
-        customDays,
-        discountPercent,
+        customDays: Number.isFinite(customDays) ? customDays : 1,
+        discountPercent: Number.isFinite(discountPercent)
+          ? discountPercent
+          : 0,
         effectiveMonthlyPrice: monthlyPrice,
         manualAmount,
         priceTier: effectivePriceTier,
@@ -141,9 +170,12 @@ export function SubscriptionAdministration({
       standardMonthlyPrice,
     ],
   )
+  const finalAmountInput =
+    amountOverride ?? formatNumericInput(calculation.amountPaid)
   const finalAmount =
-    amountOverride === '' ? calculation.amountPaid : Number(amountOverride)
+    parseNumericInput(finalAmountInput) ?? Number.NaN
   const hasManualAmountDifference =
+    amountOverride !== null &&
     amountOverride !== '' &&
     Number.isFinite(finalAmount) &&
     Math.abs(finalAmount - calculation.amountPaid) >= 0.01
@@ -203,8 +235,8 @@ export function SubscriptionAdministration({
 
   function handleCycleChange(cycle: BillingCycle) {
     setBillingCycle(cycle)
-    setDiscountPercent(suggestedDiscounts[cycle])
-    setAmountOverride('')
+    setDiscountPercentInput(formatNumericInput(suggestedDiscounts[cycle]))
+    setAmountOverride(null)
     clearFieldError('billingCycle')
   }
 
@@ -241,6 +273,14 @@ export function SubscriptionAdministration({
 
     setFeedback('')
     setPaymentRegistrationError('')
+    const selectedSubmission = selectedSubmissionId
+      ? clinic.paymentSubmissions.find(
+          (submission) => submission.id === selectedSubmissionId,
+        )
+      : null
+    const submissionPaymentType =
+      selectedSubmission?.paymentType ?? 'regular'
+
     setPendingPayment({
       amountPaid: finalAmount,
       billingCycle,
@@ -250,7 +290,10 @@ export function SubscriptionAdministration({
       isLifetime: billingCycle === 'lifetime',
       notes,
       paidAt: new Date(paidAt).toISOString(),
-      planId: currentPlanId,
+      paymentType: submissionPaymentType,
+      planId: selectedSubmission
+        ? normalizePlan(selectedSubmission.planId)
+        : currentPlanId,
       reference: reference.trim(),
       submissionId: selectedSubmissionId ?? undefined,
     })
@@ -276,7 +319,7 @@ export function SubscriptionAdministration({
       setPendingPayment(null)
       setReference('')
       setNotes('')
-      setAmountOverride('')
+      setAmountOverride(null)
       setSelectedSubmissionId(null)
       setPaymentRegistrationError('')
       showFeedback('Pago registrado y suscripción actualizada.', 'success')
@@ -326,30 +369,77 @@ export function SubscriptionAdministration({
       showFeedback('Selecciona un plan diferente.', 'error')
       return
     }
-    if (forcePlanChange) {
-      await runAction({
-        action: 'force_change_plan',
-        clinicId: clinic.clinicId,
-        notes,
-        planId,
-      })
-      return
-    }
-    if (changeKind === 'downgrade') {
-      await runAction({
-        action: 'change_plan',
-        clinicId: clinic.clinicId,
-        notes,
-        planId,
-      })
+    if (changeKind === 'upgrade' && !forcePlanChange) {
+      reviewUpgradePayment()
       return
     }
 
-    reviewUpgradePayment()
+    setPlanChangeReview({
+      changeKind,
+      immediate: forcePlanChange,
+      planId,
+    })
+    setPlanChangeReason('')
+    setPlanChangeError('')
   }
 
-  async function runAction(input: UpdateClinicSubscriptionInput) {
-    if (isSubmitting || submissionLock.current) return
+  async function confirmPlanChange() {
+    if (
+      !planChangeReview ||
+      (planChangeReview.immediate &&
+        planChangeReason.trim().length < 5) ||
+      isSubmitting ||
+      submissionLock.current
+    ) {
+      return
+    }
+
+    submissionLock.current = true
+    setIsSubmitting(true)
+    setPlanChangeError('')
+
+    try {
+      const result = await updateClinicSubscription({
+        action: planChangeReview.immediate
+          ? 'force_change_plan'
+          : 'change_plan',
+        clinicId: clinic.clinicId,
+        notes: planChangeReview.immediate
+          ? planChangeReason.trim()
+          : 'Downgrade programado al finalizar el periodo vigente.',
+        planId: planChangeReview.planId,
+      })
+
+      if (!result.success) {
+        setPlanChangeError(
+          result.error ?? 'No pudimos actualizar el plan.',
+        )
+        return
+      }
+
+      const message = planChangeReview.immediate
+        ? 'Cambio de plan aplicado inmediatamente.'
+        : 'Downgrade programado correctamente.'
+      setPlanChangeReview(null)
+      setPlanChangeReason('')
+      setPlanChangeError('')
+      setForcePlanChange(false)
+      showFeedback(message, 'success')
+      await onUpdated()
+    } catch {
+      setPlanChangeError(
+        'No pudimos completar el cambio. Revisa tu conexión e intenta nuevamente.',
+      )
+    } finally {
+      submissionLock.current = false
+      setIsSubmitting(false)
+    }
+  }
+
+  async function runAction(
+    input: UpdateClinicSubscriptionInput,
+  ): Promise<boolean> {
+    if (isSubmitting || submissionLock.current) return false
     submissionLock.current = true
     setIsSubmitting(true)
     setFeedback('')
@@ -361,6 +451,13 @@ export function SubscriptionAdministration({
         result.success ? 'success' : 'error',
       )
       if (result.success) await onUpdated()
+      return result.success
+    } catch {
+      showFeedback(
+        'No pudimos completar la acción. Revisa tu conexión e intenta nuevamente.',
+        'error',
+      )
+      return false
     } finally {
       submissionLock.current = false
       setIsSubmitting(false)
@@ -410,6 +507,49 @@ export function SubscriptionAdministration({
     } catch {
       setLifetimeError(
         'No pudimos completar el cambio. Revisa tu conexión e intenta nuevamente.',
+      )
+    } finally {
+      submissionLock.current = false
+      setIsSubmitting(false)
+    }
+  }
+
+  async function confirmReactivation() {
+    if (
+      clinic.subscriptionStatus !== 'blocked' ||
+      reactivationReason.trim().length < 5 ||
+      isSubmitting ||
+      submissionLock.current
+    ) {
+      return
+    }
+
+    submissionLock.current = true
+    setIsSubmitting(true)
+    setReactivationError('')
+
+    try {
+      const result = await updateClinicSubscription({
+        action: 'reactivate',
+        clinicId: clinic.clinicId,
+        notes: reactivationReason.trim(),
+      })
+
+      if (!result.success) {
+        setReactivationError(
+          result.error ?? 'No pudimos reactivar el acceso.',
+        )
+        return
+      }
+
+      setIsReactivationDialogOpen(false)
+      setReactivationReason('')
+      setReactivationError('')
+      showFeedback('Acceso reactivado correctamente.', 'success')
+      await onUpdated()
+    } catch {
+      setReactivationError(
+        'No pudimos completar la reactivación. Revisa tu conexión e intenta nuevamente.',
       )
     } finally {
       submissionLock.current = false
@@ -494,7 +634,7 @@ export function SubscriptionAdministration({
         setPendingPayment(null)
         setReference('')
         setNotes('')
-        setAmountOverride('')
+        setAmountOverride(null)
       }
       setSubmissionToReject(null)
       setRejectionReason('')
@@ -518,8 +658,11 @@ export function SubscriptionAdministration({
     submission: PlatformClinicSummary['paymentSubmissions'][number],
   ) {
     setBillingCycle(submission.billingCycle)
-    setDiscountPercent(suggestedDiscounts[submission.billingCycle])
-    setAmountOverride('')
+    setDiscountPercentInput(
+      formatNumericInput(suggestedDiscounts[submission.billingCycle]),
+    )
+    setAmountOverride(formatNumericInput(submission.amountExpected))
+    setPlanId(normalizePlan(submission.planId))
     setReference(
       isWhatsappPaymentNoticeReference(submission.reference)
         ? ''
@@ -632,7 +775,10 @@ export function SubscriptionAdministration({
                 >
                   <div>
                     <strong>{submission.submittedBy ?? 'Propietario del consultorio'}</strong>
-                    <span>{formatDateTime(submission.createdAt)} · {cycleLabels[submission.billingCycle]}</span>
+                    <span>
+                      {formatDateTime(submission.createdAt)} ·{' '}
+                      {getSubmissionConcept(submission)}
+                    </span>
                   </div>
                   <div>
                     <strong>{submission.amountExpected.toFixed(2)} {submission.currency}</strong>
@@ -716,14 +862,14 @@ export function SubscriptionAdministration({
                 <FieldWithError error={fieldErrors.customDays}>
                   <label>
                     Días de acceso
-                    <input
-                      min="1"
-                      onChange={(event) => {
-                        setCustomDays(Number(event.target.value))
+                    <NumericInput
+                      aria-invalid={Boolean(fieldErrors.customDays)}
+                      maxLength={4}
+                      onValueChange={(value) => {
+                        setCustomDaysInput(value)
                         clearFieldError('customDays')
                       }}
-                      type="number"
-                      value={customDays}
+                      value={customDaysInput}
                     />
                   </label>
                 </FieldWithError>
@@ -731,44 +877,42 @@ export function SubscriptionAdministration({
               {monthlyPrice === null || billingCycle === 'lifetime' ? (
                 <label>
                   Monto base manual
-                  <input
-                    min="0.01"
-                    onChange={(event) => setManualAmount(Number(event.target.value))}
-                    step="0.01"
-                    type="number"
-                    value={manualAmount || ''}
+                  <NumericInput
+                    kind="decimal"
+                    maxLength={14}
+                    onValueChange={setManualAmountInput}
+                    value={manualAmountInput}
                   />
                 </label>
               ) : null}
               <FieldWithError error={fieldErrors.discountPercent}>
                 <label>
                   Descuento (%)
-                  <input
-                    max="100"
-                    min="0"
-                    onChange={(event) => {
-                      setDiscountPercent(Number(event.target.value))
-                      setAmountOverride('')
+                  <NumericInput
+                    aria-invalid={Boolean(fieldErrors.discountPercent)}
+                    kind="decimal"
+                    maxLength={6}
+                    onValueChange={(value) => {
+                      setDiscountPercentInput(value)
+                      setAmountOverride(null)
                       clearFieldError('discountPercent')
                     }}
-                    step="0.01"
-                    type="number"
-                    value={discountPercent}
+                    value={discountPercentInput}
                   />
                 </label>
               </FieldWithError>
               <FieldWithError error={fieldErrors.finalAmount}>
                 <label className="subscription-amount-field">
                   Monto final ({clinic.currency})
-                  <input
-                    min="0.01"
-                    onChange={(event) => {
-                      setAmountOverride(event.target.value)
+                  <NumericInput
+                    aria-invalid={Boolean(fieldErrors.finalAmount)}
+                    kind="decimal"
+                    maxLength={14}
+                    onValueChange={(value) => {
+                      setAmountOverride(value)
                       clearFieldError('finalAmount')
                     }}
-                    step="0.01"
-                    type="number"
-                    value={amountOverride === '' ? calculation.amountPaid : amountOverride}
+                    value={finalAmountInput}
                   />
                 </label>
               </FieldWithError>
@@ -786,7 +930,7 @@ export function SubscriptionAdministration({
                   />
                 </label>
               </FieldWithError>
-              <FieldWithError error={fieldErrors.reference}>
+              <FieldWithError error={fieldErrors.reference} wide>
                 <label>
                   Referencia
                   <input
@@ -852,15 +996,17 @@ export function SubscriptionAdministration({
         changeKind={changeKind}
         clinic={clinic}
         customMonthlyPrice={customMonthlyPrice}
+        customMonthlyPriceInput={customMonthlyPriceInput}
         extraDays={extraDays}
+        extraDaysInput={extraDaysInput}
         forcePlanChange={forcePlanChange}
         isSubmitting={isSubmitting}
         notes={notes}
         planId={planId}
         upgradeProration={upgradeProration}
         onBlock={() => setIsBlockDialogOpen(true)}
-        onCustomMonthlyPriceChange={setCustomMonthlyPrice}
-        onExtraDaysChange={setExtraDays}
+        onCustomMonthlyPriceChange={setCustomMonthlyPriceInput}
+        onExtraDaysChange={setExtraDaysInput}
         onReviewExtraDays={() => setIsExtraDaysDialogOpen(true)}
         onReviewLifetime={() => {
           if (clinic.isLifetime && registeredLifetimePayment) {
@@ -873,6 +1019,12 @@ export function SubscriptionAdministration({
           setLifetimeAction(clinic.isLifetime ? 'disable' : 'enable')
           setLifetimeReason('')
           setLifetimeError('')
+        }}
+        onReviewReactivation={() => {
+          if (clinic.subscriptionStatus !== 'blocked') return
+          setReactivationReason('')
+          setReactivationError('')
+          setIsReactivationDialogOpen(true)
         }}
         onForcePlanChange={setForcePlanChange}
         onPlanChange={setPlanId}
@@ -905,7 +1057,7 @@ export function SubscriptionAdministration({
                   return (
                     <tr key={payment.id}>
                       <td data-label="Fecha">{formatDateTime(payment.paidAt)}</td>
-                      <td data-label="Plan y periodo"><strong>{getPlanName(payment.planId)}</strong><span>{payment.paymentType === 'upgrade_proration' ? 'Upgrade prorrateado' : cycleLabels[payment.billingCycle as BillingCycle] ?? payment.billingCycle}</span></td>
+                      <td data-label="Plan y periodo"><strong>{getPlanName(payment.planId)}</strong><span>{getPaymentTypeLabel(payment)}</span></td>
                       <td data-label="Monto"><strong>{payment.amountPaid.toFixed(2)} {payment.currency}</strong></td>
                       <td data-label="Estado"><span className={`payment-ledger-status payment-ledger-status--${payment.status}`}>{payment.status === 'voided' ? 'Anulado' : 'Registrado'}</span></td>
                       <td data-label="Registrado por">{payment.recordedBy ?? 'Administrador DayIA'}</td>
@@ -946,9 +1098,15 @@ export function SubscriptionAdministration({
         calculation={
           pendingPayment?.paymentType === 'upgrade_proration'
             ? {
-                amountDue: upgradeProration.amount,
+                amountDue: pendingPayment.amountPaid,
                 discountAmount: 0,
               }
+            : pendingPayment?.paymentType ===
+                'reactivation_plan_change'
+              ? {
+                  amountDue: pendingPayment.amountPaid,
+                  discountAmount: 0,
+                }
             : calculation
         }
         onCancel={() => {
@@ -973,6 +1131,80 @@ export function SubscriptionAdministration({
           setVoidPaymentError('')
         }}
       />
+
+      <ConfirmDialog
+        cancelLabel="Conservar plan actual"
+        confirmLabel={
+          isSubmitting
+            ? 'Aplicando cambio...'
+            : planChangeReview?.immediate
+              ? 'Aplicar cambio ahora'
+              : 'Programar downgrade'
+        }
+        isCancelDisabled={isSubmitting}
+        isConfirmDisabled={
+          isSubmitting ||
+          !planChangeReview ||
+          (planChangeReview.immediate &&
+            planChangeReason.trim().length < 5)
+        }
+        isOpen={planChangeReview !== null}
+        message={
+          planChangeReview?.immediate
+            ? 'El plan cambiará inmediatamente como excepción administrativa. La vigencia actual se conservará y no se generará devolución automática.'
+            : 'El consultorio conservará el plan actual hasta que finalice el periodo ya pagado.'
+        }
+        onCancel={() => {
+          if (isSubmitting) return
+          setPlanChangeReview(null)
+          setPlanChangeReason('')
+          setPlanChangeError('')
+        }}
+        onConfirm={() => void confirmPlanChange()}
+        title={
+          planChangeReview?.immediate
+            ? 'Confirmar cambio inmediato'
+            : 'Programar cambio de plan'
+        }
+        variant={planChangeReview?.immediate ? 'warning' : 'info'}
+      >
+        {planChangeReview ? (
+          <PlanChangeReviewSummary
+            clinic={clinic}
+            immediate={planChangeReview.immediate}
+            planId={planChangeReview.planId}
+          />
+        ) : null}
+        {planChangeReview?.immediate ? (
+          <label className="confirm-dialog-field">
+            Motivo del cambio inmediato
+            <textarea
+              aria-describedby="plan-change-reason-help"
+              autoFocus
+              maxLength={500}
+              onChange={(event) =>
+                setPlanChangeReason(event.target.value)
+              }
+              placeholder="Ej.: excepción comercial solicitada y aprobada"
+              rows={4}
+              value={planChangeReason}
+            />
+            <span
+              className={`confirm-dialog-help${planChangeReason.trim().length >= 5 ? ' confirm-dialog-help--valid' : ''}`}
+              id="plan-change-reason-help"
+            >
+              {planChangeReason.trim().length < 5
+                ? `Faltan ${5 - planChangeReason.trim().length} caracteres. El motivo es obligatorio.`
+                : 'Motivo válido. Quedará registrado en auditoría.'}
+            </span>
+          </label>
+        ) : null}
+        {planChangeError ? (
+          <p className="confirm-dialog-action-error" role="alert">
+            {planChangeError}
+          </p>
+        ) : null}
+      </ConfirmDialog>
 
       <ConfirmDialog
         cancelLabel="Conservar solicitud"
@@ -1005,8 +1237,8 @@ export function SubscriptionAdministration({
               value={`${submissionToReject.amountExpected.toFixed(2)} ${submissionToReject.currency}`}
             />
             <SummaryFact
-              label="Periodo"
-              value={cycleLabels[submissionToReject.billingCycle]}
+              label="Solicitud"
+              value={getSubmissionConcept(submissionToReject)}
             />
             <SummaryFact
               label="Fecha"
@@ -1195,6 +1427,55 @@ export function SubscriptionAdministration({
       </ConfirmDialog>
 
       <ConfirmDialog
+        cancelLabel="Conservar bloqueo"
+        confirmLabel={
+          isSubmitting ? 'Reactivando...' : 'Confirmar reactivación'
+        }
+        isCancelDisabled={isSubmitting}
+        isConfirmDisabled={
+          isSubmitting || reactivationReason.trim().length < 5
+        }
+        isOpen={isReactivationDialogOpen}
+        message="El consultorio recuperará el acceso correspondiente a su vigencia actual. La acción quedará registrada en auditoría."
+        onCancel={() => {
+          if (isSubmitting) return
+          setIsReactivationDialogOpen(false)
+          setReactivationReason('')
+          setReactivationError('')
+        }}
+        onConfirm={() => void confirmReactivation()}
+        title="Reactivar acceso del consultorio"
+        variant="info"
+      >
+        <ReactivationReview clinic={clinic} />
+        <label className="confirm-dialog-field">
+          Motivo de reactivación
+          <textarea
+            aria-describedby="reactivation-reason-help"
+            autoFocus
+            maxLength={500}
+            onChange={(event) => setReactivationReason(event.target.value)}
+            placeholder="Ej.: bloqueo administrativo resuelto"
+            rows={4}
+            value={reactivationReason}
+          />
+          <span
+            className={`confirm-dialog-help${reactivationReason.trim().length >= 5 ? ' confirm-dialog-help--valid' : ''}`}
+            id="reactivation-reason-help"
+          >
+            {reactivationReason.trim().length < 5
+              ? `Faltan ${5 - reactivationReason.trim().length} caracteres. El motivo es obligatorio.`
+              : 'Motivo válido. Quedará registrado en auditoría.'}
+          </span>
+        </label>
+        {reactivationError ? (
+          <p className="confirm-dialog-action-error" role="alert">
+            {reactivationError}
+          </p>
+        ) : null}
+      </ConfirmDialog>
+
+      <ConfirmDialog
         cancelLabel="Conservar acceso"
         confirmLabel="Bloquear consultorio"
         isConfirmDisabled={isSubmitting}
@@ -1233,19 +1514,22 @@ function SummaryFact({
 function FieldWithError({
   children,
   error,
+  wide = false,
 }: {
   children: React.ReactNode
   error?: string
+  wide?: boolean
 }) {
   return (
-    <div className="subscription-field-wrapper">
+    <div
+      className={`subscription-field-wrapper${wide ? ' subscription-field-wide' : ''}`}
+    >
       {children}
-      <span
-        aria-hidden={!error}
-        className={`field-message field-message--error${error ? '' : ' field-message--reserved'}`}
-      >
-        {error || '\u00a0'}
-      </span>
+      {error ? (
+        <span className="field-message field-message--error" role="alert">
+          {error}
+        </span>
+      ) : null}
     </div>
   )
 }
@@ -1356,7 +1640,9 @@ function AdministrativeActions({
   changeKind,
   clinic,
   customMonthlyPrice,
+  customMonthlyPriceInput,
   extraDays,
+  extraDaysInput,
   forcePlanChange,
   isSubmitting,
   notes,
@@ -1365,6 +1651,7 @@ function AdministrativeActions({
   onExtraDaysChange,
   onReviewExtraDays,
   onReviewLifetime,
+  onReviewReactivation,
   onForcePlanChange,
   onPlanChange,
   onRunAction,
@@ -1375,18 +1662,21 @@ function AdministrativeActions({
   changeKind: 'downgrade' | 'same' | 'upgrade'
   clinic: PlatformClinicSummary
   customMonthlyPrice: number
+  customMonthlyPriceInput: string
   extraDays: number
+  extraDaysInput: string
   forcePlanChange: boolean
   isSubmitting: boolean
   notes: string
   onBlock: () => void
-  onCustomMonthlyPriceChange: (value: number) => void
-  onExtraDaysChange: (value: number) => void
+  onCustomMonthlyPriceChange: (value: string) => void
+  onExtraDaysChange: (value: string) => void
   onReviewExtraDays: () => void
   onReviewLifetime: () => void
+  onReviewReactivation: () => void
   onForcePlanChange: (value: boolean) => void
   onPlanChange: (value: PlatformClinicPlanId) => void
-  onRunAction: (input: UpdateClinicSubscriptionInput) => Promise<void>
+  onRunAction: (input: UpdateClinicSubscriptionInput) => Promise<boolean>
   onSubmitPlanChange: () => void
   planId: PlatformClinicPlanId
   upgradeProration: { amount: number; daysRemaining: number }
@@ -1394,8 +1684,12 @@ function AdministrativeActions({
   const currentPlanId = normalizePlan(clinic.planId)
   const founderPrice = clinic.planFounderMonthlyPrices[currentPlanId] ?? null
   const hasFounderPrice = founderPrice !== null && founderPrice > 0
+  const hasValidCustomMonthlyPrice =
+    Number.isFinite(customMonthlyPrice) && customMonthlyPrice >= 0
   const hasValidExtraDays =
     Number.isInteger(extraDays) && extraDays >= 1 && extraDays <= 3650
+  const isBlocked = clinic.subscriptionStatus === 'blocked'
+  const isCanceled = clinic.subscriptionStatus === 'canceled'
 
   return (
     <section className="subscription-management-block" aria-labelledby="subscription-management-title">
@@ -1406,8 +1700,44 @@ function AdministrativeActions({
           <div className="subscription-action-row">
             <label>Nuevo plan<select value={planId} onChange={(event) => onPlanChange(event.target.value as PlatformClinicPlanId)}><option value="basic">Basic</option><option value="medium">Medium</option><option value="pro">Pro</option></select></label>
             <p>{changeKind === 'upgrade' ? `Prorrateo: ${upgradeProration.amount.toFixed(2)} ${clinic.currency} por ${upgradeProration.daysRemaining} días` : changeKind === 'downgrade' ? `Comienza el ${formatOptionalDate(clinic.currentPeriodEndsAt)}` : 'Selecciona un plan distinto.'}</p>
-            <label className="subscription-checkbox"><input checked={forcePlanChange} onChange={(event) => onForcePlanChange(event.target.checked)} type="checkbox" /> Forzar cambio inmediato</label>
-            <button className="secondary-action" disabled={isSubmitting || changeKind === 'same'} onClick={onSubmitPlanChange} type="button">{forcePlanChange ? 'Aplicar excepción' : changeKind === 'upgrade' ? 'Revisar upgrade' : 'Programar downgrade'}</button>
+            <fieldset className="subscription-change-timing">
+              <legend>Aplicación del cambio</legend>
+              <label>
+                <input
+                  checked={!forcePlanChange}
+                  name="plan-change-timing"
+                  onChange={() => onForcePlanChange(false)}
+                  type="radio"
+                />
+                <span>
+                  <strong>
+                    {changeKind === 'upgrade'
+                      ? 'Después de validar el pago'
+                      : 'Al finalizar el periodo'}
+                  </strong>
+                  <small>
+                    {changeKind === 'upgrade'
+                      ? 'Conserva el vencimiento y cobra solo la diferencia.'
+                      : `Mantiene el plan actual hasta el ${formatOptionalDate(clinic.currentPeriodEndsAt)}.`}
+                  </small>
+                </span>
+              </label>
+              <label>
+                <input
+                  checked={forcePlanChange}
+                  name="plan-change-timing"
+                  onChange={() => onForcePlanChange(true)}
+                  type="radio"
+                />
+                <span>
+                  <strong>Aplicar ahora como excepción</strong>
+                  <small>
+                    Requiere motivo y no genera devolución automática.
+                  </small>
+                </span>
+              </label>
+            </fieldset>
+            <button className="secondary-action" disabled={isSubmitting || changeKind === 'same'} onClick={onSubmitPlanChange} type="button">{changeKind === 'upgrade' && !forcePlanChange ? 'Revisar upgrade' : 'Revisar cambio'}</button>
           </div>
         </div>
         <div className="subscription-actions">
@@ -1418,8 +1748,25 @@ function AdministrativeActions({
               <strong>{hasFounderPrice ? `${founderPrice.toFixed(2)} ${clinic.currency} / mes` : 'No configurada para el plan'}</strong>
             </div>
             <button className="secondary-action" disabled={isSubmitting || !hasFounderPrice || clinic.priceTier === 'founder'} onClick={() => void onRunAction({ action: 'set_founder_price', clinicId: clinic.clinicId, notes })} type="button">{clinic.priceTier === 'founder' ? 'Tarifa fundador activa' : 'Asignar tarifa fundador'}</button>
-            <label>Precio personalizado<input min="0" onChange={(event) => onCustomMonthlyPriceChange(Number(event.target.value))} step="0.01" type="number" value={customMonthlyPrice} /></label>
-            <button className="secondary-action" disabled={isSubmitting} onClick={() => void onRunAction({ action: 'set_custom_price', clinicId: clinic.clinicId, customMonthlyPrice, notes })} type="button">Aplicar personalizado</button>
+            <FieldWithError
+              error={
+                hasValidCustomMonthlyPrice
+                  ? ''
+                  : 'Ingresa un precio igual o mayor a 0.'
+              }
+            >
+              <label>
+                Precio personalizado
+                <NumericInput
+                  aria-invalid={!hasValidCustomMonthlyPrice}
+                  kind="decimal"
+                  maxLength={14}
+                  onValueChange={onCustomMonthlyPriceChange}
+                  value={customMonthlyPriceInput}
+                />
+              </label>
+            </FieldWithError>
+            <button className="secondary-action" disabled={isSubmitting || !hasValidCustomMonthlyPrice} onClick={() => void onRunAction({ action: 'set_custom_price', clinicId: clinic.clinicId, customMonthlyPrice, notes })} type="button">Aplicar personalizado</button>
             <button className="secondary-action" disabled={isSubmitting} onClick={() => void onRunAction({ action: 'set_standard_price', clinicId: clinic.clinicId, notes })} type="button">Usar tarifa estándar</button>
           </div>
         </div>
@@ -1449,19 +1796,24 @@ function AdministrativeActions({
                 ? 'Retirar membresía vitalicia'
                 : 'Asignar membresía vitalicia'}
             </button>
-            <label>
-              Días adicionales
-              <input
-                disabled={clinic.isLifetime}
-                max="3650"
-                min="1"
-                onChange={(event) =>
-                  onExtraDaysChange(Number(event.target.value))
-                }
-                type="number"
-                value={extraDays}
-              />
-            </label>
+            <FieldWithError
+              error={
+                clinic.isLifetime || hasValidExtraDays
+                  ? ''
+                  : 'Ingresa entre 1 y 3650 días.'
+              }
+            >
+              <label>
+                Días adicionales
+                <NumericInput
+                  aria-invalid={!clinic.isLifetime && !hasValidExtraDays}
+                  disabled={clinic.isLifetime}
+                  maxLength={4}
+                  onValueChange={onExtraDaysChange}
+                  value={extraDaysInput}
+                />
+              </label>
+            </FieldWithError>
             <button
               className="secondary-action"
               disabled={
@@ -1478,8 +1830,26 @@ function AdministrativeActions({
                 por días.
               </p>
             ) : null}
-            <button className="secondary-action" disabled={isSubmitting} onClick={() => void onRunAction({ action: 'reactivate', clinicId: clinic.clinicId })} type="button">Reactivar acceso</button>
-            <button className="danger-action" disabled={isSubmitting} onClick={onBlock} type="button">Bloquear consultorio</button>
+            <button
+              className="secondary-action"
+              disabled={isSubmitting || !isBlocked}
+              onClick={onReviewReactivation}
+              type="button"
+            >
+              {isBlocked
+                ? 'Reactivar acceso'
+                : isCanceled
+                  ? 'Reactivación no disponible'
+                  : 'Acceso habilitado'}
+            </button>
+            <button
+              className="danger-action"
+              disabled={isSubmitting || isBlocked || isCanceled}
+              onClick={onBlock}
+              type="button"
+            >
+              {isBlocked ? 'Consultorio bloqueado' : 'Bloquear consultorio'}
+            </button>
           </div>
         </div>
       </div>
@@ -1522,6 +1892,38 @@ export function ExtraDaysReview({
   )
 }
 
+export function PlanChangeReviewSummary({
+  clinic,
+  immediate,
+  planId,
+}: {
+  clinic: PlatformClinicSummary
+  immediate: boolean
+  planId: PlatformClinicPlanId
+}) {
+  return (
+    <dl className="void-payment-summary">
+      <SummaryFact
+        label="Plan actual"
+        value={getPlanName(clinic.planId)}
+      />
+      <SummaryFact label="Nuevo plan" value={getPlanName(planId)} />
+      <SummaryFact
+        label="Aplicación"
+        value={
+          immediate
+            ? 'Inmediatamente'
+            : formatOptionalDate(clinic.currentPeriodEndsAt)
+        }
+      />
+      <SummaryFact
+        label="Vencimiento"
+        value={formatOptionalDate(clinic.currentPeriodEndsAt)}
+      />
+    </dl>
+  )
+}
+
 export function LifetimeMembershipReview({
   action,
   clinic,
@@ -1558,6 +1960,27 @@ export function LifetimeMembershipReview({
   )
 }
 
+export function ReactivationReview({
+  clinic,
+}: {
+  clinic: PlatformClinicSummary
+}) {
+  return (
+    <dl className="payment-review-summary">
+      <SummaryFact label="Consultorio" value={clinic.clinicName} />
+      <SummaryFact label="Estado actual" value="Bloqueado" />
+      <SummaryFact
+        label="Acceso que recupera"
+        value={clinic.isLifetime ? 'Vitalicio' : 'Según vigencia actual'}
+      />
+      <SummaryFact
+        label="Plan que conserva"
+        value={getPlanName(clinic.planId)}
+      />
+    </dl>
+  )
+}
+
 function normalizePlan(planId: string | null): PlatformClinicPlanId {
   return planId === 'medium' || planId === 'pro' ? planId : 'basic'
 }
@@ -1585,6 +2008,32 @@ function getPlanName(planId: string | null) {
   if (planId === 'medium') return 'Medium'
   if (planId === 'pro') return 'Pro'
   return 'Basic'
+}
+
+function getPaymentTypeLabel(payment: PlatformSubscriptionPayment) {
+  if (payment.paymentType === 'upgrade_proration') {
+    return 'Upgrade prorrateado'
+  }
+  if (payment.paymentType === 'reactivation_plan_change') {
+    return `Reactivación · ${cycleLabels[payment.billingCycle as BillingCycle] ?? payment.billingCycle}`
+  }
+  return (
+    cycleLabels[payment.billingCycle as BillingCycle] ??
+    payment.billingCycle
+  )
+}
+
+function getSubmissionConcept(
+  submission: PlatformClinicSummary['paymentSubmissions'][number],
+) {
+  const targetPlan = getPlanName(submission.planId)
+  if (submission.paymentType === 'upgrade_proration') {
+    return `Upgrade a ${targetPlan}`
+  }
+  if (submission.paymentType === 'reactivation_plan_change') {
+    return `Reactivación con ${targetPlan} · ${cycleLabels[submission.billingCycle]}`
+  }
+  return `${targetPlan} · ${cycleLabels[submission.billingCycle]}`
 }
 
 function formatMoney(value: number | null, currency: string) {

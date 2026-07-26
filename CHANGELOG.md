@@ -4,6 +4,18 @@ Registro breve de cambios relevantes en DayIA Dental.
 
 ## En desarrollo
 
+- El propietario puede elegir Basic, Medium o Pro desde Suscripción. Los
+  upgrades activos generan un aviso por la diferencia prorrateada y conservan
+  el vencimiento; los downgrades se programan para el cierre del periodo y
+  pueden cancelarse antes de aplicarse. Una cuenta vencida paga el periodo
+  completo del plan elegido y el cambio se aplica al validar el pago.
+- Los avisos de pago ya no se insertan directamente desde React. La Function
+  `manage-owner-subscription-plan` valida JWT, propietario activo, estado,
+  plan, tarifa y monto en servidor; también evita dobles solicitudes.
+- Los cambios administrativos inmediatos se tratan como excepciones: muestran
+  una revisión dedicada, exigen un motivo y actualizan suscripción y auditoría
+  en una sola transacción. Un downgrade normal continúa programándose para el
+  vencimiento y no genera devolución automática.
 - Administración DayIA incorpora membresías vitalicias reversibles. Una
   concesión administrativa guarda y restaura la vigencia anterior; una
   membresía originada por pago se retira anulando ese pago. Ambos caminos

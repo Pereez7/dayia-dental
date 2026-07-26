@@ -2,9 +2,9 @@
 
 ## Billing manual
 
-Ejecuta `supabase/migrations/020_manual_billing_subscriptions.sql` y luego
-`supabase/migrations/021_subscription_payment_workflow.sql`, configura
-`plans.monthly_price` y coloca los QR en `public/payment-qr/`. Despliega:
+Ejecuta las migraciones de billing `020`, `021`, `023`, `024`, `025` y `026` en
+orden, configura `plans.monthly_price` y coloca los QR en
+`public/payment-qr/`. Despliega:
 
 ```bash
 npx supabase functions deploy create-platform-clinic
@@ -13,6 +13,7 @@ npx supabase functions deploy register-subscription-payment
 npx supabase functions deploy reject-subscription-payment-submission
 npx supabase functions deploy void-subscription-payment
 npx supabase functions deploy update-clinic-subscription
+npx supabase functions deploy manage-owner-subscription-plan
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` permanece únicamente en secrets de Supabase y nunca
@@ -82,6 +83,7 @@ Ejecuta en Supabase SQL Editor, en orden, los archivos de
 23. `023_reject_subscription_payment_submissions.sql`
 24. `024_preserve_extra_days_when_voiding_payment.sql`
 25. `025_reversible_lifetime_memberships.sql`
+26. `026_subscription_plan_change_workflow.sql`
 
 Si usas Supabase CLI en el futuro, puedes adaptar este flujo a `supabase db
 push`, pero esta guia asume SQL Editor para una primera prueba controlada.
@@ -89,7 +91,7 @@ push`, pero esta guia asume SQL Editor para una primera prueba controlada.
 ### Inventario de preproducción
 
 Antes de una demo con Supabase real, confirma en el proyecto remoto que están
-aplicadas las migraciones `001` a `025`. El repositorio solo contiene los
+aplicadas las migraciones `001` a `026`. El repositorio solo contiene los
 archivos; no garantiza el estado del entorno remoto. La migración `003` es una
 plantilla de setup y no debe reemplazar un seed revisado.
 
@@ -104,6 +106,7 @@ npx supabase functions deploy register-subscription-payment
 npx supabase functions deploy reject-subscription-payment-submission
 npx supabase functions deploy void-subscription-payment
 npx supabase functions deploy update-clinic-subscription
+npx supabase functions deploy manage-owner-subscription-plan
 npx supabase functions deploy process-due-reminders
 npx supabase functions deploy send-whatsapp-reminder
 npx supabase functions deploy whatsapp-webhook

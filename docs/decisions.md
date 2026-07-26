@@ -753,11 +753,24 @@ transitorios.
 
 El propietario envía el comprobante por WhatsApp mediante un enlace manual con
 plan, periodo y monto precargados. Al abrir el enlace se crea un aviso
-`pending_review` en `subscription_payment_submissions`, protegido por RLS y sin
-referencia bancaria aportada por el doctor. El aviso no extiende vigencia ni
-modifica el estado comercial. La activación requiere que Platform Admin
-verifique el comprobante, complete la referencia bancaria y registre el pago
-mediante Edge Function.
+`pending_review` mediante `manage-owner-subscription-plan`, sin referencia
+bancaria aportada por el doctor. La Function valida propietario, estado, plan y
+monto; React no puede insertar el aviso directamente. El aviso no extiende
+vigencia ni modifica el estado comercial. La activación requiere que Platform
+Admin verifique el comprobante, complete la referencia bancaria y registre el
+pago mediante Edge Function.
+
+## Los cambios de plan respetan la vigencia comprada
+
+Un upgrade activo cobra únicamente la diferencia prorrateada por los días
+restantes y conserva el vencimiento. Un downgrade activo no genera cobro ni
+devolución: se programa para el final del periodo y el propietario puede
+cancelarlo antes de esa fecha. Si la cuenta ya está fuera de vigencia, cualquier
+plan elegido se cobra como un periodo completo y se aplica al validar el pago.
+
+Platform Admin puede omitir estas reglas solo mediante una excepción inmediata
+con revisión y motivo obligatorio. Estado y auditoría se escriben juntos; nunca
+se promete una devolución automática por reducir el plan.
 
 ## Los pagos se anulan, no se eliminan
 

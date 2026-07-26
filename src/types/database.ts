@@ -125,7 +125,13 @@ export interface SubscriptionPaymentRecord {
   notes: string | null
   paid_at: string
   payment_method: string
-  payment_type: 'regular' | 'upgrade_proration' | 'custom_days' | 'lifetime' | 'manual_adjustment'
+  payment_type:
+    | 'regular'
+    | 'upgrade_proration'
+    | 'reactivation_plan_change'
+    | 'custom_days'
+    | 'lifetime'
+    | 'manual_adjustment'
   period_ends_at: string | null
   period_starts_at: string | null
   plan_id: string
@@ -149,10 +155,16 @@ export interface SubscriptionPaymentSubmissionRecord {
   clinic_id: string
   created_at: string
   currency: string
+  effective_at: string | null
   id: string
   linked_payment_id: string | null
   notes: string | null
+  payment_type:
+    | 'regular'
+    | 'upgrade_proration'
+    | 'reactivation_plan_change'
   plan_id: string
+  previous_plan_id: string | null
   reference: string
   review_notes: string | null
   reviewed_at: string | null

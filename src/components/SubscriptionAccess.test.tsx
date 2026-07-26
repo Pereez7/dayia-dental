@@ -17,6 +17,30 @@ const clinic: Clinic = {
   updated_at: '2026-07-01T00:00:00.000Z',
 }
 
+const planOptions = [
+  {
+    currency: 'BOB',
+    founderMonthlyPrice: 79,
+    id: 'basic' as const,
+    monthlyPrice: 99,
+    name: 'Basic',
+  },
+  {
+    currency: 'BOB',
+    founderMonthlyPrice: 149,
+    id: 'medium' as const,
+    monthlyPrice: 199,
+    name: 'Medium',
+  },
+  {
+    currency: 'BOB',
+    founderMonthlyPrice: 249,
+    id: 'pro' as const,
+    monthlyPrice: 299,
+    name: 'Pro',
+  },
+]
+
 describe('SubscriptionAccess', () => {
   afterEach(() => {
     vi.unstubAllEnvs()
@@ -122,5 +146,67 @@ describe('SubscriptionAccess', () => {
     expect(markup).toContain('1614.60 BOB')
     expect(markup).toContain('2870.40 BOB')
     expect(markup).not.toContain('Sin descuento')
+  })
+
+  it('presents every active plan before choosing the renewal period', () => {
+    const subscription = {
+      current_period_ends_at: '2026-08-21T00:00:00.000Z',
+      grace_ends_at: '2026-08-26T00:00:00.000Z',
+      is_lifetime: false,
+      price_tier: 'standard',
+      status: 'active',
+      trial_ends_at: null,
+    } as ClinicSubscriptionRecord
+
+    const markup = renderToStaticMarkup(
+      <SubscriptionMembershipView
+        canSubmitPayment
+        clinic={clinic}
+        currency="BOB"
+        monthlyPrice={199}
+        planId="medium"
+        planOptions={planOptions}
+        submittedByUserId="owner-1"
+        subscription={subscription}
+      />,
+    )
+
+    expect(markup).toContain('Elige el plan')
+    expect(markup).toContain('99.00 BOB / mes')
+    expect(markup).toContain('199.00 BOB / mes')
+    expect(markup).toContain('299.00 BOB / mes')
+    expect(markup.match(/Plan actual/g)).toHaveLength(2)
+  })
+
+  it('shows a scheduled downgrade with a reversible action', () => {
+    const subscription = {
+      current_period_ends_at: '2026-09-21T00:00:00.000Z',
+      grace_ends_at: '2026-09-26T00:00:00.000Z',
+      is_lifetime: false,
+      price_tier: 'standard',
+      scheduled_plan_id: 'medium',
+      scheduled_plan_starts_at: '2026-09-21T00:00:00.000Z',
+      status: 'active',
+      trial_ends_at: null,
+    } as ClinicSubscriptionRecord
+
+    const markup = renderToStaticMarkup(
+      <SubscriptionMembershipView
+        canSubmitPayment
+        clinic={clinic}
+        currency="BOB"
+        monthlyPrice={299}
+        planId="pro"
+        planOptions={planOptions}
+        submittedByUserId="owner-1"
+        subscription={subscription}
+      />,
+    )
+
+    expect(markup).toContain('Cambio programado a Medium')
+    expect(markup).toContain('Cancelar cambio programado')
+    expect(markup).toContain('Hasta entonces conservarás Pro')
+    expect(markup).not.toContain('Elige el plan')
+    expect(markup).not.toContain('Enviar comprobante por WhatsApp')
   })
 })

@@ -9,6 +9,8 @@ import {
 import {
   ExtraDaysReview,
   LifetimeMembershipReview,
+  PlanChangeReviewSummary,
+  ReactivationReview,
   SubscriptionAdministration,
 } from '../components/SubscriptionAdministration'
 import {
@@ -172,6 +174,10 @@ describe('PlatformAdminView', () => {
     expect(markup).not.toContain('QR de cobro')
     expect(markup).not.toContain('Tipo de precio')
     expect(markup).not.toContain('Enter no registra el pago')
+    expect(markup).not.toContain('field-message--reserved')
+    expect(markup).toMatch(
+      /subscription-field-wrapper subscription-field-wide[^>]*><label>Referencia/,
+    )
     expect(markup).toContain('Revisar aumento')
     expect(markup).not.toContain('>Aumentar días<')
     expect(markup).toContain('Asignar membresía vitalicia')
@@ -205,6 +211,22 @@ describe('PlatformAdminView', () => {
     expect(markup).toContain('Vencimiento actual')
   })
 
+  it('summarizes the impact of an immediate plan exception', () => {
+    const markup = renderToStaticMarkup(
+      <PlanChangeReviewSummary
+        clinic={{ ...clinic, planId: 'pro', planName: 'Pro' }}
+        immediate
+        planId="medium"
+      />,
+    )
+
+    expect(markup).toContain('Plan actual')
+    expect(markup).toContain('Pro')
+    expect(markup).toContain('Nuevo plan')
+    expect(markup).toContain('Medium')
+    expect(markup).toContain('Inmediatamente')
+  })
+
   it('offers removal and disables extra days while lifetime is active', () => {
     const markup = renderToStaticMarkup(
       <SubscriptionAdministration
@@ -226,6 +248,56 @@ describe('PlatformAdminView', () => {
       'Retira primero la membresía vitalicia para asignar una vigencia',
     )
     expect(markup).toMatch(/Días adicionales<input[^>]*disabled/)
+  })
+
+  it('disables reactivation while access is already enabled', () => {
+    const markup = renderToStaticMarkup(
+      <SubscriptionAdministration
+        clinic={clinic}
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+      />,
+    )
+
+    expect(markup).toContain('Acceso habilitado')
+    expect(markup).toMatch(
+      /class="secondary-action" disabled=""[^>]*>Acceso habilitado/,
+    )
+    expect(markup).toMatch(
+      /class="danger-action"[^>]*>Bloquear consultorio/,
+    )
+  })
+
+  it('enables reactivation only for a blocked subscription', () => {
+    const blockedClinic = {
+      ...clinic,
+      blockedAt: '2026-07-26T12:00:00.000Z',
+      subscriptionStatus: 'blocked' as const,
+    }
+    const markup = renderToStaticMarkup(
+      <SubscriptionAdministration
+        clinic={blockedClinic}
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+      />,
+    )
+
+    expect(markup).toMatch(
+      /class="secondary-action"[^>]*>Reactivar acceso/,
+    )
+    expect(markup).not.toMatch(
+      /class="secondary-action" disabled=""[^>]*>Reactivar acceso/,
+    )
+    expect(markup).toMatch(
+      /class="danger-action" disabled=""[^>]*>Consultorio bloqueado/,
+    )
+
+    const review = renderToStaticMarkup(
+      <ReactivationReview clinic={blockedClinic} />,
+    )
+    expect(review).toContain('Estado actual')
+    expect(review).toContain('Bloqueado')
+    expect(review).toContain('Según vigencia actual')
   })
 
   it('offers a separate rejection action for pending payment notices', () => {

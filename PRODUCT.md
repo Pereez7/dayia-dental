@@ -25,7 +25,10 @@ anterior; si provino de un pago, se retira anulando ese pago para conservar el
 ledger. El propietario paga por QR y envía el comprobante por WhatsApp; solo
 Platform Admin puede registrarlo y activar la vigencia. Los avisos pendientes
 pueden rechazarse y los pagos erróneos se anulan de forma lógica y auditable,
-sin borrar el historial.
+sin borrar el historial. Durante una vigencia activa, subir de plan cobra la
+diferencia prorrateada y mantiene la fecha de cierre; bajar de plan se programa
+para esa fecha y puede cancelarse. Una cuenta vencida puede reactivarse en otro
+plan pagando el periodo completo. Los importes se validan en servidor.
 
 DayIA Dental organiza pacientes, citas odontológicas, seguimiento clínico,
 odontograma y recordatorios persistidos sobre Supabase. El envío manual está

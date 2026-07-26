@@ -5,7 +5,13 @@ export type BillingCycle =
   | 'custom_days'
   | 'lifetime'
 export type PriceTier = 'standard' | 'founder' | 'custom'
-export type PaymentType = 'regular' | 'upgrade_proration' | 'custom_days' | 'lifetime' | 'manual_adjustment'
+export type PaymentType =
+  | 'regular'
+  | 'upgrade_proration'
+  | 'reactivation_plan_change'
+  | 'custom_days'
+  | 'lifetime'
+  | 'manual_adjustment'
 
 export interface RegisterPaymentInput {
   amountPaid: number
@@ -60,7 +66,14 @@ const cycles = new Set<BillingCycle>([
   'lifetime',
 ])
 const plans = new Set(['basic', 'medium', 'pro'])
-const paymentTypes = new Set<PaymentType>(['regular', 'upgrade_proration', 'custom_days', 'lifetime', 'manual_adjustment'])
+const paymentTypes = new Set<PaymentType>([
+  'regular',
+  'upgrade_proration',
+  'reactivation_plan_change',
+  'custom_days',
+  'lifetime',
+  'manual_adjustment',
+])
 const planRanks = { basic: 0, medium: 1, pro: 2 } as const
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -239,6 +252,91 @@ export function calculateUpgradeProration({
   }
 }
 
+export function calculateTieredRenewalAmount({
+  billingCycle,
+  effectiveMonthlyPrice,
+  priceTier,
+  standardMonthlyPrice,
+}: {
+  billingCycle: 'annual' | 'monthly' | 'six_months'
+  effectiveMonthlyPrice: number | null
+  priceTier: PriceTier
+  standardMonthlyPrice: number | null
+}) {
+  const months =
+    billingCycle === 'annual'
+      ? 12
+      : billingCycle === 'six_months'
+        ? 6
+        : 1
+  const discountPercent =
+    billingCycle === 'annual'
+      ? 20
+      : billingCycle === 'six_months'
+        ? 10
+        : 0
+  const usesFounderMonthlyPrice =
+    priceTier === 'founder' &&
+    billingCycle === 'monthly' &&
+    standardMonthlyPrice !== null &&
+    effectiveMonthlyPrice !== null
+  const monthlyPrice =
+    priceTier === 'founder'
+      ? standardMonthlyPrice
+      : effectiveMonthlyPrice
+
+  if (usesFounderMonthlyPrice) {
+    const amountDue = round(Math.max(0, standardMonthlyPrice))
+    const amountPaid = round(
+      Math.min(amountDue, Math.max(0, effectiveMonthlyPrice)),
+    )
+
+    return {
+      amountDue,
+      amountPaid,
+      discountAmount: round(amountDue - amountPaid),
+      discountPercent:
+        amountDue > 0
+          ? round(((amountDue - amountPaid) / amountDue) * 100)
+          : 0,
+    }
+  }
+
+  const amountDue = round(Math.max(0, monthlyPrice ?? 0) * months)
+  const discountAmount = round(amountDue * (discountPercent / 100))
+
+  return {
+    amountDue,
+    amountPaid: round(amountDue - discountAmount),
+    discountAmount,
+    discountPercent,
+  }
+}
+
+export function isSubscriptionAccessBlocked({
+  currentPeriodEndsAt,
+  graceEndsAt,
+  status,
+  trialEndsAt,
+  now = new Date(),
+}: {
+  currentPeriodEndsAt: string | null
+  graceEndsAt: string | null
+  status: string
+  trialEndsAt: string | null
+  now?: Date
+}) {
+  if (status === 'blocked') return true
+  if (status === 'cancelled' || status === 'lifetime') return false
+
+  const accessEndsAt =
+    parseDate(graceEndsAt) ??
+    parseDate(currentPeriodEndsAt) ??
+    parseDate(trialEndsAt)
+
+  return accessEndsAt !== null && accessEndsAt <= now
+}
+
 export function calculateExtraDaysPeriod(
   currentPeriodEndsAt: string | null,
   days: number,
@@ -251,6 +349,71 @@ export function calculateExtraDaysPeriod(
   return {
     graceEndsAt: addUtcDays(periodEndsAt, 5).toISOString(),
     periodEndsAt: periodEndsAt.toISOString(),
+  }
+}
+
+export function getReactivationUpdate({
+  currentPeriodEndsAt,
+  graceEndsAt,
+  isLifetime,
+  now = new Date(),
+  paymentStatus,
+  status,
+  trialEndsAt,
+}: {
+  currentPeriodEndsAt: string | null
+  graceEndsAt: string | null
+  isLifetime: boolean
+  now?: Date
+  paymentStatus: string | null
+  status: string
+  trialEndsAt: string | null
+}) {
+  const currentEnd = parseDate(currentPeriodEndsAt)
+  const trialEnd = parseDate(trialEndsAt)
+  const existingGraceEnd = parseDate(graceEndsAt)
+  const periodEnd = status === 'trialing' ? trialEnd : currentEnd
+  const isExpiredWithoutGrace =
+    !isLifetime &&
+    status !== 'cancelled' &&
+    Boolean(
+      periodEnd &&
+        now > periodEnd &&
+        (!existingGraceEnd || now > existingGraceEnd),
+    )
+
+  if (status !== 'blocked' && !isExpiredWithoutGrace) {
+    throw new SubscriptionBillingError(
+      'SUBSCRIPTION_NOT_BLOCKED',
+      'Solo puedes reactivar un consultorio que esté bloqueado.',
+      409,
+    )
+  }
+
+  if (isLifetime) {
+    return {
+      blocked_at: null,
+      status: 'lifetime',
+    }
+  }
+
+  const minimumGraceEnd = addUtcDays(now, 5)
+  const restoredGraceEnd =
+    existingGraceEnd && existingGraceEnd > minimumGraceEnd
+      ? existingGraceEnd
+      : minimumGraceEnd
+
+  const restoredStatus =
+    paymentStatus === 'trial' && trialEnd && trialEnd > now
+      ? 'trialing'
+      : currentEnd && currentEnd > now
+        ? 'active'
+        : 'past_due'
+
+  return {
+    blocked_at: null,
+    grace_ends_at: restoredGraceEnd.toISOString(),
+    status: restoredStatus,
   }
 }
 

@@ -662,9 +662,18 @@ incorporó React Router.
 ## Suscripciones y pagos manuales
 
 La vista clínica `subscription` está disponible solo para `clinic_owner`. Lee
-el plan y la vigencia del contexto activo, refresca ese contexto al abrirse y
-calcula opciones localmente. El comprobante se envía por un enlace `wa.me` con
-datos comerciales precargados; el frontend no modifica `clinic_subscriptions`.
+planes activos y vigencia, refresca el contexto al abrirse y presenta renovación
+o cambio según el estado. El comprobante se envía por un enlace `wa.me` con
+datos comerciales precargados; el frontend no modifica
+`clinic_subscriptions` ni inserta avisos directamente.
+
+`manage-owner-subscription-plan` valida JWT y membership activa, vuelve a leer
+planes, tarifa y vigencia, y calcula el monto autoritativo. Un upgrade activo
+crea un aviso `upgrade_proration`; un downgrade usa
+`schedule_subscription_downgrade` y puede revertirse con
+`cancel_scheduled_subscription_downgrade`. Fuera de vigencia, un cambio crea
+`reactivation_plan_change` por el periodo completo. En todos los casos el plan
+solo cambia al validar el pago o alcanzar el vencimiento programado.
 
 Platform Admin usa Edge Functions con JWT para registrar o anular. Los RPC
 transaccionales escriben el ledger, los eventos de auditoría y la vigencia. La
@@ -681,6 +690,12 @@ de un pago vitalicio. La concesión guarda la vigencia previa y la restaura al
 retirarse. Un pago vitalicio se revierte exclusivamente mediante la anulación
 del pago. Mientras cualquiera de los dos esté activo no se admiten nuevos pagos
 ni días adicionales.
+
+Los cambios de plan iniciados por Platform Admin usan
+`apply_admin_subscription_plan_change`. El RPC bloquea la fila de suscripción y
+escribe el estado y `subscription_events` en la misma transacción. Un downgrade
+normal queda programado; una aplicación inmediata exige un motivo propio y se
+marca como `immediate_exception`.
 
 ## Edición de pacientes
 

@@ -169,7 +169,7 @@ async function handleListPlatformClinics(request: Request) {
         .order('created_at', { ascending: false }),
       adminClient
         .from('subscription_payment_submissions')
-        .select('id, clinic_id, submitted_by, plan_id, billing_cycle, amount_expected, currency, reference, notes, status, created_at')
+        .select('id, clinic_id, submitted_by, previous_plan_id, plan_id, billing_cycle, amount_expected, currency, reference, notes, payment_type, effective_at, status, created_at')
         .in('clinic_id', clinicIds)
         .order('created_at', { ascending: false }),
     ])
@@ -377,9 +377,12 @@ async function handleListPlatformClinics(request: Request) {
             billingCycle: submission.billing_cycle,
             createdAt: submission.created_at,
             currency: submission.currency,
+            effectiveAt: submission.effective_at,
             id: submission.id,
             notes: submission.notes,
+            paymentType: submission.payment_type,
             planId: submission.plan_id,
+            previousPlanId: submission.previous_plan_id,
             reference: submission.reference,
             status: submission.status,
             submittedBy: submitter?.full_name ?? submitter?.email ?? null,

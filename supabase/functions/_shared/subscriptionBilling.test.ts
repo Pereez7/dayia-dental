@@ -6,10 +6,13 @@ import {
   assertPlatformBillingAdmin,
   normalizeRegisterPaymentPayload,
   calculateUpgradeProration,
+  calculateTieredRenewalAmount,
   getEffectiveMonthlyPrice,
   getPlanChangeKind,
+  getReactivationUpdate,
   getScheduledDowngradeUpdate,
   isFounderPricingEligible,
+  isSubscriptionAccessBlocked,
 } from './subscriptionBilling.ts'
 
 const input = normalizeRegisterPaymentPayload({
@@ -91,6 +94,89 @@ describe('subscriptionBilling edge helpers', () => {
     })
   })
 
+  it('reactivates only blocked subscriptions without shortening their grace', () => {
+    expect(() =>
+      getReactivationUpdate({
+        currentPeriodEndsAt: '2026-08-20T12:00:00.000Z',
+        graceEndsAt: '2026-08-25T12:00:00.000Z',
+        isLifetime: false,
+        now: new Date('2026-07-26T12:00:00.000Z'),
+        paymentStatus: 'paid',
+        status: 'active',
+        trialEndsAt: null,
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: 'SUBSCRIPTION_NOT_BLOCKED',
+        status: 409,
+      }),
+    )
+
+    expect(
+      getReactivationUpdate({
+        currentPeriodEndsAt: '2026-08-20T12:00:00.000Z',
+        graceEndsAt: '2026-08-25T12:00:00.000Z',
+        isLifetime: false,
+        now: new Date('2026-07-26T12:00:00.000Z'),
+        paymentStatus: 'paid',
+        status: 'blocked',
+        trialEndsAt: null,
+      }),
+    ).toEqual({
+      blocked_at: null,
+      grace_ends_at: '2026-08-25T12:00:00.000Z',
+      status: 'active',
+    })
+  })
+
+  it('restores the appropriate access state after reactivation', () => {
+    expect(
+      getReactivationUpdate({
+        currentPeriodEndsAt: null,
+        graceEndsAt: null,
+        isLifetime: true,
+        now: new Date('2026-07-26T12:00:00.000Z'),
+        paymentStatus: 'paid',
+        status: 'blocked',
+        trialEndsAt: null,
+      }),
+    ).toEqual({
+      blocked_at: null,
+      status: 'lifetime',
+    })
+
+    expect(
+      getReactivationUpdate({
+        currentPeriodEndsAt: '2026-07-20T12:00:00.000Z',
+        graceEndsAt: '2026-07-25T12:00:00.000Z',
+        isLifetime: false,
+        now: new Date('2026-07-26T12:00:00.000Z'),
+        paymentStatus: 'past_due',
+        status: 'past_due',
+        trialEndsAt: null,
+      }),
+    ).toEqual({
+      blocked_at: null,
+      grace_ends_at: '2026-07-31T12:00:00.000Z',
+      status: 'past_due',
+    })
+
+    expect(
+      getReactivationUpdate({
+        currentPeriodEndsAt: null,
+        graceEndsAt: null,
+        isLifetime: false,
+        now: new Date('2026-07-26T12:00:00.000Z'),
+        paymentStatus: 'trial',
+        status: 'blocked',
+        trialEndsAt: '2026-08-01T12:00:00.000Z',
+      }),
+    ).toMatchObject({
+      blocked_at: null,
+      status: 'trialing',
+    })
+  })
+
   it('records the real difference between base price and founder payment', () => {
     const founderInput = normalizeRegisterPaymentPayload({
       amountPaid: 249,
@@ -143,5 +229,55 @@ describe('subscriptionBilling edge helpers', () => {
       scheduled_plan_id: 'basic',
       scheduled_plan_starts_at: '2026-08-09T00:00:00.000Z',
     })
+  })
+
+  it('calculates renewal totals on the server with the same commercial rules', () => {
+    expect(
+      calculateTieredRenewalAmount({
+        billingCycle: 'monthly',
+        effectiveMonthlyPrice: 249,
+        priceTier: 'founder',
+        standardMonthlyPrice: 299,
+      }),
+    ).toEqual({
+      amountDue: 299,
+      amountPaid: 249,
+      discountAmount: 50,
+      discountPercent: 16.72,
+    })
+    expect(
+      calculateTieredRenewalAmount({
+        billingCycle: 'annual',
+        effectiveMonthlyPrice: 249,
+        priceTier: 'founder',
+        standardMonthlyPrice: 299,
+      }),
+    ).toEqual({
+      amountDue: 3588,
+      amountPaid: 2870.4,
+      discountAmount: 717.6,
+      discountPercent: 20,
+    })
+  })
+
+  it('recognizes access that expired after grace before changing plans', () => {
+    expect(
+      isSubscriptionAccessBlocked({
+        currentPeriodEndsAt: '2026-07-20T00:00:00.000Z',
+        graceEndsAt: '2026-07-25T00:00:00.000Z',
+        now: new Date('2026-07-26T00:00:00.000Z'),
+        status: 'past_due',
+        trialEndsAt: null,
+      }),
+    ).toBe(true)
+    expect(
+      isSubscriptionAccessBlocked({
+        currentPeriodEndsAt: '2026-07-20T00:00:00.000Z',
+        graceEndsAt: '2026-07-27T00:00:00.000Z',
+        now: new Date('2026-07-26T00:00:00.000Z'),
+        status: 'past_due',
+        trialEndsAt: null,
+      }),
+    ).toBe(false)
   })
 })

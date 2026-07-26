@@ -59,14 +59,16 @@ Cada plan usa una imagen estática:
 El periodo modifica el monto, no el QR. Si falta la imagen, la interfaz muestra
 `QR pendiente de configurar` sin romper el flujo. El propietario paga y abre
 WhatsApp con consultorio, plan, periodo y monto precargados para adjuntar el
-comprobante. En ese momento la app crea un aviso `pending_review`; no solicita
-una referencia bancaria al doctor ni activa la suscripción. Platform Admin
-verifica el comprobante, completa la referencia y registra el pago de forma
-explícita.
+comprobante. En ese momento `manage-owner-subscription-plan` crea un aviso
+`pending_review` con plan, tipo de pago e importe calculados de nuevo en
+servidor; no solicita una referencia bancaria al doctor ni activa la
+suscripción. Platform Admin verifica el comprobante, completa la referencia y
+registra el pago de forma explícita.
 
 `VITE_DAYIA_BILLING_WHATSAPP` configura el número público que recibe los
 comprobantes, con código de país y solo dígitos. Un propietario activo puede
-crear avisos únicamente para su consultorio mediante las políticas RLS de
+crear avisos únicamente para su consultorio mediante la Function autenticada;
+el rol `authenticated` no tiene permiso de inserción directa en
 `subscription_payment_submissions`. La app reutiliza el aviso pendiente
 existente para no duplicarlo. Un aviso `pending_review` pasa a `approved` cuando
 se revisa y se confirma su pago vinculado.
@@ -87,13 +89,18 @@ se revisa y se confirma su pago vinculado.
 
 ## Cambios de plan
 
-- Un upgrade se aplica al registrar `upgrade_proration`. Cobra la diferencia
-  mensual dividida entre 30 y multiplicada por los días restantes; conserva el
-  vencimiento actual.
-- Un downgrade guarda `scheduled_plan_id` y
-  `scheduled_plan_starts_at`. Se aplica al cargar el contexto del consultorio
-  una vez alcanzado el vencimiento, sin devolución automática.
-- Una excepción inmediata exige una nota y queda en `subscription_events`.
+- Con acceso vigente, un upgrade crea un aviso `upgrade_proration`. Cobra la
+  diferencia mensual dividida entre 30 y multiplicada por los días restantes;
+  se aplica al validar el pago y conserva el vencimiento actual.
+- Con acceso vigente, un downgrade no solicita pago. Guarda
+  `scheduled_plan_id` y `scheduled_plan_starts_at`, puede cancelarse antes de la
+  fecha efectiva y se aplica al cargar el contexto una vez alcanzado el
+  vencimiento, sin devolución automática.
+- Con acceso bloqueado o vencido, el propietario puede elegir cualquier plan.
+  El aviso usa `reactivation_plan_change`, cobra el periodo completo y aplica el
+  nuevo plan al validar el pago.
+- Una excepción administrativa inmediata exige revisión, motivo de 5 a 500
+  caracteres y queda en `subscription_events` como `immediate_exception`.
 - Vitalicio sigue siendo una acción exclusiva de Platform Admin y no aparece
   como plan comercial público.
 
@@ -114,6 +121,8 @@ UI deshabilita días adicionales para evitar sustituirlo accidentalmente.
 
 ## Seguridad y escritura
 
+`manage-owner-subscription-plan` valida JWT y `clinic_owner` activo antes de
+calcular solicitudes, mientras
 `register-subscription-payment`, `reject-subscription-payment-submission`,
 `void-subscription-payment` y `update-clinic-subscription` validan JWT y
 `profiles.is_platform_admin = true` antes de crear un cliente con
@@ -134,10 +143,11 @@ de días extra permanecen en la auditoría. Un cambio posterior de plan, precio,
 bloqueo, reactivación, vitalicio o cancelación continúa bloqueando la
 anulación para evitar sobrescribir estado comercial.
 
-El propietario sí puede insertar un aviso `pending_review` para su propio
-consultorio. RLS exige una membership `clinic_owner` activa y
-`submitted_by = auth.uid()`. Este aviso es informativo y nunca concede acceso,
-aprueba el cobro ni modifica `clinic_subscriptions`.
+El propietario solicita un aviso `pending_review` para su propio consultorio a
+través de la Function. La Function exige una membership `clinic_owner` activa,
+calcula plan e importe con datos de servidor y evita dobles solicitudes. El
+aviso es informativo y nunca concede acceso, aprueba el cobro ni modifica
+`clinic_subscriptions`.
 
 Platform Admin puede rechazar exclusivamente avisos que sigan en
 `pending_review`. La Function exige un motivo de 5 a 500 caracteres y el RPC
@@ -157,14 +167,16 @@ vitalicio y cancelación. Pagos y cambios administrativos quedan auditados en
    `021_subscription_payment_workflow.sql`,
    `023_reject_subscription_payment_submissions.sql`,
    `024_preserve_extra_days_when_voiding_payment.sql` y
-   `025_reversible_lifetime_memberships.sql`, en ese orden.
+   `025_reversible_lifetime_memberships.sql` y
+   `026_subscription_plan_change_workflow.sql`, en ese orden.
 2. Configurar `monthly_price` y, cuando corresponda,
    `founder_monthly_price` de Basic, Medium y Pro en `public.plans`.
 3. Colocar las tres imágenes QR en `public/payment-qr/`.
 4. Desplegar `create-platform-clinic`, `list-platform-clinics`,
    `register-subscription-payment`,
    `reject-subscription-payment-submission`,
-   `void-subscription-payment` y `update-clinic-subscription`.
+   `void-subscription-payment`, `update-clinic-subscription` y
+   `manage-owner-subscription-plan`.
 5. Validar trial, gracia, bloqueo, pago y vitalicio en un proyecto de pruebas.
 
 Los pagos automáticos, la conciliación bancaria y el almacenamiento interno de

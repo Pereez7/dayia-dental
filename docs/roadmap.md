@@ -54,6 +54,11 @@ Estado: flujo manual auditable implementado.
   último pago vigente, conservando extensiones de días posteriores.
 - Vista del propietario con opciones de renovación y envío manual del
   comprobante por WhatsApp para validación administrativa.
+- Selector de plan para propietarios: upgrade activo prorrateado, downgrade
+  programado y cancelable, y cambio de plan al reactivar por periodo completo.
+- Cálculo autoritativo de importes y creación de avisos mediante Edge Function,
+  sin inserciones comerciales directas desde React.
+- Excepción administrativa inmediata con motivo y auditoría atómica.
 - Rechazo auditable de avisos de pago pendientes.
 - Concesión vitalicia administrativa reversible y separación del vitalicio
   originado por un pago.

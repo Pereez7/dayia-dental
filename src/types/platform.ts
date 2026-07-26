@@ -78,9 +78,15 @@ export interface PlatformPaymentSubmission {
   billingCycle: 'annual' | 'monthly' | 'six_months'
   createdAt: string
   currency: string
+  effectiveAt?: string | null
   id: string
   notes: string | null
+  paymentType?:
+    | 'regular'
+    | 'upgrade_proration'
+    | 'reactivation_plan_change'
   planId: string
+  previousPlanId?: string | null
   reference: string
   status: 'approved' | 'cancelled' | 'pending_review' | 'rejected'
   submittedBy: string | null
