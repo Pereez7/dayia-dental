@@ -2,7 +2,10 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Clinic, ClinicSubscriptionRecord } from '../types/database'
-import { SubscriptionBlockedView } from './SubscriptionAccess'
+import {
+  SubscriptionBlockedView,
+  SubscriptionMembershipView,
+} from './SubscriptionAccess'
 import { SubscriptionNotice } from './SubscriptionNotice'
 
 const clinic: Clinic = {
@@ -57,6 +60,38 @@ describe('SubscriptionAccess', () => {
     expect(
       renderToStaticMarkup(<SubscriptionNotice subscription={subscription} />),
     ).toBe('')
+  })
+
+  it('presents lifetime access as a permanent premium membership', () => {
+    const subscription = {
+      current_period_ends_at: null,
+      grace_ends_at: null,
+      is_lifetime: true,
+      price_tier: 'founder',
+      status: 'lifetime',
+      trial_ends_at: null,
+    } as ClinicSubscriptionRecord
+
+    const markup = renderToStaticMarkup(
+      <SubscriptionMembershipView
+        canSubmitPayment
+        clinic={clinic}
+        currency="BOB"
+        monthlyPrice={249}
+        planId="pro"
+        submittedByUserId="owner-1"
+        subscription={subscription}
+      />,
+    )
+
+    expect(markup).toContain('subscription-membership-view--lifetime')
+    expect(markup).toContain('Acceso vitalicio de Clínica Norte')
+    expect(markup).toContain('Tu acceso permanece activo, sin renovaciones.')
+    expect(markup).toContain('Permanente')
+    expect(markup).toContain('No requerida')
+    expect(markup).toContain('Licencia protegida.')
+    expect(markup).not.toContain('Elige un periodo')
+    expect(markup).not.toContain('Pago por QR')
   })
 
   it('identifies founder pricing in every renewal option', () => {

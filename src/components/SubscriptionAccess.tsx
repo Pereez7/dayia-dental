@@ -187,6 +187,100 @@ export function SubscriptionMembershipView({
       })
   }
 
+  if (subscription?.is_lifetime && !isBlocked) {
+    return (
+      <section
+        className="subscription-membership-view subscription-membership-view--lifetime"
+        aria-labelledby="subscription-membership-title"
+      >
+        <header className="subscription-lifetime-hero">
+          <div className="subscription-lifetime-copy">
+            <div className="subscription-lifetime-status-row">
+              <span className="subscription-lifetime-badge">
+                <span aria-hidden="true">✓</span>
+                Licencia vitalicia
+              </span>
+              {onRefreshSubscription ? (
+                <button
+                  className="subscription-refresh-action subscription-refresh-action--lifetime"
+                  disabled={isRefreshing}
+                  onClick={() => void refreshSubscription()}
+                  type="button"
+                >
+                  {isRefreshing
+                    ? 'Actualizando...'
+                    : 'Actualizar suscripción'}
+                </button>
+              ) : null}
+            </div>
+            <h1 id="subscription-membership-title">
+              Acceso vitalicio de {clinic.name}
+            </h1>
+            <p>
+              Tu consultorio cuenta con acceso permanente a DayIA Dental, sin
+              renovaciones periódicas.
+            </p>
+          </div>
+
+          <div className="subscription-lifetime-mark" aria-hidden="true">
+            <span>∞</span>
+            <small>DAYIA</small>
+          </div>
+        </header>
+
+        <div className="subscription-lifetime-details">
+          <div className="subscription-lifetime-welcome">
+            <span
+              className="subscription-lifetime-welcome-icon"
+              aria-hidden="true"
+            >
+              ✓
+            </span>
+            <div>
+              <h2>Tu acceso permanece activo, sin renovaciones.</h2>
+              <p>
+                Gracias por confiar en DayIA Dental para la gestión diaria de
+                tu consultorio.
+              </p>
+            </div>
+          </div>
+
+          <dl className="subscription-lifetime-facts">
+            <div>
+              <dt>Plan actual</dt>
+              <dd>
+                {getPlanName(normalizedPlanId)}
+                <small>Condición vitalicia</small>
+              </dd>
+            </div>
+            <div>
+              <dt>Vigencia</dt>
+              <dd>
+                Permanente
+                <small>Sin fecha de vencimiento</small>
+              </dd>
+            </div>
+            <div>
+              <dt>Renovación</dt>
+              <dd>
+                No requerida
+                <small>Sin pagos periódicos</small>
+              </dd>
+            </div>
+          </dl>
+
+          <div className="subscription-lifetime-footnote">
+            <span aria-hidden="true">◇</span>
+            <p>
+              <strong>Licencia protegida.</strong> Administración DayIA conserva
+              el historial comercial y la trazabilidad de esta condición.
+            </p>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section
       className={`subscription-membership-view${isBlocked ? ' subscription-membership-view--blocked' : ''}`}
