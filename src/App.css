@@ -4814,6 +4814,142 @@
   padding: 6px 9px;
 }
 
+.subscription-history-ledger {
+  min-width: 0;
+}
+
+.subscription-history-footer {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1px solid var(--color-border);
+  padding: 12px;
+}
+
+.subscription-payment-history .subscription-history-range {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.subscription-history-range strong {
+  color: var(--color-heading);
+  font-weight: 700;
+}
+
+.subscription-history-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.subscription-pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.subscription-pagination-direction,
+.subscription-pagination-page {
+  min-height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-primary-dark);
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base),
+    color var(--transition-base);
+}
+
+.subscription-pagination-direction {
+  padding: 8px 12px;
+}
+
+.subscription-pagination-page {
+  min-width: 40px;
+  padding: 8px;
+}
+
+.subscription-pagination-direction:hover:not(:disabled),
+.subscription-pagination-page:hover:not([aria-current='page']) {
+  border-color: #91c9df;
+  background: #f3fafc;
+}
+
+.subscription-pagination-direction:focus-visible,
+.subscription-pagination-page:focus-visible {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.subscription-pagination-page[aria-current='page'] {
+  border-color: var(--color-primary-dark);
+  background: var(--color-primary-dark);
+  color: white;
+  cursor: default;
+}
+
+.subscription-pagination-direction:disabled {
+  border-color: #e4edf1;
+  background: #f6f9fa;
+  color: #8295a1;
+  cursor: not-allowed;
+}
+
+.subscription-pagination-ellipsis {
+  display: inline-flex;
+  width: 24px;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  line-height: 1;
+}
+
+.subscription-pagination-mobile-label {
+  display: none;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .subscription-history-footer {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+    padding-inline: 10px;
+  }
+
+  .subscription-history-pagination {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .subscription-pagination-pages {
+    display: none;
+  }
+
+  .subscription-pagination-mobile-label {
+    display: inline;
+    align-self: center;
+  }
+
+  .subscription-pagination-direction {
+    min-width: 88px;
+  }
+}
+
 .subscription-management-groups {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

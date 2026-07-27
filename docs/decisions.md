@@ -772,6 +772,18 @@ Platform Admin puede omitir estas reglas solo mediante una excepción inmediata
 con revisión y motivo obligatorio. Estado y auditoría se escriben juntos; nunca
 se promete una devolución automática por reducir el plan.
 
+## La tarifa fundador vence desde el bloqueo efectivo
+
+El acceso puede bloquearse explícitamente o por superar la gracia sin que la
+fila haya guardado aún `blocked_at`. Por ello la elegibilidad toma `blocked_at`
+como primera opción y `grace_ends_at` como bloqueo natural. El pago conserva el
+beneficio hasta 24 horas después, inclusive; a partir del siguiente instante se
+registra con tarifa estándar.
+
+Reactivar o conceder días no reinicia este reloj. Antes de limpiar el bloqueo,
+el backend evalúa el estado anterior y degrada a `standard` si correspondía,
+dejando `founder_price_expired` en la metadata del evento.
+
 ## Los pagos se anulan, no se eliminan
 
 El ledger conserva pagos erróneos con estado `voided`, actor, fecha y motivo.

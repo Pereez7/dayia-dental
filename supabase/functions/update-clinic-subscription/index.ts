@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import {
   assertPlatformBillingAdmin,
   calculateExtraDaysPeriod,
+  getPriceTierAfterAccessRecovery,
   getReactivationUpdate,
   SubscriptionBillingError,
 } from '../_shared/subscriptionBilling.ts'
@@ -186,6 +187,19 @@ Deno.serve(async (request) => {
 
     const now = new Date()
     const updates: Record<string, unknown> = { updated_at: now.toISOString() }
+    const recoveredPriceTier = getPriceTierAfterAccessRecovery({
+      blockedAt: subscription.blocked_at,
+      graceEndsAt: subscription.grace_ends_at,
+      now,
+      priceTier:
+        subscription.price_tier === 'founder' ||
+        subscription.price_tier === 'custom'
+          ? subscription.price_tier
+          : 'standard',
+    })
+    const founderBenefitExpiredOnRecovery =
+      subscription.price_tier === 'founder' &&
+      recoveredPriceTier === 'standard'
 
     let eventType = 'subscription_updated'
     if (payload.action === 'set_founder_price') {
@@ -237,6 +251,10 @@ Deno.serve(async (request) => {
       updates.status = 'active'
       updates.blocked_at = null
       updates.is_lifetime = false
+      if (founderBenefitExpiredOnRecovery) {
+        updates.price_tier = 'standard'
+        updates.founder_price_locked = false
+      }
       eventType = 'extra_days_granted'
     } else if (payload.action === 'block') {
       if (subscription.status === 'blocked') {
@@ -272,6 +290,10 @@ Deno.serve(async (request) => {
           trialEndsAt: subscription.trial_ends_at,
         }),
       )
+      if (founderBenefitExpiredOnRecovery) {
+        updates.price_tier = 'standard'
+        updates.founder_price_locked = false
+      }
       eventType = 'reactivated'
     } else {
       updates.status = 'cancelled'
@@ -296,6 +318,10 @@ Deno.serve(async (request) => {
         action: payload.action,
         custom_monthly_price: payload.action === 'set_custom_price' ? payload.customMonthlyPrice : null,
         days: payload.action === 'grant_extra_days' ? payload.days : null,
+        founder_price_expired:
+          (payload.action === 'grant_extra_days' ||
+            payload.action === 'reactivate') &&
+          founderBenefitExpiredOnRecovery,
       },
       recorded_by: userData.user.id,
     })

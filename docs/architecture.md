@@ -675,6 +675,13 @@ crea un aviso `upgrade_proration`; un downgrade usa
 `reactivation_plan_change` por el periodo completo. En todos los casos el plan
 solo cambia al validar el pago o alcanzar el vencimiento programado.
 
+La elegibilidad fundador usa una única regla en frontend y Functions. El inicio
+del bloqueo comercial es `blocked_at` cuando existe; en un vencimiento natural
+es `grace_ends_at`. El beneficio permanece hasta 24 horas después, inclusive.
+`register-subscription-payment` persiste `standard` al superar el límite.
+`update-clinic-subscription` evalúa la misma regla antes de reactivar o conceder
+días para que limpiar el bloqueo no restaure una tarifa vencida.
+
 Platform Admin usa Edge Functions con JWT para registrar o anular. Los RPC
 transaccionales escriben el ledger, los eventos de auditoría y la vigencia. La
 anulación es lógica y usa una instantánea previa; nunca elimina pagos.

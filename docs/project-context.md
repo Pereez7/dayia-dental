@@ -16,6 +16,9 @@ suscripciones y pagos manuales:
   `subscription_payment_submissions`.
 - Un cambio administrativo inmediato es una excepción con motivo obligatorio,
   confirmación y escritura atómica de suscripción más auditoría.
+- La tarifa fundador conserva una ventana de 24 horas desde `blocked_at` o,
+  cuando el vencimiento es natural, desde `grace_ends_at`. Reactivar o conceder
+  días no recupera una tarifa ya vencida.
 - Los avisos de pago pendientes pueden aprobarse o rechazarse con motivo y
   auditoría.
 - La anulación del último pago conserva los días adicionales concedidos después
@@ -28,6 +31,8 @@ suscripciones y pagos manuales:
   mediante la acción administrativa.
 - Mientras vitalicio está activo se bloquean nuevos pagos y días adicionales
   para evitar sustituir accidentalmente la condición comercial.
+- El historial administrativo pagina localmente cinco pagos por vista, muestra
+  el rango consultado y conserva todos los registros anulados para auditoría.
 
 Supabase ya tiene aplicadas las migraciones `023`, `024`, `025` y `026`. Las
 Edge Functions `manage-owner-subscription-plan`,
@@ -38,7 +43,7 @@ dentro de una transacción con rollback y luego se aplicó. Las cuatro Functions
 modificadas figuran `ACTIVE` y la nueva Function rechaza llamadas sin JWT con
 `401`.
 
-El bloque cerró con lint, 639 pruebas y build correctos. Para continuar desde
+El bloque cerró con lint, 645 pruebas y build correctos. Para continuar desde
 otro equipo se debe actualizar `main` desde `origin`, conservar su `.env` local
 y seguir la guía de [Retomar el proyecto en otro equipo](../README.md#retomar-el-proyecto-en-otro-equipo).
 

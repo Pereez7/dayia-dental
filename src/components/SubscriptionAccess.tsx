@@ -95,6 +95,7 @@ export function SubscriptionMembershipView({
   const accessState = getSubscriptionAccessState(mapSubscription(subscription))
   const founderPricingEligible = isFounderPricingEligible({
     blockedAt: subscription?.blocked_at,
+    graceEndsAt: subscription?.grace_ends_at,
     paidAt: new Date(),
   })
   const displayedPlans =

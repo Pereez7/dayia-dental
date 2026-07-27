@@ -29,6 +29,9 @@ sin borrar el historial. Durante una vigencia activa, subir de plan cobra la
 diferencia prorrateada y mantiene la fecha de cierre; bajar de plan se programa
 para esa fecha y puede cancelarse. Una cuenta vencida puede reactivarse en otro
 plan pagando el periodo completo. Los importes se validan en servidor.
+La tarifa fundador mensual permanece durante la vigencia, la gracia y hasta 24
+horas después del bloqueo efectivo. Recuperar acceso después de ese límite no
+restaura el beneficio salvo una nueva concesión administrativa explícita.
 
 DayIA Dental organiza pacientes, citas odontológicas, seguimiento clínico,
 odontograma y recordatorios persistidos sobre Supabase. El envío manual está

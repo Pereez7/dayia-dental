@@ -241,6 +241,7 @@ Deno.serve(async (request) => {
       priceTier === 'founder' &&
       !isFounderPricingEligible({
         blockedAt: subscription.blocked_at,
+        graceEndsAt: subscription.grace_ends_at,
         paidAt: now,
       })
         ? 'standard'

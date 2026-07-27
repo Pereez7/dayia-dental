@@ -38,6 +38,10 @@ import {
   formatNumericInput,
   parseNumericInput,
 } from '../utils/numericInput'
+import {
+  getPaymentHistoryPaginationItems,
+  paginatePaymentHistory,
+} from '../utils/paymentHistoryPagination'
 import { ConfirmDialog } from './ConfirmDialog'
 import { NumericInput } from './NumericInput'
 import { Toast, type ToastTone } from './Toast'
@@ -116,6 +120,7 @@ export function SubscriptionAdministration({
     useState<PlatformClinicSummary['paymentSubmissions'][number] | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
   const [rejectionError, setRejectionError] = useState('')
+  const [paymentHistoryPage, setPaymentHistoryPage] = useState(1)
   const submissionLock = useRef(false)
   const customDays =
     parseNumericInput(customDaysInput) ?? Number.NaN
@@ -137,6 +142,7 @@ export function SubscriptionAdministration({
     clinic.planMonthlyPrices[currentPlanId] ?? null
   const founderPricingEligible = isFounderPricingEligible({
     blockedAt: clinic.blockedAt,
+    graceEndsAt: clinic.graceEndsAt,
     paidAt,
   })
   const effectivePriceTier =
@@ -198,6 +204,14 @@ export function SubscriptionAdministration({
   const latestRegisteredPaymentId = clinic.payments.find(
     (payment) => payment.status === 'registered',
   )?.id
+  const paymentHistory = paginatePaymentHistory(
+    clinic.payments,
+    paymentHistoryPage,
+  )
+  const paymentHistoryPaginationItems = getPaymentHistoryPaginationItems(
+    paymentHistory.currentPage,
+    paymentHistory.pageCount,
+  )
   const registeredLifetimePayment = clinic.payments.find(
     (payment) =>
       payment.status === 'registered' &&
@@ -322,6 +336,7 @@ export function SubscriptionAdministration({
       setAmountOverride(null)
       setSelectedSubmissionId(null)
       setPaymentRegistrationError('')
+      setPaymentHistoryPage(1)
       showFeedback('Pago registrado y suscripción actualizada.', 'success')
       await onUpdated()
     } catch {
@@ -1045,46 +1060,125 @@ export function SubscriptionAdministration({
             <span>El primer registro aparecerá aquí después de confirmarlo.</span>
           </div>
         ) : (
-          <div className="platform-clinics-table-wrap">
-            <table className="platform-clinics-table subscription-history-table">
-              <thead><tr><th>Fecha</th><th>Plan y periodo</th><th>Monto</th><th>Estado</th><th>Registrado por</th><th>Acciones</th></tr></thead>
-              <tbody>
-                {clinic.payments.map((payment) => {
-                  const canVoid =
-                    payment.status === 'registered' &&
-                    payment.id === latestRegisteredPaymentId
+          <div className="subscription-history-ledger">
+            <div className="platform-clinics-table-wrap">
+              <table className="platform-clinics-table subscription-history-table">
+                <thead><tr><th>Fecha</th><th>Plan y periodo</th><th>Monto</th><th>Estado</th><th>Registrado por</th><th>Acciones</th></tr></thead>
+                <tbody>
+                  {paymentHistory.items.map((payment) => {
+                    const canVoid =
+                      payment.status === 'registered' &&
+                      payment.id === latestRegisteredPaymentId
 
-                  return (
-                    <tr key={payment.id}>
-                      <td data-label="Fecha">{formatDateTime(payment.paidAt)}</td>
-                      <td data-label="Plan y periodo"><strong>{getPlanName(payment.planId)}</strong><span>{getPaymentTypeLabel(payment)}</span></td>
-                      <td data-label="Monto"><strong>{payment.amountPaid.toFixed(2)} {payment.currency}</strong></td>
-                      <td data-label="Estado"><span className={`payment-ledger-status payment-ledger-status--${payment.status}`}>{payment.status === 'voided' ? 'Anulado' : 'Registrado'}</span></td>
-                      <td data-label="Registrado por">{payment.recordedBy ?? 'Administrador DayIA'}</td>
-                      <td data-label="Acciones">
-                        <div className="subscription-history-actions">
-                          <button className="secondary-action" onClick={() => setSelectedPayment(payment)} type="button">Ver detalle</button>
-                          {canVoid ? (
-                            <button
-                              className="danger-action"
-                              disabled={isSubmitting}
-                              onClick={() => {
-                                setPaymentToVoid(payment)
-                                setVoidReason('')
-                                setVoidPaymentError('')
-                              }}
-                              type="button"
-                            >
-                              Anular pago
-                            </button>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                    return (
+                      <tr key={payment.id}>
+                        <td data-label="Fecha">{formatDateTime(payment.paidAt)}</td>
+                        <td data-label="Plan y periodo"><strong>{getPlanName(payment.planId)}</strong><span>{getPaymentTypeLabel(payment)}</span></td>
+                        <td data-label="Monto"><strong>{payment.amountPaid.toFixed(2)} {payment.currency}</strong></td>
+                        <td data-label="Estado"><span className={`payment-ledger-status payment-ledger-status--${payment.status}`}>{payment.status === 'voided' ? 'Anulado' : 'Registrado'}</span></td>
+                        <td data-label="Registrado por">{payment.recordedBy ?? 'Administrador DayIA'}</td>
+                        <td data-label="Acciones">
+                          <div className="subscription-history-actions">
+                            <button className="secondary-action" onClick={() => setSelectedPayment(payment)} type="button">Ver detalle</button>
+                            {canVoid ? (
+                              <button
+                                className="danger-action"
+                                disabled={isSubmitting}
+                                onClick={() => {
+                                  setPaymentToVoid(payment)
+                                  setVoidReason('')
+                                  setVoidPaymentError('')
+                                }}
+                                type="button"
+                              >
+                                Anular pago
+                              </button>
+                            ) : null}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="subscription-history-footer">
+              <p aria-live="polite" className="subscription-history-range">
+                Mostrando{' '}
+                <strong>
+                  {paymentHistory.startIndex + 1}–{paymentHistory.endIndex}
+                </strong>{' '}
+                de <strong>{paymentHistory.totalItems}</strong> pagos
+              </p>
+
+              {paymentHistory.pageCount > 1 ? (
+                <nav
+                  aria-label="Paginación del historial de pagos"
+                  className="subscription-history-pagination"
+                >
+                  <button
+                    aria-label="Ir a la página anterior"
+                    className="subscription-pagination-direction"
+                    disabled={paymentHistory.currentPage === 1}
+                    onClick={() =>
+                      setPaymentHistoryPage(paymentHistory.currentPage - 1)
+                    }
+                    type="button"
+                  >
+                    Anterior
+                  </button>
+
+                  <div className="subscription-pagination-pages">
+                    {paymentHistoryPaginationItems.map((item) =>
+                      typeof item === 'number' ? (
+                        <button
+                          aria-current={
+                            item === paymentHistory.currentPage
+                              ? 'page'
+                              : undefined
+                          }
+                          aria-label={`Ir a la página ${item}`}
+                          className="subscription-pagination-page"
+                          key={item}
+                          onClick={() => setPaymentHistoryPage(item)}
+                          type="button"
+                        >
+                          {item}
+                        </button>
+                      ) : (
+                        <span
+                          aria-hidden="true"
+                          className="subscription-pagination-ellipsis"
+                          key={item}
+                        >
+                          …
+                        </span>
+                      ),
+                    )}
+                  </div>
+
+                  <span className="subscription-pagination-mobile-label">
+                    Página {paymentHistory.currentPage} de{' '}
+                    {paymentHistory.pageCount}
+                  </span>
+
+                  <button
+                    aria-label="Ir a la página siguiente"
+                    className="subscription-pagination-direction"
+                    disabled={
+                      paymentHistory.currentPage === paymentHistory.pageCount
+                    }
+                    onClick={() =>
+                      setPaymentHistoryPage(paymentHistory.currentPage + 1)
+                    }
+                    type="button"
+                  >
+                    Siguiente
+                  </button>
+                </nav>
+              ) : null}
+            </div>
           </div>
         )}
       </section>

@@ -182,20 +182,56 @@ export function calculatePaymentRegistration({
 
 export function isFounderPricingEligible({
   blockedAt,
+  graceEndsAt,
   paidAt,
   graceHours = 24,
 }: {
   blockedAt: string | null | undefined
+  graceEndsAt?: string | null
   paidAt: string | Date
   graceHours?: number
 }) {
-  if (!blockedAt) return true
-
-  const blockedTime = new Date(blockedAt).getTime()
   const paymentTime = new Date(paidAt).getTime()
-  if (!Number.isFinite(blockedTime) || !Number.isFinite(paymentTime)) return false
+  if (!Number.isFinite(paymentTime)) return false
 
-  return paymentTime <= blockedTime + graceHours * 60 * 60 * 1000
+  const blockedTime = parseOptionalTimestamp(blockedAt)
+  const naturalBlockTime = parseOptionalTimestamp(graceEndsAt)
+  if (
+    (blockedAt && blockedTime === null) ||
+    (graceEndsAt && naturalBlockTime === null)
+  ) {
+    return false
+  }
+
+  const benefitRiskStartedAt = blockedTime ?? naturalBlockTime
+  if (benefitRiskStartedAt === null) return true
+
+  return (
+    paymentTime <=
+    benefitRiskStartedAt + graceHours * 60 * 60 * 1000
+  )
+}
+
+export function getPriceTierAfterAccessRecovery({
+  blockedAt,
+  graceEndsAt,
+  now = new Date(),
+  priceTier,
+}: {
+  blockedAt: string | null
+  graceEndsAt: string | null
+  now?: Date
+  priceTier: PriceTier
+}): PriceTier {
+  if (priceTier !== 'founder') return priceTier
+
+  return isFounderPricingEligible({
+    blockedAt,
+    graceEndsAt,
+    paidAt: now,
+  })
+    ? 'founder'
+    : 'standard'
 }
 
 export function getEffectiveMonthlyPrice({
@@ -442,6 +478,12 @@ function parseDate(value: string | null) {
   if (!value) return null
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? null : date
+}
+
+function parseOptionalTimestamp(value: string | null | undefined) {
+  if (!value) return null
+  const timestamp = new Date(value).getTime()
+  return Number.isFinite(timestamp) ? timestamp : null
 }
 
 function stringValue(value: unknown) {

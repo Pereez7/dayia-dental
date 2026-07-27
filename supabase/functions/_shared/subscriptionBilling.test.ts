@@ -9,6 +9,7 @@ import {
   calculateTieredRenewalAmount,
   getEffectiveMonthlyPrice,
   getPlanChangeKind,
+  getPriceTierAfterAccessRecovery,
   getReactivationUpdate,
   getScheduledDowngradeUpdate,
   isFounderPricingEligible,
@@ -37,6 +38,44 @@ describe('subscriptionBilling edge helpers', () => {
       blockedAt,
       paidAt: '2026-07-21T21:00:00-04:00',
     })).toBe(false)
+  })
+
+  it('expires founder pricing 24 hours after natural grace ends', () => {
+    const graceEndsAt = '2026-07-25T20:00:00-04:00'
+
+    expect(isFounderPricingEligible({
+      blockedAt: null,
+      graceEndsAt,
+      paidAt: '2026-07-26T20:00:00-04:00',
+    })).toBe(true)
+    expect(isFounderPricingEligible({
+      blockedAt: null,
+      graceEndsAt,
+      paidAt: '2026-07-26T20:00:01-04:00',
+    })).toBe(false)
+  })
+
+  it('does not restore expired founder pricing when access is recovered', () => {
+    expect(getPriceTierAfterAccessRecovery({
+      blockedAt: '2026-07-20T20:00:00-04:00',
+      graceEndsAt: '2026-08-01T20:00:00-04:00',
+      now: new Date('2026-07-21T20:00:01-04:00'),
+      priceTier: 'founder',
+    })).toBe('standard')
+
+    expect(getPriceTierAfterAccessRecovery({
+      blockedAt: null,
+      graceEndsAt: '2026-07-25T20:00:00-04:00',
+      now: new Date('2026-07-26T20:00:01-04:00'),
+      priceTier: 'founder',
+    })).toBe('standard')
+
+    expect(getPriceTierAfterAccessRecovery({
+      blockedAt: '2026-07-20T20:00:00-04:00',
+      graceEndsAt: null,
+      now: new Date('2026-07-21T20:00:00-04:00'),
+      priceTier: 'founder',
+    })).toBe('founder')
   })
   it('allows only platform administrators to manage billing', () => {
     expect(() => assertPlatformBillingAdmin(false)).toThrowError(

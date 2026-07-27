@@ -37,11 +37,19 @@ mantiene el precio estándar como base y muestra la diferencia como descuento
 fundador. Los periodos de 6 y 12 meses se calculan desde el precio estándar y
 aplican solo su descuento comercial de 10% o 20%, respectivamente.
 
-Después de un bloqueo, la tarifa fundador se conserva durante un máximo de 24
-horas. La comparación usa `clinic_subscriptions.blocked_at` y la fecha/hora real
-del pago (`paid_at`). Hasta el límite inclusive se mantiene el beneficio; pasado
-ese plazo, el registro usa la tarifa estándar y la suscripción deja de conservar
-`price_tier = founder`.
+Después del bloqueo efectivo, la tarifa fundador se conserva durante un máximo
+de 24 horas. Para un bloqueo administrativo se usa
+`clinic_subscriptions.blocked_at`; cuando el acceso vence naturalmente se usa
+`grace_ends_at`, aunque `blocked_at` todavía sea nulo. La comparación utiliza la
+fecha/hora real del pago (`paid_at`). Hasta el límite inclusive se mantiene el
+beneficio; pasado ese plazo, el registro usa la tarifa estándar y la suscripción
+deja de conservar `price_tier = founder`.
+
+Reactivar acceso o conceder días adicionales evalúa la condición antes de
+limpiar `blocked_at` o extender la gracia. Si las 24 horas ya vencieron, la
+acción recupera el acceso pero cambia `price_tier` a `standard` y
+`founder_price_locked` a `false`; no restaura el beneficio silenciosamente. La
+metadata del evento indica `founder_price_expired = true`.
 
 Si se paga antes del vencimiento, el nuevo periodo empieza en
 `current_period_ends_at`. Si ya venció o el consultorio está bloqueado, empieza

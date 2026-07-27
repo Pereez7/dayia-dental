@@ -1,7 +1,10 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
-import type { PlatformClinicSummary } from '../types/platform'
+import type {
+  PlatformClinicSummary,
+  PlatformSubscriptionPayment,
+} from '../types/platform'
 import {
   ClinicOnboardingFeedback,
   ClinicOnboardingForm,
@@ -13,6 +16,10 @@ import {
   ReactivationReview,
   SubscriptionAdministration,
 } from '../components/SubscriptionAdministration'
+import {
+  getPaymentHistoryPaginationItems,
+  paginatePaymentHistory,
+} from '../utils/paymentHistoryPagination'
 import {
   createPlatformClinicAndRefresh,
   submitPlatformClinicOnce,
@@ -53,6 +60,36 @@ const clinic: PlatformClinicSummary = {
   paymentSubmissions: [],
   subscriptionStatus: 'active',
   trialEndsAt: null,
+}
+
+function createPayment(index: number): PlatformSubscriptionPayment {
+  return {
+    amountDue: 249 + index,
+    amountPaid: 249 + index,
+    billingCycle: 'monthly',
+    createdAt: `2026-07-${String(24 - index).padStart(2, '0')}T19:06:00.000Z`,
+    currency: 'BOB',
+    customDays: null,
+    discountAmount: 0,
+    discountPercent: 0,
+    id: `payment-${index}`,
+    monthsCovered: 1,
+    newPlanId: null,
+    notes: null,
+    paidAt: `2026-07-${String(24 - index).padStart(2, '0')}T19:06:00.000Z`,
+    paymentType: 'regular',
+    periodEndsAt: null,
+    periodStartsAt: null,
+    planId: 'pro',
+    previousPlanId: null,
+    priceTier: 'standard',
+    recordedBy: 'Charles Pérez',
+    reference: `REF-${index}`,
+    status: index === 0 ? 'registered' : 'voided',
+    voidedAt: index === 0 ? null : '2026-07-25T10:00:00.000Z',
+    voidedBy: index === 0 ? null : 'Charles Pérez',
+    voidReason: index === 0 ? null : 'Registro de prueba anulado',
+  }
 }
 
 describe('PlatformAdminView', () => {
@@ -328,6 +365,63 @@ describe('PlatformAdminView', () => {
 
     expect(markup).toContain('Revisar solicitud')
     expect(markup).toContain('Rechazar solicitud')
+  })
+
+  it('shows only five recent payments on the first history page', () => {
+    const payments = Array.from({ length: 12 }, (_, index) =>
+      createPayment(index),
+    )
+    const markup = renderToStaticMarkup(
+      <SubscriptionAdministration
+        clinic={{ ...clinic, payments }}
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+      />,
+    )
+
+    expect(markup).toContain('Mostrando')
+    expect(markup).toContain('de <strong>12</strong> pagos')
+    expect(markup).toContain('249.00 BOB')
+    expect(markup).toContain('253.00 BOB')
+    expect(markup).not.toContain('254.00 BOB')
+    expect(markup).toContain('Paginación del historial de pagos')
+    expect(markup).toContain('Página 1 de 3')
+  })
+
+  it('paginates and clamps the payment history safely', () => {
+    const payments = Array.from({ length: 12 }, (_, index) =>
+      createPayment(index),
+    )
+
+    const secondPage = paginatePaymentHistory(payments, 2)
+    const pageAfterLast = paginatePaymentHistory(payments, 99)
+
+    expect(secondPage.items.map((payment) => payment.id)).toEqual([
+      'payment-5',
+      'payment-6',
+      'payment-7',
+      'payment-8',
+      'payment-9',
+    ])
+    expect(secondPage.startIndex).toBe(5)
+    expect(secondPage.endIndex).toBe(10)
+    expect(pageAfterLast.currentPage).toBe(3)
+    expect(pageAfterLast.items.map((payment) => payment.id)).toEqual([
+      'payment-10',
+      'payment-11',
+    ])
+  })
+
+  it('keeps long payment pagination compact', () => {
+    expect(getPaymentHistoryPaginationItems(8, 20)).toEqual([
+      1,
+      'ellipsis-start',
+      7,
+      8,
+      9,
+      'ellipsis-end',
+      20,
+    ])
   })
 
   it('denies access without starting the platform loader', () => {

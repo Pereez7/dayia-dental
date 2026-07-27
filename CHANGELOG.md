@@ -4,6 +4,14 @@ Registro breve de cambios relevantes en DayIA Dental.
 
 ## En desarrollo
 
+- El historial administrativo muestra cinco pagos por página, conserva el
+  orden más reciente primero e incorpora rango, navegación numerada compacta y
+  controles adaptados a móvil. Los pagos anulados siguen visibles y el detalle
+  y la anulación disponible mantienen sus reglas actuales.
+- La tarifa fundador vence 24 horas después del bloqueo efectivo, usando
+  `blocked_at` para bloqueos manuales y `grace_ends_at` para vencimientos
+  naturales. Reactivar acceso o conceder días ya no restaura el beneficio si
+  ese límite había vencido; el cambio a estándar queda indicado en auditoría.
 - El propietario puede elegir Basic, Medium o Pro desde Suscripción. Los
   upgrades activos generan un aviso por la diferencia prorrateada y conservan
   el vencimiento; los downgrades se programan para el cierre del periodo y
@@ -82,8 +90,8 @@ Registro breve de cambios relevantes en DayIA Dental.
 - La tarifa fundador se aplica solo al periodo mensual; 6 y 12 meses vuelven a
   calcularse desde el precio estándar con sus descuentos de periodo.
 - La tarifa fundador puede configurarse para cualquiera de los tres planes y
-  vence 24 horas después del bloqueo; el backend valida el límite con la hora
-  real del pago.
+  vence 24 horas después del bloqueo efectivo; el backend valida el límite con
+  la hora real del pago.
 - La revisión administrativa ya no interpreta el monto informado por el cliente
   como una edición manual y las renovaciones bloqueadas comienzan en `paid_at`.
 

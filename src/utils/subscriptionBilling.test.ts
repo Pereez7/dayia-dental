@@ -219,6 +219,25 @@ describe('subscriptionBilling', () => {
     ).toBe(false)
   })
 
+  it('uses the end of grace as the natural block when blockedAt is missing', () => {
+    const graceEndsAt = '2026-07-25T20:00:00-04:00'
+
+    expect(
+      isFounderPricingEligible({
+        blockedAt: null,
+        graceEndsAt,
+        paidAt: '2026-07-26T20:00:00-04:00',
+      }),
+    ).toBe(true)
+    expect(
+      isFounderPricingEligible({
+        blockedAt: null,
+        graceEndsAt,
+        paidAt: '2026-07-26T20:00:01-04:00',
+      }),
+    ).toBe(false)
+  })
+
   it('blocks Enter as an implicit payment action', () => {
     expect(shouldBlockImplicitPaymentSubmit('Enter')).toBe(true)
     expect(shouldBlockImplicitPaymentSubmit('Tab')).toBe(false)
