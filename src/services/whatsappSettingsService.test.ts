@@ -43,7 +43,6 @@ describe('whatsappSettingsService mappers', () => {
     ).toEqual({
       business_account_id: 'business-1',
       clinic_id: 'clinic-1',
-      is_connected: false,
       phone_number: '+59170012345',
       phone_number_id: 'phone-number-1',
       provider: 'whatsapp_cloud_api',

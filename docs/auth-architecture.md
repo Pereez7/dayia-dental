@@ -219,7 +219,7 @@ resuelto desde la membership del solicitante. El multi-consultorio y su selector
 siguen pendientes; mientras tanto se usa la membership activa más recientemente
 activada, con desempate por fecha de creación.
 
-## Migracion temporal
+## Autorización RLS por membresía
 
 La migracion `011_memberships_plans_architecture.sql` crea:
 
@@ -236,9 +236,40 @@ borrar usuarios ni datos clinicos. Un `clinic_admin` legacy se convierte en
 `clinic_owner` dentro de `clinic_memberships`; `doctor` y `receptionist` se
 mantienen como roles clinicos.
 
-Las policies de pacientes, citas, configuracion y recordatorios todavia usan
-`current_clinic_id()` basado en `profiles.clinic_id`. Esa migracion completa se
-hara en un paso posterior para reducir riesgo.
+La migración `027_membership_rls_hardening.sql` elimina la autorización legacy
+de pacientes, citas, configuracion y recordatorios. Las policies nuevas exigen:
+
+- membership activa para el `clinic_id` concreto;
+- consultorio activo;
+- suscripción con acceso clínico vigente;
+- rol permitido para cada operación;
+- coincidencia de consultorio entre cita, paciente, tratamiento y recordatorio.
+
+`profiles.clinic_id` y `profiles.role` permanecen únicamente como compatibilidad
+de lectura durante la transición. Ya no autorizan tablas clínicas. Los clientes
+autenticados solo pueden actualizar `full_name` y completar un email vacío con
+el email verificado de su propio JWT; `is_platform_admin`, rol, consultorio y
+estado quedan reservados para procesos confiables.
+
+Los campos `created_at`, `updated_at`, IDs y `clinic_id` no son modificables
+desde React. Triggers de base de datos mantienen `updated_at`. WhatsApp
+`is_connected` también queda reservado al backend: guardar identificadores no
+puede simular una conexión verificada.
+
+La configuración de WhatsApp requiere owner/admin y un plan cuya capacidad
+`can_use_whatsapp_automation` esté activa, o una membresía vitalicia. Esta
+autorización es una barrera de base de datos adicional a la visibilidad de UI.
+
+El doctor no gestiona el módulo de Recordatorios. Mientras Citas todavía
+sincronice la cola desde React, RLS le permite únicamente crear y mantener
+transiciones derivadas de la cita (`pending`, `scheduled`, `cancelled` o
+`skipped`). No puede marcar envíos o fallos ni escribir campos de entrega del
+proveedor. Esa sincronización debe trasladarse al backend antes de habilitar la
+automatización real.
+
+Por compatibilidad con el flujo actual, solo las excepciones de calendario
+conservan temporalmente `DELETE` para owner/admin. Debe sustituirse por
+cancelación auditable al cerrar el ciclo de vida de ese módulo.
 
 ## Verificación de calidad del MVP
 

@@ -2,6 +2,27 @@
 
 ## Punto de continuidad
 
+El bloque en curso es el endurecimiento de seguridad y permisos antes de
+continuar con los CRUD pendientes. La migración
+`027_membership_rls_hardening.sql` ya fue validada localmente desde una base
+vacía, con 38 pruebas de aislamiento RLS y `supabase db lint` sin errores. Aún
+no fue aplicada al proyecto remoto:
+
+- la autorización clínica usa membership activa, consultorio activo,
+  suscripción vigente y rol permitido;
+- owner/admin gestionan configuración; doctor no puede modificarla;
+- recepción no puede leer historial clínico ni odontograma;
+- las relaciones de citas y recordatorios no pueden cruzar consultorios;
+- React no puede modificar roles, `is_platform_admin`, IDs, alcance clínico,
+  fechas de auditoría ni `whatsapp_settings.is_connected`;
+- los módulos operativos no ofrecen borrado físico en base de datos, salvo la
+  compatibilidad temporal de excepciones de calendario;
+- la suite completa pasa con 656 pruebas, lint y build correctos.
+
+Antes de comenzar el segundo bloque, falta aplicar `027` primero en staging o
+en el proyecto remoto controlado y repetir allí la matriz de roles. No asumir
+que el archivo local ya protege el entorno desplegado.
+
 El último bloque terminado es la estabilización de cambios de plan,
 suscripciones y pagos manuales:
 

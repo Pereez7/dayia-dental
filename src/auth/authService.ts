@@ -83,7 +83,6 @@ export async function getCurrentUserProfile(session: Session | null) {
       .from('profiles')
       .update({
         email: userEmail,
-        updated_at: new Date().toISOString(),
       } as never)
       .eq('id', session.user.id)
       .select('*')

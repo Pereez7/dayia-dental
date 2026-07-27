@@ -84,6 +84,7 @@ Ejecuta en Supabase SQL Editor, en orden, los archivos de
 24. `024_preserve_extra_days_when_voiding_payment.sql`
 25. `025_reversible_lifetime_memberships.sql`
 26. `026_subscription_plan_change_workflow.sql`
+27. `027_membership_rls_hardening.sql`
 
 Si usas Supabase CLI en el futuro, puedes adaptar este flujo a `supabase db
 push`, pero esta guia asume SQL Editor para una primera prueba controlada.
@@ -91,7 +92,7 @@ push`, pero esta guia asume SQL Editor para una primera prueba controlada.
 ### Inventario de preproducción
 
 Antes de una demo con Supabase real, confirma en el proyecto remoto que están
-aplicadas las migraciones `001` a `026`. El repositorio solo contiene los
+aplicadas las migraciones `001` a `027`. El repositorio solo contiene los
 archivos; no garantiza el estado del entorno remoto. La migración `003` es una
 plantilla de setup y no debe reemplazar un seed revisado.
 

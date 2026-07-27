@@ -1,7 +1,7 @@
 # Production readiness
 
 Checklist de DayIA Dental para demo comercial y revisión preproducción.
-Última revisión documental: 21 de julio de 2026.
+Última revisión documental: 27 de julio de 2026.
 
 ## Estado del MVP
 
@@ -39,7 +39,9 @@ separación de dependencias compartidas.
 
 ## Pendiente antes de producción real
 
-- Auditoría independiente de RLS y migración de policies legacy a memberships.
+- Aplicar `027_membership_rls_hardening.sql` primero en staging y ejecutar
+  pruebas de aislamiento con owner, doctor, recepción, una suscripción
+  bloqueada y dos consultorios.
 - Backups probados, restauración, monitoreo, alertas y trazabilidad de incidentes.
 - Revisión legal y de seguridad para datos clínicos del país de operación.
 - Dominio productivo con TLS, headers de seguridad y fallback SPA configurado.
@@ -123,7 +125,7 @@ La ausencia de `WHATSAPP_SEND_ENABLED` mantiene el dry-run por defecto.
 
 ## Migraciones
 
-Aplicar y verificar `001` a `025` en orden. `003_initial_clinic_setup_template`
+Aplicar y verificar `001` a `027` en orden. `003_initial_clinic_setup_template`
 es una plantilla de referencia. La lista completa está en
 `docs/supabase-setup.md`. El repositorio no demuestra qué migraciones están
 aplicadas en un proyecto remoto. Dos consultas con `supabase migration list`
@@ -177,7 +179,7 @@ No crear, corregir ni eliminar estos datos automáticamente desde el frontend.
 
 ## Checklist de despliegue
 
-- [ ] Confirmar migraciones `001`–`025` en staging.
+- [ ] Confirmar migraciones `001`–`027` en staging.
 - [ ] Desplegar únicamente las Functions necesarias.
 - [ ] Decidir si se despliega `whatsapp-webhook`; no es necesario para el flujo
   manual y actualmente falta en el remoto.
@@ -204,4 +206,6 @@ No crear, corregir ni eliminar estos datos automáticamente desde el frontend.
 - La creación real requiere autorización de plataforma y flag exclusivo del
   servidor, desactivado por defecto.
 - Los loaders clínicos se bloquean por permiso antes de llamar servicios.
-- RLS sigue siendo la barrera autoritativa por consultorio.
+- `027_membership_rls_hardening.sql` prepara RLS basada en membership activa,
+  rol, estado del consultorio y vigencia comercial; debe aplicarse y validarse
+  en staging antes de considerarla barrera productiva.

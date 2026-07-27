@@ -8,7 +8,7 @@ import type {
 
 type WhatsappSettingsInsert = Omit<
   WhatsAppSettingsRecord,
-  'created_at' | 'id' | 'updated_at'
+  'created_at' | 'id' | 'is_connected' | 'updated_at'
 >
 
 export function mapWhatsappSettingsRecordToSettings(
@@ -31,7 +31,6 @@ export function mapWhatsappSettingsInputToInsert(
   return {
     business_account_id: input.businessAccountId.trim() || null,
     clinic_id: clinicId,
-    is_connected: input.isConnected,
     phone_number: input.phoneNumber.trim() || null,
     phone_number_id: input.phoneNumberId.trim() || null,
     provider: input.provider,
