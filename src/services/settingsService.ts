@@ -12,6 +12,7 @@ import type {
 import type {
   BusinessHourRecord,
   CalendarExceptionRecord,
+  Json,
   TreatmentRecord,
 } from '../types/database'
 import type { Treatment, TreatmentId } from '../types/Treatment'
@@ -36,6 +37,19 @@ type CalendarExceptionInsert = Omit<
   CalendarExceptionRecord,
   'created_at' | 'id' | 'updated_at'
 >
+
+interface BusinessHoursRpcClient {
+  rpc: (
+    functionName: 'save_clinic_business_hours',
+    args: {
+      target_clinic_id: string
+      target_hours: Json
+    },
+  ) => Promise<{
+    data: BusinessHourRecord[] | null
+    error: { code?: string; message?: string } | null
+  }>
+}
 
 const weekdayByNumber: Weekday[] = [
   'sunday',
@@ -314,26 +328,69 @@ export async function saveBusinessHours(
   clinicId: string,
   businessHours: BusinessHoursSettings,
 ) {
-  if (!supabase) {
+  return saveBusinessHoursWithClient(
+    supabase as BusinessHoursRpcClient | null,
+    clinicId,
+    businessHours,
+  )
+}
+
+export async function saveBusinessHoursWithClient(
+  client: BusinessHoursRpcClient | null,
+  clinicId: string,
+  businessHours: BusinessHoursSettings,
+) {
+  if (!client) {
     return { data: null, error: 'Supabase is not configured yet.' }
   }
 
-  const { data, error } = await supabase
-    .from('business_hours')
-    .upsert(mapBusinessHoursSettingsToInserts(clinicId, businessHours) as never[], {
-      onConflict: 'clinic_id,weekday',
+  try {
+    const targetHours = mapBusinessHoursSettingsToInserts(
+      clinicId,
+      businessHours,
+    ).map(
+      ({
+        end_time,
+        is_open,
+        slot_interval_minutes,
+        start_time,
+        weekday,
+      }) => ({
+        end_time,
+        is_open,
+        slot_interval_minutes,
+        start_time,
+        weekday,
+      }),
+    )
+    const { data, error } = await client.rpc('save_clinic_business_hours', {
+      target_clinic_id: clinicId,
+      target_hours: targetHours as unknown as Json,
     })
-    .select('*')
 
-  if (error) {
-    return { data: null, error: getSettingsServiceErrorMessage() }
-  }
+    if (error) {
+      return {
+        data: null,
+        error: getBusinessHoursSaveErrorMessage(error),
+      }
+    }
 
-  return {
-    data: mapBusinessHoursRecordsToSettings(
-      (data ?? []) as BusinessHourRecord[],
-    ).settings,
-    error: null,
+    if (!data || data.length !== 7) {
+      return {
+        data: null,
+        error: 'No pudimos confirmar los horarios guardados.',
+      }
+    }
+
+    return {
+      data: mapBusinessHoursRecordsToSettings(data).settings,
+      error: null,
+    }
+  } catch {
+    return {
+      data: null,
+      error: 'No pudimos conectar con la configuración de horarios.',
+    }
   }
 }
 
@@ -433,4 +490,22 @@ function normalizeDbTime(time: string) {
 
 function getSettingsServiceErrorMessage() {
   return 'No pudimos completar la operación de configuración.'
+}
+
+function getBusinessHoursSaveErrorMessage(error: {
+  code?: string
+  message?: string
+}) {
+  if (error.code === '42501' || error.message === 'FORBIDDEN') {
+    return 'No tienes permiso para modificar los horarios del consultorio.'
+  }
+
+  if (
+    error.code === '22023' ||
+    error.message === 'INVALID_BUSINESS_HOURS'
+  ) {
+    return 'Revisa que cada día abierto tenga un horario válido.'
+  }
+
+  return 'No pudimos guardar los horarios. Intenta nuevamente.'
 }

@@ -58,6 +58,8 @@ por consultorio sobre Supabase.
 
 La guía funcional y de despliegue de cobros vive en
 [docs/billing-and-subscriptions.md](docs/billing-and-subscriptions.md).
+Los controles, acciones, feedback y criterios responsive deben seguir
+[DESIGN.md](DESIGN.md) antes de agregar estilos específicos por módulo.
 
 ## Alta protegida de consultorios
 

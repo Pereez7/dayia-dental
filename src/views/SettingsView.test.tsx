@@ -32,6 +32,7 @@ function renderSettings({
       onCreateClinicUser={successfulAction}
       onCreateTreatment={successfulAction}
       onDeleteCalendarException={successfulAction}
+      onSetClinicUserStatus={successfulAction}
       onSetTreatmentActive={successfulAction}
       onUpdateTreatment={successfulAction}
       onWhatsappSettingsChange={successfulAction}

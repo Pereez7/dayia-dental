@@ -51,6 +51,7 @@ export function mapProfileToClinicUser(profile: UserProfile): ClinicUser {
       : 'Usuario sin nombre',
     id: profile.id,
     invitedAt: profile.invited_at ?? null,
+    membershipId: null,
     role: normalizeUserRole(profile.role, {
       allowLegacyPlatformAdmin: true,
     }),
@@ -161,6 +162,7 @@ function mapCreatedClinicUser(
       : 'Usuario sin nombre',
     id: user.id ?? '',
     invitedAt: user.invitedAt ?? null,
+    membershipId: null,
     role: normalizeUserRole(user.role, {
       allowLegacyPlatformAdmin: true,
     }),

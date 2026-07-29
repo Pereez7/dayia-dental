@@ -41,6 +41,11 @@ interface SettingsViewProps {
   onCreateClinicUser: (
     values: ClinicUserFormValues,
   ) => Promise<SettingsActionResult> | SettingsActionResult
+  onSetClinicUserStatus: (
+    clinicUser: ClinicUser,
+    targetStatus: 'active' | 'inactive',
+    reason: string,
+  ) => Promise<SettingsActionResult> | SettingsActionResult
   onCreateCalendarException: (
     values: CalendarExceptionFormValues,
   ) => Promise<SettingsActionResult> | SettingsActionResult
@@ -86,6 +91,7 @@ export function SettingsView({
   clinicMembersCount,
   onBusinessHoursChange,
   onCreateClinicUser,
+  onSetClinicUserStatus,
   onCreateCalendarException,
   onCreateTreatment,
   onMigrateOwnerEmail,
@@ -167,6 +173,7 @@ export function SettingsView({
             memberCount={clinicMembersCount}
             users={clinicUsers}
             onCreateUser={onCreateClinicUser}
+            onSetUserStatus={onSetClinicUserStatus}
             onMigrateOwnerEmail={onMigrateOwnerEmail}
           />
         )}

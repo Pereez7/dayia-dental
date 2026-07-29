@@ -19,6 +19,7 @@ interface ClinicMemberRow {
   activated_at: string | null
   clinic_id: string
   created_at: string
+  id: string
   invited_at: string | null
   role: string
   status: string
@@ -226,7 +227,7 @@ async function handleClinicMembersRequest(request: Request) {
       userId: userId as string,
     })
     const activatedAt = membershipStatus === 'active' ? now : null
-    const { error: insertError } = await adminClient.rpc(
+    const { data: membershipId, error: insertError } = await adminClient.rpc(
       'insert_clinic_membership_with_limit',
       {
         target_activated_at: activatedAt,
@@ -276,6 +277,7 @@ async function handleClinicMembersRequest(request: Request) {
           email: profile.email,
           fullName: profile.fullName,
           invitedAt: now,
+          membershipId,
           role: payload.role,
           status: membershipStatus,
           userId,
@@ -297,7 +299,7 @@ async function listClinicMembers(
 ): Promise<ClinicMemberRow[]> {
   const { data, error } = await adminClient
     .from('clinic_memberships')
-    .select('user_id, clinic_id, role, status, invited_at, activated_at, created_at')
+    .select('id, user_id, clinic_id, role, status, invited_at, activated_at, created_at')
     .eq('clinic_id', clinicId)
     .order('created_at', { ascending: true })
 
@@ -337,6 +339,7 @@ async function attachProfiles(
       email: profile?.email?.trim().toLowerCase() || null,
       fullName: profile?.full_name?.trim() || 'Usuario sin nombre',
       invitedAt: membership.invited_at,
+      membershipId: membership.id,
       role: membership.role,
       status: membership.status,
       userId: membership.user_id,

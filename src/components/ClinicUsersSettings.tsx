@@ -34,7 +34,19 @@ interface ClinicUsersSettingsProps {
   onMigrateOwnerEmail?: () =>
     | Promise<{ error?: string; success: boolean }>
     | { error?: string; success: boolean }
+  onSetUserStatus?: (
+    user: ClinicUser,
+    targetStatus: 'active' | 'inactive',
+    reason: string,
+  ) =>
+    | Promise<{ error?: string; success: boolean }>
+    | { error?: string; success: boolean }
   users: ClinicUser[]
+}
+
+interface ClinicUserLifecycleDraft {
+  targetStatus: 'active' | 'inactive'
+  userId: string
 }
 
 const initialFormValues: ClinicUserFormValues = {
@@ -53,6 +65,7 @@ export function ClinicUsersSettings({
   memberCount,
   onCreateUser,
   onMigrateOwnerEmail,
+  onSetUserStatus,
   users,
 }: ClinicUsersSettingsProps) {
   const [fieldErrors, setFieldErrors] = useState<ClinicUserFormErrors>({})
@@ -65,9 +78,15 @@ export function ClinicUsersSettings({
   const [isOwnerEmailActionHidden, setIsOwnerEmailActionHidden] =
     useState(false)
   const [isToastVisible, setIsToastVisible] = useState(false)
+  const [lifecycleDraft, setLifecycleDraft] =
+    useState<ClinicUserLifecycleDraft | null>(null)
+  const [lifecycleError, setLifecycleError] = useState('')
+  const [lifecycleReason, setLifecycleReason] = useState('')
+  const [isUpdatingLifecycle, setIsUpdatingLifecycle] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
   const [toastTone, setToastTone] = useState<ToastTone>('success')
   const submissionLock = useRef(false)
+  const lifecycleLock = useRef(false)
 
   const sortedUsers = useMemo(
     () =>
@@ -179,6 +198,91 @@ export function ClinicUsersSettings({
     setIsOwnerEmailDialogOpen(false)
   }
 
+  function openLifecycleReview(
+    user: ClinicUser,
+    targetStatus: 'active' | 'inactive',
+  ) {
+    setLifecycleDraft({ targetStatus, userId: user.id })
+    setLifecycleReason('')
+    setLifecycleError('')
+    setIsToastVisible(false)
+  }
+
+  function closeLifecycleReview() {
+    if (isUpdatingLifecycle) return
+    setLifecycleDraft(null)
+    setLifecycleReason('')
+    setLifecycleError('')
+  }
+
+  async function handleLifecycleSubmit(
+    event: FormEvent<HTMLFormElement>,
+    user: ClinicUser,
+  ) {
+    event.preventDefault()
+
+    if (
+      !lifecycleDraft ||
+      lifecycleDraft.userId !== user.id ||
+      !onSetUserStatus ||
+      lifecycleLock.current
+    ) {
+      return
+    }
+
+    const reason = lifecycleReason.trim().replace(/\s+/g, ' ')
+
+    if (reason.length < 5) {
+      setLifecycleError('Explica el motivo con al menos 5 caracteres.')
+      return
+    }
+
+    if (lifecycleDraft.targetStatus === 'active' && hasReachedLimit) {
+      setLifecycleError('Tu plan alcanzó el límite de usuarios.')
+      return
+    }
+
+    lifecycleLock.current = true
+    setIsUpdatingLifecycle(true)
+    setLifecycleError('')
+    let result: Awaited<ReturnType<typeof onSetUserStatus>>
+
+    try {
+      result = await onSetUserStatus(
+        user,
+        lifecycleDraft.targetStatus,
+        reason,
+      )
+    } catch {
+      result = {
+        error: 'No pudimos actualizar el acceso. Intenta nuevamente.',
+        success: false,
+      }
+    } finally {
+      lifecycleLock.current = false
+      setIsUpdatingLifecycle(false)
+    }
+
+    if (!result.success) {
+      setLifecycleError(
+        result.error ?? 'No pudimos actualizar el acceso del usuario.',
+      )
+      return
+    }
+
+    const wasReactivated = lifecycleDraft.targetStatus === 'active'
+    setToastMessage(
+      wasReactivated
+        ? `Acceso de ${user.fullName} reactivado.`
+        : `Acceso de ${user.fullName} desactivado.`,
+    )
+    setToastTone('success')
+    setIsToastVisible(true)
+    setLifecycleDraft(null)
+    setLifecycleReason('')
+    setLifecycleError('')
+  }
+
   return (
     <section className="settings-panel clinic-users-panel">
       <div className="section-heading">
@@ -212,6 +316,17 @@ export function ClinicUsersSettings({
               !isOwnerEmailActionHidden &&
               user.id === currentUserId &&
               user.email === 'charles@test.com'
+            const canChangeLifecycle =
+              canManageUsers &&
+              Boolean(onSetUserStatus) &&
+              Boolean(user.membershipId) &&
+              user.id !== currentUserId &&
+              user.role !== 'clinic_owner' &&
+              (user.status === 'active' || user.status === 'inactive')
+            const isLifecycleReviewOpen =
+              lifecycleDraft?.userId === user.id
+            const targetStatus =
+              user.status === 'active' ? 'inactive' : 'active'
 
             return (
               <article className="clinic-user-row" key={user.id}>
@@ -260,6 +375,111 @@ export function ClinicUsersSettings({
                     Actualizar correo de acceso
                   </button>
                 )}
+                {canChangeLifecycle && !isLifecycleReviewOpen && (
+                  <div className="clinic-user-actions">
+                    <button
+                      className={
+                        targetStatus === 'inactive'
+                          ? 'danger-action'
+                          : 'secondary-action'
+                      }
+                      disabled={
+                        targetStatus === 'active' && hasReachedLimit
+                      }
+                      onClick={() =>
+                        openLifecycleReview(user, targetStatus)
+                      }
+                      type="button"
+                    >
+                      {targetStatus === 'active'
+                        ? 'Reactivar'
+                        : 'Desactivar'}
+                    </button>
+                    {targetStatus === 'active' && hasReachedLimit ? (
+                      <span className="clinic-user-action-hint">
+                        Libera un espacio del plan para reactivar.
+                      </span>
+                    ) : null}
+                  </div>
+                )}
+                {isLifecycleReviewOpen && lifecycleDraft ? (
+                  <form
+                    className="clinic-user-lifecycle-review"
+                    onSubmit={(event) => handleLifecycleSubmit(event, user)}
+                  >
+                    <div>
+                      <h4>
+                        {lifecycleDraft.targetStatus === 'active'
+                          ? 'Reactivar acceso'
+                          : 'Desactivar acceso'}
+                      </h4>
+                      <p>
+                        {lifecycleDraft.targetStatus === 'active'
+                          ? 'El usuario recuperará el acceso al consultorio.'
+                          : 'El usuario conservará su cuenta y registros, pero ya no podrá ingresar al consultorio.'}
+                      </p>
+                    </div>
+                    <label>
+                      <span>Motivo</span>
+                      <textarea
+                        className="field-control field-control--textarea field-control--fixed-textarea"
+                        aria-describedby={
+                          lifecycleError
+                            ? `clinic-user-lifecycle-error-${user.id}`
+                            : undefined
+                        }
+                        aria-invalid={Boolean(lifecycleError)}
+                        disabled={isUpdatingLifecycle}
+                        maxLength={500}
+                        placeholder={
+                          lifecycleDraft.targetStatus === 'active'
+                            ? 'Ej. Se reincorpora al equipo'
+                            : 'Ej. Finalizó su relación con el consultorio'
+                        }
+                        rows={2}
+                        value={lifecycleReason}
+                        onChange={(event) => {
+                          setLifecycleReason(event.target.value)
+                          if (lifecycleError) setLifecycleError('')
+                        }}
+                      />
+                    </label>
+                    {lifecycleError ? (
+                      <p
+                        className="field-message field-message--error"
+                        id={`clinic-user-lifecycle-error-${user.id}`}
+                        role="alert"
+                      >
+                        {lifecycleError}
+                      </p>
+                    ) : null}
+                    <div className="clinic-user-lifecycle-actions">
+                      <button
+                        className="secondary-action"
+                        disabled={isUpdatingLifecycle}
+                        onClick={closeLifecycleReview}
+                        type="button"
+                      >
+                        Volver
+                      </button>
+                      <button
+                        className={
+                          lifecycleDraft.targetStatus === 'inactive'
+                            ? 'danger-action'
+                            : 'primary-action'
+                        }
+                        disabled={isUpdatingLifecycle}
+                        type="submit"
+                      >
+                        {isUpdatingLifecycle
+                          ? 'Guardando...'
+                          : lifecycleDraft.targetStatus === 'active'
+                            ? 'Confirmar reactivación'
+                            : 'Confirmar desactivación'}
+                      </button>
+                    </div>
+                  </form>
+                ) : null}
               </article>
             )
           })}

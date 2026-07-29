@@ -6,7 +6,7 @@ El bloque en curso es el endurecimiento de seguridad y permisos antes de
 continuar con los CRUD pendientes. La migración
 `027_membership_rls_hardening.sql` ya fue validada localmente desde una base
 vacía y aplicada al staging `zjsnfgxvaimddmchrwre`. El historial remoto quedó
-alineado de `001` a `027`; las 38 pruebas de aislamiento RLS y
+alineado de `001` a `029`; las 38 pruebas de aislamiento RLS y
 `supabase db lint --linked --level warning` finalizaron correctamente:
 
 - la autorización clínica usa membership activa, consultorio activo,
@@ -18,13 +18,45 @@ alineado de `001` a `027`; las 38 pruebas de aislamiento RLS y
   fechas de auditoría ni `whatsapp_settings.is_connected`;
 - los módulos operativos no ofrecen borrado físico en base de datos, salvo la
   compatibilidad temporal de excepciones de calendario;
-- la suite completa pasa con 665 pruebas, lint y build correctos.
+- la suite completa pasa con 675 pruebas, lint y build correctos.
 
 El primer bloque queda validado técnicamente en local y staging. La prueba
 remota se ejecuta dentro de una transacción y no dejó perfiles, usuarios,
 funciones auxiliares ni la extensión pgTAP persistentes. `027` todavía no debe
 considerarse aplicada a producción: ese despliegue requiere respaldo, ventana
 controlada y verificación posterior independiente.
+
+El CRUD de Usuarios del consultorio comenzó por el ciclo de acceso reversible:
+
+- `028_clinic_membership_lifecycle.sql` está aplicada en staging;
+- usuarios activos no propietarios pueden desactivarse con motivo;
+- usuarios inactivos pueden reactivarse si el plan conserva un cupo;
+- no se eliminan Auth users, perfiles ni memberships;
+- el propietario, el usuario actual y las membresías de otro consultorio están
+  protegidos en servidor;
+- cada cambio crea un registro en `clinic_membership_events`;
+- React no puede leer el ledger ni ejecutar directamente la RPC;
+- `invite-clinic-member` y `manage-clinic-member` están desplegadas en staging;
+- la prueba remota transaccional de `028` supera 16 controles con rollback.
+
+La prueba visual confirmó owner protegido, usuario activo, usuario inactivo,
+reactivación y contador actualizado. Las acciones repetidas usan las etiquetas
+compactas `Desactivar` y `Reactivar`; el motivo hereda el control visual común
+y el resultado exitoso se comunica mediante el Toast flotante compartido.
+Antes de implementar edición de nombre y rol debe cerrarse y documentarse esta
+primera etapa.
+
+El guardado de horarios usa desde `029` la RPC
+`save_clinic_business_hours`. Guarda los siete días en una sola transacción,
+verifica `clinic_owner` o `clinic_admin` mediante la autorización común y evita
+el `upsert` directo que intentaba modificar las columnas protegidas
+`clinic_id` y `weekday`. La prueba remota de `029` supera 9 controles con
+rollback.
+
+La referencia visual obligatoria para nuevas pantallas es
+[`DESIGN.md`](../DESIGN.md). Los controles nuevos reutilizan `.field-control`
+y sus modificadores; las acciones repetidas dentro de cards son compactas, el
+feedback permanece cerca de la acción y todo cambio se revisa desde 360 px.
 
 El último bloque terminado es la estabilización de cambios de plan,
 suscripciones y pagos manuales:

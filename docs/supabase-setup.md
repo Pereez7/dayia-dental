@@ -85,6 +85,8 @@ Ejecuta en Supabase SQL Editor, en orden, los archivos de
 25. `025_reversible_lifetime_memberships.sql`
 26. `026_subscription_plan_change_workflow.sql`
 27. `027_membership_rls_hardening.sql`
+28. `028_clinic_membership_lifecycle.sql`
+29. `029_transactional_business_hours.sql`
 
 Si usas Supabase CLI en el futuro, puedes adaptar este flujo a `supabase db
 push`, pero esta guia asume SQL Editor para una primera prueba controlada.
@@ -92,7 +94,7 @@ push`, pero esta guia asume SQL Editor para una primera prueba controlada.
 ### Inventario de preproducción
 
 Antes de una demo con Supabase real, confirma en el proyecto remoto que están
-aplicadas las migraciones `001` a `027`. El repositorio solo contiene los
+aplicadas las migraciones `001` a `029`. El repositorio solo contiene los
 archivos; no garantiza el estado del entorno remoto. La migración `003` es una
 plantilla de setup y no debe reemplazar un seed revisado.
 
@@ -102,6 +104,7 @@ Functions vigentes para el MVP:
 npx supabase functions deploy list-platform-clinics
 npx supabase functions deploy create-platform-clinic
 npx supabase functions deploy invite-clinic-member
+npx supabase functions deploy manage-clinic-member
 npx supabase functions deploy complete-account-activation
 npx supabase functions deploy register-subscription-payment
 npx supabase functions deploy reject-subscription-payment-submission

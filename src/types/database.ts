@@ -186,6 +186,19 @@ export interface ClinicMembershipRecord {
   user_id: string
 }
 
+export interface ClinicMembershipEventRecord {
+  action: 'deactivated' | 'reactivated'
+  clinic_id: string
+  created_at: string
+  id: string
+  membership_id: string
+  new_status: 'active' | 'inactive'
+  performed_by: string | null
+  previous_status: 'active' | 'inactive'
+  reason: string
+  target_user_id: string
+}
+
 export interface Clinic {
   country_code: string
   created_at: string
@@ -357,6 +370,7 @@ export type TableRowMap = {
   clinical_records: ClinicalRecordRecord
   odontogram_entries: OdontogramEntryRecord
   clinic_memberships: ClinicMembershipRecord
+  clinic_membership_events: ClinicMembershipEventRecord
   clinic_subscriptions: ClinicSubscriptionRecord
   clinics: Clinic
   patients: PatientRecord
@@ -389,6 +403,13 @@ export type Database = {
       apply_due_scheduled_plan: {
         Args: { target_clinic_id: string }
         Returns: boolean
+      }
+      save_clinic_business_hours: {
+        Args: {
+          target_clinic_id: string
+          target_hours: Json
+        }
+        Returns: BusinessHourRecord[]
       }
     }
     Tables: {

@@ -24,6 +24,7 @@ describe('users service mapping', () => {
       fullName: 'Charles Pérez',
       id: 'user-1',
       invitedAt: null,
+      membershipId: null,
       role: 'clinic_admin',
       status: 'active',
     })

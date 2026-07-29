@@ -4,6 +4,16 @@ Registro breve de cambios relevantes en DayIA Dental.
 
 ## En desarrollo
 
+- Se creó `DESIGN.md` como contrato visual para reutilizar controles, acciones,
+  feedback y reglas mobile-first. El motivo de activación o desactivación de
+  usuarios ahora usa el control compartido, y las acciones repetidas se
+  redujeron a `Desactivar` y `Reactivar`. El resultado exitoso se muestra en el
+  Toast flotante común, sin insertar alertas dentro de la tarjeta del usuario.
+  El textarea del motivo conserva un tamaño fijo en escritorio y móvil.
+- El guardado semanal de horarios dejó de usar un `upsert` directo incompatible
+  con las columnas protegidas por RLS. La migración `029` incorpora una RPC
+  transaccional que valida los siete días, el rol administrador y el
+  consultorio antes de escribir.
 - El historial administrativo muestra cinco pagos por página, conserva el
   orden más reciente primero e incorpora rango, navegación numerada compacta y
   controles adaptados a móvil. Los pagos anulados siguen visibles y el detalle

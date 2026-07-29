@@ -813,3 +813,25 @@ diálogo. Los éxitos generales usan el Toast flotante común para seguir visibl
 independientemente del scroll. Aumentar días, rechazar avisos, anular pagos y
 cambiar vitalicio bloquean dobles envíos y exigen una revisión explícita antes
 de escribir.
+
+## El sistema visual es un contrato, no una copia por pantalla
+
+`DESIGN.md` es la referencia antes de crear controles o acciones. Los tokens
+permanecen en `src/index.css`; los patrones compartidos, como
+`.field-control`, viven en `src/App.css`. Un componente reutiliza esas clases y
+solo agrega una variante cuando cambia realmente el comportamiento.
+
+Las acciones repetidas en cards usan verbos breves y tamaño compacto. El texto
+completo permanece en la revisión o confirmación. Todo cambio visual se valida
+en 360, 390 y 430 px además de escritorio.
+
+## Los horarios se guardan como una unidad semanal
+
+El horario no se persiste mediante siete escrituras independientes ni mediante
+un upsert directo desde React. La RPC `save_clinic_business_hours` autoriza al
+owner/admin, valida la semana completa y escribe los siete días en una
+transacción.
+
+Esta decisión mantiene `clinic_id` y `weekday` fuera de las columnas
+actualizables por el cliente, evita estados semanales parciales y traduce los
+rechazos a mensajes operativos en el frontend.

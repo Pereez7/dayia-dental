@@ -402,7 +402,8 @@ Estado: iniciado.
 
 Implementado:
 
-- Horarios del consultorio.
+- Horarios del consultorio persistidos mediante una RPC transaccional
+  autorizada para owner/admin.
 - Horario semanal base.
 - Estado abierto/cerrado por dia.
 - Intervalo de atencion configurable.
@@ -433,6 +434,8 @@ Implementado:
 - Usuarios del consultorio listados desde `clinic_memberships`.
 - Invitación segura de administradores, doctores y recepción mediante
   `invite-clinic-member`.
+- Desactivación y reactivación reversible de usuarios no propietarios, con
+  motivo, protección de cupos y auditoría.
 - Límites de equipo: Medium 4 y Pro 10 miembros activos o pendientes.
 - Activación de miembros invitados mediante la vista existente
   `/activar-cuenta`.
@@ -444,9 +447,25 @@ Pendiente:
 - Reenvío y revocación de invitaciones de usuarios.
 - Preferencias y ajustes de notificaciones.
 - Persistencia de tratamientos.
-- Persistencia de horarios.
 - Edicion directa de excepciones existentes.
 - Feriados recurrentes.
+
+### Coherencia visual
+
+Estado: contrato inicial implementado.
+
+- `DESIGN.md` documenta controles, acciones, feedback y revisión responsive.
+- `.field-control` normaliza campos nuevos y
+  `.field-control--textarea` los campos multilínea.
+- Las acciones contextuales repetidas usan etiquetas breves y no ocupan el
+  ancho completo de una card.
+
+Pendiente:
+
+- Migrar progresivamente controles legacy al patrón común cuando se modifique
+  cada módulo.
+- Incorporar una verificación visual automatizada cuando exista infraestructura
+  de navegador para CI.
 
 ### Pulido comercial de Pacientes y Citas
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import type {
   BusinessHourRecord,
@@ -12,6 +12,7 @@ import {
   mapCalendarExceptionRecordToCalendarException,
   mapTreatmentInputToInsert,
   mapTreatmentRecordToTreatment,
+  saveBusinessHoursWithClient,
 } from './settingsService'
 
 const treatmentRecord: TreatmentRecord = {
@@ -120,6 +121,114 @@ describe('settingsService mappers', () => {
         weekday: 1,
       },
     ])
+  })
+
+  it('saves business hours through the transactional clinic RPC', async () => {
+    const weeklySchedule = [
+      {
+        day: 'monday' as const,
+        endTime: '18:00',
+        isOpen: true,
+        startTime: '08:00',
+      },
+      {
+        day: 'tuesday' as const,
+        endTime: '18:00',
+        isOpen: true,
+        startTime: '08:00',
+      },
+      {
+        day: 'wednesday' as const,
+        endTime: '18:00',
+        isOpen: true,
+        startTime: '08:00',
+      },
+      {
+        day: 'thursday' as const,
+        endTime: '18:00',
+        isOpen: true,
+        startTime: '08:00',
+      },
+      {
+        day: 'friday' as const,
+        endTime: '18:00',
+        isOpen: true,
+        startTime: '08:00',
+      },
+      {
+        day: 'saturday' as const,
+        endTime: '18:00',
+        isOpen: false,
+        startTime: '08:00',
+      },
+      {
+        day: 'sunday' as const,
+        endTime: '18:00',
+        isOpen: false,
+        startTime: '08:00',
+      },
+    ]
+    const records = weeklySchedule.map((schedule, index) => ({
+      clinic_id: 'clinic-1',
+      created_at: '2026-07-28T12:00:00Z',
+      end_time: schedule.isOpen ? schedule.endTime : null,
+      id: `hours-${index}`,
+      is_open: schedule.isOpen,
+      slot_interval_minutes: 30,
+      start_time: schedule.isOpen ? schedule.startTime : null,
+      updated_at: '2026-07-28T12:00:00Z',
+      weekday: index === 6 ? 0 : index + 1,
+    }))
+    const client = {
+      rpc: vi.fn().mockResolvedValue({ data: records, error: null }),
+    }
+
+    await expect(
+      saveBusinessHoursWithClient(client, 'clinic-1', {
+        appointmentInterval: 30,
+        weeklySchedule,
+      }),
+    ).resolves.toMatchObject({
+      data: {
+        appointmentInterval: 30,
+      },
+      error: null,
+    })
+    expect(client.rpc).toHaveBeenCalledWith(
+      'save_clinic_business_hours',
+      expect.objectContaining({
+        target_clinic_id: 'clinic-1',
+        target_hours: expect.arrayContaining([
+          expect.objectContaining({
+            is_open: true,
+            slot_interval_minutes: 30,
+            weekday: 1,
+          }),
+        ]),
+      }),
+    )
+    expect(
+      client.rpc.mock.calls[0]?.[1].target_hours[0],
+    ).not.toHaveProperty('clinic_id')
+  })
+
+  it('maps a rejected business-hours RPC to a friendly permission error', async () => {
+    const client = {
+      rpc: vi.fn().mockResolvedValue({
+        data: null,
+        error: { code: '42501', message: 'FORBIDDEN' },
+      }),
+    }
+
+    await expect(
+      saveBusinessHoursWithClient(client, 'clinic-1', {
+        appointmentInterval: 30,
+        weeklySchedule: [],
+      }),
+    ).resolves.toEqual({
+      data: null,
+      error: 'No tienes permiso para modificar los horarios del consultorio.',
+    })
   })
 
   it('maps calendar exception records and inputs', () => {

@@ -1,6 +1,8 @@
 import { supabase } from '../lib/supabaseClient'
 import type {
   ClinicMemberActivationStatus,
+  ClinicMemberLifecycleInput,
+  ClinicMemberLifecycleResult,
   ClinicMembersList,
   ClinicUser,
   ClinicUserFormValues,
@@ -23,6 +25,7 @@ interface ClinicMemberResponseRow {
   email?: string | null
   fullName?: string | null
   invitedAt?: string | null
+  membershipId?: string | null
   role?: string | null
   status?: string | null
   userId?: string
@@ -39,6 +42,21 @@ interface InviteClinicMemberResponse {
   code?: string
   error?: string
   member?: ClinicMemberResponseRow
+}
+
+interface ManageClinicMemberResponse {
+  code?: string
+  member?: ClinicMemberResponseRow
+  memberCount?: number
+}
+
+interface ClinicMembersFunctionClient {
+  functions: {
+    invoke: (
+      functionName: string,
+      options: { body: unknown; method?: 'POST' },
+    ) => Promise<{ data: unknown; error: unknown }>
+  }
 }
 
 export async function listClinicMembers() {
@@ -105,6 +123,59 @@ export async function inviteClinicMember(values: ClinicUserFormValues) {
   }
 }
 
+export async function manageClinicMember(
+  input: ClinicMemberLifecycleInput,
+) {
+  return manageClinicMemberWithClient(
+    supabase as ClinicMembersFunctionClient | null,
+    input,
+  )
+}
+
+export async function manageClinicMemberWithClient(
+  client: ClinicMembersFunctionClient | null,
+  input: ClinicMemberLifecycleInput,
+) {
+  if (!client) {
+    return { data: null, error: 'Supabase is not configured yet.' }
+  }
+
+  try {
+    const { data, error } = await client.functions.invoke(
+      'manage-clinic-member',
+      {
+        body: input,
+        method: 'POST',
+      },
+    )
+
+    if (error) {
+      return { data: null, error: await getClinicMembersErrorMessage(error) }
+    }
+
+    if (!isManageClinicMemberResponse(data)) {
+      return {
+        data: null,
+        error: 'No pudimos confirmar el cambio de acceso.',
+      }
+    }
+
+    return {
+      data: {
+        member: mapMembershipToClinicUser(data.member),
+        memberCount: data.memberCount,
+      } satisfies ClinicMemberLifecycleResult,
+      error: null,
+    }
+  } catch {
+    return {
+      data: null,
+      error:
+        'No pudimos conectar con la gestión de usuarios. Intenta nuevamente.',
+    }
+  }
+}
+
 export function mapMembershipToClinicUser(
   member: ClinicMemberResponseRow,
 ): ClinicUser {
@@ -118,6 +189,7 @@ export function mapMembershipToClinicUser(
       : 'Usuario sin nombre',
     id: member.userId ?? '',
     invitedAt: member.invitedAt ?? null,
+    membershipId: member.membershipId ?? null,
     role: normalizeUserRole(member.role) as UserRole,
     status: normalizeMembershipStatus(member.status),
   }
@@ -135,14 +207,21 @@ export function getClinicMembersResponseError(
     INVALID_PAYLOAD: 'Revisa el nombre, email y rol antes de continuar.',
     INVALID_ROLE: 'El rol seleccionado no es válido.',
     INVITATION_SEND_ERROR: 'No pudimos enviar la invitación del nuevo usuario.',
+    INVALID_REASON: 'Explica el motivo con al menos 5 caracteres.',
     MEMBER_LIMIT_REACHED: 'Tu plan alcanzó el límite de usuarios.',
+    MEMBERSHIP_NOT_FOUND: 'No encontramos la membresía seleccionada.',
+    MEMBERSHIP_STATE_CONFLICT:
+      'El acceso del usuario cambió. Actualiza la lista.',
     MEMBERSHIP_ALREADY_EXISTS: 'Este usuario ya pertenece al consultorio.',
+    OWNER_PROTECTED:
+      'El propietario no puede desactivarse desde la gestión de usuarios.',
     PLAN_NOT_ELIGIBLE:
       'Tu plan actual no permite gestionar usuarios del consultorio.',
     SERVER_CONFIGURATION_ERROR:
       'La gestión de usuarios no está configurada en el servidor.',
     SUBSCRIPTION_NOT_AVAILABLE:
       'El consultorio no tiene una suscripción activa.',
+    SELF_ACTION_NOT_ALLOWED: 'No puedes desactivar tu propio acceso.',
     UNAUTHORIZED: 'Tu sesión expiró. Vuelve a iniciar sesión.',
   }
 
@@ -210,5 +289,24 @@ function isClinicMembersListResponse(
       value.plan &&
       typeof value.plan.id === 'string' &&
       Number.isInteger(value.plan.maxUsers),
+  )
+}
+
+function isManageClinicMemberResponse(
+  value: unknown,
+): value is {
+  member: ClinicMemberResponseRow & { membershipId: string; userId: string }
+  memberCount: number
+} {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const candidate = value as ManageClinicMemberResponse
+  return Boolean(
+    candidate.member &&
+      typeof candidate.member.userId === 'string' &&
+      typeof candidate.member.membershipId === 'string' &&
+      Number.isInteger(candidate.memberCount),
   )
 }

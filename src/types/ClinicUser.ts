@@ -10,6 +10,7 @@ export interface ClinicUser {
   fullName: string
   id: string
   invitedAt: string | null
+  membershipId: string | null
   role: UserRole
   status: ClinicMembershipRecordStatus
 }
@@ -29,6 +30,19 @@ export type ClinicMemberActivationStatus =
   | 'already_active'
   | 'not_sent'
   | 'pending'
+
+export type ClinicMemberLifecycleAction = 'deactivate' | 'reactivate'
+
+export interface ClinicMemberLifecycleInput {
+  action: ClinicMemberLifecycleAction
+  membershipId: string
+  reason: string
+}
+
+export interface ClinicMemberLifecycleResult {
+  member: ClinicUser
+  memberCount: number
+}
 
 export interface ClinicUserFormValues {
   email: string

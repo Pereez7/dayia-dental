@@ -75,12 +75,41 @@ pantalla.
 
 `src/App.css`
 
-Contiene estilos globales de layout y de los componentes actuales. Todavia no
-hay sistema de diseno separado.
+Contiene patrones visuales compartidos y estilos de layout y componentes.
+`DESIGN.md` es el contrato de uso; `src/index.css` conserva los tokens. Los
+controles nuevos parten de `.field-control` y agregan modificadores compartidos
+en vez de recrear bordes, tipografía y foco por pantalla.
 
 `src/index.css`
 
 Contiene estilos globales, variables de color, reset basico y reglas generales.
+
+## Contrato visual reutilizable
+
+`DESIGN.md` define controles, acciones, feedback y validación responsive. La
+separación de responsabilidades es:
+
+- `src/index.css`: tokens, tipografía y reglas globales;
+- `src/App.css`: patrones reutilizables y estilos de composición;
+- componentes React: estructura y clases semánticas, sin estilos improvisados;
+- pruebas visuales manuales: 360, 390, 430 px y escritorio.
+
+`.field-control` normaliza fuente, borde, radio, placeholder, foco, disabled y
+error. `.field-control--textarea` agrega el comportamiento propio de texto
+multilínea. Las acciones repetidas dentro de cards usan verbos breves y tamaño
+compacto; las confirmaciones mantienen el detalle completo.
+
+## Escritura transaccional de horarios
+
+`settingsService.saveBusinessHours` invoca
+`save_clinic_business_hours(clinic_id, jsonb)`. La función valida sesión,
+membership activa de owner/admin, consultorio, suscripción, siete días únicos,
+intervalo permitido y rangos de apertura. Luego ejecuta el upsert dentro del
+servidor y devuelve la semana persistida.
+
+React no actualiza `clinic_id` ni `weekday`. Esto conserva los grants por
+columna de la migración `027`, evita guardados parciales y mantiene RLS como
+defensa autoritativa.
 
 ## Flujo general
 

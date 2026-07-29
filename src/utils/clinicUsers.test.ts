@@ -71,6 +71,7 @@ describe('clinic users helpers', () => {
             fullName: 'Charles Pérez',
             id: 'user-1',
             invitedAt: null,
+            membershipId: 'membership-1',
             role: 'clinic_admin',
             status: 'active',
           },

@@ -74,6 +74,7 @@ import {
 import {
   inviteClinicMember,
   listClinicMembers,
+  manageClinicMember,
 } from './services/clinicMembersService'
 import {
   legacyOwnerEmail,
@@ -1668,6 +1669,7 @@ function App() {
           fullName: values.fullName,
           id: `demo-user-${currentUsers.length + 1}`,
           invitedAt: new Date().toISOString(),
+          membershipId: `demo-membership-${currentUsers.length + 1}`,
           role: values.role,
           status: 'pending_activation',
         },
@@ -1708,6 +1710,64 @@ function App() {
     }
     setClinicUsersError('')
 
+    return { success: true }
+  }
+
+  async function handleSetClinicUserStatus(
+    clinicUser: ClinicUser,
+    targetStatus: 'active' | 'inactive',
+    reason: string,
+  ) {
+    if (!permissions.canManageClinicUsers) {
+      return {
+        error: 'Tu rol o plan no permite gestionar usuarios.',
+        success: false,
+      }
+    }
+
+    if (!clinicUser.membershipId) {
+      return {
+        error: 'No pudimos identificar la membresía del usuario.',
+        success: false,
+      }
+    }
+
+    if (isDemoMode) {
+      setClinicUsers((currentUsers) =>
+        currentUsers.map((member) =>
+          member.id === clinicUser.id
+            ? { ...member, status: targetStatus }
+            : member,
+        ),
+      )
+      setClinicMembersCount((currentCount) =>
+        targetStatus === 'active'
+          ? currentCount + 1
+          : Math.max(0, currentCount - 1),
+      )
+      setClinicUsersError('')
+      return { success: true }
+    }
+
+    const { data, error } = await manageClinicMember({
+      action: targetStatus === 'active' ? 'reactivate' : 'deactivate',
+      membershipId: clinicUser.membershipId,
+      reason,
+    })
+
+    if (error || !data) {
+      const message = error ?? 'No pudimos actualizar el acceso del usuario.'
+      setClinicUsersError(message)
+      return { error: message, success: false }
+    }
+
+    setClinicUsers((currentUsers) =>
+      currentUsers.map((member) =>
+        member.id === data.member.id ? data.member : member,
+      ),
+    )
+    setClinicMembersCount(data.memberCount)
+    setClinicUsersError('')
     return { success: true }
   }
 
@@ -2221,6 +2281,7 @@ function App() {
           onBusinessHoursChange={handleSaveBusinessHours}
           onCreateCalendarException={handleCreateCalendarException}
           onCreateClinicUser={handleCreateClinicUser}
+          onSetClinicUserStatus={handleSetClinicUserStatus}
           onMigrateOwnerEmail={handleMigrateOwnerEmail}
           onCreateTreatment={handleCreateTreatment}
           onDeleteCalendarException={handleDeleteCalendarException}
