@@ -9,6 +9,12 @@ import {
   type CreatePlatformClinicRepository,
   type PlatformClinicOwner,
 } from '../_shared/createPlatformClinic.ts'
+import {
+  createEdgePerformanceRecorder,
+  resolvePerformanceOperationId,
+  type EdgePerformanceInstrumentation,
+  type EdgePerformanceSnapshot,
+} from '../_shared/performance.ts'
 
 interface PublicError {
   code: string
@@ -17,9 +23,11 @@ interface PublicError {
 
 const corsHeaders = {
   'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type',
+    'authorization, x-client-info, apikey, content-type, x-dayia-operation-id',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Origin': '*',
+  'Access-Control-Expose-Headers':
+    'Server-Timing, X-Dayia-Operation-Id',
   'Access-Control-Max-Age': '86400',
 }
 
@@ -28,27 +36,44 @@ Deno.serve(async (request) => {
     return new Response('ok', { headers: corsHeaders, status: 200 })
   }
 
+  const operationId = resolvePerformanceOperationId(
+    request.headers.get('X-Dayia-Operation-Id'),
+  )
+  const performance = createEdgePerformanceRecorder(
+    'create_platform_clinic',
+    operationId,
+  )
+  let response: Response
+
   try {
-    return await handleCreatePlatformClinic(request)
+    response = await handleCreatePlatformClinic(request, performance)
   } catch (error) {
     if (error instanceof CreatePlatformClinicError) {
-      return errorResponse(
+      response = errorResponse(
         { code: error.code, message: error.message },
         error.status,
       )
+    } else {
+      response = errorResponse(
+        {
+          code: 'UNEXPECTED_ERROR',
+          message: 'No pudimos preparar el consultorio. Intenta nuevamente.',
+        },
+        500,
+      )
     }
-
-    return errorResponse(
-      {
-        code: 'UNEXPECTED_ERROR',
-        message: 'No pudimos preparar el consultorio. Intenta nuevamente.',
-      },
-      500,
-    )
   }
+
+  const snapshot = performance.complete(response.status)
+  console.info(JSON.stringify(snapshot.log))
+
+  return withPerformanceHeaders(response, operationId, snapshot)
 })
 
-async function handleCreatePlatformClinic(request: Request) {
+async function handleCreatePlatformClinic(
+  request: Request,
+  performance: EdgePerformanceInstrumentation,
+) {
   if (request.method !== 'POST') {
     return errorResponse(
       { code: 'METHOD_NOT_ALLOWED', message: 'Método no permitido.' },
@@ -81,7 +106,10 @@ async function handleCreatePlatformClinic(request: Request) {
     global: { headers: { Authorization: authHeader } },
   })
   const { data: requesterData, error: requesterError } =
-    await requesterClient.auth.getUser(token)
+    await performance.measure(
+      'auth_user',
+      () => requesterClient.auth.getUser(token),
+    )
 
   if (requesterError || !requesterData.user) {
     return errorResponse(
@@ -95,11 +123,16 @@ async function handleCreatePlatformClinic(request: Request) {
 
   // This query uses the requester's JWT and the "read own profile" RLS policy.
   // service_role is intentionally not read or initialized before authorization.
-  const { data: requesterProfile, error: profileError } = await requesterClient
-    .from('profiles')
-    .select('is_platform_admin')
-    .eq('id', requesterData.user.id)
-    .maybeSingle()
+  const { data: requesterProfile, error: profileError } =
+    await performance.measure(
+      'platform_authorization',
+      async () =>
+        await requesterClient
+          .from('profiles')
+          .select('is_platform_admin')
+          .eq('id', requesterData.user.id)
+          .maybeSingle(),
+    )
 
   if (profileError) {
     return errorResponse(
@@ -122,7 +155,11 @@ async function handleCreatePlatformClinic(request: Request) {
     return configurationError()
   }
 
-  const payload = normalizeCreatePlatformClinicPayload(await readJson(request))
+  const payload = await performance.measure(
+    'payload_validation',
+    async () =>
+      normalizeCreatePlatformClinicPayload(await readJson(request)),
+  )
   const adminClient = createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   })
@@ -130,7 +167,11 @@ async function handleCreatePlatformClinic(request: Request) {
     adminClient,
     getActivationRedirectUrl(),
   )
-  const response = await createPlatformClinicRecords(payload, repository)
+  const response = await createPlatformClinicRecords(
+    payload,
+    repository,
+    performance,
+  )
 
   return jsonResponse(response, 201)
 }
@@ -530,4 +571,20 @@ function jsonResponse(payload: unknown, status = 200) {
 
 function errorResponse(error: PublicError, status: number) {
   return jsonResponse({ error: error.message, ...error }, status)
+}
+
+function withPerformanceHeaders(
+  response: Response,
+  operationId: string,
+  snapshot: EdgePerformanceSnapshot,
+) {
+  const headers = new Headers(response.headers)
+  headers.set('Server-Timing', snapshot.serverTiming)
+  headers.set('X-Dayia-Operation-Id', operationId)
+
+  return new Response(response.body, {
+    headers,
+    status: response.status,
+    statusText: response.statusText,
+  })
 }

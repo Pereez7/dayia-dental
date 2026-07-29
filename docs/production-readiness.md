@@ -39,6 +39,10 @@ separación de dependencias compartidas.
 
 ## Pendiente antes de producción real
 
+- Cerrar los hitos obligatorios del
+  [plan de rendimiento y escalabilidad](performance-and-scalability-plan.md),
+  comenzando por la medición del alta, el listado administrativo paginado y las
+  colecciones clínicas acotadas.
 - Preparar respaldo y ventana controlada antes de aplicar
   `027_membership_rls_hardening.sql` y
   `028_clinic_membership_lifecycle.sql` y

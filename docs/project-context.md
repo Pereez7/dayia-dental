@@ -2,6 +2,18 @@
 
 ## Punto de continuidad
 
+El programa de rendimiento y escalabilidad está definido en
+[`performance-and-scalability-plan.md`](performance-and-scalability-plan.md).
+`PERF-001` ya instrumenta por fases el alta de consultorios sin registrar
+información personal ni secretos. La versión 5 de `create-platform-clinic` está
+`ACTIVE` en staging y una prueba sin usuario confirmó `Server-Timing` y la
+correlación del `operationId` sin escribir datos. Falta ejecutar una única alta
+autenticada controlada, copiar los dos eventos `[dayia-performance]` del
+navegador y correlacionarlos con el log de la Function. Después se abordará la
+confirmación bloqueada por el refresco completo y la separación del listado
+administrativo respecto del historial comercial. No se debe comenzar
+`PERF-002` hasta documentar esa línea base.
+
 El bloque en curso es el endurecimiento de seguridad y permisos antes de
 continuar con los CRUD pendientes. La migración
 `027_membership_rls_hardening.sql` ya fue validada localmente desde una base

@@ -1,3 +1,8 @@
+import type {
+  EdgePerformanceInstrumentation,
+  EdgePerformancePhase,
+} from './performance.ts'
+
 export type PlatformClinicActivationStatus =
   | 'pending'
   | 'already_active'
@@ -169,8 +174,15 @@ export function assertPlatformClinicCreationAllowed(
 export async function createPlatformClinicRecords(
   input: CreatePlatformClinicInput,
   repository: CreatePlatformClinicRepository,
+  performance?: EdgePerformanceInstrumentation,
 ): Promise<CreatePlatformClinicResponse> {
-  if (await repository.findClinicByNormalizedName(input.clinicName)) {
+  if (
+    await measurePhase(
+      performance,
+      'duplicate_check',
+      () => repository.findClinicByNormalizedName(input.clinicName),
+    )
+  ) {
     throw new CreatePlatformClinicError(
       'CLINIC_ALREADY_EXISTS',
       'Ya existe un consultorio con ese nombre.',
@@ -182,16 +194,31 @@ export async function createPlatformClinicRecords(
   let createdOwnerId: string | null = null
 
   try {
-    clinicId = (await repository.createClinic(input.clinicName)).id
+    clinicId = (
+      await measurePhase(
+        performance,
+        'clinic_insert',
+        () => repository.createClinic(input.clinicName),
+      )
+    ).id
 
-    let owner = await repository.findOwnerByEmail(input.ownerEmail)
+    let owner = await measurePhase(
+      performance,
+      'owner_lookup',
+      () => repository.findOwnerByEmail(input.ownerEmail),
+    )
     let activationStatus: PlatformClinicActivationStatus
 
     if (owner) {
-      await repository.updateOwnerProfileIfMissing(
-        owner.id,
-        input.ownerEmail,
-        input.ownerName,
+      await measurePhase(
+        performance,
+        'owner_profile_update',
+        () =>
+          repository.updateOwnerProfileIfMissing(
+            owner.id,
+            input.ownerEmail,
+            input.ownerName,
+          ),
       )
       owner = {
         ...owner,
@@ -199,22 +226,41 @@ export async function createPlatformClinicRecords(
       }
       activationStatus = owner.isActive ? 'already_active' : 'not_sent'
     } else {
-      const createdOwner = await repository.createOwnerInvitation(
-        clinicId,
-        input.ownerEmail,
-        input.ownerName,
+      const createdOwner = await measurePhase(
+        performance,
+        'owner_invitation',
+        () =>
+          repository.createOwnerInvitation(
+            clinicId!,
+            input.ownerEmail,
+            input.ownerName,
+          ),
       )
       owner = createdOwner.owner
       createdOwnerId = owner.id
       activationStatus = createdOwner.activationStatus
     }
 
-    await repository.createMembership(
-      clinicId,
-      owner.id,
-      owner.isActive ? 'active' : 'pending_activation',
+    await measurePhase(
+      performance,
+      'membership_insert',
+      () =>
+        repository.createMembership(
+          clinicId!,
+          owner.id,
+          owner.isActive ? 'active' : 'pending_activation',
+        ),
     )
-    await repository.createSubscription(clinicId, input.planId, input.priceTier)
+    await measurePhase(
+      performance,
+      'subscription_insert',
+      () =>
+        repository.createSubscription(
+          clinicId!,
+          input.planId,
+          input.priceTier,
+        ),
+    )
 
     return {
       activation: { status: activationStatus },
@@ -230,11 +276,19 @@ export async function createPlatformClinicRecords(
     }
   } catch (error) {
     if (clinicId) {
-      await repository.deleteClinic(clinicId).catch(() => undefined)
+      await measurePhase(
+        performance,
+        'rollback_clinic',
+        () => repository.deleteClinic(clinicId!),
+      ).catch(() => undefined)
     }
 
     if (createdOwnerId) {
-      await repository.deleteCreatedOwner(createdOwnerId).catch(() => undefined)
+      await measurePhase(
+        performance,
+        'rollback_owner',
+        () => repository.deleteCreatedOwner(createdOwnerId!),
+      ).catch(() => undefined)
     }
 
     if (error instanceof CreatePlatformClinicError) {
@@ -255,4 +309,12 @@ function normalizeName(value: unknown) {
 
 function invalidPayload(message: string) {
   return new CreatePlatformClinicError('INVALID_PAYLOAD', message, 400)
+}
+
+function measurePhase<T>(
+  performance: EdgePerformanceInstrumentation | undefined,
+  phase: EdgePerformancePhase,
+  operation: () => Promise<T>,
+) {
+  return performance?.measure(phase, operation) ?? operation()
 }

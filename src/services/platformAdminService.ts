@@ -13,6 +13,12 @@ import type {
   VoidSubscriptionPaymentInput,
 } from '../types/platform'
 import { getSubscriptionAccessState } from '../utils/subscriptionBilling'
+import {
+  clientPerformanceInstrumentation,
+  createClientPerformanceEvent,
+  elapsedMilliseconds,
+  type PerformanceOperationContext,
+} from '../utils/performanceTelemetry'
 
 export interface PlatformAdminServiceResult {
   data: PlatformClinicSummary[] | null
@@ -46,7 +52,7 @@ interface PlatformAdminFunctionClient {
       functionName: string,
       options: {
         body?: unknown
-        headers: { Authorization: string }
+        headers: { Authorization: string } & Record<string, string>
         method: 'POST'
       },
     ) => Promise<{ data: unknown; error: unknown }>
@@ -83,10 +89,16 @@ export async function listPlatformClinics(): Promise<PlatformAdminServiceResult>
 
 export async function createPlatformClinic(
   input: CreatePlatformClinicInput,
+  performanceContext?: PerformanceOperationContext,
 ): Promise<CreatePlatformClinicServiceResult> {
+  const context = performanceContext ?? {
+    operationId: clientPerformanceInstrumentation.createOperationId(),
+  }
+
   return createPlatformClinicWithClient(
     supabase as PlatformAdminFunctionClient | null,
     input,
+    context,
   )
 }
 
@@ -129,40 +141,112 @@ export async function resendPlatformClinicInvitation(
 export async function createPlatformClinicWithClient(
   client: PlatformAdminFunctionClient | null,
   input: CreatePlatformClinicInput,
+  performanceContext?: PerformanceOperationContext,
 ): Promise<CreatePlatformClinicServiceResult> {
-  if (!client) {
-    return { data: null, error: 'Supabase no está configurado.' }
+  const instrumentation =
+    performanceContext?.instrumentation ?? clientPerformanceInstrumentation
+  const operationId = performanceContext?.operationId
+  const startedAt = instrumentation.now()
+  let sessionMs = 0
+  let functionInvokeMs = 0
+
+  const complete = (
+    result: CreatePlatformClinicServiceResult,
+    outcome: 'error' | 'success',
+  ) => {
+    if (operationId) {
+      instrumentation.record(
+        createClientPerformanceEvent({
+          operation: 'create_platform_clinic_request',
+          operationId,
+          outcome,
+          phases: {
+            function_invoke: functionInvokeMs,
+            session: sessionMs,
+          },
+          totalMs: elapsedMilliseconds(startedAt, instrumentation.now()),
+        }),
+      )
+    }
+
+    return result
   }
 
+  if (!client) {
+    return complete(
+      { data: null, error: 'Supabase no está configurado.' },
+      'error',
+    )
+  }
+
+  const sessionStartedAt = instrumentation.now()
   const { data: sessionData, error: sessionError } =
     await client.auth.getSession()
+  sessionMs = elapsedMilliseconds(sessionStartedAt, instrumentation.now())
   const accessToken = sessionData.session?.access_token
 
   if (sessionError || !accessToken) {
-    return {
-      data: null,
-      error: 'Tu sesión no es válida. Vuelve a iniciar sesión.',
-    }
+    return complete(
+      {
+        data: null,
+        error: 'Tu sesión no es válida. Vuelve a iniciar sesión.',
+      },
+      'error',
+    )
   }
 
-  const { data, error } = await client.functions.invoke(
-    'create-platform-clinic',
-    {
-      body: input,
-      headers: { Authorization: `Bearer ${accessToken}` },
-      method: 'POST',
-    },
+  const functionStartedAt = instrumentation.now()
+  let invocationResult: Awaited<
+    ReturnType<PlatformAdminFunctionClient['functions']['invoke']>
+  >
+
+  try {
+    invocationResult = await client.functions.invoke(
+      'create-platform-clinic',
+      {
+        body: input,
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          ...(operationId
+            ? { 'X-Dayia-Operation-Id': operationId }
+            : {}),
+        },
+        method: 'POST',
+      },
+    )
+  } catch (error) {
+    functionInvokeMs = elapsedMilliseconds(
+      functionStartedAt,
+      instrumentation.now(),
+    )
+    complete(
+      { data: null, error: 'No pudimos preparar el consultorio.' },
+      'error',
+    )
+    throw error
+  }
+
+  functionInvokeMs = elapsedMilliseconds(
+    functionStartedAt,
+    instrumentation.now(),
   )
+  const { data, error } = invocationResult
 
   if (error) {
-    return { data: null, error: await getCreateClinicErrorMessage(error) }
+    return complete(
+      { data: null, error: await getCreateClinicErrorMessage(error) },
+      'error',
+    )
   }
 
   if (!isCreatePlatformClinicResponse(data)) {
-    return { data: null, error: 'No pudimos preparar el consultorio.' }
+    return complete(
+      { data: null, error: 'No pudimos preparar el consultorio.' },
+      'error',
+    )
   }
 
-  return { data, error: null }
+  return complete({ data, error: null }, 'success')
 }
 
 export async function listPlatformClinicsWithClient(

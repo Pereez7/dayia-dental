@@ -24,6 +24,7 @@ import {
   createPlatformClinicAndRefresh,
   submitPlatformClinicOnce,
 } from '../utils/platformClinicCreation'
+import type { ClientPerformanceEvent } from '../utils/performanceTelemetry'
 import {
   PlatformAdminView,
   PlatformClinicsContent,
@@ -537,6 +538,65 @@ describe('PlatformAdminView', () => {
     await createPlatformClinicAndRefresh(input, createClinic, refreshClinics)
 
     expect(refreshClinics).toHaveBeenCalledOnce()
+  })
+
+  it('measures creation and refresh as separate anonymous phases', async () => {
+    const events: ClientPerformanceEvent[] = []
+    const timestamps = [0, 0, 1200, 1200, 1700, 1700]
+    const createClinic = vi.fn().mockResolvedValue({
+      data: {
+        activation: { status: 'pending' },
+        clinic: {
+          clinicId: 'clinic-new',
+          clinicName: 'Clínica Norte',
+          clinicStatus: 'pending_activation',
+          ownerEmail: 'owner@example.com',
+          ownerName: 'Dra. Andrea',
+          planId: 'basic',
+          priceTier: 'standard',
+        },
+      },
+      error: null,
+    })
+    const refreshClinics = vi.fn().mockResolvedValue({ data: [], error: null })
+
+    await createPlatformClinicAndRefresh(
+      {
+        clinicName: 'Clínica Norte',
+        ownerEmail: 'owner@example.com',
+        ownerName: 'Dra. Andrea',
+        planId: 'basic',
+        priceTier: 'standard',
+      },
+      createClinic,
+      refreshClinics,
+      {
+        createOperationId: () => 'operation-123',
+        now: () => timestamps.shift() ?? 1700,
+        record: (event) => events.push(event),
+      },
+    )
+
+    expect(createClinic).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({ operationId: 'operation-123' }),
+    )
+    expect(events).toEqual([
+      {
+        event: 'dayia.performance',
+        operation: 'create_platform_clinic_flow',
+        operationId: 'operation-123',
+        outcome: 'success',
+        phases: {
+          create_request: 1200,
+          list_refresh: 500,
+        },
+        source: 'frontend',
+        totalMs: 1700,
+      },
+    ])
+    expect(JSON.stringify(events)).not.toContain('owner@example.com')
+    expect(JSON.stringify(events)).not.toContain('Clínica Norte')
   })
 
   it('preserves the disabled error and does not refresh the list', async () => {

@@ -101,6 +101,36 @@ describe('create-platform-clinic helpers', () => {
     )
   })
 
+  it('reports each persistence phase without exposing clinic data', async () => {
+    const repository = createRepository()
+    const phases: string[] = []
+    const input = normalizeCreatePlatformClinicPayload({
+      clinicName: 'Clínica Norte',
+      ownerEmail: 'owner@example.com',
+      ownerName: 'Dra. Andrea',
+      planId: 'medium',
+      priceTier: 'founder',
+    })
+
+    await createPlatformClinicRecords(input, repository, {
+      measure: async (phase, operation) => {
+        phases.push(phase)
+        return await operation()
+      },
+    })
+
+    expect(phases).toEqual([
+      'duplicate_check',
+      'clinic_insert',
+      'owner_lookup',
+      'owner_invitation',
+      'membership_insert',
+      'subscription_insert',
+    ])
+    expect(JSON.stringify(phases)).not.toContain('owner@example.com')
+    expect(JSON.stringify(phases)).not.toContain('Clínica Norte')
+  })
+
   it('reuses an existing active owner without duplicating Auth', async () => {
     const repository = createRepository()
     vi.mocked(repository.findOwnerByEmail).mockResolvedValue({

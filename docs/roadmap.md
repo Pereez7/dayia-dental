@@ -3,6 +3,20 @@
 Este roadmap resume la direccion funcional de DayIA Dental. No implica que todos
 los modulos esten implementados hoy.
 
+## Rendimiento y escalabilidad
+
+Estado: programa de optimización iniciado.
+
+El orden, las métricas, los hallazgos confirmados y la puerta de promoción desde
+staging están definidos en
+[`performance-and-scalability-plan.md`](performance-and-scalability-plan.md).
+Se trabajará un hito por vez y no se avanzará sin medición antes/después,
+pruebas y verificación en staging.
+
+El primer hito es `PERF-001`: instrumentar el alta de consultorios para separar
+el tiempo de frontend, Edge Function, Auth, PostgreSQL, invitación y refresco
+administrativo.
+
 ## Rendimiento de carga
 
 Estado: primera optimización implementada.

@@ -7,6 +7,7 @@ import {
   mapPlatformClinicSummary,
   resendPlatformClinicInvitationWithClient,
 } from './platformAdminService'
+import type { ClientPerformanceEvent } from '../utils/performanceTelemetry'
 
 const clinicResponse = {
   activeMembersCount: 3,
@@ -393,6 +394,69 @@ describe('platform admin service', () => {
         method: 'POST',
       },
     )
+  })
+
+  it('correlates and measures the protected creation request without personal data', async () => {
+    const response = {
+      activation: { status: 'pending' },
+      clinic: {
+        clinicId: 'clinic-new',
+        clinicName: 'Clínica Norte',
+        clinicStatus: 'pending_activation',
+        ownerEmail: 'owner@example.com',
+        ownerName: 'Dra. Andrea',
+        planId: 'basic',
+        priceTier: 'standard',
+      },
+    }
+    const client = createClient({ data: response, error: null })
+    const timestamps = [0, 1, 3, 4, 14, 15]
+    const events: ClientPerformanceEvent[] = []
+    const input = {
+      clinicName: 'Clínica Norte',
+      ownerEmail: 'owner@example.com',
+      ownerName: 'Dra. Andrea',
+      planId: 'basic' as const,
+      priceTier: 'standard' as const,
+    }
+
+    await createPlatformClinicWithClient(client, input, {
+      instrumentation: {
+        createOperationId: () => 'operation-123',
+        now: () => timestamps.shift() ?? 15,
+        record: (event) => events.push(event),
+      },
+      operationId: 'operation-123',
+    })
+
+    expect(client.functions.invoke).toHaveBeenCalledWith(
+      'create-platform-clinic',
+      {
+        body: input,
+        headers: {
+          Authorization: 'Bearer valid-token',
+          'X-Dayia-Operation-Id': 'operation-123',
+        },
+        method: 'POST',
+      },
+    )
+    expect(events).toEqual([
+      {
+        event: 'dayia.performance',
+        operation: 'create_platform_clinic_request',
+        operationId: 'operation-123',
+        outcome: 'success',
+        phases: {
+          function_invoke: 10,
+          session: 2,
+        },
+        source: 'frontend',
+        totalMs: 15,
+      },
+    ])
+    expect(JSON.stringify(events)).not.toContain('owner@example.com')
+    expect(JSON.stringify(events)).not.toContain('Clínica Norte')
+    expect(JSON.stringify(events)).not.toContain('valid-token')
   })
 
   it('maps the disabled creation response without technical text', async () => {
