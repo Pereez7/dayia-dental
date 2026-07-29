@@ -3726,6 +3726,69 @@
   padding: 5px 7px;
 }
 
+.platform-owner-invitation {
+  display: grid;
+  justify-items: start;
+  gap: 7px;
+  margin-top: 9px;
+}
+
+.platform-clinics-table .platform-owner-invitation > span {
+  width: fit-content;
+  border-radius: 999px;
+  background: #fff4e5;
+  color: #9a5b13;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 5px 7px;
+}
+
+.platform-owner-invitation-action {
+  min-height: 34px;
+  border: 1px solid #b9ddea;
+  border-radius: var(--radius-sm);
+  background: #f7fcfe;
+  color: var(--color-primary-dark);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 8px 10px;
+}
+
+.platform-owner-invitation-action:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  background: var(--color-soft-blue);
+}
+
+.platform-owner-invitation-action:focus-visible {
+  outline: 3px solid rgba(45, 163, 207, 0.24);
+  outline-offset: 2px;
+}
+
+.platform-owner-invitation-action:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.platform-owner-invitation-feedback {
+  max-width: 250px;
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.platform-owner-invitation-feedback--success {
+  color: var(--color-success);
+}
+
+.platform-owner-invitation-feedback--error {
+  color: var(--color-danger);
+}
+
 .platform-status--active {
   background: var(--color-soft-green);
   color: var(--color-success);

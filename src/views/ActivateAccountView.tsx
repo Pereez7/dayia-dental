@@ -1,9 +1,10 @@
-import { useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 
 import { supabaseActivation } from '../lib/supabaseActivationClient'
 import { completeAccountActivation } from '../services/accountActivationService'
 import {
   hasActivationPasswordErrors,
+  invalidActivationLinkMessage,
   runAccountActivationOnce,
   validateActivationPasswordForm,
   type ActivationPasswordErrors,
@@ -13,14 +14,53 @@ interface ActivateAccountViewProps {
   onActivated: () => Promise<void> | void
 }
 
+type ActivationSessionStatus = 'checking' | 'invalid' | 'ready'
+
 export function ActivateAccountView({ onActivated }: ActivateAccountViewProps) {
   const submissionLock = useRef(false)
+  const [activationSessionStatus, setActivationSessionStatus] =
+    useState<ActivationSessionStatus>(
+      supabaseActivation ? 'checking' : 'invalid',
+    )
   const [confirmPassword, setConfirmPassword] = useState('')
   const [fieldErrors, setFieldErrors] = useState<ActivationPasswordErrors>({})
   const [formError, setFormError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [password, setPassword] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
+  const isActivationReady = activationSessionStatus === 'ready'
+
+  useEffect(() => {
+    let isMounted = true
+    const activationClient = supabaseActivation
+
+    if (!activationClient) {
+      return
+    }
+
+    const {
+      data: { subscription },
+    } = activationClient.auth.onAuthStateChange((_event, session) => {
+      if (isMounted && session) {
+        setActivationSessionStatus('ready')
+      }
+    })
+
+    void activationClient.auth.getSession().then(({ data, error }) => {
+      if (!isMounted) {
+        return
+      }
+
+      setActivationSessionStatus(
+        !error && data.session ? 'ready' : 'invalid',
+      )
+    })
+
+    return () => {
+      isMounted = false
+      subscription.unsubscribe()
+    }
+  }, [])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -38,6 +78,11 @@ export function ActivateAccountView({ onActivated }: ActivateAccountViewProps) {
 
     if (!supabaseActivation) {
       setFormError('Supabase no está configurado para activar accesos.')
+      return
+    }
+
+    if (!isActivationReady) {
+      setFormError(invalidActivationLinkMessage)
       return
     }
 
@@ -60,6 +105,16 @@ export function ActivateAccountView({ onActivated }: ActivateAccountViewProps) {
             ? { code: error.code, message: error.message }
             : null,
         }
+      },
+      validateSession: async () => {
+        const { data, error } = await activationClient.auth.getSession()
+
+        if (error || !data.session) {
+          setActivationSessionStatus('invalid')
+          return { error: invalidActivationLinkMessage }
+        }
+
+        return { error: null }
       },
     })
     setIsSubmitting(false)
@@ -96,6 +151,24 @@ export function ActivateAccountView({ onActivated }: ActivateAccountViewProps) {
         </div>
 
         <form className="auth-form" noValidate onSubmit={handleSubmit}>
+          {activationSessionStatus === 'checking' && (
+            <p className="field-message field-message--help" role="status">
+              Validando el enlace de invitación...
+            </p>
+          )}
+
+          {activationSessionStatus === 'invalid' && (
+            <>
+              <p className="field-message field-message--error" role="alert">
+                {invalidActivationLinkMessage}
+              </p>
+              <p className="field-message field-message--help">
+                Pide a Administración DayIA que reenvíe la invitación del
+                consultorio.
+              </p>
+            </>
+          )}
+
           <label>
             <span>Nueva contraseña</span>
             <input
@@ -104,7 +177,9 @@ export function ActivateAccountView({ onActivated }: ActivateAccountViewProps) {
               }
               aria-invalid={Boolean(fieldErrors.password)}
               autoComplete="new-password"
-              disabled={isSubmitting || Boolean(successMessage)}
+              disabled={
+                !isActivationReady || isSubmitting || Boolean(successMessage)
+              }
               minLength={8}
               type="password"
               value={password}
@@ -142,7 +217,9 @@ export function ActivateAccountView({ onActivated }: ActivateAccountViewProps) {
               }
               aria-invalid={Boolean(fieldErrors.confirmPassword)}
               autoComplete="new-password"
-              disabled={isSubmitting || Boolean(successMessage)}
+              disabled={
+                !isActivationReady || isSubmitting || Boolean(successMessage)
+              }
               minLength={8}
               type="password"
               value={confirmPassword}
@@ -182,10 +259,18 @@ export function ActivateAccountView({ onActivated }: ActivateAccountViewProps) {
 
           <button
             className="primary-action"
-            disabled={isSubmitting || Boolean(successMessage)}
+            disabled={
+              !isActivationReady || isSubmitting || Boolean(successMessage)
+            }
             type="submit"
           >
-            {isSubmitting ? 'Activando...' : 'Activar acceso'}
+            {activationSessionStatus === 'checking'
+              ? 'Validando enlace...'
+              : activationSessionStatus === 'invalid'
+                ? 'Enlace no válido'
+                : isSubmitting
+                  ? 'Activando...'
+                  : 'Activar acceso'}
           </button>
         </form>
       </section>

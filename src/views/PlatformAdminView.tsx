@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { ClinicOnboardingForm } from '../components/ClinicOnboardingForm'
 import { SubscriptionAdministration } from '../components/SubscriptionAdministration'
 import {
   createPlatformClinic,
   listPlatformClinics,
+  resendPlatformClinicInvitation,
   type CreatePlatformClinicServiceResult,
   type PlatformAdminServiceResult,
+  type ResendPlatformClinicInvitationServiceResult,
 } from '../services/platformAdminService'
 import type {
   CreatePlatformClinicInput,
@@ -25,24 +27,43 @@ interface PlatformAdminViewProps {
     input: CreatePlatformClinicInput,
   ) => Promise<CreatePlatformClinicServiceResult>
   loadClinics?: () => Promise<PlatformAdminServiceResult>
+  resendInvitation?: (
+    clinicId: string,
+  ) => Promise<ResendPlatformClinicInvitationServiceResult>
+}
+
+interface PlatformInvitationNotice {
+  message: string
+  tone: 'error' | 'success'
 }
 
 interface PlatformClinicsContentProps {
   clinics: PlatformClinicSummary[]
   errorMessage: string
+  invitationNotices?: Record<string, PlatformInvitationNotice>
   isLoading: boolean
+  onResendInvitation?: (clinicId: string) => void
   onRetry?: () => void
   onManage?: (clinicId: string) => void
+  resendingClinicId?: string | null
 }
 
 export function PlatformAdminView({
   canAccessPlatformAdmin,
   createClinic = createPlatformClinic,
   loadClinics = listPlatformClinics,
+  resendInvitation = resendPlatformClinicInvitation,
 }: PlatformAdminViewProps) {
+  const resendInvitationLock = useRef<string | null>(null)
   const [clinics, setClinics] = useState<PlatformClinicSummary[]>([])
   const [errorMessage, setErrorMessage] = useState('')
+  const [invitationNotices, setInvitationNotices] = useState<
+    Record<string, PlatformInvitationNotice>
+  >({})
   const [isLoading, setIsLoading] = useState(canAccessPlatformAdmin)
+  const [resendingClinicId, setResendingClinicId] = useState<string | null>(
+    null,
+  )
   const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null)
 
   const loadPlatformClinics = useCallback(async () => {
@@ -69,6 +90,44 @@ export function PlatformAdminView({
     (input: CreatePlatformClinicInput) =>
       createPlatformClinicAndRefresh(input, createClinic, loadPlatformClinics),
     [createClinic, loadPlatformClinics],
+  )
+
+  const handleResendInvitation = useCallback(
+    async (clinicId: string) => {
+      if (resendInvitationLock.current) return
+
+      resendInvitationLock.current = clinicId
+      setResendingClinicId(clinicId)
+      setInvitationNotices((current) => {
+        const next = { ...current }
+        delete next[clinicId]
+        return next
+      })
+
+      try {
+        const result = await resendInvitation(clinicId)
+
+        setInvitationNotices((current) => ({
+          ...current,
+          [clinicId]: result.data
+            ? {
+                message: `Invitación reenviada a ${result.data.email}.`,
+                tone: 'success',
+              }
+            : {
+                message:
+                  result.error ??
+                  'No pudimos reenviar la invitación. Intenta nuevamente.',
+                tone: 'error',
+              },
+        }))
+        await refreshPlatformClinicsSilently()
+      } finally {
+        resendInvitationLock.current = null
+        setResendingClinicId(null)
+      }
+    },
+    [refreshPlatformClinicsSilently, resendInvitation],
   )
 
   useEffect(() => {
@@ -143,9 +202,12 @@ export function PlatformAdminView({
         <PlatformClinicsContent
           clinics={clinics}
           errorMessage={errorMessage}
+          invitationNotices={invitationNotices}
           isLoading={isLoading}
+          onResendInvitation={handleResendInvitation}
           onRetry={loadPlatformClinics}
           onManage={setSelectedClinicId}
+          resendingClinicId={resendingClinicId}
         />
       </section>
 
@@ -179,9 +241,12 @@ export function PlatformPaymentOverview({ count }: { count: number }) {
 export function PlatformClinicsContent({
   clinics,
   errorMessage,
+  invitationNotices = {},
   isLoading,
+  onResendInvitation,
   onRetry,
   onManage,
+  resendingClinicId = null,
 }: PlatformClinicsContentProps) {
   if (isLoading) {
     return (
@@ -279,6 +344,39 @@ export function PlatformClinicsContent({
                       <span>
                         {clinic.ownerEmail ?? 'Sin email registrado'}
                       </span>
+                      {clinic.ownerMembershipStatus ===
+                      'pending_activation' ? (
+                        <div className="platform-owner-invitation">
+                          <span>Invitación pendiente</span>
+                          {onResendInvitation && clinic.ownerEmail ? (
+                            <button
+                              className="platform-owner-invitation-action"
+                              disabled={Boolean(resendingClinicId)}
+                              onClick={() =>
+                                onResendInvitation(clinic.clinicId)
+                              }
+                              type="button"
+                            >
+                              {resendingClinicId === clinic.clinicId
+                                ? 'Reenviando…'
+                                : 'Reenviar invitación'}
+                            </button>
+                          ) : null}
+                          {invitationNotices[clinic.clinicId] ? (
+                            <p
+                              className={`platform-owner-invitation-feedback platform-owner-invitation-feedback--${invitationNotices[clinic.clinicId].tone}`}
+                              role={
+                                invitationNotices[clinic.clinicId].tone ===
+                                'error'
+                                  ? 'alert'
+                                  : 'status'
+                              }
+                            >
+                              {invitationNotices[clinic.clinicId].message}
+                            </p>
+                          ) : null}
+                        </div>
+                      ) : null}
                     </>
                   ) : (
                     <strong>Sin propietario</strong>

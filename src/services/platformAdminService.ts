@@ -8,6 +8,7 @@ import type {
   PlatformSubscriptionStatus,
   RejectPaymentSubmissionInput,
   RegisterSubscriptionPaymentInput,
+  ResendPlatformClinicInvitationResponse,
   UpdateClinicSubscriptionInput,
   VoidSubscriptionPaymentInput,
 } from '../types/platform'
@@ -26,6 +27,11 @@ export interface CreatePlatformClinicServiceResult {
 export interface PlatformSubscriptionActionResult {
   error: string | null
   success: boolean
+}
+
+export interface ResendPlatformClinicInvitationServiceResult {
+  data: ResendPlatformClinicInvitationResponse | null
+  error: string | null
 }
 
 interface PlatformAdminFunctionClient {
@@ -62,6 +68,11 @@ const subscriptionStatuses = new Set<PlatformSubscriptionStatus>([
   'past_due',
   'trialing',
   'unknown',
+])
+
+const ownerMembershipStatuses = new Set([
+  'active',
+  'pending_activation',
 ])
 
 export async function listPlatformClinics(): Promise<PlatformAdminServiceResult> {
@@ -103,6 +114,15 @@ export async function rejectPaymentSubmission(
   return invokeSubscriptionAction(
     'reject-subscription-payment-submission',
     input,
+  )
+}
+
+export async function resendPlatformClinicInvitation(
+  clinicId: string,
+): Promise<ResendPlatformClinicInvitationServiceResult> {
+  return resendPlatformClinicInvitationWithClient(
+    supabase as PlatformAdminFunctionClient | null,
+    clinicId,
   )
 }
 
@@ -185,6 +205,59 @@ export async function listPlatformClinicsWithClient(
   }
 }
 
+export async function resendPlatformClinicInvitationWithClient(
+  client: PlatformAdminFunctionClient | null,
+  clinicId: string,
+): Promise<ResendPlatformClinicInvitationServiceResult> {
+  if (!client) {
+    return { data: null, error: 'Supabase no está configurado.' }
+  }
+
+  try {
+    const { data: sessionData, error: sessionError } =
+      await client.auth.getSession()
+    const accessToken = sessionData.session?.access_token
+
+    if (sessionError || !accessToken) {
+      return {
+        data: null,
+        error: 'Tu sesión no es válida. Vuelve a iniciar sesión.',
+      }
+    }
+
+    const { data, error } = await client.functions.invoke(
+      'resend-platform-clinic-invitation',
+      {
+        body: { clinicId },
+        headers: { Authorization: `Bearer ${accessToken}` },
+        method: 'POST',
+      },
+    )
+
+    if (error) {
+      return {
+        data: null,
+        error: await getResendInvitationErrorMessage(error),
+      }
+    }
+
+    if (!isResendInvitationResponse(data)) {
+      return {
+        data: null,
+        error: 'No pudimos confirmar el reenvío de la invitación.',
+      }
+    }
+
+    return { data, error: null }
+  } catch {
+    return {
+      data: null,
+      error:
+        'No pudimos comunicarnos con el servicio de invitaciones. Intenta nuevamente.',
+    }
+  }
+}
+
 export function mapPlatformClinicSummary(
   clinic: PlatformClinicSummary,
 ): PlatformClinicSummary {
@@ -221,6 +294,12 @@ export function mapPlatformClinicSummary(
     scheduledPlanId: clinic.scheduledPlanId ?? null,
     scheduledPlanStartsAt: clinic.scheduledPlanStartsAt ?? null,
     ownerEmail: clinic.ownerEmail?.trim() || null,
+    ownerInvitationSentAt: clinic.ownerInvitationSentAt ?? null,
+    ownerMembershipStatus:
+      clinic.ownerMembershipStatus &&
+      ownerMembershipStatuses.has(clinic.ownerMembershipStatus)
+        ? clinic.ownerMembershipStatus
+        : null,
     ownerName: clinic.ownerName?.trim() || null,
     planId: clinic.planId?.trim() || null,
     planName: getPlatformPlanName(clinic.planId, clinic.planName),
@@ -460,6 +539,43 @@ async function getCreateClinicErrorMessage(error: unknown) {
   return 'No pudimos preparar el consultorio. Intenta nuevamente.'
 }
 
+async function getResendInvitationErrorMessage(error: unknown) {
+  const status = getFunctionErrorStatus(error)
+  const responseError = await getFunctionResponseError(error)
+
+  if (status === 400) {
+    return 'No pudimos identificar el consultorio.'
+  }
+
+  if (status === 401) {
+    return 'Tu sesión no es válida. Vuelve a iniciar sesión.'
+  }
+
+  if (status === 403) {
+    return 'No tienes permiso para reenviar invitaciones.'
+  }
+
+  if (status === 404) {
+    return responseError?.message ?? 'No encontramos la invitación pendiente.'
+  }
+
+  if (status === 409) {
+    return (
+      responseError?.message ??
+      'La cuenta propietaria ya no admite una nueva invitación.'
+    )
+  }
+
+  if (status === 429) {
+    return (
+      responseError?.message ??
+      'Espera un momento antes de reenviar otra invitación.'
+    )
+  }
+
+  return 'No pudimos reenviar la invitación. Intenta nuevamente.'
+}
+
 async function getFunctionResponseError(error: unknown) {
   if (!error || typeof error !== 'object') {
     return null
@@ -519,5 +635,20 @@ function isListPlatformClinicsResponse(
     value &&
       typeof value === 'object' &&
       Array.isArray((value as ListPlatformClinicsResponse).clinics),
+  )
+}
+
+function isResendInvitationResponse(
+  value: unknown,
+): value is ResendPlatformClinicInvitationResponse {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const candidate = value as Partial<ResendPlatformClinicInvitationResponse>
+  return (
+    typeof candidate.email === 'string' &&
+    candidate.email.includes('@') &&
+    typeof candidate.sentAt === 'string'
   )
 }

@@ -17,6 +17,8 @@ export interface OwnerMembershipCandidate {
   activated_at: string | null
   clinic_id: string
   created_at: string
+  invited_at: string | null
+  status: string
   user_id: string
 }
 
@@ -29,6 +31,8 @@ export interface OwnerProfileCandidate {
 export interface PrimaryOwner {
   email: string | null
   fullName: string | null
+  invitationSentAt: string | null
+  membershipStatus: string
   userId: string
 }
 
@@ -102,6 +106,14 @@ export function selectPrimaryOwner(
       } => Boolean(candidate.profile),
     )
     .sort((left, right) => {
+      const membershipPriority =
+        getMembershipPriority(left.membership.status) -
+        getMembershipPriority(right.membership.status)
+
+      if (membershipPriority !== 0) {
+        return membershipPriority
+      }
+
       const emailPriority =
         getEmailPriority(left.profile.email) -
         getEmailPriority(right.profile.email)
@@ -138,8 +150,16 @@ export function selectPrimaryOwner(
   return {
     email: primary.profile.email?.trim() || null,
     fullName: primary.profile.full_name?.trim() || null,
+    invitationSentAt: primary.membership.invited_at,
+    membershipStatus: primary.membership.status,
     userId: primary.membership.user_id,
   }
+}
+
+function getMembershipPriority(status: string) {
+  if (status === 'active') return 0
+  if (status === 'pending_activation') return 1
+  return 2
 }
 
 function getEmailPriority(email: string | null) {

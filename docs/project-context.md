@@ -5,8 +5,9 @@
 El bloque en curso es el endurecimiento de seguridad y permisos antes de
 continuar con los CRUD pendientes. La migración
 `027_membership_rls_hardening.sql` ya fue validada localmente desde una base
-vacía, con 38 pruebas de aislamiento RLS y `supabase db lint` sin errores. Aún
-no fue aplicada al proyecto remoto:
+vacía y aplicada al staging `zjsnfgxvaimddmchrwre`. El historial remoto quedó
+alineado de `001` a `027`; las 38 pruebas de aislamiento RLS y
+`supabase db lint --linked --level warning` finalizaron correctamente:
 
 - la autorización clínica usa membership activa, consultorio activo,
   suscripción vigente y rol permitido;
@@ -17,11 +18,13 @@ no fue aplicada al proyecto remoto:
   fechas de auditoría ni `whatsapp_settings.is_connected`;
 - los módulos operativos no ofrecen borrado físico en base de datos, salvo la
   compatibilidad temporal de excepciones de calendario;
-- la suite completa pasa con 656 pruebas, lint y build correctos.
+- la suite completa pasa con 665 pruebas, lint y build correctos.
 
-Antes de comenzar el segundo bloque, falta aplicar `027` primero en staging o
-en el proyecto remoto controlado y repetir allí la matriz de roles. No asumir
-que el archivo local ya protege el entorno desplegado.
+El primer bloque queda validado técnicamente en local y staging. La prueba
+remota se ejecuta dentro de una transacción y no dejó perfiles, usuarios,
+funciones auxiliares ni la extensión pgTAP persistentes. `027` todavía no debe
+considerarse aplicada a producción: ese despliegue requiere respaldo, ventana
+controlada y verificación posterior independiente.
 
 El último bloque terminado es la estabilización de cambios de plan,
 suscripciones y pagos manuales:
@@ -468,7 +471,7 @@ Todavía no existe:
 - Integración real con WhatsApp Cloud API y webhooks productivos.
 - Facturación.
 - Selector multi-consultorio.
-- Reenvío y revocación completa de invitaciones.
+- Revocación de invitaciones y reenvío público autoservicio.
 
 Supabase, Auth, RLS y persistencia clínica ya forman parte del MVP.
 
@@ -480,6 +483,23 @@ JWT válido, `profiles.is_platform_admin = true` y
 `DAYIA_PLATFORM_CREATE_ENABLED === "true"`. Solo gestiona consultorio, owner,
 membresía y suscripción; no toca datos clínicos. La UI no decide el estado del
 feature flag.
+
+## Reenvío seguro de propietarios, 2026-07-27
+
+Los consultorios pendientes conservan visible el nombre y correo de su
+propietario aunque la membership todavía esté en `pending_activation`.
+Administración DayIA puede emitir una invitación nueva desde la fila del
+consultorio mediante `resend-platform-clinic-invitation`.
+
+La Function recibe únicamente `clinicId`, exige JWT de `platform_admin`,
+comprueba en servidor que la membership propietaria siga pendiente y que el
+usuario Auth no esté confirmado, y limita los reenvíos a uno por minuto. La UI
+deshabilita el doble envío y presenta carga, éxito o error junto al propietario.
+El enlace público vencido no envía correos para evitar enumeración y abuso.
+
+En staging `zjsnfgxvaimddmchrwre` están activas
+`list-platform-clinics` versión 4 y
+`resend-platform-clinic-invitation` versión 1, ambas con verificación JWT.
 
 ## Pulido comercial de Pacientes y Citas, 2026-07-14
 

@@ -1,7 +1,38 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-set search_path = public, extensions;
+set local role postgres;
+
+do $setup_pgtap_search_path$
+declare
+  pgtap_schema text;
+begin
+  select namespaces.nspname
+  into pgtap_schema
+  from pg_proc procedures
+  join pg_namespace namespaces
+    on namespaces.oid = procedures.pronamespace
+  where procedures.proname = 'plan'
+    and pg_get_function_identity_arguments(procedures.oid) = 'integer'
+  order by namespaces.nspname
+  limit 1;
+
+  if pgtap_schema is null then
+    raise exception 'pgTAP exists but plan(integer) is not installed.';
+  end if;
+
+  perform set_config(
+    'search_path',
+    format('public, extensions, %I', pgtap_schema),
+    false
+  );
+
+  execute format(
+    'grant usage on schema %I to authenticated',
+    pgtap_schema
+  );
+end;
+$setup_pgtap_search_path$;
 
 select plan(38);
 

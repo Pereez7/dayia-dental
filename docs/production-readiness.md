@@ -39,9 +39,10 @@ separación de dependencias compartidas.
 
 ## Pendiente antes de producción real
 
-- Aplicar `027_membership_rls_hardening.sql` primero en staging y ejecutar
-  pruebas de aislamiento con owner, doctor, recepción, una suscripción
-  bloqueada y dos consultorios.
+- Preparar respaldo y ventana controlada antes de aplicar
+  `027_membership_rls_hardening.sql` en producción. Staging ya pasó las pruebas
+  de aislamiento con owner, doctor, recepción, una suscripción bloqueada y dos
+  consultorios.
 - Backups probados, restauración, monitoreo, alertas y trazabilidad de incidentes.
 - Revisión legal y de seguridad para datos clínicos del país de operación.
 - Dominio productivo con TLS, headers de seguridad y fallback SPA configurado.
@@ -95,6 +96,7 @@ Function devuelve un resultado `prepared`. No configurar tokens productivos.
 | `void-subscription-payment` | Sí para anulaciones | Anulación lógica con motivo |
 | `update-clinic-subscription` | Sí para gestión comercial | Plan, precio y acceso |
 | `create-platform-clinic` | Desplegable, bloqueada | Mantener flag en `false` |
+| `resend-platform-clinic-invitation` | Sí para altas pendientes | Solo Platform Admin; valida owner pendiente y aplica cooldown |
 | `invite-clinic-member` | Sí para Usuarios | Owner/admin Medium o Pro |
 | `complete-account-activation` | Sí para invitaciones | Activa membership pendiente |
 | `process-due-reminders` | Opcional en demo | No existe scheduler productivo |
@@ -127,10 +129,14 @@ La ausencia de `WHATSAPP_SEND_ENABLED` mantiene el dry-run por defecto.
 
 Aplicar y verificar `001` a `027` en orden. `003_initial_clinic_setup_template`
 es una plantilla de referencia. La lista completa está en
-`docs/supabase-setup.md`. El repositorio no demuestra qué migraciones están
-aplicadas en un proyecto remoto. Dos consultas con `supabase migration list`
-fallaron porque el pooler remoto cerró la conexión; comprobarlo antes de la
-demo desde una red con acceso estable o desde Supabase Dashboard.
+`docs/supabase-setup.md`.
+
+El 27 de julio de 2026 se verificó el staging
+`zjsnfgxvaimddmchrwre`: los historiales local y remoto estaban alineados de
+`001` a `027`, `supabase db lint --linked --level warning` no encontró errores
+y `027_membership_rls_hardening.sql` superó sus 38 pruebas pgTAP. La ejecución
+de prueba se revirtió sin dejar datos ni funciones auxiliares persistentes.
+Esta validación no implica que `027` ya esté desplegada en producción.
 
 ## Redirect URLs
 
@@ -179,7 +185,8 @@ No crear, corregir ni eliminar estos datos automáticamente desde el frontend.
 
 ## Checklist de despliegue
 
-- [ ] Confirmar migraciones `001`–`027` en staging.
+- [x] Confirmar migraciones `001`–`027` en staging.
+- [x] Ejecutar las 38 pruebas RLS de `027` y `db lint` en staging.
 - [ ] Desplegar únicamente las Functions necesarias.
 - [ ] Decidir si se despliega `whatsapp-webhook`; no es necesario para el flujo
   manual y actualmente falta en el remoto.
@@ -206,6 +213,6 @@ No crear, corregir ni eliminar estos datos automáticamente desde el frontend.
 - La creación real requiere autorización de plataforma y flag exclusivo del
   servidor, desactivado por defecto.
 - Los loaders clínicos se bloquean por permiso antes de llamar servicios.
-- `027_membership_rls_hardening.sql` prepara RLS basada en membership activa,
-  rol, estado del consultorio y vigencia comercial; debe aplicarse y validarse
-  en staging antes de considerarla barrera productiva.
+- `027_membership_rls_hardening.sql` aplica RLS basada en membership activa,
+  rol, estado del consultorio y vigencia comercial; ya fue validada en staging
+  y continúa pendiente de un despliegue productivo controlado.

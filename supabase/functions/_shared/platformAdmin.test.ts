@@ -42,8 +42,45 @@ describe('platform admin Edge Function helpers', () => {
     expect(selectPrimaryOwner(memberships, profiles)).toEqual({
       email: 'owner@clinic.com',
       fullName: 'Dra. Andrea',
+      invitationSentAt: null,
+      membershipStatus: 'active',
       userId: 'owner-1',
     })
+  })
+
+  it('prefers an active owner over a pending invitation', () => {
+    const memberships = [
+      membership(
+        'pending-owner',
+        null,
+        '2026-07-20',
+        'pending_activation',
+        '2026-07-20',
+      ),
+      membership('active-owner', '2026-06-01', '2026-06-01'),
+    ]
+    const profiles = new Map<string, OwnerProfileCandidate>([
+      [
+        'pending-owner',
+        {
+          email: 'pending@dayia.com',
+          full_name: 'Propietaria pendiente',
+          id: 'pending-owner',
+        },
+      ],
+      [
+        'active-owner',
+        {
+          email: 'active@dayia.com',
+          full_name: 'Propietaria activa',
+          id: 'active-owner',
+        },
+      ],
+    ])
+
+    expect(selectPrimaryOwner(memberships, profiles)?.userId).toBe(
+      'active-owner',
+    )
   })
 
   it('prefers a real email and then uses stable membership dates', () => {
@@ -92,11 +129,15 @@ function membership(
   userId: string,
   activatedAt: string | null,
   createdAt: string,
+  status = 'active',
+  invitedAt: string | null = null,
 ): OwnerMembershipCandidate {
   return {
     activated_at: activatedAt,
     clinic_id: 'clinic-1',
     created_at: createdAt,
+    invited_at: invitedAt,
+    status,
     user_id: userId,
   }
 }

@@ -155,9 +155,9 @@ async function handleListPlatformClinics(request: Request) {
         .in('clinic_id', clinicIds),
       adminClient
         .from('clinic_memberships')
-        .select('clinic_id, user_id, role, status, activated_at, created_at')
+        .select('clinic_id, user_id, role, status, invited_at, activated_at, created_at')
         .in('clinic_id', clinicIds)
-        .eq('status', 'active')
+        .in('status', ['active', 'pending_activation'])
         .order('activated_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false }),
       adminClient.from('plans').select('id, name, monthly_price, founder_monthly_price, currency'),
@@ -184,8 +184,11 @@ async function handleListPlatformClinics(request: Request) {
     return dataQueryError()
   }
 
-  const activeMemberships = membershipsResult.data ?? []
-  const ownerMemberships = activeMemberships.filter(
+  const eligibleMemberships = membershipsResult.data ?? []
+  const activeMemberships = eligibleMemberships.filter(
+    (membership) => membership.status === 'active',
+  )
+  const ownerMemberships = eligibleMemberships.filter(
     (membership) => membership.role === 'clinic_owner',
   )
   const ownerIds = [...new Set(ownerMemberships.map((owner) => owner.user_id))]
@@ -303,6 +306,8 @@ async function handleListPlatformClinics(request: Request) {
         createdAt: clinic.created_at,
         blockedAt: subscription?.blocked_at ?? null,
         ownerEmail: primaryOwner?.email ?? null,
+        ownerInvitationSentAt: primaryOwner?.invitationSentAt ?? null,
+        ownerMembershipStatus: primaryOwner?.membershipStatus ?? null,
         ownerName: primaryOwner?.fullName ?? null,
         planId: subscription?.plan_id ?? null,
         planName: plan?.name ?? null,

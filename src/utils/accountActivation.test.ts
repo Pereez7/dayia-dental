@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest'
 
 import {
   hasActivationPasswordErrors,
+  invalidActivationLinkMessage,
+  isInvalidActivationSessionError,
   isPasswordAlreadyConfiguredError,
   isAccountActivationRoute,
   runAccountActivationOnce,
@@ -59,6 +61,19 @@ describe('account activation helpers', () => {
     expect(isPasswordAlreadyConfiguredError({ code: 'same_password' })).toBe(true)
   })
 
+  it('recognizes a missing activation session', () => {
+    expect(
+      isInvalidActivationSessionError({
+        message: 'Auth session missing!',
+      }),
+    ).toBe(true)
+    expect(
+      isInvalidActivationSessionError({
+        code: 'session_not_found',
+      }),
+    ).toBe(true)
+  })
+
   it('completes membership activation after saving the password', async () => {
     const calls: string[] = []
 
@@ -74,10 +89,37 @@ describe('account activation helpers', () => {
             calls.push('password')
             return { error: null }
           },
+          validateSession: async () => {
+            calls.push('session')
+            return { error: null }
+          },
         },
       ),
     ).resolves.toEqual({ error: null, status: 'success' })
-    expect(calls).toEqual(['password', 'activation'])
+    expect(calls).toEqual(['session', 'password', 'activation'])
+  })
+
+  it('does not update the password without an activation session', async () => {
+    const updatePassword = vi.fn()
+    const completeActivation = vi.fn()
+
+    await expect(
+      runAccountActivationOnce(
+        { current: false },
+        {
+          completeActivation,
+          updatePassword,
+          validateSession: vi.fn().mockResolvedValue({
+            error: invalidActivationLinkMessage,
+          }),
+        },
+      ),
+    ).resolves.toEqual({
+      error: invalidActivationLinkMessage,
+      status: 'error',
+    })
+    expect(updatePassword).not.toHaveBeenCalled()
+    expect(completeActivation).not.toHaveBeenCalled()
   })
 
   it('continues activation when the password was already configured', async () => {
@@ -91,6 +133,7 @@ describe('account activation helpers', () => {
           updatePassword: vi.fn().mockResolvedValue({
             error: { code: 'same_password' },
           }),
+          validateSession: vi.fn().mockResolvedValue({ error: null }),
         },
       ),
     ).resolves.toEqual({ error: null, status: 'success' })
@@ -103,9 +146,10 @@ describe('account activation helpers', () => {
 
     await expect(
       runAccountActivationOnce(lock, {
-        completeActivation,
-        updatePassword: vi.fn(),
-      }),
+      completeActivation,
+      updatePassword: vi.fn(),
+      validateSession: vi.fn(),
+    }),
     ).resolves.toEqual({ error: null, status: 'ignored' })
     expect(completeActivation).not.toHaveBeenCalled()
   })

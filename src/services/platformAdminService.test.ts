@@ -5,6 +5,7 @@ import {
   invokeSubscriptionActionWithClient,
   listPlatformClinicsWithClient,
   mapPlatformClinicSummary,
+  resendPlatformClinicInvitationWithClient,
 } from './platformAdminService'
 
 const clinicResponse = {
@@ -29,6 +30,8 @@ const clinicResponse = {
   scheduledPlanId: null,
   scheduledPlanStartsAt: null,
   ownerEmail: '  owner@clinic.test ',
+  ownerInvitationSentAt: null,
+  ownerMembershipStatus: 'active' as const,
   ownerName: '  Dra. Ana  ',
   planId: 'pro',
   planName: 'Pro',
@@ -241,6 +244,53 @@ describe('platform admin service', () => {
     )
   })
 
+  it('resends a pending owner invitation through the protected Function', async () => {
+    const response = {
+      email: 'owner@clinic.test',
+      sentAt: '2026-07-27T22:10:00.000Z',
+    }
+    const client = createClient({ data: response, error: null })
+
+    await expect(
+      resendPlatformClinicInvitationWithClient(
+        client,
+        '59df9ac5-b22a-47c4-9078-983f286b2d75',
+      ),
+    ).resolves.toEqual({ data: response, error: null })
+    expect(client.functions.invoke).toHaveBeenCalledWith(
+      'resend-platform-clinic-invitation',
+      {
+        body: { clinicId: '59df9ac5-b22a-47c4-9078-983f286b2d75' },
+        headers: { Authorization: 'Bearer valid-token' },
+        method: 'POST',
+      },
+    )
+  })
+
+  it('shows the safe cooldown message returned by the invitation Function', async () => {
+    const response = new Response(
+      JSON.stringify({
+        code: 'INVITATION_RATE_LIMITED',
+        message: 'Espera 45 segundos antes de reenviar otra invitación.',
+      }),
+      { status: 429 },
+    )
+    const client = createClient({
+      data: null,
+      error: { context: response, status: 429 },
+    })
+
+    await expect(
+      resendPlatformClinicInvitationWithClient(
+        client,
+        '59df9ac5-b22a-47c4-9078-983f286b2d75',
+      ),
+    ).resolves.toEqual({
+      data: null,
+      error: 'Espera 45 segundos antes de reenviar otra invitación.',
+    })
+  })
+
   it('returns a public message for a 403 response', async () => {
     const client = createClient({
       data: null,
@@ -269,6 +319,8 @@ describe('platform admin service', () => {
         activeMembersCount: -4,
         clinicStatus: 'corrupt' as never,
         ownerEmail: null,
+        ownerInvitationSentAt: null,
+        ownerMembershipStatus: null,
         ownerName: null,
         planId: null,
         planName: null,
@@ -278,6 +330,8 @@ describe('platform admin service', () => {
       activeMembersCount: 0,
       clinicStatus: 'unknown',
       ownerEmail: null,
+      ownerInvitationSentAt: null,
+      ownerMembershipStatus: null,
       ownerName: null,
       planId: null,
       planName: null,

@@ -22,6 +22,7 @@ interface AccountActivationFlowDependencies {
   updatePassword: () => Promise<{
     error: { code?: string; message?: string } | null
   }>
+  validateSession: () => Promise<{ error: string | null }>
 }
 
 export interface AccountActivationFlowResult {
@@ -30,6 +31,8 @@ export interface AccountActivationFlowResult {
 }
 
 export const accountActivationPath = '/activar-cuenta'
+export const invalidActivationLinkMessage =
+  'Este enlace no es válido o ya expiró. Abre el enlace más reciente que recibiste por correo.'
 
 export function isAccountActivationRoute(
   locationLike: ActivationLocationLike = getCurrentLocation(),
@@ -75,6 +78,12 @@ export async function runAccountActivationOnce(
   lock.current = true
 
   try {
+    const sessionResult = await dependencies.validateSession()
+
+    if (sessionResult.error) {
+      return { error: sessionResult.error, status: 'error' }
+    }
+
     const passwordResult = await dependencies.updatePassword()
 
     if (
@@ -82,7 +91,9 @@ export async function runAccountActivationOnce(
       !isPasswordAlreadyConfiguredError(passwordResult.error)
     ) {
       return {
-        error: 'No pudimos guardar tu contraseña. Solicita un nuevo enlace.',
+        error: isInvalidActivationSessionError(passwordResult.error)
+          ? invalidActivationLinkMessage
+          : 'No pudimos guardar tu contraseña. Solicita un nuevo enlace.',
         status: 'error',
       }
     }
@@ -112,6 +123,23 @@ export function isPasswordAlreadyConfiguredError(error: {
     error.code?.toLowerCase() === 'same_password' ||
     error.message?.toLowerCase().includes('different from the old password') ===
       true
+  )
+}
+
+export function isInvalidActivationSessionError(error: {
+  code?: string
+  message?: string
+}) {
+  const normalizedError = `${error.code ?? ''} ${error.message ?? ''}`
+    .trim()
+    .toLowerCase()
+
+  return (
+    normalizedError.includes('auth session missing') ||
+    normalizedError.includes('session_not_found') ||
+    normalizedError.includes('session not found') ||
+    normalizedError.includes('invalid jwt') ||
+    normalizedError.includes('jwt expired')
   )
 }
 

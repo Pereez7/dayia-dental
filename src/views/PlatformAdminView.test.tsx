@@ -52,6 +52,8 @@ const clinic: PlatformClinicSummary = {
   scheduledPlanId: null,
   scheduledPlanStartsAt: null,
   ownerEmail: 'ana@clinic.test',
+  ownerInvitationSentAt: null,
+  ownerMembershipStatus: 'active',
   ownerName: 'Dra. Ana Pérez',
   planId: 'medium',
   planName: 'Medium',
@@ -149,6 +151,31 @@ describe('PlatformAdminView', () => {
 
     expect(markup).toContain('Sin propietario')
     expect(markup).not.toContain('Sin email registrado')
+  })
+
+  it('shows the pending owner and the invitation resend action', () => {
+    const markup = renderToStaticMarkup(
+      <PlatformClinicsContent
+        clinics={[
+          {
+            ...clinic,
+            activeMembersCount: 0,
+            clinicStatus: 'pending_activation',
+            ownerInvitationSentAt: '2026-07-27T21:07:27.000Z',
+            ownerMembershipStatus: 'pending_activation',
+          },
+        ]}
+        errorMessage=""
+        isLoading={false}
+        onResendInvitation={vi.fn()}
+      />,
+    )
+
+    expect(markup).toContain('Dra. Ana Pérez')
+    expect(markup).toContain('ana@clinic.test')
+    expect(markup).toContain('Invitación pendiente')
+    expect(markup).toContain('Reenviar invitación')
+    expect(markup).not.toContain('Sin propietario')
   })
 
   it('marks the affected clinic with a compact payment-review badge', () => {

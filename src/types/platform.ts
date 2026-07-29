@@ -13,6 +13,10 @@ export type PlatformSubscriptionStatus =
   | 'trialing'
   | 'unknown'
 
+export type PlatformOwnerMembershipStatus =
+  | 'active'
+  | 'pending_activation'
+
 export interface PlatformClinicSummary {
   activeMembersCount: number
   blockedAt: string | null
@@ -35,6 +39,8 @@ export interface PlatformClinicSummary {
   scheduledPlanId: PlatformClinicPlanId | null
   scheduledPlanStartsAt: string | null
   ownerEmail: string | null
+  ownerInvitationSentAt: string | null
+  ownerMembershipStatus: PlatformOwnerMembershipStatus | null
   ownerName: string | null
   planId: string | null
   planName: string | null
@@ -170,4 +176,13 @@ export interface CreatePlatformClinicResponse {
     planId: PlatformClinicPlanId
     priceTier: CreatePlatformClinicInput['priceTier']
   }
+}
+
+export interface ResendPlatformClinicInvitationInput {
+  clinicId: string
+}
+
+export interface ResendPlatformClinicInvitationResponse {
+  email: string
+  sentAt: string
 }
