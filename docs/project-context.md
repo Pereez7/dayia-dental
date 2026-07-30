@@ -5,14 +5,14 @@
 El programa de rendimiento y escalabilidad está definido en
 [`performance-and-scalability-plan.md`](performance-and-scalability-plan.md).
 `PERF-001` ya instrumenta por fases el alta de consultorios sin registrar
-información personal ni secretos. La versión 5 de `create-platform-clinic` está
-`ACTIVE` en staging y una prueba sin usuario confirmó `Server-Timing` y la
-correlación del `operationId` sin escribir datos. Falta ejecutar una única alta
-autenticada controlada, copiar los dos eventos `[dayia-performance]` del
-navegador y correlacionarlos con el log de la Function. Después se abordará la
-confirmación bloqueada por el refresco completo y la separación del listado
-administrativo respecto del historial comercial. No se debe comenzar
-`PERF-002` hasta documentar esa línea base.
+información personal ni secretos. El hito cerró el 30 de julio de 2026 con una
+alta autenticada controlada en staging y el mismo `operationId` correlacionado
+entre navegador y Function. La muestra midió 6,143.0 ms para el flujo completo:
+3,751.1 ms en la invocación de creación y 2,380.7 ms en el refresco bloqueante
+del listado. El total interno de la Function fue 3,153.0 ms y sus fases sumaron
+3,148.0 ms. La siguiente tarea es `PERF-002`: confirmar el éxito sin esperar
+`list-platform-clinics`; después se separará el listado administrativo del
+historial comercial.
 
 El bloque en curso es el endurecimiento de seguridad y permisos antes de
 continuar con los CRUD pendientes. La migración

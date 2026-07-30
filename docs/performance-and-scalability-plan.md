@@ -5,7 +5,7 @@ El objetivo no es mejorar tiempos de forma aislada, sino impedir que el costo
 de las operaciones crezca sin control cuando aumenten los consultorios,
 usuarios, pacientes, citas, pagos y recordatorios.
 
-Última actualización: 28 de julio de 2026.
+Última actualización: 30 de julio de 2026.
 
 ## Principios de trabajo
 
@@ -86,8 +86,8 @@ sin quedar silenciosa.
 
 ### PERF-001: medición del alta de consultorios
 
-Estado: instrumentación implementada y desplegada en staging; línea base de una
-alta autenticada pendiente.
+Estado: cerrado el 30 de julio de 2026 con una alta autenticada controlada y
+correlacionada en staging.
 
 Objetivo: conocer cuánto tarda cada fase sin registrar emails, nombres, JWT ni
 otros datos sensibles.
@@ -99,7 +99,7 @@ Trabajo:
 - [x] Medir en la Function autorización, validación, duplicado, propietario,
   invitación y persistencia.
 - [x] Emitir logs estructurados y `Server-Timing`.
-- [ ] Documentar una línea base con un alta controlada en staging.
+- [x] Documentar una línea base con un alta controlada en staging.
 
 Criterio de cierre:
 
@@ -131,17 +131,43 @@ Prueba técnica de humo:
 - Este dato confirma que la instrumentación atraviesa el gateway, pero no es la
   línea base de una creación y no debe compararse como tal.
 
-Para cerrar la línea base:
+Línea base autenticada:
 
-1. Ejecutar el frontend con las variables de staging.
-2. Abrir las herramientas del navegador y filtrar la consola por
-   `[dayia-performance]`.
-3. Crear un único consultorio de prueba con nombre y alias de correo
-   controlados.
-4. Copiar únicamente `operationId`, `outcome`, `phases` y `totalMs`.
-5. Buscar el mismo `operationId` en los logs de la Function de staging.
-6. Registrar los tiempos en la tabla de resultados sin copiar datos del
-   consultorio.
+- Fecha: 30 de julio de 2026.
+- Entorno: staging `zjsnfgxvaimddmchrwre`.
+- Escenario: una alta exitosa desde el frontend local conectado a staging, con
+  datos de prueba controlados.
+- Correlación: `operationId`
+  `95e6a21c-d8e9-4fa3-851e-95d86d7f53d4` en los dos eventos del navegador y
+  en el evento de la Function.
+- Resultado: `success`, respuesta HTTP `201`.
+
+| Capa | Fase | Duración |
+| --- | --- | ---: |
+| Frontend | Sesión | 10.0 ms |
+| Frontend | Invocación de la Function | 3,751.1 ms |
+| Frontend | Solicitud de creación | 3,762.1 ms |
+| Frontend | Refresco de `list-platform-clinics` | 2,380.7 ms |
+| Frontend | Flujo completo | 6,143.0 ms |
+| Function | Usuario autenticado | 712.5 ms |
+| Function | Autorización de plataforma | 349.9 ms |
+| Function | Validación del payload | 0.3 ms |
+| Function | Comprobación de duplicado | 276.0 ms |
+| Function | Inserción del consultorio | 273.9 ms |
+| Function | Búsqueda del propietario | 504.9 ms |
+| Function | Actualización del perfil | 267.1 ms |
+| Function | Inserción de membership | 281.4 ms |
+| Function | Inserción de suscripción | 482.0 ms |
+| Function | Total | 3,153.0 ms |
+
+Las fases internas suman 3,148.0 ms; los 5.0 ms restantes son sobrecarga no
+asignada dentro de la Function. La invocación observada por el navegador supera
+el total interno en 598.1 ms, que incluye gateway, red, serialización y retorno
+al cliente. El refresco bloqueante agrega 2,380.7 ms y representa el 38.8 % del
+flujo completo; este es el cuello que aborda `PERF-002`.
+
+Esta ejecución es una muestra controlada, no un p50/p95. Los percentiles se
+calcularán cuando exista una serie repetible con suficiente volumen.
 
 ### PERF-002: confirmación sin refresco bloqueante
 
@@ -301,7 +327,7 @@ reemplazarse por estimaciones.
 
 | Hito | Escenario | Antes p50/p95 | Después p50/p95 | Resultado | Fecha |
 | --- | --- | --- | --- | --- | --- |
-| PERF-001 | Alta autenticada de consultorio nuevo | Pendiente | No aplica | Instrumentación lista; medición pendiente | 28 jul 2026 |
+| PERF-001 | Alta autenticada de consultorio nuevo | Muestra única: 6,143 ms; sin p50/p95 | No aplica | Cerrado; Function 3,751.1 ms y refresco bloqueante 2,380.7 ms | 30 jul 2026 |
 
 ## Fuera de alcance
 

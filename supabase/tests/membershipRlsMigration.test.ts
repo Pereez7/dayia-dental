@@ -8,7 +8,7 @@ const migration = readFileSync(
     import.meta.url,
   ),
   'utf8',
-)
+).replaceAll('\r\n', '\n')
 
 describe('membership RLS hardening migration', () => {
   it('removes every legacy clinic-wide FOR ALL policy', () => {

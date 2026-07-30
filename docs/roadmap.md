@@ -13,9 +13,9 @@ staging están definidos en
 Se trabajará un hito por vez y no se avanzará sin medición antes/después,
 pruebas y verificación en staging.
 
-El primer hito es `PERF-001`: instrumentar el alta de consultorios para separar
-el tiempo de frontend, Edge Function, Auth, PostgreSQL, invitación y refresco
-administrativo.
+`PERF-001` cerró el 30 de julio de 2026 con una alta autenticada correlacionada
+entre frontend y Edge Function. El siguiente hito es `PERF-002`: confirmar el
+alta sin esperar el refresco completo del listado administrativo.
 
 ## Rendimiento de carga
 
