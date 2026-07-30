@@ -14,8 +14,10 @@ Se trabajará un hito por vez y no se avanzará sin medición antes/después,
 pruebas y verificación en staging.
 
 `PERF-001` cerró el 30 de julio de 2026 con una alta autenticada correlacionada
-entre frontend y Edge Function. El siguiente hito es `PERF-002`: confirmar el
-alta sin esperar el refresco completo del listado administrativo.
+entre frontend y Edge Function. `PERF-002` redujo la confirmación visible de
+6,143.0 ms a 4,490.5 ms al mover el refresco completo del listado a segundo
+plano. El siguiente hito es `PERF-003`: aligerar y paginar el resumen
+administrativo.
 
 ## Rendimiento de carga
 

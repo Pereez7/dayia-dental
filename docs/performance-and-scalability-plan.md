@@ -171,23 +171,71 @@ calcularán cuando exista una serie repetible con suficiente volumen.
 
 ### PERF-002: confirmación sin refresco bloqueante
 
+Estado: cerrado el 30 de julio de 2026 con una alta autenticada controlada en
+staging.
+
 Objetivo: mostrar el éxito cuando la Function confirme la creación, sin esperar
 la reconstrucción completa del listado.
 
 Trabajo:
 
-- Separar el resultado de creación del refresco.
-- Mantener el refresco en segundo plano.
-- Informar si el consultorio fue creado pero el listado no pudo actualizarse.
-- Conservar el bloqueo contra doble envío.
-- No adelantar el éxito al envío real de la invitación.
+- [x] Separar el resultado de creación del refresco.
+- [x] Mantener el refresco en segundo plano.
+- [x] Informar si el consultorio fue creado pero el listado no pudo
+  actualizarse.
+- [x] Conservar el bloqueo contra doble envío.
+- [x] No adelantar el éxito al envío real de la invitación.
 
 Criterio de cierre:
 
-- El tiempo hasta la confirmación ya no incluye `list-platform-clinics`.
-- El nuevo consultorio aparece al finalizar el refresco.
-- Un fallo de refresco no transforma una creación exitosa en un falso error.
-- Pruebas de éxito, error, doble envío y refresco pasan.
+- [x] El tiempo hasta la confirmación ya no incluye
+  `list-platform-clinics`.
+- [x] El nuevo consultorio aparece al finalizar el refresco.
+- [x] Un fallo de refresco no transforma una creación exitosa en un falso
+  error.
+- [x] Pruebas de éxito, error, doble envío y refresco pasan.
+
+Implementación:
+
+- El formulario resuelve y confirma el alta cuando
+  `create-platform-clinic` devuelve éxito. La llamada a
+  `list-platform-clinics` se inicia después sin formar parte de la promesa que
+  espera el formulario.
+- El listado conserva sus datos actuales mientras se actualiza. Al completar
+  el refresco reemplaza el resumen con la respuesta nueva.
+- Un fallo del refresco muestra un aviso junto al resultado exitoso y ofrece
+  `Actualizar listado`; no cambia el alta a error ni restaura los datos del
+  formulario.
+- El bloqueo contra doble envío cubre toda la solicitud de creación y se
+  libera únicamente después de recibir su respuesta.
+- La telemetría agrega
+  `create_platform_clinic_confirmation` para el tiempo hasta el éxito visible
+  y `create_platform_clinic_refresh` para el trabajo en segundo plano. El
+  evento `create_platform_clinic_flow` conserva la duración total para
+  comparación con `PERF-001`.
+
+Resultado en staging:
+
+- Fecha: 30 de julio de 2026.
+- Entorno: staging `zjsnfgxvaimddmchrwre`.
+- Escenario: una alta autenticada exitosa con la versión de `PERF-002`.
+- Correlación: `operationId`
+  `09a43054-0294-4000-9633-8318a77fa07a` en los cuatro eventos del navegador.
+- Sesión: 6.2 ms.
+- Invocación de `create-platform-clinic`: 4,483.5 ms.
+- Confirmación visible: 4,490.5 ms.
+- Refresco en segundo plano: 2,041.7 ms.
+- Flujo completo: 6,532.9 ms.
+
+La línea base de `PERF-001` confirmaba después del flujo completo, a los
+6,143.0 ms. Con `PERF-002`, la confirmación llegó a los 4,490.5 ms: 1,652.5 ms
+antes, una reducción del 26.9 % en el tiempo visible. El refresco terminó
+2,041.7 ms después sin bloquear el resultado.
+
+El flujo completo de esta muestra fue 389.9 ms más lento que la línea base por
+variación en la creación. `PERF-002` no reduce ese trabajo total: desacopla la
+confirmación para que la variación del listado no retrase el éxito. Ambas
+mediciones son muestras únicas y no representan p50/p95.
 
 ### PERF-003: listado administrativo liviano y paginado
 
@@ -328,6 +376,7 @@ reemplazarse por estimaciones.
 | Hito | Escenario | Antes p50/p95 | Después p50/p95 | Resultado | Fecha |
 | --- | --- | --- | --- | --- | --- |
 | PERF-001 | Alta autenticada de consultorio nuevo | Muestra única: 6,143 ms; sin p50/p95 | No aplica | Cerrado; Function 3,751.1 ms y refresco bloqueante 2,380.7 ms | 30 jul 2026 |
+| PERF-002 | Confirmación de alta sin refresco bloqueante | Muestra única: 6,143.0 ms hasta confirmar | Muestra única: 4,490.5 ms hasta confirmar | Cerrado; confirmación 1,652.5 ms antes (26.9 %), refresco de 2,041.7 ms en segundo plano | 30 jul 2026 |
 
 ## Fuera de alcance
 

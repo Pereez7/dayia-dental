@@ -835,3 +835,14 @@ transacción.
 Esta decisión mantiene `clinic_id` y `weekday` fuera de las columnas
 actualizables por el cliente, evita estados semanales parciales y traduce los
 rechazos a mensajes operativos en el frontend.
+
+## La confirmación del alta no espera el listado administrativo
+
+`create-platform-clinic` es la fuente de verdad de la creación y de la
+invitación. Cuando responde con éxito, el formulario confirma el alta y limpia
+sus campos sin esperar una segunda llamada a `list-platform-clinics`.
+
+El refresco continúa en segundo plano y reemplaza el resumen cuando termina. Si
+falla, la interfaz conserva el resultado exitoso, informa que el listado quedó
+desactualizado y ofrece reintentarlo. La telemetría registra confirmación,
+refresco y flujo completo por separado con el mismo `operationId`.

@@ -502,15 +502,39 @@ describe('PlatformAdminView', () => {
     const markup = renderToStaticMarkup(
       <ClinicOnboardingFeedback
         errorMessage=""
-        successMessage="Consultorio preparado correctamente."
+        successMessage="Consultorio creado correctamente."
       />,
     )
 
-    expect(markup).toContain('Consultorio preparado correctamente.')
+    expect(markup).toContain('Consultorio creado correctamente.')
     expect(markup).toContain('role="status"')
   })
 
-  it('refreshes the list only after a successful creation', async () => {
+  it('shows a successful creation separately from a failed list refresh', () => {
+    const markup = renderToStaticMarkup(
+      <ClinicOnboardingFeedback
+        errorMessage=""
+        onRetryRefresh={vi.fn()}
+        refreshState="error"
+        successMessage="Consultorio creado correctamente."
+      />,
+    )
+
+    expect(markup).toContain('Consultorio creado correctamente.')
+    expect(markup).toContain(
+      'El consultorio fue creado, pero no pudimos actualizar el listado.',
+    )
+    expect(markup).toContain('Actualizar listado')
+    expect(markup).not.toContain('role="alert"')
+  })
+
+  it('returns creation success while the list refresh remains pending', async () => {
+    let resolveRefresh: (() => void) | undefined
+    let resolveRefreshFinished: (() => void) | undefined
+    const refreshFinished = new Promise<void>((resolve) => {
+      resolveRefreshFinished = resolve
+    })
+    const refreshStates: string[] = []
     const createClinic = vi.fn().mockResolvedValue({
       data: {
         activation: { status: 'pending' },
@@ -526,7 +550,12 @@ describe('PlatformAdminView', () => {
       },
       error: null,
     })
-    const refreshClinics = vi.fn().mockResolvedValue({ data: [], error: null })
+    const refreshClinics = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveRefresh = resolve
+        }),
+    )
     const input = {
       clinicName: 'Clínica Norte',
       ownerEmail: 'owner@example.com',
@@ -535,30 +564,59 @@ describe('PlatformAdminView', () => {
       priceTier: 'standard' as const,
     }
 
-    await createPlatformClinicAndRefresh(input, createClinic, refreshClinics)
+    const result = await createPlatformClinicAndRefresh(
+      input,
+      createClinic,
+      refreshClinics,
+      {
+        onRefreshStateChange: (state) => {
+          refreshStates.push(state)
 
-    expect(refreshClinics).toHaveBeenCalledOnce()
-  })
-
-  it('measures creation and refresh as separate anonymous phases', async () => {
-    const events: ClientPerformanceEvent[] = []
-    const timestamps = [0, 0, 1200, 1200, 1700, 1700]
-    const createClinic = vi.fn().mockResolvedValue({
-      data: {
-        activation: { status: 'pending' },
-        clinic: {
-          clinicId: 'clinic-new',
-          clinicName: 'Clínica Norte',
-          clinicStatus: 'pending_activation',
-          ownerEmail: 'owner@example.com',
-          ownerName: 'Dra. Andrea',
-          planId: 'basic',
-          priceTier: 'standard',
+          if (state === 'success') {
+            resolveRefreshFinished?.()
+          }
         },
       },
-      error: null,
+    )
+
+    expect(result.data?.clinic.clinicId).toBe('clinic-new')
+    expect(refreshClinics).toHaveBeenCalledOnce()
+    expect(refreshStates).toEqual(['refreshing'])
+
+    resolveRefresh?.()
+    await refreshFinished
+    expect(refreshStates).toEqual(['refreshing', 'success'])
+  })
+
+  it('measures confirmation and background refresh as separate anonymous phases', async () => {
+    const events: ClientPerformanceEvent[] = []
+    let timestamp = 0
+    let resolveRefreshFinished: (() => void) | undefined
+    const refreshFinished = new Promise<void>((resolve) => {
+      resolveRefreshFinished = resolve
     })
-    const refreshClinics = vi.fn().mockResolvedValue({ data: [], error: null })
+    const createClinic = vi.fn().mockImplementation(async () => {
+      timestamp = 1200
+
+      return {
+        data: {
+          activation: { status: 'pending' },
+          clinic: {
+            clinicId: 'clinic-new',
+            clinicName: 'Clínica Norte',
+            clinicStatus: 'pending_activation',
+            ownerEmail: 'owner@example.com',
+            ownerName: 'Dra. Andrea',
+            planId: 'basic',
+            priceTier: 'standard',
+          },
+        },
+        error: null,
+      }
+    })
+    const refreshClinics = vi.fn().mockImplementation(async () => {
+      timestamp = 1700
+    })
 
     await createPlatformClinicAndRefresh(
       {
@@ -571,17 +629,47 @@ describe('PlatformAdminView', () => {
       createClinic,
       refreshClinics,
       {
-        createOperationId: () => 'operation-123',
-        now: () => timestamps.shift() ?? 1700,
-        record: (event) => events.push(event),
+        instrumentation: {
+          createOperationId: () => 'operation-123',
+          now: () => timestamp,
+          record: (event) => events.push(event),
+        },
+        onRefreshStateChange: (state) => {
+          if (state === 'success') {
+            resolveRefreshFinished?.()
+          }
+        },
       },
     )
+    await refreshFinished
 
     expect(createClinic).toHaveBeenCalledWith(
       expect.any(Object),
       expect.objectContaining({ operationId: 'operation-123' }),
     )
     expect(events).toEqual([
+      {
+        event: 'dayia.performance',
+        operation: 'create_platform_clinic_confirmation',
+        operationId: 'operation-123',
+        outcome: 'success',
+        phases: {
+          create_request: 1200,
+        },
+        source: 'frontend',
+        totalMs: 1200,
+      },
+      {
+        event: 'dayia.performance',
+        operation: 'create_platform_clinic_refresh',
+        operationId: 'operation-123',
+        outcome: 'success',
+        phases: {
+          list_refresh: 500,
+        },
+        source: 'frontend',
+        totalMs: 500,
+      },
       {
         event: 'dayia.performance',
         operation: 'create_platform_clinic_flow',
@@ -597,6 +685,56 @@ describe('PlatformAdminView', () => {
     ])
     expect(JSON.stringify(events)).not.toContain('owner@example.com')
     expect(JSON.stringify(events)).not.toContain('Clínica Norte')
+  })
+
+  it('keeps creation successful when the background refresh fails', async () => {
+    let resolveRefreshFailed: (() => void) | undefined
+    const refreshFailed = new Promise<void>((resolve) => {
+      resolveRefreshFailed = resolve
+    })
+    const refreshStates: string[] = []
+    const createClinic = vi.fn().mockResolvedValue({
+      data: {
+        activation: { status: 'pending' },
+        clinic: {
+          clinicId: 'clinic-new',
+          clinicName: 'Clínica Norte',
+          clinicStatus: 'pending_activation',
+          ownerEmail: 'owner@example.com',
+          ownerName: 'Dra. Andrea',
+          planId: 'basic',
+          priceTier: 'standard',
+        },
+      },
+      error: null,
+    })
+    const refreshClinics = vi.fn().mockRejectedValue(new Error('network detail'))
+
+    const result = await createPlatformClinicAndRefresh(
+      {
+        clinicName: 'Clínica Norte',
+        ownerEmail: 'owner@example.com',
+        ownerName: 'Dra. Andrea',
+        planId: 'basic',
+        priceTier: 'standard',
+      },
+      createClinic,
+      refreshClinics,
+      {
+        onRefreshStateChange: (state) => {
+          refreshStates.push(state)
+
+          if (state === 'error') {
+            resolveRefreshFailed?.()
+          }
+        },
+      },
+    )
+    await refreshFailed
+
+    expect(result.error).toBeNull()
+    expect(result.data?.clinic.clinicId).toBe('clinic-new')
+    expect(refreshStates).toEqual(['refreshing', 'error'])
   })
 
   it('preserves the disabled error and does not refresh the list', async () => {

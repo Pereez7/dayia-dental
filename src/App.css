@@ -3710,6 +3710,26 @@
   margin-top: 5px;
 }
 
+.clinic-onboarding-feedback,
+.clinic-onboarding-refresh-warning {
+  display: grid;
+  justify-items: start;
+  gap: 7px;
+}
+
+.clinic-onboarding-refresh-status {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.45;
+}
+
+.clinic-onboarding-refresh-warning .secondary-action {
+  min-height: 34px;
+  padding: 6px 10px;
+}
+
 .platform-admin-access-denied {
   display: grid;
   gap: 8px;
@@ -6640,6 +6660,10 @@
 
 .field-message--success {
   color: var(--color-success);
+}
+
+.field-message--warning {
+  color: #704a00;
 }
 
 .field-message--error {

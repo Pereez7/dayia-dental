@@ -4,6 +4,12 @@ Registro breve de cambios relevantes en DayIA Dental.
 
 ## En desarrollo
 
+- Administración DayIA confirma el alta cuando termina
+  `create-platform-clinic` y actualiza el listado en segundo plano. Si ese
+  refresco falla, conserva el éxito de la creación, muestra un aviso junto al
+  formulario y permite reintentar sin duplicar el consultorio. La telemetría
+  separa el tiempo hasta la confirmación del tiempo del listado. La muestra de
+  staging redujo la confirmación visible de 6,143.0 ms a 4,490.5 ms.
 - Se creó `DESIGN.md` como contrato visual para reutilizar controles, acciones,
   feedback y reglas mobile-first. El motivo de activación o desactivación de
   usuarios ahora usa el control compartido, y las acciones repetidas se

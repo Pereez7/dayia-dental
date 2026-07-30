@@ -18,7 +18,10 @@ import {
   getPlatformClinicStatusLabel,
   getPlatformSubscriptionStatusLabel,
 } from '../utils/platformStatusLabels'
-import { createPlatformClinicAndRefresh } from '../utils/platformClinicCreation'
+import {
+  createPlatformClinicAndRefresh,
+  type PlatformClinicRefreshState,
+} from '../utils/platformClinicCreation'
 import { formatAppDate } from '../utils/dateFormatters'
 
 interface PlatformAdminViewProps {
@@ -61,6 +64,8 @@ export function PlatformAdminView({
     Record<string, PlatformInvitationNotice>
   >({})
   const [isLoading, setIsLoading] = useState(canAccessPlatformAdmin)
+  const [creationRefreshState, setCreationRefreshState] =
+    useState<PlatformClinicRefreshState>('idle')
   const [resendingClinicId, setResendingClinicId] = useState<string | null>(
     null,
   )
@@ -86,10 +91,44 @@ export function PlatformAdminView({
     }
   }, [loadClinics])
 
+  const refreshCreatedClinicList = useCallback(async () => {
+    const result = await loadClinics()
+
+    if (result.error || !result.data) {
+      throw new Error(
+        result.error ?? 'No pudimos actualizar el listado de consultorios.',
+      )
+    }
+
+    setClinics(result.data)
+    setErrorMessage('')
+  }, [loadClinics])
+
   const createClinicAndRefresh = useCallback(
     (input: CreatePlatformClinicInput) =>
-      createPlatformClinicAndRefresh(input, createClinic, loadPlatformClinics),
-    [createClinic, loadPlatformClinics],
+      createPlatformClinicAndRefresh(
+        input,
+        createClinic,
+        refreshCreatedClinicList,
+        {
+          onRefreshStateChange: setCreationRefreshState,
+        },
+      ),
+    [createClinic, refreshCreatedClinicList],
+  )
+
+  const retryCreatedClinicRefresh = useCallback(
+    async () => {
+      setCreationRefreshState('refreshing')
+
+      try {
+        await refreshCreatedClinicList()
+        setCreationRefreshState('success')
+      } catch {
+        setCreationRefreshState('error')
+      }
+    },
+    [refreshCreatedClinicList],
   )
 
   const handleResendInvitation = useCallback(
@@ -222,6 +261,8 @@ export function PlatformAdminView({
 
       <ClinicOnboardingForm
         onCreate={createClinicAndRefresh}
+        onRetryRefresh={retryCreatedClinicRefresh}
+        refreshState={creationRefreshState}
       />
     </div>
   )

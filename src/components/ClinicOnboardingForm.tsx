@@ -14,7 +14,10 @@ import {
   hasClinicOnboardingErrors,
   validateClinicOnboardingForm,
 } from '../utils/clinicOnboarding'
-import { submitPlatformClinicOnce } from '../utils/platformClinicCreation'
+import {
+  submitPlatformClinicOnce,
+  type PlatformClinicRefreshState,
+} from '../utils/platformClinicCreation'
 
 const initialValues: ClinicOnboardingFormValues = {
   clinicName: '',
@@ -51,15 +54,21 @@ interface ClinicOnboardingFormProps {
   onCreate: (
     input: CreatePlatformClinicInput,
   ) => Promise<{ data: CreatePlatformClinicResponse | null; error: string | null }>
+  onRetryRefresh?: () => void
+  refreshState?: PlatformClinicRefreshState
 }
 
 interface ClinicOnboardingFeedbackProps {
   errorMessage: string
+  onRetryRefresh?: () => void
+  refreshState?: PlatformClinicRefreshState
   successMessage: string
 }
 
 export function ClinicOnboardingForm({
   onCreate,
+  onRetryRefresh,
+  refreshState = 'idle',
 }: ClinicOnboardingFormProps) {
   const [formValues, setFormValues] =
     useState<ClinicOnboardingFormValues>(initialValues)
@@ -139,7 +148,7 @@ export function ClinicOnboardingForm({
 
     setFormValues(initialValues)
     setValidationMessage(
-      'Consultorio preparado correctamente.',
+      'Consultorio creado correctamente.',
     )
   }
 
@@ -317,6 +326,8 @@ export function ClinicOnboardingForm({
           </button>
           <ClinicOnboardingFeedback
             errorMessage={submissionError}
+            onRetryRefresh={onRetryRefresh}
+            refreshState={refreshState}
             successMessage={validationMessage}
           />
         </div>
@@ -331,16 +342,44 @@ function getPlanLabel(planId: PlanId) {
 
 export function ClinicOnboardingFeedback({
   errorMessage,
+  onRetryRefresh,
+  refreshState = 'idle',
   successMessage,
 }: ClinicOnboardingFeedbackProps) {
   if (successMessage) {
     return (
-      <p
-        className="field-message field-message--success clinic-onboarding-result"
+      <div
+        className="clinic-onboarding-feedback"
+        aria-live="polite"
         role="status"
       >
-        {successMessage}
-      </p>
+        <p
+          className="field-message field-message--success clinic-onboarding-result"
+        >
+          {successMessage}
+        </p>
+        {refreshState === 'refreshing' ? (
+          <p className="clinic-onboarding-refresh-status">
+            Actualizando el listado en segundo plano…
+          </p>
+        ) : null}
+        {refreshState === 'error' ? (
+          <div className="clinic-onboarding-refresh-warning">
+            <p className="field-message field-message--warning">
+              El consultorio fue creado, pero no pudimos actualizar el listado.
+            </p>
+            {onRetryRefresh ? (
+              <button
+                className="secondary-action"
+                onClick={onRetryRefresh}
+                type="button"
+              >
+                Actualizar listado
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
     )
   }
 

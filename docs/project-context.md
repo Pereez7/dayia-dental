@@ -10,9 +10,14 @@ alta autenticada controlada en staging y el mismo `operationId` correlacionado
 entre navegador y Function. La muestra midió 6,143.0 ms para el flujo completo:
 3,751.1 ms en la invocación de creación y 2,380.7 ms en el refresco bloqueante
 del listado. El total interno de la Function fue 3,153.0 ms y sus fases sumaron
-3,148.0 ms. La siguiente tarea es `PERF-002`: confirmar el éxito sin esperar
-`list-platform-clinics`; después se separará el listado administrativo del
-historial comercial.
+3,148.0 ms. `PERF-002` cerró el 30 de julio de 2026 con una segunda alta
+autenticada en staging. El formulario confirmó a los 4,490.5 ms y
+`list-platform-clinics` terminó 2,041.7 ms después en segundo plano. Frente a
+los 6,143.0 ms bloqueantes de la línea base, el éxito apareció 1,652.5 ms antes,
+una reducción del 26.9 %. Un fallo del refresco conserva el alta exitosa,
+muestra un aviso cercano y permite reintentar. La siguiente tarea es
+`PERF-003`: separar el resumen administrativo del historial comercial y
+paginarlo en servidor.
 
 El bloque en curso es el endurecimiento de seguridad y permisos antes de
 continuar con los CRUD pendientes. La migración
