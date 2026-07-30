@@ -90,10 +90,17 @@ consultorio. Si también tiene una membership activa, Auth conserva ambos datos
 en el contexto de sesión; un cambio explícito entre plataforma y consultorio
 queda pendiente junto con la navegación multi-contexto.
 
-En el alta, un email existente reutiliza Auth y profile sin sobrescribir datos
-sensibles. Un email nuevo usa invitación de Supabase Auth, nunca una contraseña
-manual. Hasta activar la cuenta, la membresía usa `pending_activation`; un
-usuario confirmado puede recibir membresía `active` de forma explícita.
+En el alta de plataforma, un email existente en Auth o `profiles` se rechaza:
+no se reutilizan identidades que ya puedan pertenecer a un propietario, doctor
+o recepcionista. Un email nuevo usa invitación de Supabase Auth, nunca una
+contraseña manual, y su membresía queda en `pending_activation`.
+
+Si el consultorio aún está en `pending_activation`, un Platform Admin puede
+corregir el email mediante `correct-platform-clinic-owner-email`. La Function
+invita una identidad nueva y la RPC
+`replace_pending_platform_clinic_owner` sustituye atómicamente solo la
+membresía de ese consultorio. No modifica el email ni el perfil de la identidad
+anterior, que puede conservar membresías válidas en otro consultorio.
 
 ## Planes
 

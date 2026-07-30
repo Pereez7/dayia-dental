@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import {
+  correctPlatformClinicOwnerEmailWithClient,
   createPlatformClinicWithClient,
   invokeSubscriptionActionWithClient,
   listPlatformClinicsWithClient,
@@ -268,6 +269,55 @@ describe('platform admin service', () => {
     )
   })
 
+  it('corrects a pending owner email and sends the current JWT', async () => {
+    const response = {
+      email: 'corrected.owner@clinic.test',
+      sentAt: '2026-07-30T22:10:00.000Z',
+    }
+    const client = createClient({ data: response, error: null })
+    const input = {
+      clinicId: '59df9ac5-b22a-47c4-9078-983f286b2d75',
+      ownerEmail: 'corrected.owner@clinic.test',
+    }
+
+    await expect(
+      correctPlatformClinicOwnerEmailWithClient(client, input),
+    ).resolves.toEqual({ data: response, error: null })
+    expect(client.functions.invoke).toHaveBeenCalledWith(
+      'correct-platform-clinic-owner-email',
+      {
+        body: input,
+        headers: { Authorization: 'Bearer valid-token' },
+        method: 'POST',
+      },
+    )
+  })
+
+  it('shows the duplicate email reason returned by the correction Function', async () => {
+    const message =
+      'Este correo ya está registrado en DayIA Dental y no puede usarse para otro consultorio.'
+    const client = createClient({
+      data: null,
+      error: {
+        context: new Response(
+          JSON.stringify({
+            code: 'OWNER_EMAIL_ALREADY_REGISTERED',
+            message,
+          }),
+          { status: 409 },
+        ),
+        status: 409,
+      },
+    })
+
+    await expect(
+      correctPlatformClinicOwnerEmailWithClient(client, {
+        clinicId: '59df9ac5-b22a-47c4-9078-983f286b2d75',
+        ownerEmail: 'existing@clinic.test',
+      }),
+    ).resolves.toEqual({ data: null, error: message })
+  })
+
   it('shows the safe cooldown message returned by the invitation Function', async () => {
     const response = new Response(
       JSON.stringify({
@@ -484,6 +534,34 @@ describe('platform admin service', () => {
       data: null,
       error: 'La creación real de consultorios está deshabilitada.',
     })
+  })
+
+  it('shows the duplicate owner email reason during clinic creation', async () => {
+    const message =
+      'Este correo ya está registrado en DayIA Dental y no puede usarse para otro consultorio.'
+    const client = createClient({
+      data: null,
+      error: {
+        context: new Response(
+          JSON.stringify({
+            code: 'OWNER_EMAIL_ALREADY_REGISTERED',
+            message,
+          }),
+          { status: 409 },
+        ),
+        status: 409,
+      },
+    })
+
+    await expect(
+      createPlatformClinicWithClient(client, {
+        clinicName: 'Clínica Duplicada',
+        ownerEmail: 'existing@clinic.test',
+        ownerName: 'Dra. Existente',
+        planId: 'basic',
+        priceTier: 'standard',
+      }),
+    ).resolves.toEqual({ data: null, error: message })
   })
 
   it.each([

@@ -150,12 +150,14 @@ solo admite `basic`, `medium` o `pro`. La tarifa inicial solo admite `standard`
 o `founder`; fundador exige que el plan tenga `founder_monthly_price`
 configurado. La respuesta nunca incluye tokens ni datos clínicos.
 
-El owner existente se reutiliza y su nombre solo se completa si está vacío. Un
+El correo del owner debe ser una identidad nueva en DayIA Dental. Si ya existe
+en Auth o `profiles`, el alta responde `409` sin crear el consultorio; así no se
+reutilizan silenciosamente cuentas de propietarios, doctores o recepción. El
 owner nuevo usa `inviteUserByEmail`, sin contraseña manual, y su membresía queda
-`pending_activation`; uno existente y confirmado puede quedar `active`. La
-suscripción comienza con 15 días en `trialing`, seguidos por 5 días de gracia,
-y el consultorio queda `pending_activation`. El plan y la tarifa elegidos
-definen la condición comercial que se usará al terminar la prueba.
+`pending_activation`. La suscripción comienza con 15 días en `trialing`,
+seguidos por 5 días de gracia, y el consultorio queda `pending_activation`. El
+plan y la tarifa elegidos definen la condición comercial que se usará al
+terminar la prueba.
 
 No existe una transacción Auth + Postgres única. Ante un fallo, la compensación
 elimina el consultorio, cuyas membresías y suscripción caen por cascada, y
@@ -167,6 +169,21 @@ La UI no replica el feature flag. Un submit válido siempre invoca
 El frontend muestra ese resultado, evita dobles envíos y refresca
 `list-platform-clinics` únicamente tras una respuesta exitosa. El secret del
 servidor sigue siendo la única barrera autoritativa.
+
+## Corrección del propietario pendiente
+
+Mientras `clinics.status` siga en `pending_activation`, la fila administrativa
+ofrece editar el correo del propietario. La Edge Function
+`correct-platform-clinic-owner-email` exige JWT de Platform Admin, rechaza un
+correo igual o ya registrado, envía una invitación nueva y ejecuta
+`replace_pending_platform_clinic_owner`.
+
+La RPC bloquea el consultorio y la membresía esperada, desactiva la membresía
+anterior, crea la nueva como `pending_activation` y registra el cambio en
+`platform_clinic_owner_corrections` dentro de la misma transacción. No cambia
+el email de la identidad anterior. Esto también repara altas históricas donde
+una cuenta confirmada fue reutilizada por error. La tabla de auditoría y la RPC
+son accesibles solo para `service_role`.
 
 ## Despliegue
 
@@ -180,6 +197,7 @@ a React.
 npx supabase db push
 npx supabase functions deploy list-platform-clinics
 npx supabase functions deploy create-platform-clinic
+npx supabase functions deploy correct-platform-clinic-owner-email
 ```
 
 La gestión de usuarios clínicos no forma parte de Administración DayIA.

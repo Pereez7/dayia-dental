@@ -4,6 +4,12 @@ Registro breve de cambios relevantes en DayIA Dental.
 
 ## En desarrollo
 
+- El alta de consultorios rechaza cualquier correo propietario ya registrado en
+  DayIA Dental, evitando reutilizar silenciosamente cuentas de propietarios,
+  doctores o recepción. En consultorios aún pendientes, Administración DayIA
+  permite corregir el correo, reemplaza solo esa membresía, reenvía la
+  invitación y registra la sustitución en una auditoría inmutable. La migración
+  `030` y las Functions asociadas están activas en staging.
 - Administración DayIA confirma el alta cuando termina
   `create-platform-clinic` y actualiza el listado en segundo plano. Si ese
   refresco falla, conserva el éxito de la creación, muestra un aviso junto al

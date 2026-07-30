@@ -168,6 +168,7 @@ describe('PlatformAdminView', () => {
         ]}
         errorMessage=""
         isLoading={false}
+        onCorrectOwnerEmail={vi.fn()}
         onResendInvitation={vi.fn()}
       />,
     )
@@ -176,7 +177,29 @@ describe('PlatformAdminView', () => {
     expect(markup).toContain('ana@clinic.test')
     expect(markup).toContain('Invitación pendiente')
     expect(markup).toContain('Reenviar invitación')
+    expect(markup).toContain('Editar correo')
     expect(markup).not.toContain('Sin propietario')
+  })
+
+  it('allows correcting an accidentally reused owner on a pending clinic', () => {
+    const markup = renderToStaticMarkup(
+      <PlatformClinicsContent
+        clinics={[
+          {
+            ...clinic,
+            clinicStatus: 'pending_activation',
+            ownerMembershipStatus: 'active',
+          },
+        ]}
+        errorMessage=""
+        isLoading={false}
+        onCorrectOwnerEmail={vi.fn()}
+        onResendInvitation={vi.fn()}
+      />,
+    )
+
+    expect(markup).toContain('Editar correo')
+    expect(markup).not.toContain('Reenviar invitación')
   })
 
   it('marks the affected clinic with a compact payment-review badge', () => {

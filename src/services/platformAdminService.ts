@@ -1,5 +1,7 @@
 import { supabase } from '../lib/supabaseClient'
 import type {
+  CorrectPlatformClinicOwnerEmailInput,
+  CorrectPlatformClinicOwnerEmailResponse,
   CreatePlatformClinicInput,
   CreatePlatformClinicResponse,
   ListPlatformClinicsResponse,
@@ -37,6 +39,11 @@ export interface PlatformSubscriptionActionResult {
 
 export interface ResendPlatformClinicInvitationServiceResult {
   data: ResendPlatformClinicInvitationResponse | null
+  error: string | null
+}
+
+export interface CorrectPlatformClinicOwnerEmailServiceResult {
+  data: CorrectPlatformClinicOwnerEmailResponse | null
   error: string | null
 }
 
@@ -135,6 +142,15 @@ export async function resendPlatformClinicInvitation(
   return resendPlatformClinicInvitationWithClient(
     supabase as PlatformAdminFunctionClient | null,
     clinicId,
+  )
+}
+
+export async function correctPlatformClinicOwnerEmail(
+  input: CorrectPlatformClinicOwnerEmailInput,
+): Promise<CorrectPlatformClinicOwnerEmailServiceResult> {
+  return correctPlatformClinicOwnerEmailWithClient(
+    supabase as PlatformAdminFunctionClient | null,
+    input,
   )
 }
 
@@ -329,6 +345,59 @@ export async function resendPlatformClinicInvitationWithClient(
       return {
         data: null,
         error: 'No pudimos confirmar el reenvío de la invitación.',
+      }
+    }
+
+    return { data, error: null }
+  } catch {
+    return {
+      data: null,
+      error:
+        'No pudimos comunicarnos con el servicio de invitaciones. Intenta nuevamente.',
+    }
+  }
+}
+
+export async function correctPlatformClinicOwnerEmailWithClient(
+  client: PlatformAdminFunctionClient | null,
+  input: CorrectPlatformClinicOwnerEmailInput,
+): Promise<CorrectPlatformClinicOwnerEmailServiceResult> {
+  if (!client) {
+    return { data: null, error: 'Supabase no está configurado.' }
+  }
+
+  try {
+    const { data: sessionData, error: sessionError } =
+      await client.auth.getSession()
+    const accessToken = sessionData.session?.access_token
+
+    if (sessionError || !accessToken) {
+      return {
+        data: null,
+        error: 'Tu sesión no es válida. Vuelve a iniciar sesión.',
+      }
+    }
+
+    const { data, error } = await client.functions.invoke(
+      'correct-platform-clinic-owner-email',
+      {
+        body: input,
+        headers: { Authorization: `Bearer ${accessToken}` },
+        method: 'POST',
+      },
+    )
+
+    if (error) {
+      return {
+        data: null,
+        error: await getCorrectOwnerEmailErrorMessage(error),
+      }
+    }
+
+    if (!isResendInvitationResponse(data)) {
+      return {
+        data: null,
+        error: 'No pudimos confirmar la corrección del correo.',
       }
     }
 
@@ -611,6 +680,13 @@ async function getCreateClinicErrorMessage(error: unknown) {
     }
 
     if (
+      responseError?.code === 'OWNER_EMAIL_ALREADY_REGISTERED' &&
+      responseError.message
+    ) {
+      return responseError.message
+    }
+
+    if (
       responseError?.code === 'FOUNDER_PRICE_NOT_CONFIGURED' &&
       responseError.message
     ) {
@@ -658,6 +734,32 @@ async function getResendInvitationErrorMessage(error: unknown) {
   }
 
   return 'No pudimos reenviar la invitación. Intenta nuevamente.'
+}
+
+async function getCorrectOwnerEmailErrorMessage(error: unknown) {
+  const status = getFunctionErrorStatus(error)
+  const responseError = await getFunctionResponseError(error)
+
+  if (status === 400) {
+    return responseError?.message ?? 'Ingresa un email válido.'
+  }
+
+  if (status === 401) {
+    return 'Tu sesión no es válida. Vuelve a iniciar sesión.'
+  }
+
+  if (status === 403) {
+    return 'No tienes permiso para corregir propietarios.'
+  }
+
+  if (status === 404 || status === 409 || status === 429) {
+    return (
+      responseError?.message ??
+      'No pudimos corregir el correo del propietario.'
+    )
+  }
+
+  return 'No pudimos corregir el correo del propietario. Intenta nuevamente.'
 }
 
 async function getFunctionResponseError(error: unknown) {

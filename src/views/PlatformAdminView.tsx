@@ -1,16 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { ClinicOnboardingForm } from '../components/ClinicOnboardingForm'
+import {
+  PlatformOwnerInvitationActions,
+  type PlatformInvitationNotice,
+} from '../components/PlatformOwnerInvitationActions'
 import { SubscriptionAdministration } from '../components/SubscriptionAdministration'
 import {
+  correctPlatformClinicOwnerEmail,
   createPlatformClinic,
   listPlatformClinics,
   resendPlatformClinicInvitation,
+  type CorrectPlatformClinicOwnerEmailServiceResult,
   type CreatePlatformClinicServiceResult,
   type PlatformAdminServiceResult,
   type ResendPlatformClinicInvitationServiceResult,
 } from '../services/platformAdminService'
 import type {
+  CorrectPlatformClinicOwnerEmailInput,
   CreatePlatformClinicInput,
   PlatformClinicSummary,
 } from '../types/platform'
@@ -26,6 +33,9 @@ import { formatAppDate } from '../utils/dateFormatters'
 
 interface PlatformAdminViewProps {
   canAccessPlatformAdmin: boolean
+  correctOwnerEmail?: (
+    input: CorrectPlatformClinicOwnerEmailInput,
+  ) => Promise<CorrectPlatformClinicOwnerEmailServiceResult>
   createClinic?: (
     input: CreatePlatformClinicInput,
   ) => Promise<CreatePlatformClinicServiceResult>
@@ -35,16 +45,16 @@ interface PlatformAdminViewProps {
   ) => Promise<ResendPlatformClinicInvitationServiceResult>
 }
 
-interface PlatformInvitationNotice {
-  message: string
-  tone: 'error' | 'success'
-}
-
 interface PlatformClinicsContentProps {
+  correctingClinicId?: string | null
   clinics: PlatformClinicSummary[]
   errorMessage: string
   invitationNotices?: Record<string, PlatformInvitationNotice>
   isLoading: boolean
+  onCorrectOwnerEmail?: (
+    clinicId: string,
+    email: string,
+  ) => Promise<boolean>
   onResendInvitation?: (clinicId: string) => void
   onRetry?: () => void
   onManage?: (clinicId: string) => void
@@ -53,10 +63,12 @@ interface PlatformClinicsContentProps {
 
 export function PlatformAdminView({
   canAccessPlatformAdmin,
+  correctOwnerEmail = correctPlatformClinicOwnerEmail,
   createClinic = createPlatformClinic,
   loadClinics = listPlatformClinics,
   resendInvitation = resendPlatformClinicInvitation,
 }: PlatformAdminViewProps) {
+  const correctOwnerEmailLock = useRef<string | null>(null)
   const resendInvitationLock = useRef<string | null>(null)
   const [clinics, setClinics] = useState<PlatformClinicSummary[]>([])
   const [errorMessage, setErrorMessage] = useState('')
@@ -66,6 +78,9 @@ export function PlatformAdminView({
   const [isLoading, setIsLoading] = useState(canAccessPlatformAdmin)
   const [creationRefreshState, setCreationRefreshState] =
     useState<PlatformClinicRefreshState>('idle')
+  const [correctingClinicId, setCorrectingClinicId] = useState<string | null>(
+    null,
+  )
   const [resendingClinicId, setResendingClinicId] = useState<string | null>(
     null,
   )
@@ -133,7 +148,7 @@ export function PlatformAdminView({
 
   const handleResendInvitation = useCallback(
     async (clinicId: string) => {
-      if (resendInvitationLock.current) return
+      if (correctOwnerEmailLock.current || resendInvitationLock.current) return
 
       resendInvitationLock.current = clinicId
       setResendingClinicId(clinicId)
@@ -167,6 +182,65 @@ export function PlatformAdminView({
       }
     },
     [refreshPlatformClinicsSilently, resendInvitation],
+  )
+
+  const handleCorrectOwnerEmail = useCallback(
+    async (clinicId: string, ownerEmail: string) => {
+      if (correctOwnerEmailLock.current || resendInvitationLock.current) {
+        return false
+      }
+
+      correctOwnerEmailLock.current = clinicId
+      setCorrectingClinicId(clinicId)
+      setInvitationNotices((current) => {
+        const next = { ...current }
+        delete next[clinicId]
+        return next
+      })
+
+      try {
+        const result = await correctOwnerEmail({ clinicId, ownerEmail })
+
+        setInvitationNotices((current) => ({
+          ...current,
+          [clinicId]: result.data
+            ? {
+                message: `Correo actualizado e invitación enviada a ${result.data.email}.`,
+                tone: 'success',
+              }
+            : {
+                message:
+                  result.error ??
+                  'No pudimos corregir el correo del propietario.',
+                tone: 'error',
+              },
+        }))
+
+        if (result.data) {
+          setClinics((current) =>
+            current.map((clinic) =>
+              clinic.clinicId === clinicId
+                ? {
+                    ...clinic,
+                    ownerEmail: result.data?.email ?? clinic.ownerEmail,
+                    ownerInvitationSentAt:
+                      result.data?.sentAt ?? clinic.ownerInvitationSentAt,
+                    ownerMembershipStatus: 'pending_activation',
+                  }
+                : clinic,
+            ),
+          )
+          await refreshPlatformClinicsSilently()
+          return true
+        }
+
+        return false
+      } finally {
+        correctOwnerEmailLock.current = null
+        setCorrectingClinicId(null)
+      }
+    },
+    [correctOwnerEmail, refreshPlatformClinicsSilently],
   )
 
   useEffect(() => {
@@ -240,9 +314,11 @@ export function PlatformAdminView({
 
         <PlatformClinicsContent
           clinics={clinics}
+          correctingClinicId={correctingClinicId}
           errorMessage={errorMessage}
           invitationNotices={invitationNotices}
           isLoading={isLoading}
+          onCorrectOwnerEmail={handleCorrectOwnerEmail}
           onResendInvitation={handleResendInvitation}
           onRetry={loadPlatformClinics}
           onManage={setSelectedClinicId}
@@ -281,9 +357,11 @@ export function PlatformPaymentOverview({ count }: { count: number }) {
 
 export function PlatformClinicsContent({
   clinics,
+  correctingClinicId = null,
   errorMessage,
   invitationNotices = {},
   isLoading,
+  onCorrectOwnerEmail,
   onResendInvitation,
   onRetry,
   onManage,
@@ -385,38 +463,46 @@ export function PlatformClinicsContent({
                       <span>
                         {clinic.ownerEmail ?? 'Sin email registrado'}
                       </span>
-                      {clinic.ownerMembershipStatus ===
-                      'pending_activation' ? (
-                        <div className="platform-owner-invitation">
-                          <span>Invitación pendiente</span>
-                          {onResendInvitation && clinic.ownerEmail ? (
-                            <button
-                              className="platform-owner-invitation-action"
-                              disabled={Boolean(resendingClinicId)}
-                              onClick={() =>
-                                onResendInvitation(clinic.clinicId)
-                              }
-                              type="button"
-                            >
-                              {resendingClinicId === clinic.clinicId
-                                ? 'Reenviando…'
-                                : 'Reenviar invitación'}
-                            </button>
-                          ) : null}
-                          {invitationNotices[clinic.clinicId] ? (
-                            <p
-                              className={`platform-owner-invitation-feedback platform-owner-invitation-feedback--${invitationNotices[clinic.clinicId].tone}`}
-                              role={
-                                invitationNotices[clinic.clinicId].tone ===
-                                'error'
-                                  ? 'alert'
-                                  : 'status'
-                              }
-                            >
-                              {invitationNotices[clinic.clinicId].message}
-                            </p>
-                          ) : null}
-                        </div>
+                      {clinic.clinicStatus === 'pending_activation' ? (
+                        <PlatformOwnerInvitationActions
+                          canCorrectEmail={Boolean(
+                            onCorrectOwnerEmail && clinic.ownerEmail,
+                          )}
+                          canResend={
+                            clinic.ownerMembershipStatus ===
+                              'pending_activation' &&
+                            Boolean(onResendInvitation && clinic.ownerEmail)
+                          }
+                          currentEmail={clinic.ownerEmail ?? ''}
+                          isCorrecting={
+                            correctingClinicId === clinic.clinicId
+                          }
+                          isDisabled={Boolean(
+                            (correctingClinicId &&
+                              correctingClinicId !== clinic.clinicId) ||
+                              (resendingClinicId &&
+                                resendingClinicId !== clinic.clinicId),
+                          )}
+                          isResending={
+                            resendingClinicId === clinic.clinicId
+                          }
+                          notice={invitationNotices[clinic.clinicId]}
+                          onCorrectEmail={
+                            onCorrectOwnerEmail
+                              ? (email) =>
+                                  onCorrectOwnerEmail(
+                                    clinic.clinicId,
+                                    email,
+                                  )
+                              : undefined
+                          }
+                          onResend={
+                            onResendInvitation
+                              ? () =>
+                                  onResendInvitation(clinic.clinicId)
+                              : undefined
+                          }
+                        />
                       ) : null}
                     </>
                   ) : (

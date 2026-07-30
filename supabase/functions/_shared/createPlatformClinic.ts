@@ -76,11 +76,6 @@ export interface CreatePlatformClinicRepository {
   deleteCreatedOwner: (ownerId: string) => Promise<void>
   findClinicByNormalizedName: (name: string) => Promise<boolean>
   findOwnerByEmail: (email: string) => Promise<PlatformClinicOwner | null>
-  updateOwnerProfileIfMissing: (
-    ownerId: string,
-    email: string,
-    fullName: string,
-  ) => Promise<void>
 }
 
 export class CreatePlatformClinicError extends Error {
@@ -190,6 +185,20 @@ export async function createPlatformClinicRecords(
     )
   }
 
+  const existingOwner = await measurePhase(
+    performance,
+    'owner_lookup',
+    () => repository.findOwnerByEmail(input.ownerEmail),
+  )
+
+  if (existingOwner) {
+    throw new CreatePlatformClinicError(
+      'OWNER_EMAIL_ALREADY_REGISTERED',
+      'Este correo ya está registrado en DayIA Dental y no puede usarse para otro consultorio.',
+      409,
+    )
+  }
+
   let clinicId: string | null = null
   let createdOwnerId: string | null = null
 
@@ -202,44 +211,18 @@ export async function createPlatformClinicRecords(
       )
     ).id
 
-    let owner = await measurePhase(
+    const createdOwner = await measurePhase(
       performance,
-      'owner_lookup',
-      () => repository.findOwnerByEmail(input.ownerEmail),
+      'owner_invitation',
+      () =>
+        repository.createOwnerInvitation(
+          clinicId!,
+          input.ownerEmail,
+          input.ownerName,
+        ),
     )
-    let activationStatus: PlatformClinicActivationStatus
-
-    if (owner) {
-      await measurePhase(
-        performance,
-        'owner_profile_update',
-        () =>
-          repository.updateOwnerProfileIfMissing(
-            owner.id,
-            input.ownerEmail,
-            input.ownerName,
-          ),
-      )
-      owner = {
-        ...owner,
-        fullName: owner.fullName?.trim() || input.ownerName,
-      }
-      activationStatus = owner.isActive ? 'already_active' : 'not_sent'
-    } else {
-      const createdOwner = await measurePhase(
-        performance,
-        'owner_invitation',
-        () =>
-          repository.createOwnerInvitation(
-            clinicId!,
-            input.ownerEmail,
-            input.ownerName,
-          ),
-      )
-      owner = createdOwner.owner
-      createdOwnerId = owner.id
-      activationStatus = createdOwner.activationStatus
-    }
+    const owner = createdOwner.owner
+    createdOwnerId = owner.id
 
     await measurePhase(
       performance,
@@ -248,7 +231,7 @@ export async function createPlatformClinicRecords(
         repository.createMembership(
           clinicId!,
           owner.id,
-          owner.isActive ? 'active' : 'pending_activation',
+          'pending_activation',
         ),
     )
     await measurePhase(
@@ -263,7 +246,7 @@ export async function createPlatformClinicRecords(
     )
 
     return {
-      activation: { status: activationStatus },
+      activation: { status: createdOwner.activationStatus },
       clinic: {
         clinicId,
         clinicName: input.clinicName,

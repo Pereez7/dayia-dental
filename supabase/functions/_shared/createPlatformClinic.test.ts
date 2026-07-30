@@ -121,8 +121,8 @@ describe('create-platform-clinic helpers', () => {
 
     expect(phases).toEqual([
       'duplicate_check',
-      'clinic_insert',
       'owner_lookup',
+      'clinic_insert',
       'owner_invitation',
       'membership_insert',
       'subscription_insert',
@@ -131,7 +131,7 @@ describe('create-platform-clinic helpers', () => {
     expect(JSON.stringify(phases)).not.toContain('Clínica Norte')
   })
 
-  it('reuses an existing active owner without duplicating Auth', async () => {
+  it('rejects an email that already belongs to any existing account', async () => {
     const repository = createRepository()
     vi.mocked(repository.findOwnerByEmail).mockResolvedValue({
       email: 'owner@example.com',
@@ -140,25 +140,26 @@ describe('create-platform-clinic helpers', () => {
       isActive: true,
     })
 
-    const result = await createPlatformClinicRecords(
-      normalizeCreatePlatformClinicPayload({
-        clinicName: 'Clínica Sur',
-        ownerEmail: 'owner@example.com',
-        ownerName: 'Nombre nuevo',
-        planId: 'basic',
-        priceTier: 'standard',
+    await expect(
+      createPlatformClinicRecords(
+        normalizeCreatePlatformClinicPayload({
+          clinicName: 'Clínica Sur',
+          ownerEmail: 'owner@example.com',
+          ownerName: 'Nombre nuevo',
+          planId: 'basic',
+          priceTier: 'standard',
+        }),
+        repository,
+      ),
+    ).rejects.toEqual(
+      expect.objectContaining({
+        code: 'OWNER_EMAIL_ALREADY_REGISTERED',
+        status: 409,
       }),
-      repository,
     )
 
-    expect(result.activation.status).toBe('already_active')
-    expect(result.clinic.ownerName).toBe('Dra. Existente')
+    expect(repository.createClinic).not.toHaveBeenCalled()
     expect(repository.createOwnerInvitation).not.toHaveBeenCalled()
-    expect(repository.createMembership).toHaveBeenCalledWith(
-      'clinic-1',
-      'existing-owner',
-      'active',
-    )
   })
 
   it('compensates clinic and newly-created owner after a partial failure', async () => {
@@ -200,6 +201,5 @@ function createRepository(): CreatePlatformClinicRepository {
     deleteCreatedOwner: vi.fn().mockResolvedValue(undefined),
     findClinicByNormalizedName: vi.fn().mockResolvedValue(false),
     findOwnerByEmail: vi.fn().mockResolvedValue(null),
-    updateOwnerProfileIfMissing: vi.fn().mockResolvedValue(undefined),
   }
 }

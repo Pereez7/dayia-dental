@@ -160,9 +160,7 @@ async function handleCreatePlatformClinic(
     async () =>
       normalizeCreatePlatformClinicPayload(await readJson(request)),
   )
-  const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
+  const adminClient = createAdminClient(supabaseUrl, serviceRoleKey)
   const repository = createRepository(
     adminClient,
     getActivationRedirectUrl(),
@@ -177,7 +175,7 @@ async function handleCreatePlatformClinic(
 }
 
 function createRepository(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: AdminClient,
   activationRedirectUrl: string,
 ): CreatePlatformClinicRepository {
   return {
@@ -258,63 +256,14 @@ function createRepository(
       }
 
       if (!authProfile) {
-        const { data: createdProfile, error: createdProfileError } =
-          await adminClient
-            .from('profiles')
-            .insert({
-              email,
-              full_name: null,
-              id: authUser.id,
-              is_active: true,
-              role: 'clinic_admin',
-            })
-            .select('id, email, full_name, is_active')
-            .single()
-
-        if (createdProfileError || !createdProfile) {
-          throw createdProfileError ?? new Error('Owner profile was not created')
-        }
-
-        return mapOwner(authUser, createdProfile)
+        return mapOwner(authUser, {
+          email: authUser.email ?? email,
+          full_name: null,
+          is_active: true,
+        })
       }
 
       return mapOwner(authUser, authProfile)
-    },
-
-    async updateOwnerProfileIfMissing(ownerId, email, fullName) {
-      const { data: profile, error: readError } = await adminClient
-        .from('profiles')
-        .select('email, full_name')
-        .eq('id', ownerId)
-        .single()
-
-      if (readError) {
-        throw readError
-      }
-
-      const updates: Record<string, string> = {}
-
-      if (!profile.email?.trim()) {
-        updates.email = email
-      }
-
-      if (!profile.full_name?.trim()) {
-        updates.full_name = fullName
-      }
-
-      if (Object.keys(updates).length === 0) {
-        return
-      }
-
-      updates.updated_at = new Date().toISOString()
-      const { error } = await adminClient
-        .from('profiles')
-        .update(updates)
-        .eq('id', ownerId)
-
-      if (error) {
-        throw error
-      }
     },
 
     async createOwnerInvitation(clinicId, email, fullName) {
@@ -324,6 +273,17 @@ function createRepository(
       )
 
       if (error || !data.user) {
+        if (
+          error?.status === 422 ||
+          error?.message.toLowerCase().includes('already')
+        ) {
+          throw new CreatePlatformClinicError(
+            'OWNER_EMAIL_ALREADY_REGISTERED',
+            'Este correo ya está registrado en DayIA Dental y no puede usarse para otro consultorio.',
+            409,
+          )
+        }
+
         throw error ?? new Error('Owner invitation was not created')
       }
 
@@ -477,7 +437,7 @@ function createRepository(
 }
 
 async function findAuthUserByEmail(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: AdminClient,
   email: string,
 ) {
   const perPage = 200
@@ -551,6 +511,14 @@ function getActivationRedirectUrl() {
 
   return `${configuredAppUrl.replace(/\/+$/, '')}/activar-cuenta`
 }
+
+function createAdminClient(supabaseUrl: string, serviceRoleKey: string) {
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+}
+
+type AdminClient = ReturnType<typeof createAdminClient>
 
 function configurationError() {
   return errorResponse(

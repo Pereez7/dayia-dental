@@ -186,3 +186,11 @@ export interface ResendPlatformClinicInvitationResponse {
   email: string
   sentAt: string
 }
+
+export interface CorrectPlatformClinicOwnerEmailInput {
+  clinicId: string
+  ownerEmail: string
+}
+
+export type CorrectPlatformClinicOwnerEmailResponse =
+  ResendPlatformClinicInvitationResponse

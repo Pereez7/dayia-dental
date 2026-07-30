@@ -846,3 +846,17 @@ El refresco continúa en segundo plano y reemplaza el resumen cuando termina. Si
 falla, la interfaz conserva el resultado exitoso, informa que el listado quedó
 desactualizado y ofrece reintentarlo. La telemetría registra confirmación,
 refresco y flujo completo por separado con el mismo `operationId`.
+
+## El correo propietario no se comparte entre consultorios
+
+El alta de plataforma rechaza un correo que ya exista en Auth o `profiles`.
+Aunque la arquitectura de membresías admita más de un consultorio, la
+aplicación todavía no ofrece selección de contexto; reutilizar la identidad
+podría activar el consultorio nuevo sin enviar invitación y dejar ambiguo el
+acceso.
+
+Una corrección antes de activar el consultorio crea una identidad invitada
+nueva y reemplaza únicamente la membresía propietaria mediante una RPC
+transaccional. No se edita el email de la cuenta anterior porque puede
+pertenecer legítimamente a otro consultorio. Cada sustitución queda en una
+auditoría inmutable y solo `service_role` puede ejecutar la RPC.

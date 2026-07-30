@@ -67,8 +67,11 @@ Los controles, acciones, feedback y criterios responsive deben seguir
 `is_platform_admin = true` y `DAYIA_PLATFORM_CREATE_ENABLED` es exactamente
 `true`. La UI siempre envía el alta válida a la Function y muestra su resultado;
 no replica ni expone ese secret. `SUPABASE_SERVICE_ROLE_KEY` nunca llega al
-frontend y el flujo no consulta datos clínicos. Los pasos de despliegue están
-en `docs/supabase-setup.md`.
+frontend y el flujo no consulta datos clínicos. Un correo ya registrado no
+puede reutilizarse como propietario de otro consultorio. Mientras el
+consultorio siga pendiente, Administración DayIA puede corregir ese correo,
+reemplazar únicamente su membresía y enviar una invitación nueva. Los pasos de
+despliegue están en `docs/supabase-setup.md`.
 
 ## Modulos actuales
 

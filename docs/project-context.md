@@ -19,11 +19,19 @@ muestra un aviso cercano y permite reintentar. La siguiente tarea es
 `PERF-003`: separar el resumen administrativo del historial comercial y
 paginarlo en servidor.
 
+Antes de iniciar `PERF-003`, el alta de plataforma dejó de reutilizar correos
+existentes. Un correo registrado en Auth o `profiles` responde `409`. Para un
+consultorio pendiente, Administración DayIA permite corregir el correo,
+reemplaza solo su membership propietaria, reenvía la invitación y registra la
+sustitución en `platform_clinic_owner_corrections`. La migración `030` está
+aplicada y verificada en staging; `create-platform-clinic` versión 7 y
+`correct-platform-clinic-owner-email` versión 1 están `ACTIVE` con JWT.
+
 El bloque en curso es el endurecimiento de seguridad y permisos antes de
 continuar con los CRUD pendientes. La migración
 `027_membership_rls_hardening.sql` ya fue validada localmente desde una base
 vacía y aplicada al staging `zjsnfgxvaimddmchrwre`. El historial remoto quedó
-alineado de `001` a `029`; las 38 pruebas de aislamiento RLS y
+alineado de `001` a `030`; las 38 pruebas de aislamiento RLS y
 `supabase db lint --linked --level warning` finalizaron correctamente:
 
 - la autorización clínica usa membership activa, consultorio activo,
@@ -35,7 +43,7 @@ alineado de `001` a `029`; las 38 pruebas de aislamiento RLS y
   fechas de auditoría ni `whatsapp_settings.is_connected`;
 - los módulos operativos no ofrecen borrado físico en base de datos, salvo la
   compatibilidad temporal de excepciones de calendario;
-- la suite completa pasa con 675 pruebas, lint y build correctos.
+- la suite completa pasa con 701 pruebas, lint y build correctos.
 
 El primer bloque queda validado técnicamente en local y staging. La prueba
 remota se ejecuta dentro de una transacción y no dejó perfiles, usuarios,
@@ -547,8 +555,8 @@ deshabilita el doble envío y presenta carga, éxito o error junto al propietari
 El enlace público vencido no envía correos para evitar enumeración y abuso.
 
 En staging `zjsnfgxvaimddmchrwre` están activas
-`list-platform-clinics` versión 4 y
-`resend-platform-clinic-invitation` versión 1, ambas con verificación JWT.
+`list-platform-clinics` versión 5 y
+`resend-platform-clinic-invitation` versión 2, ambas con verificación JWT.
 
 ## Pulido comercial de Pacientes y Citas, 2026-07-14
 
