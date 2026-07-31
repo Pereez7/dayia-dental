@@ -6,6 +6,7 @@ import {
   type PlatformInvitationNotice,
 } from '../components/PlatformOwnerInvitationActions'
 import { SubscriptionAdministration } from '../components/SubscriptionAdministration'
+import { Toast, type ToastTone } from '../components/Toast'
 import {
   correctPlatformClinicOwnerEmail,
   createPlatformClinic,
@@ -85,6 +86,18 @@ export function PlatformAdminView({
     null,
   )
   const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null)
+  const [toastMessage, setToastMessage] = useState('')
+  const [toastTone, setToastTone] = useState<ToastTone>('success')
+  const [isToastVisible, setIsToastVisible] = useState(false)
+
+  const showInvitationToast = useCallback(
+    (message: string, tone: ToastTone) => {
+      setToastMessage(message)
+      setToastTone(tone)
+      setIsToastVisible(true)
+    },
+    [],
+  )
 
   const loadPlatformClinics = useCallback(async () => {
     setIsLoading(true)
@@ -161,27 +174,20 @@ export function PlatformAdminView({
       try {
         const result = await resendInvitation(clinicId)
 
-        setInvitationNotices((current) => ({
-          ...current,
-          [clinicId]: result.data
-            ? {
-                message: `Invitación reenviada a ${result.data.email}.`,
-                tone: 'success',
-              }
-            : {
-                message:
-                  result.error ??
-                  'No pudimos reenviar la invitación. Intenta nuevamente.',
-                tone: 'error',
-              },
-        }))
+        showInvitationToast(
+          result.data
+            ? 'Invitación reenviada correctamente.'
+            : (result.error ??
+                'No pudimos reenviar la invitación. Intenta nuevamente.'),
+          result.data ? 'success' : 'error',
+        )
         await refreshPlatformClinicsSilently()
       } finally {
         resendInvitationLock.current = null
         setResendingClinicId(null)
       }
     },
-    [refreshPlatformClinicsSilently, resendInvitation],
+    [refreshPlatformClinicsSilently, resendInvitation, showInvitationToast],
   )
 
   const handleCorrectOwnerEmail = useCallback(
@@ -201,22 +207,16 @@ export function PlatformAdminView({
       try {
         const result = await correctOwnerEmail({ clinicId, ownerEmail })
 
-        setInvitationNotices((current) => ({
-          ...current,
-          [clinicId]: result.data
-            ? {
-                message: `Correo actualizado e invitación enviada a ${result.data.email}.`,
-                tone: 'success',
-              }
-            : {
-                message:
-                  result.error ??
-                  'No pudimos corregir el correo del propietario.',
-                tone: 'error',
-              },
-        }))
-
         if (result.data) {
+          setInvitationNotices((current) => {
+            const next = { ...current }
+            delete next[clinicId]
+            return next
+          })
+          showInvitationToast(
+            'Correo actualizado. Invitación enviada.',
+            'success',
+          )
           setClinics((current) =>
             current.map((clinic) =>
               clinic.clinicId === clinicId
@@ -234,14 +234,41 @@ export function PlatformAdminView({
           return true
         }
 
+        setInvitationNotices((current) => ({
+          ...current,
+          [clinicId]: {
+            message:
+              result.error ??
+              'No pudimos corregir el correo del propietario.',
+            tone: 'error',
+          },
+        }))
         return false
       } finally {
         correctOwnerEmailLock.current = null
         setCorrectingClinicId(null)
       }
     },
-    [correctOwnerEmail, refreshPlatformClinicsSilently],
+    [correctOwnerEmail, refreshPlatformClinicsSilently, showInvitationToast],
   )
+
+  useEffect(() => {
+    if (!isToastVisible) {
+      return undefined
+    }
+
+    const timeoutId = window.setTimeout(() => setIsToastVisible(false), 3200)
+    return () => window.clearTimeout(timeoutId)
+  }, [isToastVisible, toastMessage])
+
+  useEffect(() => {
+    if (isToastVisible || !toastMessage) {
+      return undefined
+    }
+
+    const timeoutId = window.setTimeout(() => setToastMessage(''), 220)
+    return () => window.clearTimeout(timeoutId)
+  }, [isToastVisible, toastMessage])
 
   useEffect(() => {
     if (!canAccessPlatformAdmin) {
@@ -339,6 +366,11 @@ export function PlatformAdminView({
         onCreate={createClinicAndRefresh}
         onRetryRefresh={retryCreatedClinicRefresh}
         refreshState={creationRefreshState}
+      />
+      <Toast
+        message={toastMessage}
+        tone={toastTone}
+        visible={isToastVisible}
       />
     </div>
   )

@@ -1,6 +1,14 @@
-import { useId, useState, type FormEvent } from 'react'
+import {
+  useId,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+  type RefObject,
+} from 'react'
 
 import { validatePlatformOwnerEmailCorrection } from '../utils/platformOwnerEmail'
+import { ConfirmDialog } from './ConfirmDialog'
 
 export interface PlatformInvitationNotice {
   message: string
@@ -31,6 +39,8 @@ export function PlatformOwnerInvitationActions({
   onResend,
 }: PlatformOwnerInvitationActionsProps) {
   const emailErrorId = useId()
+  const formId = useId()
+  const emailInputRef = useRef<HTMLInputElement>(null)
   const [email, setEmail] = useState(currentEmail)
   const [emailError, setEmailError] = useState('')
   const [isEditing, setIsEditing] = useState(false)
@@ -43,6 +53,10 @@ export function PlatformOwnerInvitationActions({
   }
 
   function cancelEditing() {
+    if (actionsDisabled) {
+      return
+    }
+
     setEmail(currentEmail)
     setEmailError('')
     setIsEditing(false)
@@ -80,90 +94,141 @@ export function PlatformOwnerInvitationActions({
         {canResend && onResend ? (
           <button
             className="platform-owner-invitation-action"
+            aria-label="Reenviar invitación al propietario"
             disabled={actionsDisabled}
             onClick={onResend}
             type="button"
           >
-            {isResending ? 'Reenviando…' : 'Reenviar invitación'}
+            {isResending ? 'Reenviando…' : 'Reenviar'}
           </button>
         ) : null}
         {canCorrectEmail && onCorrectEmail ? (
           <button
             className="platform-owner-invitation-action"
+            aria-label="Editar correo del propietario"
             disabled={actionsDisabled}
             onClick={startEditing}
             type="button"
           >
-            Editar correo
+            Editar
           </button>
         ) : null}
       </div>
 
-      {isEditing ? (
-        <form
-          className="platform-owner-email-form"
-          noValidate
-          onSubmit={handleSubmit}
-        >
-          <label>
-            <span>Nuevo email</span>
-            <input
-              aria-describedby={
-                emailError ? emailErrorId : undefined
-              }
-              aria-invalid={Boolean(emailError)}
-              autoComplete="email"
-              className="field-control"
-              disabled={actionsDisabled}
-              inputMode="email"
-              onChange={(event) => {
-                setEmail(event.target.value)
-                setEmailError('')
-              }}
-              type="email"
-              value={email}
-            />
-          </label>
-          {emailError ? (
-            <small
-              className="field-message field-message--error"
-              id={emailErrorId}
-            >
-              {emailError}
-            </small>
-          ) : null}
-          <p>
-            Se reemplazará al propietario pendiente y se enviará una invitación
-            al nuevo correo.
-          </p>
-          <div>
-            <button
-              className="primary-action"
-              disabled={actionsDisabled}
-              type="submit"
-            >
-              {isCorrecting ? 'Guardando…' : 'Guardar y reenviar'}
-            </button>
-            <button
-              className="secondary-action"
-              disabled={actionsDisabled}
-              onClick={cancelEditing}
-              type="button"
-            >
-              Cancelar
-            </button>
-          </div>
-        </form>
-      ) : null}
-
-      {notice ? (
-        <p
-          className={`platform-owner-invitation-feedback platform-owner-invitation-feedback--${notice.tone}`}
-          role={notice.tone === 'error' ? 'alert' : 'status'}
-        >
-          {notice.message}
-        </p>
-      ) : null}
+      <PlatformOwnerEmailCorrectionDialog
+        currentEmail={currentEmail}
+        email={email}
+        emailError={emailError}
+        emailErrorId={emailErrorId}
+        emailInputRef={emailInputRef}
+        formId={formId}
+        isCorrecting={isCorrecting}
+        isDisabled={actionsDisabled}
+        isOpen={isEditing}
+        notice={notice?.tone === 'error' ? notice : undefined}
+        onCancel={cancelEditing}
+        onChange={(event) => {
+          setEmail(event.target.value)
+          setEmailError('')
+        }}
+        onSubmit={handleSubmit}
+      />
     </div>
+  )
+}
+
+interface PlatformOwnerEmailCorrectionDialogProps {
+  currentEmail: string
+  email: string
+  emailError: string
+  emailErrorId: string
+  emailInputRef: RefObject<HTMLInputElement | null>
+  formId: string
+  isCorrecting: boolean
+  isDisabled: boolean
+  isOpen: boolean
+  notice?: PlatformInvitationNotice
+  onCancel: () => void
+  onChange: (event: ChangeEvent<HTMLInputElement>) => void
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void
+}
+
+export function PlatformOwnerEmailCorrectionDialog({
+  currentEmail,
+  email,
+  emailError,
+  emailErrorId,
+  emailInputRef,
+  formId,
+  isCorrecting,
+  isDisabled,
+  isOpen,
+  notice,
+  onCancel,
+  onChange,
+  onSubmit,
+}: PlatformOwnerEmailCorrectionDialogProps) {
+  return (
+    <ConfirmDialog
+      cancelLabel="Cancelar"
+      confirmFormId={formId}
+      confirmLabel={isCorrecting ? 'Guardando…' : 'Guardar y reenviar'}
+      confirmType="submit"
+      initialFocusRef={emailInputRef}
+      isCancelDisabled={isDisabled}
+      isConfirmDisabled={isDisabled}
+      isOpen={isOpen}
+      message="Reemplazaremos el correo del propietario pendiente y enviaremos una invitación nueva."
+      title="Editar correo del propietario"
+      variant="info"
+      onCancel={onCancel}
+    >
+      <form
+        className="platform-owner-email-dialog-form"
+        id={formId}
+        noValidate
+        onSubmit={onSubmit}
+      >
+        <div className="platform-owner-email-current">
+          <span>Correo actual</span>
+          <strong>{currentEmail}</strong>
+        </div>
+
+        <label className="platform-owner-email-field">
+          <span>Nuevo correo</span>
+          <input
+            aria-describedby={emailError ? emailErrorId : undefined}
+            aria-invalid={Boolean(emailError)}
+            autoComplete="email"
+            className="field-control"
+            disabled={isDisabled}
+            inputMode="email"
+            onChange={onChange}
+            placeholder="nuevo@consultorio.com"
+            ref={emailInputRef}
+            type="email"
+            value={email}
+          />
+        </label>
+
+        {emailError ? (
+          <small
+            className="field-message field-message--error"
+            id={emailErrorId}
+          >
+            {emailError}
+          </small>
+        ) : null}
+
+        {notice ? (
+          <p
+            className="platform-owner-email-dialog-error"
+            role="alert"
+          >
+            {notice.message}
+          </p>
+        ) : null}
+      </form>
+    </ConfirmDialog>
   )
 }

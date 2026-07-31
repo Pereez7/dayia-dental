@@ -44,6 +44,14 @@ Reglas:
   contextuales.
 - Cuando el contexto ya explica el objeto, usar una sola palabra:
   `Desactivar`, `Reactivar`, `Editar`, `Reenviar`.
+- Las acciones compactas pueden abreviar el texto visible, pero deben conservar
+  un `aria-label` que nombre el objeto completo.
+- Un formulario que aumente la altura de una fila o card repetida debe abrirse
+  en el `ConfirmDialog` compartido. La tabla conserva únicamente el contexto y
+  la acción; el resultado final se comunica con el `Toast` compartido.
+- Si el diálogo corrige una identidad o un dato de contacto, debe mostrar el
+  valor actual, enfocar el campo nuevo y explicar la consecuencia antes de
+  confirmar.
 - Desactivar o anular usa el estilo de cautela; no debe parecer un error hasta
   que la operación falle.
 - Toda acción sensible requiere revisión, motivo cuando corresponda, bloqueo de

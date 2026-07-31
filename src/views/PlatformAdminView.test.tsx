@@ -1,3 +1,4 @@
+import { createRef } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -9,6 +10,10 @@ import {
   ClinicOnboardingFeedback,
   ClinicOnboardingForm,
 } from '../components/ClinicOnboardingForm'
+import {
+  PlatformOwnerEmailCorrectionDialog,
+  PlatformOwnerInvitationActions,
+} from '../components/PlatformOwnerInvitationActions'
 import {
   ExtraDaysReview,
   LifetimeMembershipReview,
@@ -178,6 +183,12 @@ describe('PlatformAdminView', () => {
     expect(markup).toContain('Invitación pendiente')
     expect(markup).toContain('Reenviar invitación')
     expect(markup).toContain('Editar correo')
+    expect(markup).toMatch(
+      /aria-label="Reenviar invitación al propietario"[^>]*>Reenviar<\/button>/,
+    )
+    expect(markup).toMatch(
+      /aria-label="Editar correo del propietario"[^>]*>Editar<\/button>/,
+    )
     expect(markup).not.toContain('Sin propietario')
   })
 
@@ -200,6 +211,60 @@ describe('PlatformAdminView', () => {
 
     expect(markup).toContain('Editar correo')
     expect(markup).not.toContain('Reenviar invitación')
+  })
+
+  it('renders owner email correction in a focused floating dialog', () => {
+    const markup = renderToStaticMarkup(
+      <PlatformOwnerEmailCorrectionDialog
+        currentEmail="actual@clinic.test"
+        email="nuevo@clinic.test"
+        emailError=""
+        emailErrorId="owner-email-error"
+        emailInputRef={createRef<HTMLInputElement>()}
+        formId="owner-email-form"
+        isCorrecting={false}
+        isDisabled={false}
+        isOpen
+        onCancel={vi.fn()}
+        onChange={vi.fn()}
+        onSubmit={vi.fn()}
+      />,
+    )
+
+    expect(markup).toContain('role="dialog"')
+    expect(markup).toContain('aria-modal="true"')
+    expect(markup).toContain('Editar correo del propietario')
+    expect(markup).toContain('Correo actual')
+    expect(markup).toContain('actual@clinic.test')
+    expect(markup).toContain('Nuevo correo')
+    expect(markup).toContain('nuevo@clinic.test')
+    expect(markup).toContain('form="owner-email-form"')
+    expect(markup).toContain('Guardar y reenviar')
+  })
+
+  it('keeps completed invitation feedback out of the clinic row', () => {
+    const markup = renderToStaticMarkup(
+      <PlatformOwnerInvitationActions
+        canCorrectEmail
+        canResend
+        currentEmail="nuevo@clinic.test"
+        isCorrecting={false}
+        isResending={false}
+        notice={{
+          message:
+            'Correo actualizado e invitación enviada a nuevo@clinic.test.',
+          tone: 'success',
+        }}
+        onCorrectEmail={vi.fn()}
+        onResend={vi.fn()}
+      />,
+    )
+
+    expect(markup).toContain('Invitación pendiente')
+    expect(markup).toContain('>Reenviar</button>')
+    expect(markup).toContain('>Editar</button>')
+    expect(markup).not.toContain('Correo actualizado e invitación enviada')
+    expect(markup).not.toContain('platform-owner-invitation-feedback')
   })
 
   it('marks the affected clinic with a compact payment-review badge', () => {
