@@ -1,13 +1,13 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+import { lookupAuthUserByEmail } from '../_shared/authUserLookup.ts'
 import {
   assertPlatformClinicCreationAllowed,
   createPlatformClinicRecords,
   CreatePlatformClinicError,
-  getInitialClinicTrial,
   normalizeCreatePlatformClinicPayload,
   type CreatePlatformClinicRepository,
-  type PlatformClinicOwner,
+  type PlatformClinicCreationRequest,
 } from '../_shared/createPlatformClinic.ts'
 import {
   createEdgePerformanceRecorder,
@@ -46,7 +46,11 @@ Deno.serve(async (request) => {
   let response: Response
 
   try {
-    response = await handleCreatePlatformClinic(request, performance)
+    response = await handleCreatePlatformClinic(
+      request,
+      operationId,
+      performance,
+    )
   } catch (error) {
     if (error instanceof CreatePlatformClinicError) {
       response = errorResponse(
@@ -72,6 +76,7 @@ Deno.serve(async (request) => {
 
 async function handleCreatePlatformClinic(
   request: Request,
+  operationId: string,
   performance: EdgePerformanceInstrumentation,
 ) {
   if (request.method !== 'POST') {
@@ -167,6 +172,10 @@ async function handleCreatePlatformClinic(
   )
   const response = await createPlatformClinicRecords(
     payload,
+    {
+      requestedBy: requesterData.user.id,
+      requestId: operationId,
+    },
     repository,
     performance,
   )
@@ -179,100 +188,65 @@ function createRepository(
   activationRedirectUrl: string,
 ): CreatePlatformClinicRepository {
   return {
-    async findClinicByNormalizedName(name) {
-      const { data, error } = await adminClient
-        .from('clinics')
-        .select('id, name')
-        .ilike('name', escapeLikePattern(name))
-        .limit(20)
+    async beginCreation(input, context) {
+      const { data, error } = await adminClient.rpc(
+        'begin_platform_clinic_creation',
+        {
+          target_clinic_name: input.clinicName,
+          target_owner_email: input.ownerEmail,
+          target_owner_name: input.ownerName,
+          target_payload_fingerprint: context.payloadFingerprint,
+          target_plan_id: input.planId,
+          target_price_tier: input.priceTier,
+          target_request_id: context.requestId,
+          target_requested_by: context.requestedBy,
+        },
+      )
 
       if (error) {
-        throw error
+        throw mapRepositoryError(error)
       }
 
-      return (data ?? []).some(
-        (clinic) => normalizeComparableName(clinic.name) === normalizeComparableName(name),
+      return parseCreationRequest(data)
+    },
+
+    async completeCreation(requestId, ownerId) {
+      const { data, error } = await adminClient.rpc(
+        'complete_platform_clinic_creation',
+        {
+          target_owner_user_id: ownerId,
+          target_request_id: requestId,
+        },
       )
+
+      if (error) {
+        throw mapRepositoryError(error)
+      }
+
+      return parseCreationRequest(data)
     },
 
-    async createClinic(name) {
-      const { data, error } = await adminClient
-        .from('clinics')
-        .insert({ name, status: 'pending_activation' })
-        .select('id')
-        .single()
-
-      if (error || !data) {
-        if (error?.code === '23505') {
-          throw new CreatePlatformClinicError(
-            'CLINIC_ALREADY_EXISTS',
-            'Ya existe un consultorio con ese nombre.',
-            409,
-          )
-        }
-
-        throw error ?? new Error('Clinic was not created')
-      }
-
-      return data
-    },
-
-    async findOwnerByEmail(email) {
-      const { data: profile, error: profileError } = await adminClient
-        .from('profiles')
-        .select('id, email, full_name, is_active')
-        .eq('email', email)
-        .maybeSingle()
-
-      if (profileError) {
-        throw profileError
-      }
-
-      if (profile) {
-        const { data: authData, error: authError } =
-          await adminClient.auth.admin.getUserById(profile.id)
-
-        if (authError || !authData.user) {
-          throw authError ?? new Error('Owner Auth user was not found')
-        }
-
-        return mapOwner(authData.user, profile)
-      }
-
-      const authUser = await findAuthUserByEmail(adminClient, email)
-
-      if (!authUser) {
-        return null
-      }
-
-      const { data: authProfile, error: authProfileError } = await adminClient
-        .from('profiles')
-        .select('id, email, full_name, is_active')
-        .eq('id', authUser.id)
-        .maybeSingle()
-
-      if (authProfileError) {
-        throw authProfileError
-      }
-
-      if (!authProfile) {
-        return mapOwner(authUser, {
-          email: authUser.email ?? email,
-          full_name: null,
-          is_active: true,
-        })
-      }
-
-      return mapOwner(authUser, authProfile)
-    },
-
-    async createOwnerInvitation(clinicId, email, fullName) {
+    async createOwnerInvitation(email, fullName, requestId) {
       const { data, error } = await adminClient.auth.admin.inviteUserByEmail(
         email,
-        { data: { full_name: fullName }, redirectTo: activationRedirectUrl },
+        {
+          data: {
+            dayia_creation_request_id: requestId,
+            full_name: fullName,
+          },
+          redirectTo: activationRedirectUrl,
+        },
       )
 
       if (error || !data.user) {
+        if (error?.status === 429) {
+          throw new CreatePlatformClinicError(
+            'INVITATION_RATE_LIMITED',
+            'No pudimos enviar la invitación por el momento. Intenta nuevamente más tarde.',
+            429,
+          )
+        }
+
         if (
           error?.status === 422 ||
           error?.message.toLowerCase().includes('already')
@@ -287,142 +261,44 @@ function createRepository(
         throw error ?? new Error('Owner invitation was not created')
       }
 
-      const now = new Date().toISOString()
-      const { data: existingProfile, error: profileReadError } = await adminClient
-        .from('profiles')
-        .select('id, full_name')
-        .eq('id', data.user.id)
-        .maybeSingle()
-
-      if (profileReadError) {
-        await adminClient.auth.admin.deleteUser(data.user.id)
-        throw profileReadError
-      }
-
-      if (existingProfile) {
-        const updates: Record<string, unknown> = {
-          clinic_id: clinicId,
-          email,
-          invited_at: now,
-          role: 'clinic_admin',
-          updated_at: now,
-        }
-
-        if (!existingProfile.full_name?.trim()) {
-          updates.full_name = fullName
-        }
-
-        const { error: updateError } = await adminClient
-          .from('profiles')
-          .update(updates)
-          .eq('id', data.user.id)
-
-        if (updateError) {
-          await adminClient.auth.admin.deleteUser(data.user.id)
-          throw updateError
-        }
-      } else {
-        const { error: insertError } = await adminClient.from('profiles').insert({
-          clinic_id: clinicId,
-          email,
-          full_name: fullName,
-          id: data.user.id,
-          invited_at: now,
-          is_active: true,
-          role: 'clinic_admin',
-        })
-
-        if (insertError) {
-          await adminClient.auth.admin.deleteUser(data.user.id)
-          throw insertError
-        }
-      }
-
       return {
-        activationStatus: 'pending',
-        owner: {
-          email,
-          fullName,
-          id: data.user.id,
-          isActive: false,
+        creationRequestId: requestId,
+        email: data.user.email?.trim().toLowerCase() || email,
+        id: data.user.id,
+        isConfirmed: Boolean(
+          data.user.email_confirmed_at || data.user.confirmed_at,
+        ),
+      }
+    },
+
+    async findOwnerByEmail(email) {
+      return await lookupAuthUserByEmail(adminClient, email)
+    },
+
+    async getCreation(requestId) {
+      const { data, error } = await adminClient.rpc(
+        'get_platform_clinic_creation_request',
+        { target_request_id: requestId },
+      )
+
+      if (error) {
+        throw mapRepositoryError(error)
+      }
+
+      return data === null ? null : parseCreationRequest(data)
+    },
+
+    async failCreation(requestId, errorCode) {
+      const { error } = await adminClient.rpc(
+        'fail_platform_clinic_creation',
+        {
+          target_error_code: errorCode,
+          target_request_id: requestId,
         },
-      }
-    },
-
-    async createMembership(clinicId, ownerId, status) {
-      const now = new Date().toISOString()
-      const { error } = await adminClient.from('clinic_memberships').insert({
-        activated_at: status === 'active' ? now : null,
-        clinic_id: clinicId,
-        invited_at: status === 'pending_activation' ? now : null,
-        role: 'clinic_owner',
-        status,
-        user_id: ownerId,
-      })
+      )
 
       if (error) {
-        throw error
-      }
-    },
-
-    async createSubscription(clinicId, planId, priceTier) {
-      const { data: plan, error: planError } = await adminClient
-        .from('plans')
-        .select('id, founder_monthly_price')
-        .eq('id', planId)
-        .eq('is_active', true)
-        .maybeSingle()
-
-      if (planError || !plan) {
-        throw new CreatePlatformClinicError(
-          'INVALID_PLAN',
-          'El plan seleccionado no está disponible.',
-          400,
-        )
-      }
-
-      if (
-        priceTier === 'founder' &&
-        (plan.founder_monthly_price === null ||
-          Number(plan.founder_monthly_price) <= 0)
-      ) {
-        throw new CreatePlatformClinicError(
-          'FOUNDER_PRICE_NOT_CONFIGURED',
-          'La tarifa fundador no está configurada para el plan seleccionado.',
-          409,
-        )
-      }
-
-      const trial = getInitialClinicTrial()
-      const { error } = await adminClient.from('clinic_subscriptions').insert({
-        billing_cycle: 'trial',
-        blocked_at: null,
-        clinic_id: clinicId,
-        current_period_ends_at: trial.trialEndsAt,
-        current_period_starts_at: trial.trialStartsAt,
-        ends_at: trial.trialEndsAt,
-        grace_ends_at: trial.graceEndsAt,
-        is_lifetime: false,
-        payment_status: 'trial',
-        plan_id: planId,
-        price_tier: priceTier,
-        founder_price_locked: priceTier === 'founder',
-        starts_at: trial.trialStartsAt,
-        status: 'trialing',
-        trial_ends_at: trial.trialEndsAt,
-        trial_starts_at: trial.trialStartsAt,
-      })
-
-      if (error) {
-        throw error
-      }
-    },
-
-    async deleteClinic(clinicId) {
-      const { error } = await adminClient.from('clinics').delete().eq('id', clinicId)
-
-      if (error) {
-        throw error
+        throw mapRepositoryError(error)
       }
     },
 
@@ -436,60 +312,137 @@ function createRepository(
   }
 }
 
-async function findAuthUserByEmail(
-  adminClient: AdminClient,
-  email: string,
-) {
-  const perPage = 200
+function parseCreationRequest(data: unknown): PlatformClinicCreationRequest {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    throw new Error('Clinic creation returned an invalid response')
+  }
 
-  for (let page = 1; page <= 50; page += 1) {
-    const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage })
+  const candidate = data as Record<string, unknown>
+  const status = candidate.status
+  const activationStatus = candidate.activationStatus
+  const planId = candidate.planId
+  const priceTier = candidate.priceTier
 
-    if (error) {
-      throw error
-    }
-
-    const match = data.users.find(
-      (user) => user.email?.trim().toLowerCase() === email,
+  if (
+    typeof candidate.requestId !== 'string' ||
+    typeof candidate.clinicName !== 'string' ||
+    typeof candidate.ownerEmail !== 'string' ||
+    typeof candidate.ownerName !== 'string' ||
+    !['reserved', 'completed', 'failed'].includes(String(status)) ||
+    !['basic', 'medium', 'pro'].includes(String(planId)) ||
+    !['standard', 'founder'].includes(String(priceTier)) ||
+    !(
+      activationStatus === null ||
+      activationStatus === 'pending' ||
+      activationStatus === 'already_active'
+    ) ||
+    !(candidate.clinicId === null || typeof candidate.clinicId === 'string') ||
+    !(
+      candidate.ownerUserId === null ||
+      typeof candidate.ownerUserId === 'string'
     )
-
-    if (match || data.users.length < perPage) {
-      return match ?? null
-    }
+  ) {
+    throw new Error('Clinic creation returned invalid state')
   }
 
-  throw new Error('Auth user lookup exceeded the safe page limit')
-}
-
-function mapOwner(
-  user: {
-    confirmed_at?: string
-    email?: string
-    email_confirmed_at?: string
-    id: string
-  },
-  profile: {
-    email: string | null
-    full_name: string | null
-    is_active?: boolean
-  },
-): PlatformClinicOwner {
   return {
-    email: profile.email?.trim().toLowerCase() || user.email?.toLowerCase() || '',
-    fullName: profile.full_name?.trim() || null,
-    id: user.id,
-    isActive:
-      profile.is_active !== false &&
-      Boolean(user.email_confirmed_at || user.confirmed_at),
+    activationStatus,
+    clinicId: candidate.clinicId as string | null,
+    clinicName: candidate.clinicName,
+    ownerEmail: candidate.ownerEmail,
+    ownerName: candidate.ownerName,
+    ownerUserId: candidate.ownerUserId as string | null,
+    planId: planId as PlatformClinicCreationRequest['planId'],
+    priceTier: priceTier as PlatformClinicCreationRequest['priceTier'],
+    requestId: candidate.requestId,
+    status: status as PlatformClinicCreationRequest['status'],
   }
 }
 
-function normalizeComparableName(value: string) {
-  return value.trim().replace(/\s+/g, ' ').toLocaleLowerCase('es')
-}
+function mapRepositoryError(error: { message: string }) {
+  const code = [
+    'CLINIC_ALREADY_EXISTS',
+    'CLINIC_CREATION_IN_PROGRESS',
+    'OWNER_EMAIL_ALREADY_REGISTERED',
+    'OWNER_EMAIL_CREATION_IN_PROGRESS',
+    'FOUNDER_PRICE_NOT_CONFIGURED',
+    'INVALID_PLAN',
+    'INVALID_PAYLOAD',
+    'FORBIDDEN',
+    'REQUEST_PAYLOAD_MISMATCH',
+    'CREATION_REQUEST_NOT_FOUND',
+    'CREATION_REQUEST_NOT_RESERVED',
+    'OWNER_AUTH_USER_NOT_FOUND',
+    'OWNER_REQUEST_MISMATCH',
+  ].find((candidate) => error.message.includes(candidate))
 
-function escapeLikePattern(value: string) {
-  return value.replace(/[\\%_]/g, '\\$&')
+  switch (code) {
+    case 'CLINIC_ALREADY_EXISTS':
+      return new CreatePlatformClinicError(
+        code,
+        'Ya existe un consultorio con ese nombre.',
+        409,
+      )
+    case 'CLINIC_CREATION_IN_PROGRESS':
+      return new CreatePlatformClinicError(
+        code,
+        'Ese consultorio ya se está preparando. Actualiza el listado en unos momentos.',
+        409,
+      )
+    case 'OWNER_EMAIL_ALREADY_REGISTERED':
+    case 'OWNER_REQUEST_MISMATCH':
+      return new CreatePlatformClinicError(
+        'OWNER_EMAIL_ALREADY_REGISTERED',
+        'Este correo ya está registrado en DayIA Dental y no puede usarse para otro consultorio.',
+        409,
+      )
+    case 'OWNER_EMAIL_CREATION_IN_PROGRESS':
+      return new CreatePlatformClinicError(
+        code,
+        'Ese correo ya se está usando en otra alta. Actualiza el listado en unos momentos.',
+        409,
+      )
+    case 'FOUNDER_PRICE_NOT_CONFIGURED':
+      return new CreatePlatformClinicError(
+        code,
+        'La tarifa fundador no está configurada para el plan seleccionado.',
+        409,
+      )
+    case 'INVALID_PLAN':
+      return new CreatePlatformClinicError(
+        code,
+        'El plan seleccionado no está disponible.',
+        400,
+      )
+    case 'INVALID_PAYLOAD':
+      return new CreatePlatformClinicError(
+        code,
+        'Revisa los datos del consultorio.',
+        400,
+      )
+    case 'FORBIDDEN':
+      return new CreatePlatformClinicError(
+        code,
+        'No tienes permiso para crear consultorios.',
+        403,
+      )
+    case 'REQUEST_PAYLOAD_MISMATCH':
+      return new CreatePlatformClinicError(
+        code,
+        'La solicitud de alta no coincide con los datos originales.',
+        409,
+      )
+    case 'CREATION_REQUEST_NOT_FOUND':
+    case 'CREATION_REQUEST_NOT_RESERVED':
+    case 'OWNER_AUTH_USER_NOT_FOUND':
+      return new CreatePlatformClinicError(
+        code,
+        'No pudimos confirmar el alta. Espera un momento e intenta nuevamente.',
+        503,
+      )
+    default:
+      return new Error(error.message)
+  }
 }
 
 async function readJson(request: Request) {

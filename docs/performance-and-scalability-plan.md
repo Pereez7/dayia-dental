@@ -320,6 +320,9 @@ Deuda observada:
 
 ### PERF-004: alta atómica y búsquedas escalables
 
+Estado: cerrado el 30 de julio de 2026 después de una creación autenticada, un
+reintento idempotente y la verificación remota de invariantes en staging.
+
 Objetivo: reducir viajes de red y evitar búsquedas que recorran todos los
 usuarios.
 
@@ -341,6 +344,65 @@ Criterio de cierre:
 - Los duplicados concurrentes producen un único consultorio.
 - Una falla intermedia no deja recursos incoherentes.
 - Repetir una solicitud segura no duplica clínica, owner ni suscripción.
+
+Estado técnico al 30 de julio de 2026:
+
+- La migración `032_atomic_platform_clinic_creation.sql` está aplicada
+  únicamente en staging `zjsnfgxvaimddmchrwre`.
+- Plan y tarifa se validan antes de reservar la operación o invitar en Auth.
+- El payload normalizado y el administrador forman una clave idempotente. La
+  reserva protege nombre y email también frente a solicitudes concurrentes.
+- Clínica, perfil, membership propietaria y suscripción se confirman dentro de
+  `complete_platform_clinic_creation`, una sola transacción PostgreSQL.
+- Auth conserva compensación explícita. Ante un timeout del commit se consulta
+  primero el ledger; solo se borra el usuario invitado si el estado
+  `reserved` confirma que PostgreSQL no completó y los metadatos prueban que
+  pertenece a esa solicitud.
+- `lookup_auth_user_by_email` usa el predicado exacto
+  `email = normalized_email and is_sso_user = false`. Localmente,
+  `EXPLAIN` confirmó `Index Scan using users_email_partial_key`.
+- No queda ninguna llamada a `auth.admin.listUsers` en las Edge Functions.
+- El pgTAP de `032` pasa 31 controles localmente y contra staging con rollback.
+  La prevalidación remota confirmó que no había emails de perfil duplicados.
+- La regresión completa pasa 732 pruebas de aplicación y 105 SQL; lint, build
+  y `db lint --linked --level warning` también finalizan sin errores.
+- La creación autenticada controlada respondió `201`. El navegador registró
+  3,700 ms y la Function 3,472.2 ms con este desglose:
+
+  | Fase | Duración |
+  | --- | ---: |
+  | Usuario autenticado | 272.2 ms |
+  | Autorización de plataforma | 210.6 ms |
+  | Validación del payload | 0.3 ms |
+  | Reserva y preflight | 648.5 ms |
+  | Búsqueda exacta del owner | 612.0 ms |
+  | Invitación Auth | 1,481.4 ms |
+  | Persistencia PostgreSQL atómica | 241.6 ms |
+  | Total interno | 3,472.2 ms |
+
+- La invitación externa de Auth representó el 42.7 % del total interno. La
+  escritura atómica de los cuatro recursos públicos representó 241.6 ms. Esta
+  única muestra fresca no reduce el total frente a los 3,153.0 ms internos de
+  `PERF-001`; el beneficio confirmado de este hito es escalabilidad,
+  consistencia e idempotencia, no ocultar la latencia variable de Auth.
+- El primer intento manual de repetición cambió la tarifa de fundador a
+  estándar y recibió correctamente `409`: una solicitud comercial distinta no
+  puede reutilizar el nombre de una clínica existente.
+- El reintento con el payload verdaderamente idéntico terminó en 721.6 ms:
+
+  | Fase idempotente | Duración |
+  | --- | ---: |
+  | Usuario autenticado | 245.8 ms |
+  | Autorización de plataforma | 243.9 ms |
+  | Validación del payload | 0.3 ms |
+  | Recuperación en preflight | 225.8 ms |
+  | Total interno | 721.6 ms |
+
+- El reintento redujo el total interno en 2,750.6 ms, un 79.2 %, y no ejecutó
+  `owner_lookup`, `owner_invitation` ni `atomic_persistence`.
+- Una consulta remota de solo lectura confirmó una única solicitud, clínica,
+  cuenta Auth, perfil, membership y suscripción para el alta. No se tocó
+  producción.
 
 ### PERF-005: colecciones clínicas acotadas
 
@@ -373,6 +435,10 @@ Trabajo:
 - Cancelar o ignorar respuestas obsoletas al cambiar rápidamente de vista.
 - Evitar recargas duplicadas de contexto y catálogos estables.
 - Evaluar caché con invalidación explícita para planes y configuración.
+- Al limpiar un formulario después de una escritura, mostrar un resumen de lo
+  enviado o hacer explícitos los valores reiniciados. La prueba de `PERF-004`
+  demostró que volver silenciosamente a la tarifa estándar puede confundirse
+  con el payload que realmente se creó.
 - Aplicar virtualización solo si una lista paginada todavía lo necesita.
 - Medir móvil con red y CPU limitadas.
 
@@ -436,6 +502,7 @@ reemplazarse por estimaciones.
 | PERF-001 | Alta autenticada de consultorio nuevo | Muestra única: 6,143 ms; sin p50/p95 | No aplica | Cerrado; Function 3,751.1 ms y refresco bloqueante 2,380.7 ms | 30 jul 2026 |
 | PERF-002 | Confirmación de alta sin refresco bloqueante | Muestra única: 6,143.0 ms hasta confirmar | Muestra única: 4,490.5 ms hasta confirmar | Cerrado; confirmación 1,652.5 ms antes (26.9 %), refresco de 2,041.7 ms en segundo plano | 30 jul 2026 |
 | PERF-003 | Resumen y detalle administrativo paginados | Listado anterior: 2,041.7 ms en una muestra; payload completo sin límite | Listado: 1.03–2.38 s y 1.6–1.7 kB en 10 muestras; detalle: 1.95 s y 1.5 kB en una muestra | Cerrado en escalabilidad; payload acotado, sin N+1 y con deuda de latencia registrada | 30 jul 2026 |
+| PERF-004 | Alta idempotente y escritura pública atómica | Function anterior: 3,153.0 ms internos en una muestra; múltiples viajes PostgreSQL y búsqueda Auth paginada | Pendiente alta autenticada; pruebas técnicas confirman una RPC transaccional y búsqueda Auth indexada | Desplegado y validado técnicamente en staging; hito abierto hasta medir la UI | 30 jul 2026 |
 
 ## Fuera de alcance
 

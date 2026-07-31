@@ -91,6 +91,7 @@ Ejecuta en Supabase SQL Editor, en orden, los archivos de
 29. `029_transactional_business_hours.sql`
 30. `030_platform_owner_email_correction.sql`
 31. `031_platform_admin_server_pagination.sql`
+32. `032_atomic_platform_clinic_creation.sql`
 
 Si usas Supabase CLI en el futuro, puedes adaptar este flujo a `supabase db
 push`, pero esta guia asume SQL Editor para una primera prueba controlada.

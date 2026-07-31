@@ -612,6 +612,32 @@ describe('platform admin service', () => {
     )
   })
 
+  it('accepts an idempotent response when the owner activated before completion', async () => {
+    const response = {
+      activation: { status: 'already_active' },
+      clinic: {
+        clinicId: 'clinic-active',
+        clinicName: 'Clínica Activa',
+        clinicStatus: 'active',
+        ownerEmail: 'active@example.com',
+        ownerName: 'Dra. Activa',
+        planId: 'pro',
+        priceTier: 'standard',
+      },
+    }
+    const client = createClient({ data: response, error: null })
+
+    await expect(
+      createPlatformClinicWithClient(client, {
+        clinicName: 'Clínica Activa',
+        ownerEmail: 'active@example.com',
+        ownerName: 'Dra. Activa',
+        planId: 'pro',
+        priceTier: 'standard',
+      }),
+    ).resolves.toEqual({ data: response, error: null })
+  })
+
   it('correlates and measures the protected creation request without personal data', async () => {
     const response = {
       activation: { status: 'pending' },
@@ -735,6 +761,8 @@ describe('platform admin service', () => {
     [403, 'FORBIDDEN', 'detalle interno', 'No tienes permiso para crear consultorios.'],
     [409, 'FOUNDER_PRICE_NOT_CONFIGURED', 'La tarifa fundador no está configurada para el plan seleccionado.', 'La tarifa fundador no está configurada para el plan seleccionado.'],
     [409, 'UNKNOWN_CONFLICT', 'detalle interno', 'No pudimos crear el consultorio por un conflicto.'],
+    [429, 'INVITATION_RATE_LIMITED', 'No pudimos enviar la invitación por el momento.', 'No pudimos enviar la invitación por el momento.'],
+    [503, 'CREATE_STATE_UNKNOWN', 'No pudimos confirmar el alta. Espera un momento e intenta nuevamente.', 'No pudimos confirmar el alta. Espera un momento e intenta nuevamente.'],
     [500, 'UNEXPECTED_ERROR', 'stack trace', 'No pudimos preparar el consultorio. Intenta nuevamente.'],
   ])(
     'maps a %i creation error to safe copy',

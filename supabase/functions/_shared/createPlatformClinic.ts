@@ -24,7 +24,7 @@ export interface CreatePlatformClinicResponse {
   clinic: {
     clinicId: string
     clinicName: string
-    clinicStatus: 'pending_activation'
+    clinicStatus: 'active' | 'pending_activation'
     ownerEmail: string | null
     ownerName: string | null
     planId: CreatePlatformClinicInput['planId']
@@ -32,50 +32,53 @@ export interface CreatePlatformClinicResponse {
   }
 }
 
-export interface PlatformClinicOwner {
+export interface PlatformClinicCreationRequest {
+  activationStatus: Exclude<PlatformClinicActivationStatus, 'not_sent'> | null
+  clinicId: string | null
+  clinicName: string
+  ownerEmail: string
+  ownerName: string
+  ownerUserId: string | null
+  planId: CreatePlatformClinicInput['planId']
+  priceTier: CreatePlatformClinicInput['priceTier']
+  requestId: string
+  status: 'completed' | 'failed' | 'reserved'
+}
+
+export interface PlatformClinicAuthUser {
+  creationRequestId: string | null
   email: string
-  fullName: string | null
   id: string
-  isActive: boolean
+  isConfirmed: boolean
 }
 
-export interface CreatedPlatformClinicOwner {
-  activationStatus: PlatformClinicActivationStatus
-  owner: PlatformClinicOwner
-}
-
-export function getInitialClinicTrial(referenceDate = new Date()) {
-  const trialEndsAt = new Date(referenceDate.getTime() + 15 * 86_400_000)
-  const graceEndsAt = new Date(trialEndsAt.getTime() + 5 * 86_400_000)
-
-  return {
-    graceEndsAt: graceEndsAt.toISOString(),
-    trialEndsAt: trialEndsAt.toISOString(),
-    trialStartsAt: referenceDate.toISOString(),
-  }
+export interface PlatformClinicCreationContext {
+  requestedBy: string
+  requestId: string
 }
 
 export interface CreatePlatformClinicRepository {
-  createClinic: (name: string) => Promise<{ id: string }>
-  createMembership: (
-    clinicId: string,
+  beginCreation: (
+    input: CreatePlatformClinicInput,
+    context: PlatformClinicCreationContext & { payloadFingerprint: string },
+  ) => Promise<PlatformClinicCreationRequest>
+  completeCreation: (
+    requestId: string,
     ownerId: string,
-    status: 'active' | 'pending_activation',
-  ) => Promise<void>
+  ) => Promise<PlatformClinicCreationRequest>
   createOwnerInvitation: (
-    clinicId: string,
     email: string,
     fullName: string,
-  ) => Promise<CreatedPlatformClinicOwner>
-  createSubscription: (
-    clinicId: string,
-    planId: CreatePlatformClinicInput['planId'],
-    priceTier: CreatePlatformClinicInput['priceTier'],
-  ) => Promise<void>
-  deleteClinic: (clinicId: string) => Promise<void>
+    requestId: string,
+  ) => Promise<PlatformClinicAuthUser>
   deleteCreatedOwner: (ownerId: string) => Promise<void>
-  findClinicByNormalizedName: (name: string) => Promise<boolean>
-  findOwnerByEmail: (email: string) => Promise<PlatformClinicOwner | null>
+  failCreation: (requestId: string, errorCode: string) => Promise<void>
+  findOwnerByEmail: (
+    email: string,
+  ) => Promise<PlatformClinicAuthUser | null>
+  getCreation: (
+    requestId: string,
+  ) => Promise<PlatformClinicCreationRequest | null>
 }
 
 export class CreatePlatformClinicError extends Error {
@@ -166,128 +169,275 @@ export function assertPlatformClinicCreationAllowed(
   }
 }
 
+export async function createPlatformClinicPayloadFingerprint(
+  input: CreatePlatformClinicInput,
+) {
+  const canonicalPayload = JSON.stringify([
+    normalizeComparableName(input.clinicName),
+    normalizeComparableName(input.ownerName),
+    input.ownerEmail.trim().toLowerCase(),
+    input.planId,
+    input.priceTier,
+  ])
+  const digest = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(canonicalPayload),
+  )
+
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('')
+}
+
 export async function createPlatformClinicRecords(
   input: CreatePlatformClinicInput,
+  context: PlatformClinicCreationContext,
   repository: CreatePlatformClinicRepository,
   performance?: EdgePerformanceInstrumentation,
 ): Promise<CreatePlatformClinicResponse> {
-  if (
-    await measurePhase(
-      performance,
-      'duplicate_check',
-      () => repository.findClinicByNormalizedName(input.clinicName),
-    )
-  ) {
-    throw new CreatePlatformClinicError(
-      'CLINIC_ALREADY_EXISTS',
-      'Ya existe un consultorio con ese nombre.',
-      409,
-    )
+  const payloadFingerprint = await createPlatformClinicPayloadFingerprint(input)
+  const creation = await measurePhase(
+    performance,
+    'creation_preflight',
+    () =>
+      repository.beginCreation(input, {
+        ...context,
+        payloadFingerprint,
+      }),
+  )
+
+  if (creation.status === 'completed') {
+    return buildResponse(creation)
   }
 
-  const existingOwner = await measurePhase(
+  let owner = await measurePhase(
     performance,
     'owner_lookup',
     () => repository.findOwnerByEmail(input.ownerEmail),
   )
 
-  if (existingOwner) {
-    throw new CreatePlatformClinicError(
+  if (owner && owner.creationRequestId !== creation.requestId) {
+    await recordFailure(
+      repository,
+      creation.requestId,
       'OWNER_EMAIL_ALREADY_REGISTERED',
-      'Este correo ya está registrado en DayIA Dental y no puede usarse para otro consultorio.',
-      409,
+      performance,
     )
+    throw ownerAlreadyRegistered()
   }
 
-  let clinicId: string | null = null
-  let createdOwnerId: string | null = null
+  if (!owner) {
+    try {
+      owner = await measurePhase(
+        performance,
+        'owner_invitation',
+        () =>
+          repository.createOwnerInvitation(
+            input.ownerEmail,
+            input.ownerName,
+            creation.requestId,
+          ),
+      )
+    } catch (invitationError) {
+      owner = await recoverInvitedOwner(
+        input.ownerEmail,
+        creation.requestId,
+        repository,
+        performance,
+      )
+
+      if (!owner) {
+        const normalizedError = normalizeCreationError(invitationError)
+        await recordFailure(
+          repository,
+          creation.requestId,
+          normalizedError.code,
+          performance,
+        )
+        throw normalizedError
+      }
+    }
+  }
 
   try {
-    clinicId = (
-      await measurePhase(
-        performance,
-        'clinic_insert',
-        () => repository.createClinic(input.clinicName),
-      )
-    ).id
-
-    const createdOwner = await measurePhase(
+    const completed = await measurePhase(
       performance,
-      'owner_invitation',
-      () =>
-        repository.createOwnerInvitation(
-          clinicId!,
-          input.ownerEmail,
-          input.ownerName,
-        ),
-    )
-    const owner = createdOwner.owner
-    createdOwnerId = owner.id
-
-    await measurePhase(
-      performance,
-      'membership_insert',
-      () =>
-        repository.createMembership(
-          clinicId!,
-          owner.id,
-          'pending_activation',
-        ),
-    )
-    await measurePhase(
-      performance,
-      'subscription_insert',
-      () =>
-        repository.createSubscription(
-          clinicId!,
-          input.planId,
-          input.priceTier,
-        ),
+      'atomic_persistence',
+      () => repository.completeCreation(creation.requestId, owner.id),
     )
 
-    return {
-      activation: { status: createdOwner.activationStatus },
-      clinic: {
-        clinicId,
-        clinicName: input.clinicName,
-        clinicStatus: 'pending_activation',
-        ownerEmail: owner.email,
-        ownerName: owner.fullName,
-        planId: input.planId,
-        priceTier: input.priceTier,
-      },
-    }
-  } catch (error) {
-    if (clinicId) {
-      await measurePhase(
-        performance,
-        'rollback_clinic',
-        () => repository.deleteClinic(clinicId!),
-      ).catch(() => undefined)
-    }
-
-    if (createdOwnerId) {
-      await measurePhase(
-        performance,
-        'rollback_owner',
-        () => repository.deleteCreatedOwner(createdOwnerId!),
-      ).catch(() => undefined)
-    }
-
-    if (error instanceof CreatePlatformClinicError) {
-      throw error
-    }
-
-    throw new CreatePlatformClinicError(
-      'CREATE_FAILED',
-      'No pudimos preparar el consultorio. Intenta nuevamente.',
-      500,
+    return buildResponse(completed)
+  } catch (completionError) {
+    return await recoverAfterCompletionFailure(
+      creation.requestId,
+      owner,
+      completionError,
+      repository,
+      performance,
     )
   }
 }
 
+async function recoverInvitedOwner(
+  email: string,
+  requestId: string,
+  repository: CreatePlatformClinicRepository,
+  performance?: EdgePerformanceInstrumentation,
+) {
+  const recovered = await measurePhase(
+    performance,
+    'creation_recovery',
+    () => repository.findOwnerByEmail(email),
+  )
+
+  if (!recovered) {
+    return null
+  }
+
+  if (recovered.creationRequestId !== requestId) {
+    await recordFailure(
+      repository,
+      requestId,
+      'OWNER_EMAIL_ALREADY_REGISTERED',
+      performance,
+    )
+    throw ownerAlreadyRegistered()
+  }
+
+  return recovered
+}
+
+async function recoverAfterCompletionFailure(
+  requestId: string,
+  owner: PlatformClinicAuthUser,
+  completionError: unknown,
+  repository: CreatePlatformClinicRepository,
+  performance?: EdgePerformanceInstrumentation,
+): Promise<CreatePlatformClinicResponse> {
+  let recovered: PlatformClinicCreationRequest | null
+
+  try {
+    recovered = await measurePhase(
+      performance,
+      'creation_recovery',
+      () => repository.getCreation(requestId),
+    )
+  } catch {
+    throw unknownCreationState()
+  }
+
+  if (recovered?.status === 'completed') {
+    return buildResponse(recovered)
+  }
+
+  if (
+    !recovered ||
+    recovered.status !== 'reserved' ||
+    owner.creationRequestId !== requestId
+  ) {
+    throw unknownCreationState()
+  }
+
+  try {
+    await measurePhase(
+      performance,
+      'rollback_owner',
+      () => repository.deleteCreatedOwner(owner.id),
+    )
+  } catch {
+    throw unknownCreationState()
+  }
+
+  const normalizedError = normalizeCreationError(completionError)
+  await recordFailure(
+    repository,
+    requestId,
+    normalizedError.code,
+    performance,
+  )
+  throw normalizedError
+}
+
+async function recordFailure(
+  repository: CreatePlatformClinicRepository,
+  requestId: string,
+  errorCode: string,
+  performance?: EdgePerformanceInstrumentation,
+) {
+  try {
+    await measurePhase(
+      performance,
+      'creation_failure_record',
+      () => repository.failCreation(requestId, errorCode),
+    )
+  } catch {
+    // A reserved request is safe to retry. Do not hide the original error.
+  }
+}
+
+function buildResponse(
+  creation: PlatformClinicCreationRequest,
+): CreatePlatformClinicResponse {
+  if (
+    creation.status !== 'completed' ||
+    !creation.clinicId ||
+    !creation.ownerUserId ||
+    !creation.activationStatus
+  ) {
+    throw unknownCreationState()
+  }
+
+  return {
+    activation: { status: creation.activationStatus },
+    clinic: {
+      clinicId: creation.clinicId,
+      clinicName: creation.clinicName,
+      clinicStatus:
+        creation.activationStatus === 'already_active'
+          ? 'active'
+          : 'pending_activation',
+      ownerEmail: creation.ownerEmail,
+      ownerName: creation.ownerName,
+      planId: creation.planId,
+      priceTier: creation.priceTier,
+    },
+  }
+}
+
+function normalizeCreationError(error: unknown) {
+  if (error instanceof CreatePlatformClinicError) {
+    return error
+  }
+
+  return new CreatePlatformClinicError(
+    'CREATE_FAILED',
+    'No pudimos preparar el consultorio. Intenta nuevamente.',
+    500,
+  )
+}
+
+function ownerAlreadyRegistered() {
+  return new CreatePlatformClinicError(
+    'OWNER_EMAIL_ALREADY_REGISTERED',
+    'Este correo ya está registrado en DayIA Dental y no puede usarse para otro consultorio.',
+    409,
+  )
+}
+
+function unknownCreationState() {
+  return new CreatePlatformClinicError(
+    'CREATE_STATE_UNKNOWN',
+    'No pudimos confirmar el alta. Espera un momento e intenta nuevamente.',
+    503,
+  )
+}
+
 function normalizeName(value: unknown) {
   return typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : ''
+}
+
+function normalizeComparableName(value: string) {
+  return value.trim().replace(/\s+/g, ' ').toLocaleLowerCase('es')
 }
 
 function invalidPayload(message: string) {

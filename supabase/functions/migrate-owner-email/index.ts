@@ -1,5 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+import { lookupAuthUserByEmail } from '../_shared/authUserLookup.ts'
+
 const ownerUserId = '87f2b938-f6ea-4564-a3f3-8e7233fc6184'
 const targetEmail = 'pereezcharles@gmail.com'
 
@@ -179,18 +181,17 @@ async function handleMigrateOwnerEmail(request: Request) {
     )
   }
 
-  const { data: authUsersData, error: authUsersError } =
-    await supabaseAdmin.auth.admin.listUsers({
-      page: 1,
-      perPage: 1000,
-    })
+  let existingAuthUser
 
-  if (authUsersError) {
+  try {
+    existingAuthUser = await lookupAuthUserByEmail(
+      supabaseAdmin,
+      targetEmail,
+    )
+  } catch (authUsersError) {
     console.log('migrate-owner-email auth lookup failure', {
-      authErrorCode: authUsersError.code ?? null,
-      authErrorMessage: authUsersError.message ?? null,
-      authErrorName: authUsersError.name ?? null,
-      authErrorStatus: authUsersError.status ?? null,
+      authErrorMessage:
+        authUsersError instanceof Error ? authUsersError.message : null,
       requesterUserId: resolvedUserId,
     })
 
@@ -203,13 +204,7 @@ async function handleMigrateOwnerEmail(request: Request) {
     )
   }
 
-  const existingAuthUser = authUsersData.users.find(
-    (authUser) =>
-      authUser.email?.toLowerCase() === targetEmail &&
-      authUser.id !== resolvedUserId,
-  )
-
-  if (existingAuthUser) {
+  if (existingAuthUser && existingAuthUser.id !== resolvedUserId) {
     return errorResponse(
       {
         code: 'EMAIL_ALREADY_EXISTS',

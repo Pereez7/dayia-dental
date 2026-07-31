@@ -384,11 +384,18 @@ del servidor lo permite. Valida primero JWT y
 La Function solo escribe `clinics`, `profiles` cuando debe preparar un owner,
 `clinic_memberships` y `clinic_subscriptions`. No crea tratamientos, pacientes,
 citas ni otros datos clínicos. Usa invitación de Supabase Auth sin contraseña
-manual y compensa altas parciales eliminando el consultorio y, cuando
-corresponde, el usuario Auth recién creado.
+manual. La migración `032_atomic_platform_clinic_creation.sql` reserva cada
+alta con una clave idempotente y confirma esos cuatro registros públicos en
+una sola transacción. Auth y PostgreSQL siguen sin compartir transacción: ante
+una respuesta ambigua se consulta el ledger y solo se elimina el Auth user
+invitado cuando PostgreSQL confirma que la operación no terminó y sus
+metadatos lo vinculan con esa solicitud.
 
 La migración `013_platform_clinic_creation.sql` admite
 `pending_activation` en membresías y agrega unicidad por nombre normalizado.
+La migración `032` agrega unicidad global del email normalizado de perfiles y
+una RPC exacta sobre el índice de email de Auth; las Functions ya no recorren
+`auth.admin.listUsers`.
 La habilitación o deshabilitación se administra solo mediante el secret de la
 Function; React no mantiene una copia de esa decisión.
 

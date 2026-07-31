@@ -830,27 +830,28 @@ async function getCreateClinicErrorMessage(error: unknown) {
     }
 
     if (
-      responseError?.code === 'CLINIC_ALREADY_EXISTS' &&
-      responseError.message
-    ) {
-      return responseError.message
-    }
-
-    if (
-      responseError?.code === 'OWNER_EMAIL_ALREADY_REGISTERED' &&
-      responseError.message
-    ) {
-      return responseError.message
-    }
-
-    if (
-      responseError?.code === 'FOUNDER_PRICE_NOT_CONFIGURED' &&
-      responseError.message
+      [
+        'CLINIC_ALREADY_EXISTS',
+        'CLINIC_CREATION_IN_PROGRESS',
+        'OWNER_EMAIL_ALREADY_REGISTERED',
+        'OWNER_EMAIL_CREATION_IN_PROGRESS',
+        'FOUNDER_PRICE_NOT_CONFIGURED',
+        'REQUEST_PAYLOAD_MISMATCH',
+      ].includes(responseError?.code ?? '') &&
+      responseError?.message
     ) {
       return responseError.message
     }
 
     return 'No pudimos crear el consultorio por un conflicto.'
+  }
+
+  if (status === 429 && responseError?.message) {
+    return responseError.message
+  }
+
+  if (status === 503 && responseError?.message) {
+    return responseError.message
   }
 
   return 'No pudimos preparar el consultorio. Intenta nuevamente.'
@@ -963,7 +964,8 @@ function isCreatePlatformClinicResponse(
     candidate.clinic &&
       typeof candidate.clinic.clinicId === 'string' &&
       typeof candidate.clinic.clinicName === 'string' &&
-      candidate.clinic.clinicStatus === 'pending_activation' &&
+      (candidate.clinic.clinicStatus === 'pending_activation' ||
+        candidate.clinic.clinicStatus === 'active') &&
       (candidate.clinic.priceTier === 'standard' ||
         candidate.clinic.priceTier === 'founder') &&
       candidate.activation &&

@@ -1,6 +1,10 @@
 export type EdgePerformancePhase =
   | 'auth_user'
+  | 'atomic_persistence'
   | 'clinic_insert'
+  | 'creation_failure_record'
+  | 'creation_preflight'
+  | 'creation_recovery'
   | 'duplicate_check'
   | 'membership_insert'
   | 'owner_invitation'

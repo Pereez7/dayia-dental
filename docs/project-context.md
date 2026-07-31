@@ -28,7 +28,34 @@ supera 714 pruebas, lint y build. La prueba autenticada devolvió `200`, con
 1.6–1.7 kB para el listado y 1.5 kB para el detalle. Diez lecturas del listado
 estuvieron entre 1.03 y 2.38 s; el detalle observado tardó 1.95 s. El tamaño
 queda acotado, pero la latencia aún supera el presupuesto y permanece
-documentada como deuda antes de producción. El siguiente hito es `PERF-004`.
+documentada como deuda antes de producción.
+
+`PERF-004` cerró el 30 de julio de 2026 y está desplegado únicamente en
+staging. La migración
+`032_atomic_platform_clinic_creation.sql` agrega una clave idempotente por
+solicitante y payload, unicidad global del email normalizado de perfiles y una
+búsqueda exacta de Auth que usa el índice nativo; ya no existe ningún
+`auth.admin.listUsers` en las Edge Functions. El alta valida plan y tarifa,
+reserva la operación, invita al owner en Auth y confirma clínica, perfil,
+membership y suscripción en una sola transacción PostgreSQL. Si la respuesta
+del commit es ambigua, consulta primero el estado: nunca elimina Auth sin
+confirmar que PostgreSQL no completó.
+
+La suite actual supera 732 pruebas de aplicación y 105 pruebas SQL. El pgTAP
+específico de `032` pasa sus 31 controles tanto localmente como contra staging
+con rollback; `db lint --linked --level warning`, lint y build también pasan.
+`create-platform-clinic` v8, `invite-clinic-member` v3 y
+`correct-platform-clinic-owner-email` v2 están `ACTIVE` con JWT. La utilidad
+legacy `migrate-owner-email` no permanece desplegada.
+
+La alta autenticada controlada de `PERF-004` tardó 3,700 ms en el navegador y
+3,472.2 ms dentro de la Function. La invitación Auth fue la fase dominante con
+1,481.4 ms; la persistencia atómica de clínica, perfil, membership y
+suscripción tardó 241.6 ms. El reintento idéntico terminó en 721.6 ms internos,
+una reducción del 79.2 %, y no ejecutó búsqueda del owner, invitación ni
+persistencia. La comprobación remota confirmó exactamente una solicitud, una
+clínica, un usuario Auth, un perfil, una membership y una suscripción. El
+siguiente hito es `PERF-005`; producción continúa intacta.
 
 Antes de iniciar `PERF-003`, el alta de plataforma dejó de reutilizar correos
 existentes. Un correo registrado en Auth o `profiles` responde `409`. Para un

@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+import { lookupAuthUserByEmail } from '../_shared/authUserLookup.ts'
 import {
   CorrectPlatformClinicOwnerEmailError,
   isRegisteredAuthEmailError,
@@ -216,7 +217,7 @@ async function handleCorrectPlatformClinicOwnerEmail(request: Request) {
     return registeredEmailResponse()
   }
 
-  const existingAuthUser = await findAuthUserByEmail(
+  const existingAuthUser = await lookupAuthUserByEmail(
     adminClient,
     payload.ownerEmail,
   )
@@ -430,34 +431,6 @@ async function getReplacementState(
   }
 
   return data ? 'committed' : 'uncommitted'
-}
-
-async function findAuthUserByEmail(
-  adminClient: AdminClient,
-  email: string,
-) {
-  const perPage = 200
-
-  for (let page = 1; page <= 50; page += 1) {
-    const { data, error } = await adminClient.auth.admin.listUsers({
-      page,
-      perPage,
-    })
-
-    if (error) {
-      throw error
-    }
-
-    const match = data.users.find(
-      (user) => user.email?.trim().toLowerCase() === email,
-    )
-
-    if (match || data.users.length < perPage) {
-      return match ?? null
-    }
-  }
-
-  throw new Error('Auth user lookup exceeded the safe page limit')
 }
 
 async function readJson(request: Request) {

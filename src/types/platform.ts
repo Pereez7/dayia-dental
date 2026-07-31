@@ -214,7 +214,7 @@ export interface CreatePlatformClinicResponse {
   clinic: {
     clinicId: string
     clinicName: string
-    clinicStatus: 'pending_activation'
+    clinicStatus: 'active' | 'pending_activation'
     ownerEmail: string | null
     ownerName: string | null
     planId: PlatformClinicPlanId

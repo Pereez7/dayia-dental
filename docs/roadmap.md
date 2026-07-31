@@ -20,7 +20,12 @@ plano. `PERF-003` ya separa resumen y detalle, pagina consultorios e historiales
 en servidor y elimina el RPC N+1. Está desplegado y probado técnicamente en
 staging. La validación autenticada confirmó respuestas acotadas de 1.5–1.7 kB y
 registró una latencia de 1.03–2.38 s que todavía debe reducirse antes de
-producción. El siguiente hito es `PERF-004`.
+producción. `PERF-004` ya está desplegado técnicamente en staging: reemplaza la
+búsqueda paginada de Auth por una consulta indexada y confirma clínica, owner,
+membership y suscripción en una transacción idempotente. Cerró con una alta
+autenticada de 3,472.2 ms internos y un reintento seguro de 721.6 ms, 79.2 %
+menos, sin duplicar ninguno de los seis recursos verificados. `PERF-005` es el
+siguiente hito y producción continúa intacta.
 
 ## Rendimiento de carga
 

@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+import { lookupAuthUserByEmail } from '../_shared/authUserLookup.ts'
 import {
   assertMembershipLimit,
   assertNoClinicMembership,
@@ -175,7 +176,7 @@ async function handleClinicMembersRequest(request: Request) {
   }
 
   const payload = normalizeInviteClinicMemberPayload(await readJson(request))
-  const authUser = await findAuthUserByEmail(adminClient, payload.email)
+  const authUser = await lookupAuthUserByEmail(adminClient, payload.email)
   assertNoClinicMembership(
     Boolean(authUser && members.some((member) => member.user_id === authUser.id)),
   )
@@ -208,7 +209,7 @@ async function handleClinicMembersRequest(request: Request) {
     createdAuthUser = true
     activationStatus = 'pending'
     membershipStatus = 'pending_activation'
-  } else if (authUser.email_confirmed_at || authUser.confirmed_at) {
+  } else if (authUser.isConfirmed) {
     activationStatus = 'already_active'
     membershipStatus = 'active'
   } else {
@@ -411,25 +412,6 @@ async function ensureProfile(
     email: existingProfile.email?.trim().toLowerCase() || input.email,
     fullName: existingProfile.full_name?.trim() || input.fullName,
   }
-}
-
-async function findAuthUserByEmail(
-  adminClient: AdminClient,
-  email: string,
-) {
-  const perPage = 200
-
-  for (let page = 1; page <= 50; page += 1) {
-    const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage })
-    if (error) throw error
-
-    const match = data.users.find(
-      (user) => user.email?.trim().toLowerCase() === email,
-    )
-    if (match || data.users.length < perPage) return match ?? null
-  }
-
-  throw new Error('Auth user lookup exceeded the safe page limit')
 }
 
 async function readJson(request: Request) {
