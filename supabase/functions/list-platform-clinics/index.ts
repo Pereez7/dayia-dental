@@ -3,7 +3,6 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import {
   normalizeSubscriptionStatus,
   resolveClinicStatus,
-  selectPrimaryOwner,
 } from '../_shared/platformAdmin.ts'
 
 interface PublicError {
@@ -16,6 +15,38 @@ interface SupabaseClientConfig {
   serviceRoleKey: string
   supabaseUrl: string
 }
+
+interface ClinicCursor {
+  createdAt: string
+  id: string
+}
+
+interface ListPlatformClinicsInput {
+  cursor?: ClinicCursor | null
+  limit?: number
+}
+
+interface PlatformClinicSummaryRow {
+  active_members_count: number
+  clinic_id: string
+  clinic_name: string
+  clinic_status: string | null
+  created_at: string
+  owner_email: string | null
+  owner_invitation_sent_at: string | null
+  owner_membership_status: string | null
+  owner_name: string | null
+  pending_payment_submissions_count: number
+  plan_id: string | null
+  plan_name: string | null
+  subscription_status: string | null
+  total_count: number
+}
+
+const DEFAULT_PAGE_SIZE = 10
+const MAX_PAGE_SIZE = 25
+const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 const corsHeaders = {
   'Access-Control-Allow-Headers':
@@ -49,6 +80,12 @@ async function handleListPlatformClinics(request: Request) {
       { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed.' },
       405,
     )
+  }
+
+  const inputResult = await parseInput(request)
+
+  if ('error' in inputResult) {
+    return errorResponse(inputResult.error, 400)
   }
 
   const authHeader = request.headers.get('Authorization')
@@ -117,286 +154,119 @@ async function handleListPlatformClinics(request: Request) {
     )
   }
 
-  const { data: clinics, error: clinicsError } = await adminClient
-    .from('clinics')
-    .select('id, name, status, created_at')
-    .order('created_at', { ascending: false })
+  const { cursor, limit } = inputResult.input
+  const { data, error } = await adminClient.rpc(
+    'list_platform_clinic_summaries',
+    {
+      cursor_created_at: cursor?.createdAt ?? null,
+      cursor_id: cursor?.id ?? null,
+      target_limit: limit,
+    },
+  )
 
-  if (clinicsError) {
+  if (error) {
     return dataQueryError()
   }
 
-  if (!clinics?.length) {
-    return jsonResponse({ clinics: [] })
-  }
-
-  const clinicIds = clinics.map((clinic) => clinic.id)
-  const scheduledPlanResults = await Promise.all(
-    clinicIds.map((clinicId) =>
-      adminClient.rpc('apply_due_scheduled_plan', {
-        target_clinic_id: clinicId,
-      }),
-    ),
-  )
-  if (scheduledPlanResults.some((result) => result.error)) {
-    return dataQueryError()
-  }
-  const [
-    subscriptionsResult,
-    membershipsResult,
-    plansResult,
-    paymentsResult,
-    submissionsResult,
-  ] =
-    await Promise.all([
-      adminClient
-        .from('clinic_subscriptions')
-        .select('clinic_id, plan_id, status, trial_ends_at, current_period_ends_at, grace_ends_at, blocked_at, last_payment_at, payment_status, is_lifetime, price_tier, custom_monthly_price, founder_price_locked, scheduled_plan_id, scheduled_plan_starts_at')
-        .in('clinic_id', clinicIds),
-      adminClient
-        .from('clinic_memberships')
-        .select('clinic_id, user_id, role, status, invited_at, activated_at, created_at')
-        .in('clinic_id', clinicIds)
-        .in('status', ['active', 'pending_activation'])
-        .order('activated_at', { ascending: false, nullsFirst: false })
-        .order('created_at', { ascending: false }),
-      adminClient.from('plans').select('id, name, monthly_price, founder_monthly_price, currency'),
-      adminClient
-        .from('subscription_payments')
-        .select('id, clinic_id, plan_id, billing_cycle, months_covered, custom_days, amount_due, discount_percent, discount_amount, amount_paid, currency, reference, notes, paid_at, period_starts_at, period_ends_at, recorded_by, payment_type, price_tier, previous_plan_id, new_plan_id, status, voided_at, voided_by, void_reason, created_at')
-        .in('clinic_id', clinicIds)
-        .order('paid_at', { ascending: false })
-        .order('created_at', { ascending: false }),
-      adminClient
-        .from('subscription_payment_submissions')
-        .select('id, clinic_id, submitted_by, previous_plan_id, plan_id, billing_cycle, amount_expected, currency, reference, notes, payment_type, effective_at, status, created_at')
-        .in('clinic_id', clinicIds)
-        .order('created_at', { ascending: false }),
-    ])
-
-  if (
-    subscriptionsResult.error ||
-    membershipsResult.error ||
-    plansResult.error ||
-    paymentsResult.error ||
-    submissionsResult.error
-  ) {
-    return dataQueryError()
-  }
-
-  const eligibleMemberships = membershipsResult.data ?? []
-  const activeMemberships = eligibleMemberships.filter(
-    (membership) => membership.status === 'active',
-  )
-  const ownerMemberships = eligibleMemberships.filter(
-    (membership) => membership.role === 'clinic_owner',
-  )
-  const ownerIds = [...new Set(ownerMemberships.map((owner) => owner.user_id))]
-  const recorderIds = (paymentsResult.data ?? [])
-    .flatMap((payment) => [payment.recorded_by, payment.voided_by])
-    .filter((id): id is string => Boolean(id))
-  const submitterIds = (submissionsResult.data ?? [])
-    .map((submission) => submission.submitted_by)
-    .filter((id): id is string => Boolean(id))
-  const profileIds = [
-    ...new Set([...ownerIds, ...recorderIds, ...submitterIds]),
-  ]
-  let ownerProfiles: Array<{
-    email: string | null
-    full_name: string | null
-    id: string
-  }> = []
-
-  if (profileIds.length > 0) {
-    const ownerProfilesResult = await adminClient
-      .from('profiles')
-      .select('id, full_name, email')
-      .in('id', profileIds)
-
-    if (ownerProfilesResult.error) {
-      return dataQueryError()
-    }
-
-    ownerProfiles = ownerProfilesResult.data ?? []
-  }
-
-  const subscriptionsByClinic = new Map(
-    (subscriptionsResult.data ?? []).map((subscription) => [
-      subscription.clinic_id,
-      subscription,
-    ]),
-  )
-  const plansById = new Map(
-    (plansResult.data ?? []).map((plan) => [plan.id, plan]),
-  )
-  const planMonthlyPrices = Object.fromEntries(
-    (plansResult.data ?? []).map((plan) => [
-      plan.id,
-      plan.monthly_price === null ? null : Number(plan.monthly_price),
-    ]),
-  )
-  const planFounderMonthlyPrices = Object.fromEntries(
-    (plansResult.data ?? []).map((plan) => [
-      plan.id,
-      plan.founder_monthly_price === null ? null : Number(plan.founder_monthly_price),
-    ]),
-  )
-  const ownerProfilesById = new Map(
-    ownerProfiles.map((profile) => [profile.id, profile]),
-  )
-  const paymentsByClinic = new Map<
-    string,
-    NonNullable<typeof paymentsResult.data>
-  >()
-  const submissionsByClinic = new Map<
-    string,
-    NonNullable<typeof submissionsResult.data>
-  >()
-  const activeMembersCountByClinic = new Map<string, number>()
-  const ownerMembershipsByClinic = new Map<
-    string,
-    typeof ownerMemberships
-  >()
-
-  for (const membership of activeMemberships) {
-    activeMembersCountByClinic.set(
-      membership.clinic_id,
-      (activeMembersCountByClinic.get(membership.clinic_id) ?? 0) + 1,
-    )
-  }
-
-  for (const membership of ownerMemberships) {
-    const clinicOwners = ownerMembershipsByClinic.get(membership.clinic_id) ?? []
-    clinicOwners.push(membership)
-    ownerMembershipsByClinic.set(membership.clinic_id, clinicOwners)
-  }
-
-  for (const payment of paymentsResult.data ?? []) {
-    const clinicPayments = paymentsByClinic.get(payment.clinic_id) ?? []
-    clinicPayments.push(payment)
-    paymentsByClinic.set(payment.clinic_id, clinicPayments)
-  }
-
-  for (const submission of submissionsResult.data ?? []) {
-    const clinicSubmissions =
-      submissionsByClinic.get(submission.clinic_id) ?? []
-    clinicSubmissions.push(submission)
-    submissionsByClinic.set(submission.clinic_id, clinicSubmissions)
-  }
+  const rows = (data ?? []) as PlatformClinicSummaryRow[]
+  const hasNextPage = rows.length > limit
+  const visibleRows = rows.slice(0, limit)
+  const lastVisibleRow = visibleRows.at(-1)
 
   return jsonResponse({
-    clinics: clinics.map((clinic) => {
-      const subscription = subscriptionsByClinic.get(clinic.id)
-      const plan = subscription
-        ? plansById.get(subscription.plan_id)
-        : undefined
-      const primaryOwner = selectPrimaryOwner(
-        ownerMembershipsByClinic.get(clinic.id) ?? [],
-        ownerProfilesById,
-      )
-
-      return {
-        activeMembersCount: activeMembersCountByClinic.get(clinic.id) ?? 0,
-        clinicId: clinic.id,
-        clinicName: clinic.name,
-        clinicStatus: resolveClinicStatus(
-          clinic.status,
-          subscription?.status,
-        ),
-        createdAt: clinic.created_at,
-        blockedAt: subscription?.blocked_at ?? null,
-        ownerEmail: primaryOwner?.email ?? null,
-        ownerInvitationSentAt: primaryOwner?.invitationSentAt ?? null,
-        ownerMembershipStatus: primaryOwner?.membershipStatus ?? null,
-        ownerName: primaryOwner?.fullName ?? null,
-        planId: subscription?.plan_id ?? null,
-        planName: plan?.name ?? null,
-        monthlyPrice:
-          plan?.monthly_price === null || plan?.monthly_price === undefined
-            ? null
-            : Number(plan.monthly_price),
-        founderMonthlyPrice:
-          plan?.founder_monthly_price === null || plan?.founder_monthly_price === undefined
-            ? null
-            : Number(plan.founder_monthly_price),
-        planMonthlyPrices,
-        planFounderMonthlyPrices,
-        priceTier: subscription?.price_tier ?? 'standard',
-        customMonthlyPrice: subscription?.custom_monthly_price === null || subscription?.custom_monthly_price === undefined
-          ? null
-          : Number(subscription.custom_monthly_price),
-        founderPriceLocked: subscription?.founder_price_locked === true,
-        scheduledPlanId: subscription?.scheduled_plan_id ?? null,
-        scheduledPlanStartsAt: subscription?.scheduled_plan_starts_at ?? null,
-        currency: plan?.currency ?? 'BOB',
-        trialEndsAt: subscription?.trial_ends_at ?? null,
-        currentPeriodEndsAt: subscription?.current_period_ends_at ?? null,
-        graceEndsAt: subscription?.grace_ends_at ?? null,
-        lastPaymentAt: subscription?.last_payment_at ?? null,
-        paymentStatus: subscription?.payment_status ?? null,
-        isLifetime: subscription?.is_lifetime === true,
-        payments: (paymentsByClinic.get(clinic.id) ?? []).map((payment) => {
-          const recorder = payment.recorded_by
-            ? ownerProfilesById.get(payment.recorded_by)
-            : null
-
-          return {
-            amountDue: Number(payment.amount_due),
-            amountPaid: Number(payment.amount_paid),
-            billingCycle: payment.billing_cycle,
-            createdAt: payment.created_at,
-            currency: payment.currency,
-            customDays: payment.custom_days,
-            discountAmount: Number(payment.discount_amount),
-            discountPercent: Number(payment.discount_percent),
-            id: payment.id,
-            monthsCovered: payment.months_covered,
-            notes: payment.notes,
-            paidAt: payment.paid_at,
-            periodEndsAt: payment.period_ends_at,
-            periodStartsAt: payment.period_starts_at,
-            planId: payment.plan_id,
-            paymentType: payment.payment_type,
-            priceTier: payment.price_tier,
-            previousPlanId: payment.previous_plan_id,
-            newPlanId: payment.new_plan_id,
-            recordedBy: recorder?.full_name ?? recorder?.email ?? null,
-            reference: payment.reference,
-            status: payment.status,
-            voidReason: payment.void_reason,
-            voidedAt: payment.voided_at,
-            voidedBy: payment.voided_by
-              ? ownerProfilesById.get(payment.voided_by)?.full_name ??
-                ownerProfilesById.get(payment.voided_by)?.email ??
-                null
-              : null,
-          }
-        }),
-        paymentSubmissions: (
-          submissionsByClinic.get(clinic.id) ?? []
-        ).map((submission) => {
-          const submitter = ownerProfilesById.get(submission.submitted_by)
-
-          return {
-            amountExpected: Number(submission.amount_expected),
-            billingCycle: submission.billing_cycle,
-            createdAt: submission.created_at,
-            currency: submission.currency,
-            effectiveAt: submission.effective_at,
-            id: submission.id,
-            notes: submission.notes,
-            paymentType: submission.payment_type,
-            planId: submission.plan_id,
-            previousPlanId: submission.previous_plan_id,
-            reference: submission.reference,
-            status: submission.status,
-            submittedBy: submitter?.full_name ?? submitter?.email ?? null,
-          }
-        }),
-        subscriptionStatus: normalizeSubscriptionStatus(subscription?.status),
-      }
-    }),
+    clinics: visibleRows.map((row) => ({
+      activeMembersCount: Number(row.active_members_count) || 0,
+      clinicId: row.clinic_id,
+      clinicName: row.clinic_name,
+      clinicStatus: resolveClinicStatus(
+        row.clinic_status,
+        row.subscription_status,
+      ),
+      createdAt: row.created_at,
+      ownerEmail: row.owner_email,
+      ownerInvitationSentAt: row.owner_invitation_sent_at,
+      ownerMembershipStatus: row.owner_membership_status,
+      ownerName: row.owner_name,
+      pendingPaymentSubmissionsCount:
+        Number(row.pending_payment_submissions_count) || 0,
+      planId: row.plan_id,
+      planName: row.plan_name,
+      subscriptionStatus: normalizeSubscriptionStatus(
+        row.subscription_status,
+      ),
+    })),
+    pageInfo: {
+      hasNextPage,
+      limit,
+      nextCursor:
+        hasNextPage && lastVisibleRow
+          ? {
+              createdAt: lastVisibleRow.created_at,
+              id: lastVisibleRow.clinic_id,
+            }
+          : null,
+      totalCount: Number(rows[0]?.total_count) || 0,
+    },
   })
+}
+
+async function parseInput(
+  request: Request,
+): Promise<
+  | { input: { cursor: ClinicCursor | null; limit: number } }
+  | { error: PublicError }
+> {
+  let body: ListPlatformClinicsInput
+
+  try {
+    const text = await request.text()
+    body = text ? JSON.parse(text) as ListPlatformClinicsInput : {}
+  } catch {
+    return invalidPagination()
+  }
+
+  const limit = body.limit ?? DEFAULT_PAGE_SIZE
+
+  if (
+    !Number.isInteger(limit) ||
+    limit < 1 ||
+    limit > MAX_PAGE_SIZE
+  ) {
+    return invalidPagination()
+  }
+
+  if (body.cursor === undefined || body.cursor === null) {
+    return { input: { cursor: null, limit } }
+  }
+
+  if (
+    typeof body.cursor !== 'object' ||
+    typeof body.cursor.createdAt !== 'string' ||
+    !Number.isFinite(Date.parse(body.cursor.createdAt)) ||
+    typeof body.cursor.id !== 'string' ||
+    !uuidPattern.test(body.cursor.id)
+  ) {
+    return invalidPagination()
+  }
+
+  return {
+    input: {
+      cursor: {
+        createdAt: new Date(body.cursor.createdAt).toISOString(),
+        id: body.cursor.id,
+      },
+      limit,
+    },
+  }
+}
+
+function invalidPagination() {
+  return {
+    error: {
+      code: 'INVALID_PAGINATION',
+      message: 'La página solicitada no es válida.',
+    },
+  } as const
 }
 
 function getSupabaseClientConfig():

@@ -2,13 +2,15 @@
 
 ## Billing manual
 
-Ejecuta las migraciones de billing `020`, `021`, `023`, `024`, `025` y `026` en
-orden, configura `plans.monthly_price` y coloca los QR en
+Ejecuta las migraciones de billing `020`, `021`, `023`, `024`, `025`, `026` y
+la paginación administrativa `031` en orden, configura
+`plans.monthly_price` y coloca los QR en
 `public/payment-qr/`. Despliega:
 
 ```bash
 npx supabase functions deploy create-platform-clinic
 npx supabase functions deploy list-platform-clinics
+npx supabase functions deploy get-platform-clinic-billing
 npx supabase functions deploy register-subscription-payment
 npx supabase functions deploy reject-subscription-payment-submission
 npx supabase functions deploy void-subscription-payment
@@ -88,6 +90,7 @@ Ejecuta en Supabase SQL Editor, en orden, los archivos de
 28. `028_clinic_membership_lifecycle.sql`
 29. `029_transactional_business_hours.sql`
 30. `030_platform_owner_email_correction.sql`
+31. `031_platform_admin_server_pagination.sql`
 
 Si usas Supabase CLI en el futuro, puedes adaptar este flujo a `supabase db
 push`, pero esta guia asume SQL Editor para una primera prueba controlada.
@@ -95,7 +98,7 @@ push`, pero esta guia asume SQL Editor para una primera prueba controlada.
 ### Inventario de preproducción
 
 Antes de una demo con Supabase real, confirma en el proyecto remoto que están
-aplicadas las migraciones `001` a `030`. El repositorio solo contiene los
+aplicadas las migraciones `001` a `031`. El repositorio solo contiene los
 archivos; no garantiza el estado del entorno remoto. La migración `003` es una
 plantilla de setup y no debe reemplazar un seed revisado.
 
@@ -103,6 +106,7 @@ Functions vigentes para el MVP:
 
 ```bash
 npx supabase functions deploy list-platform-clinics
+npx supabase functions deploy get-platform-clinic-billing
 npx supabase functions deploy create-platform-clinic
 npx supabase functions deploy correct-platform-clinic-owner-email
 npx supabase functions deploy invite-clinic-member
@@ -206,12 +210,14 @@ Si el perfil no tiene consultorio, la app debe mostrar:
 
 ## 6. Desplegar el listado de Administración DayIA
 
-Aplica primero la migración `012_clinics_status.sql` y despliega la Function de
-lectura administrativa:
+Aplica `012_clinics_status.sql` y
+`031_platform_admin_server_pagination.sql`, luego despliega las Functions de
+resumen y detalle administrativo:
 
 ```bash
 npx supabase db push
 npx supabase functions deploy list-platform-clinics
+npx supabase functions deploy get-platform-clinic-billing
 ```
 
 Supabase Functions proporciona `SUPABASE_URL`, `SUPABASE_ANON_KEY` y

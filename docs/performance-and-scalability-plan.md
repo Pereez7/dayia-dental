@@ -239,26 +239,84 @@ mediciones son muestras únicas y no representan p50/p95.
 
 ### PERF-003: listado administrativo liviano y paginado
 
+Estado: cerrado el 30 de julio de 2026 después de la prueba técnica y visual
+autenticada en staging.
+
 Objetivo: que Administración DayIA no cargue más información por tener más
 pagos históricos.
 
 Trabajo:
 
-- Separar resumen de consultorios y detalle comercial.
-- Paginar consultorios en el servidor con orden estable.
-- Cargar pagos y solicitudes únicamente al abrir la gestión de un consultorio.
-- Paginar pagos y solicitudes en el servidor.
-- Devolver contadores agregados en lugar de colecciones completas.
-- Reemplazar el RPC por consultorio por una operación por lote o un proceso
+- [x] Separar resumen de consultorios y detalle comercial.
+- [x] Paginar consultorios en el servidor con orden estable.
+- [x] Cargar pagos y solicitudes únicamente al abrir la gestión de un
+  consultorio.
+- [x] Paginar pagos y solicitudes en el servidor.
+- [x] Devolver contadores agregados en lugar de colecciones completas.
+- [x] Reemplazar el RPC por consultorio por una operación por lote o un proceso
   programado.
 
 Criterio de cierre:
 
-- El peso y la cantidad de filas del resumen permanecen acotados.
-- Agregar pagos históricos no aumenta el payload del listado.
-- No existe una consulta o RPC por cada consultorio.
-- Se prueban primera página, página intermedia, última página y datos nuevos
+- [x] El peso y la cantidad de filas del resumen permanecen acotados.
+- [x] Agregar pagos históricos no aumenta el payload del listado.
+- [x] No existe una consulta o RPC por cada consultorio.
+- [x] Se prueban primera página, página intermedia, última página y datos nuevos
   durante la navegación.
+
+Implementación:
+
+- `list-platform-clinics` devuelve como máximo 10 resúmenes por defecto y un
+  cursor compuesto por `created_at` e `id`. Ya no consulta ni devuelve pagos o
+  solicitudes individuales.
+- `get-platform-clinic-billing` carga únicamente el consultorio seleccionado.
+  Pagos y solicitudes pendientes usan páginas independientes de cinco filas,
+  cursores estables y un máximo validado de 25.
+- Los contadores de miembros y solicitudes pendientes se calculan en el
+  servidor. El historial completo no se reconstruye en React.
+- `apply_due_scheduled_plans(uuid[])` reemplaza la llamada RPC por cada
+  consultorio y conserva un evento de auditoría por cambio aplicado.
+- Los índices de `clinics`, `subscription_payments` y
+  `subscription_payment_submissions` cubren el orden de los cursores.
+- Las respuestas tardías de un detalle anterior se descartan y las excepciones
+  de red dejan un mensaje visible en lugar de un estado de carga permanente.
+
+Validación técnica:
+
+- La migración `031_platform_admin_server_pagination.sql` fue recreada desde
+  una base local vacía y aplicada únicamente al staging
+  `zjsnfgxvaimddmchrwre`.
+- `list-platform-clinics` y `get-platform-clinic-billing` fueron compiladas por
+  el runtime local y desplegadas en staging.
+- El pgTAP de `031` supera 10 controles tanto localmente como contra staging,
+  dentro de una transacción con rollback. Cubre primera página, página
+  intermedia, último tramo del conjunto, inserción concurrente, total,
+  aplicación por lote y auditoría.
+- La suite completa supera 714 pruebas; lint y build también pasan.
+
+Resultado autenticado en staging:
+
+- Administración DayIA cargó el listado y la gestión comercial con respuestas
+  HTTP `200`.
+- Chrome informó transferencias de 1.6–1.7 kB para
+  `list-platform-clinics` y 1.5 kB para
+  `get-platform-clinic-billing`.
+- Diez lecturas visibles del listado estuvieron entre 1.03 y 2.38 s, con una
+  mediana aproximada de 1.45 s. La única muestra visible del detalle tardó
+  1.95 s.
+- La muestra es demasiado pequeña para declarar p50/p95 operativos y no usó un
+  volumen suficiente para mostrar el paginador de consultorios. La prueba
+  transaccional de 12 filas cubre primera, intermedia, último tramo e inserción
+  concurrente.
+
+Deuda observada:
+
+- El objetivo de escalabilidad de `PERF-003` queda cerrado: filas, consultas y
+  payload ya no crecen con todo el historial.
+- La latencia de lectura todavía supera el presupuesto inicial de 500 ms p50 y
+  1.5 s p95. Debe separarse entre arranque de Function, validación Auth,
+  consulta de perfil y RPC antes de producción. No se atribuye a tamaño del
+  payload sin una medición por fases.
 
 ### PERF-004: alta atómica y búsquedas escalables
 
@@ -377,6 +435,7 @@ reemplazarse por estimaciones.
 | --- | --- | --- | --- | --- | --- |
 | PERF-001 | Alta autenticada de consultorio nuevo | Muestra única: 6,143 ms; sin p50/p95 | No aplica | Cerrado; Function 3,751.1 ms y refresco bloqueante 2,380.7 ms | 30 jul 2026 |
 | PERF-002 | Confirmación de alta sin refresco bloqueante | Muestra única: 6,143.0 ms hasta confirmar | Muestra única: 4,490.5 ms hasta confirmar | Cerrado; confirmación 1,652.5 ms antes (26.9 %), refresco de 2,041.7 ms en segundo plano | 30 jul 2026 |
+| PERF-003 | Resumen y detalle administrativo paginados | Listado anterior: 2,041.7 ms en una muestra; payload completo sin límite | Listado: 1.03–2.38 s y 1.6–1.7 kB en 10 muestras; detalle: 1.95 s y 1.5 kB en una muestra | Cerrado en escalabilidad; payload acotado, sin N+1 y con deuda de latencia registrada | 30 jul 2026 |
 
 ## Fuera de alcance
 

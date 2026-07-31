@@ -48,11 +48,13 @@ const clinic: PlatformClinicSummary = {
   graceEndsAt: '2026-08-06T10:00:00.000Z',
   isLifetime: false,
   lastPaymentAt: null,
+  latestRegisteredPaymentId: null,
   monthlyPrice: null,
   founderMonthlyPrice: null,
   planMonthlyPrices: {},
   planFounderMonthlyPrices: {},
   priceTier: 'standard',
+  registeredLifetimePayment: null,
   customMonthlyPrice: null,
   founderPriceLocked: false,
   scheduledPlanId: null,
@@ -66,6 +68,7 @@ const clinic: PlatformClinicSummary = {
   paymentStatus: 'paid',
   payments: [],
   paymentSubmissions: [],
+  pendingPaymentSubmissionsCount: 0,
   subscriptionStatus: 'active',
   trialEndsAt: null,
 }
@@ -273,20 +276,7 @@ describe('PlatformAdminView', () => {
         clinics={[
           {
             ...clinic,
-            paymentSubmissions: [
-              {
-                amountExpected: 249,
-                billingCycle: 'monthly',
-                createdAt: '2026-07-23T14:00:00.000Z',
-                currency: 'BOB',
-                id: 'notice-1',
-                notes: null,
-                planId: 'pro',
-                reference: 'dayia-whatsapp',
-                status: 'pending_review',
-                submittedBy: 'Dra. Ana Pérez',
-              },
-            ],
+            pendingPaymentSubmissionsCount: 1,
           },
         ]}
         errorMessage=""
@@ -489,9 +479,19 @@ describe('PlatformAdminView', () => {
     )
     const markup = renderToStaticMarkup(
       <SubscriptionAdministration
-        clinic={{ ...clinic, payments }}
+        clinic={{ ...clinic, payments: payments.slice(0, 5) }}
         onClose={vi.fn()}
         onUpdated={vi.fn()}
+        paymentPageInfo={{
+          hasNextPage: true,
+          limit: 5,
+          nextCursor: {
+            createdAt: payments[4].createdAt,
+            id: payments[4].id,
+            paidAt: payments[4].paidAt,
+          },
+          totalCount: 12,
+        }}
       />,
     )
 

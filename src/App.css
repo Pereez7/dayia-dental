@@ -3805,6 +3805,46 @@
   overflow-x: auto;
 }
 
+.platform-clinics-list {
+  display: grid;
+  min-width: 0;
+}
+
+.platform-clinics-pagination {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1px solid var(--color-border);
+  padding: 12px;
+}
+
+.platform-clinics-pagination p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.platform-clinics-pagination p strong {
+  color: var(--color-heading);
+}
+
+.platform-clinics-pagination nav,
+.platform-detail-feedback-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.platform-clinics-pagination nav > span {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 650;
+  white-space: nowrap;
+}
+
 .platform-clinics-table {
   width: 100%;
   border-collapse: collapse;
@@ -5112,7 +5152,7 @@
   padding: 12px;
 }
 
-.subscription-payment-history .subscription-history-range {
+.subscription-history-range {
   margin: 0;
   color: var(--color-text-muted);
   font-size: var(--text-xs);
@@ -5200,7 +5240,7 @@
 }
 
 .subscription-pagination-mobile-label {
-  display: none;
+  display: inline;
   color: var(--color-text-muted);
   font-size: var(--text-xs);
   font-weight: 650;
@@ -5208,6 +5248,17 @@
 }
 
 @media (max-width: 560px) {
+  .platform-clinics-pagination {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+    padding-inline: 10px;
+  }
+
+  .platform-clinics-pagination nav {
+    justify-content: space-between;
+  }
+
   .subscription-history-footer {
     align-items: stretch;
     flex-direction: column;
@@ -5225,7 +5276,6 @@
   }
 
   .subscription-pagination-mobile-label {
-    display: inline;
     align-self: center;
   }
 

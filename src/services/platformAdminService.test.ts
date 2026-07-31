@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   correctPlatformClinicOwnerEmailWithClient,
   createPlatformClinicWithClient,
+  getPlatformClinicBillingWithClient,
   invokeSubscriptionActionWithClient,
   listPlatformClinicsWithClient,
   mapPlatformClinicSummary,
@@ -22,11 +23,13 @@ const clinicResponse = {
   graceEndsAt: '2099-08-06T10:00:00.000Z',
   isLifetime: false,
   lastPaymentAt: null,
+  latestRegisteredPaymentId: null,
   monthlyPrice: null,
   founderMonthlyPrice: null,
   planMonthlyPrices: {},
   planFounderMonthlyPrices: {},
   priceTier: 'standard' as const,
+  registeredLifetimePayment: null,
   customMonthlyPrice: null,
   founderPriceLocked: false,
   scheduledPlanId: null,
@@ -40,8 +43,33 @@ const clinicResponse = {
   paymentStatus: 'trial',
   payments: [],
   paymentSubmissions: [],
+  pendingPaymentSubmissionsCount: 0,
   subscriptionStatus: 'trialing' as const,
   trialEndsAt: '2099-07-16T10:00:00.000Z',
+}
+
+const clinicListResponse = {
+  activeMembersCount: clinicResponse.activeMembersCount,
+  clinicId: clinicResponse.clinicId,
+  clinicName: clinicResponse.clinicName,
+  clinicStatus: clinicResponse.clinicStatus,
+  createdAt: clinicResponse.createdAt,
+  ownerEmail: clinicResponse.ownerEmail,
+  ownerInvitationSentAt: clinicResponse.ownerInvitationSentAt,
+  ownerMembershipStatus: clinicResponse.ownerMembershipStatus,
+  ownerName: clinicResponse.ownerName,
+  pendingPaymentSubmissionsCount:
+    clinicResponse.pendingPaymentSubmissionsCount,
+  planId: clinicResponse.planId,
+  planName: clinicResponse.planName,
+  subscriptionStatus: clinicResponse.subscriptionStatus,
+}
+
+const clinicPageInfo = {
+  hasNextPage: false,
+  limit: 10,
+  nextCursor: null,
+  totalCount: 1,
 }
 
 function createClient(
@@ -222,28 +250,150 @@ describe('platform admin service', () => {
 
   it('loads clinics and sends the current JWT', async () => {
     const client = createClient({
-      data: { clinics: [clinicResponse] },
+      data: {
+        clinics: [clinicListResponse],
+        pageInfo: clinicPageInfo,
+      },
       error: null,
     })
 
     const result = await listPlatformClinicsWithClient(client)
 
     expect(result.error).toBeNull()
-    expect(result.data).toEqual([
-      {
-        ...clinicResponse,
-        clinicName: 'Clínica Central',
-        ownerEmail: 'owner@clinic.test',
-        ownerName: 'Dra. Ana',
-      },
-    ])
+    expect(result.data).toEqual({
+      clinics: [
+        {
+          ...clinicListResponse,
+          clinicName: 'Clínica Central',
+          ownerEmail: 'owner@clinic.test',
+          ownerName: 'Dra. Ana',
+        },
+      ],
+      pageInfo: clinicPageInfo,
+    })
+    expect(result.data?.clinics[0]).not.toHaveProperty('payments')
+    expect(result.data?.clinics[0]).not.toHaveProperty('paymentSubmissions')
     expect(client.functions.invoke).toHaveBeenCalledWith(
       'list-platform-clinics',
       {
+        body: {},
         headers: { Authorization: 'Bearer valid-token' },
         method: 'POST',
       },
     )
+  })
+
+  it('keeps the stable cursor when new clinics appear during navigation', async () => {
+    const cursor = {
+      createdAt: '2026-07-20T10:00:00.000Z',
+      id: '59df9ac5-b22a-47c4-9078-983f286b2d75',
+    }
+    const client = createClient({
+      data: {
+        clinics: [clinicListResponse],
+        pageInfo: {
+          hasNextPage: true,
+          limit: 10,
+          nextCursor: {
+            createdAt: '2026-07-10T10:00:00.000Z',
+            id: '69df9ac5-b22a-47c4-9078-983f286b2d75',
+          },
+          totalCount: 21,
+        },
+      },
+      error: null,
+    })
+
+    await listPlatformClinicsWithClient(client, {
+      cursor,
+      limit: 10,
+    })
+
+    expect(client.functions.invoke).toHaveBeenCalledWith(
+      'list-platform-clinics',
+      {
+        body: { cursor, limit: 10 },
+        headers: { Authorization: 'Bearer valid-token' },
+        method: 'POST',
+      },
+    )
+  })
+
+  it('returns a visible error when the clinic list request cannot connect', async () => {
+    const client = createClient({ data: null, error: null })
+    client.functions.invoke.mockRejectedValueOnce(new Error('Network failure'))
+
+    await expect(listPlatformClinicsWithClient(client)).resolves.toEqual({
+      data: null,
+      error:
+        'No pudimos comunicarnos con el servicio de consultorios. Intenta nuevamente.',
+    })
+  })
+
+  it('loads only one bounded commercial page when opening a clinic', async () => {
+    const response = {
+      clinic: clinicResponse,
+      paymentPageInfo: {
+        hasNextPage: true,
+        limit: 5,
+        nextCursor: {
+          createdAt: '2026-07-20T10:00:00.000Z',
+          id: '79df9ac5-b22a-47c4-9078-983f286b2d75',
+          paidAt: '2026-07-20T10:00:00.000Z',
+        },
+        totalCount: 18,
+      },
+      submissionPageInfo: {
+        hasNextPage: false,
+        limit: 5,
+        nextCursor: null,
+        totalCount: 2,
+      },
+    }
+    const client = createClient({ data: response, error: null })
+    const input = {
+      clinicId: '59df9ac5-b22a-47c4-9078-983f286b2d75',
+      paymentLimit: 5,
+      submissionLimit: 5,
+    }
+
+    await expect(
+      getPlatformClinicBillingWithClient(client, input),
+    ).resolves.toEqual({
+      data: {
+        ...response,
+        clinic: {
+          ...clinicResponse,
+          clinicName: 'Clínica Central',
+          ownerEmail: 'owner@clinic.test',
+          ownerName: 'Dra. Ana',
+        },
+      },
+      error: null,
+    })
+    expect(client.functions.invoke).toHaveBeenCalledWith(
+      'get-platform-clinic-billing',
+      {
+        body: input,
+        headers: { Authorization: 'Bearer valid-token' },
+        method: 'POST',
+      },
+    )
+  })
+
+  it('returns a visible error when the commercial detail request cannot connect', async () => {
+    const client = createClient({ data: null, error: null })
+    client.functions.invoke.mockRejectedValueOnce(new Error('Network failure'))
+
+    await expect(
+      getPlatformClinicBillingWithClient(client, {
+        clinicId: '59df9ac5-b22a-47c4-9078-983f286b2d75',
+      }),
+    ).resolves.toEqual({
+      data: null,
+      error:
+        'No pudimos comunicarnos con la gestión del consultorio. Intenta nuevamente.',
+    })
   })
 
   it('resends a pending owner invitation through the protected Function', async () => {
@@ -355,10 +505,25 @@ describe('platform admin service', () => {
   })
 
   it('keeps an empty response as a successful empty list', async () => {
-    const client = createClient({ data: { clinics: [] }, error: null })
+    const client = createClient({
+      data: {
+        clinics: [],
+        pageInfo: {
+          ...clinicPageInfo,
+          totalCount: 0,
+        },
+      },
+      error: null,
+    })
 
     await expect(listPlatformClinicsWithClient(client)).resolves.toEqual({
-      data: [],
+      data: {
+        clinics: [],
+        pageInfo: {
+          ...clinicPageInfo,
+          totalCount: 0,
+        },
+      },
       error: null,
     })
   })
@@ -429,7 +594,8 @@ describe('platform admin service', () => {
       ownerEmail: 'owner@example.com',
       ownerName: 'Dra. Andrea',
       planId: 'basic' as const,
-      priceTier: 'standard' as const,
+  priceTier: 'standard' as const,
+  registeredLifetimePayment: null,
     }
 
     await expect(createPlatformClinicWithClient(client, input)).resolves.toEqual({

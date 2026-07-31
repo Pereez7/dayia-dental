@@ -362,15 +362,18 @@ sigue siendo valido y no requiere agregar usuarios. Mas detalle vive en
 La Edge Function `list-platform-clinics` implementa la primera lectura real de
 `Administración DayIA`. Valida el JWT y exige
 `profiles.is_platform_admin = true`; solo entonces usa `service_role` dentro de
-la Function para leer `clinics`, `clinic_subscriptions`, `plans`,
-`clinic_memberships` y los perfiles de propietarios activos.
+la Function para ejecutar una página estable y acotada de resúmenes.
 
 El contrato no incluye información clínica. Devuelve nombre, estado y fecha del
 consultorio, plan y suscripción, propietario, email y cantidad de miembros
-activos. La migración `012_clinics_status.sql` agrega el estado administrativo
-nullable. Las filas legacy usan suscripción activa como fallback a `active` y
-en otro caso quedan `pending_activation`, sin inferir nada desde pacientes,
-citas u otra actividad.
+activos, además del contador de solicitudes pendientes. Los pagos y solicitudes
+individuales se obtienen solamente para el consultorio seleccionado mediante
+`get-platform-clinic-billing`, con páginas independientes. La migración
+`031_platform_admin_server_pagination.sql` agrega los cursores, índices y la
+aplicación por lote de planes programados. La migración
+`012_clinics_status.sql` agrega el estado administrativo nullable. Las filas
+legacy usan suscripción activa como fallback a `active` y en otro caso quedan
+`pending_activation`, sin inferir nada desde pacientes, citas u otra actividad.
 
 `create-platform-clinic` ejecuta el alta administrativa cuando el feature flag
 del servidor lo permite. Valida primero JWT y

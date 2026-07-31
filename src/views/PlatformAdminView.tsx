@@ -10,17 +10,26 @@ import { Toast, type ToastTone } from '../components/Toast'
 import {
   correctPlatformClinicOwnerEmail,
   createPlatformClinic,
+  getPlatformClinicBilling,
   listPlatformClinics,
   resendPlatformClinicInvitation,
   type CorrectPlatformClinicOwnerEmailServiceResult,
   type CreatePlatformClinicServiceResult,
   type PlatformAdminServiceResult,
+  type PlatformClinicBillingServiceResult,
   type ResendPlatformClinicInvitationServiceResult,
 } from '../services/platformAdminService'
 import type {
   CorrectPlatformClinicOwnerEmailInput,
   CreatePlatformClinicInput,
-  PlatformClinicSummary,
+  GetPlatformClinicBillingInput,
+  GetPlatformClinicBillingResponse,
+  ListPlatformClinicsInput,
+  PlatformClinicCursor,
+  PlatformClinicListItem,
+  PlatformPageInfo,
+  PlatformPaymentCursor,
+  PlatformSubmissionCursor,
 } from '../types/platform'
 import {
   getPlatformClinicStatusLabel,
@@ -40,7 +49,12 @@ interface PlatformAdminViewProps {
   createClinic?: (
     input: CreatePlatformClinicInput,
   ) => Promise<CreatePlatformClinicServiceResult>
-  loadClinics?: () => Promise<PlatformAdminServiceResult>
+  loadClinicBilling?: (
+    input: GetPlatformClinicBillingInput,
+  ) => Promise<PlatformClinicBillingServiceResult>
+  loadClinics?: (
+    input?: ListPlatformClinicsInput,
+  ) => Promise<PlatformAdminServiceResult>
   resendInvitation?: (
     clinicId: string,
   ) => Promise<ResendPlatformClinicInvitationServiceResult>
@@ -48,7 +62,7 @@ interface PlatformAdminViewProps {
 
 interface PlatformClinicsContentProps {
   correctingClinicId?: string | null
-  clinics: PlatformClinicSummary[]
+  clinics: PlatformClinicListItem[]
   errorMessage: string
   invitationNotices?: Record<string, PlatformInvitationNotice>
   isLoading: boolean
@@ -59,19 +73,40 @@ interface PlatformClinicsContentProps {
   onResendInvitation?: (clinicId: string) => void
   onRetry?: () => void
   onManage?: (clinicId: string) => void
+  onNextPage?: () => void
+  onPreviousPage?: () => void
+  page?: number
+  pageInfo?: PlatformPageInfo<PlatformClinicCursor>
   resendingClinicId?: string | null
+}
+
+const PLATFORM_CLINICS_PAGE_SIZE = 10
+const EMPTY_CLINIC_PAGE_INFO: PlatformPageInfo<PlatformClinicCursor> = {
+  hasNextPage: false,
+  limit: PLATFORM_CLINICS_PAGE_SIZE,
+  nextCursor: null,
+  totalCount: 0,
 }
 
 export function PlatformAdminView({
   canAccessPlatformAdmin,
   correctOwnerEmail = correctPlatformClinicOwnerEmail,
   createClinic = createPlatformClinic,
+  loadClinicBilling = getPlatformClinicBilling,
   loadClinics = listPlatformClinics,
   resendInvitation = resendPlatformClinicInvitation,
 }: PlatformAdminViewProps) {
   const correctOwnerEmailLock = useRef<string | null>(null)
   const resendInvitationLock = useRef<string | null>(null)
-  const [clinics, setClinics] = useState<PlatformClinicSummary[]>([])
+  const selectedBillingRequestId = useRef(0)
+  const [clinics, setClinics] = useState<PlatformClinicListItem[]>([])
+  const [clinicPageCursors, setClinicPageCursors] = useState<
+    Array<PlatformClinicCursor | null>
+  >([null])
+  const [clinicPageIndex, setClinicPageIndex] = useState(0)
+  const [clinicPageInfo, setClinicPageInfo] = useState(
+    EMPTY_CLINIC_PAGE_INFO,
+  )
   const [errorMessage, setErrorMessage] = useState('')
   const [invitationNotices, setInvitationNotices] = useState<
     Record<string, PlatformInvitationNotice>
@@ -86,6 +121,19 @@ export function PlatformAdminView({
     null,
   )
   const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null)
+  const [selectedBilling, setSelectedBilling] =
+    useState<GetPlatformClinicBillingResponse | null>(null)
+  const [selectedBillingError, setSelectedBillingError] = useState('')
+  const [isSelectedBillingLoading, setIsSelectedBillingLoading] =
+    useState(false)
+  const [paymentPageCursors, setPaymentPageCursors] = useState<
+    Array<PlatformPaymentCursor | null>
+  >([null])
+  const [paymentPageIndex, setPaymentPageIndex] = useState(0)
+  const [submissionPageCursors, setSubmissionPageCursors] = useState<
+    Array<PlatformSubmissionCursor | null>
+  >([null])
+  const [submissionPageIndex, setSubmissionPageIndex] = useState(0)
   const [toastMessage, setToastMessage] = useState('')
   const [toastTone, setToastTone] = useState<ToastTone>('success')
   const [isToastVisible, setIsToastVisible] = useState(false)
@@ -99,28 +147,55 @@ export function PlatformAdminView({
     [],
   )
 
+  const applyClinicPage = useCallback(
+    (result: NonNullable<PlatformAdminServiceResult['data']>) => {
+      setClinics(result.clinics)
+      setClinicPageInfo(result.pageInfo)
+      setErrorMessage('')
+    },
+    [],
+  )
+
   const loadPlatformClinics = useCallback(async () => {
     setIsLoading(true)
     setErrorMessage('')
 
-    const result = await loadClinics()
-
-    setClinics(result.data ?? [])
-    setErrorMessage(result.error ?? '')
-    setIsLoading(false)
-  }, [loadClinics])
-
-  const refreshPlatformClinicsSilently = useCallback(async () => {
-    const result = await loadClinics()
+    const result = await loadClinics({
+      cursor: clinicPageCursors[clinicPageIndex] ?? null,
+      limit: PLATFORM_CLINICS_PAGE_SIZE,
+    })
 
     if (result.data) {
-      setClinics(result.data)
-      setErrorMessage('')
+      applyClinicPage(result.data)
+    } else {
+      setErrorMessage(result.error ?? 'No pudimos cargar los consultorios.')
     }
-  }, [loadClinics])
+    setIsLoading(false)
+  }, [
+    applyClinicPage,
+    clinicPageCursors,
+    clinicPageIndex,
+    loadClinics,
+  ])
+
+  const refreshPlatformClinicsSilently = useCallback(async () => {
+    const result = await loadClinics({
+      cursor: clinicPageCursors[clinicPageIndex] ?? null,
+      limit: PLATFORM_CLINICS_PAGE_SIZE,
+    })
+
+    if (result.data) {
+      applyClinicPage(result.data)
+    }
+  }, [
+    applyClinicPage,
+    clinicPageCursors,
+    clinicPageIndex,
+    loadClinics,
+  ])
 
   const refreshCreatedClinicList = useCallback(async () => {
-    const result = await loadClinics()
+    const result = await loadClinics({ limit: PLATFORM_CLINICS_PAGE_SIZE })
 
     if (result.error || !result.data) {
       throw new Error(
@@ -128,9 +203,69 @@ export function PlatformAdminView({
       )
     }
 
-    setClinics(result.data)
-    setErrorMessage('')
-  }, [loadClinics])
+    applyClinicPage(result.data)
+    setClinicPageCursors([null])
+    setClinicPageIndex(0)
+  }, [applyClinicPage, loadClinics])
+
+  const handleNextClinicPage = useCallback(async () => {
+    const nextCursor = clinicPageInfo.nextCursor
+
+    if (!nextCursor || isLoading) return
+
+    setIsLoading(true)
+    const result = await loadClinics({
+      cursor: nextCursor,
+      limit: PLATFORM_CLINICS_PAGE_SIZE,
+    })
+
+    if (result.data) {
+      applyClinicPage(result.data)
+      setClinicPageCursors((current) => [
+        ...current.slice(0, clinicPageIndex + 1),
+        nextCursor,
+      ])
+      setClinicPageIndex((current) => current + 1)
+    } else {
+      setErrorMessage(result.error ?? 'No pudimos cargar la página siguiente.')
+    }
+    setIsLoading(false)
+  }, [
+    applyClinicPage,
+    clinicPageIndex,
+    clinicPageInfo.nextCursor,
+    isLoading,
+    loadClinics,
+  ])
+
+  const handlePreviousClinicPage = useCallback(async () => {
+    if (clinicPageIndex === 0 || isLoading) return
+
+    const previousIndex = clinicPageIndex - 1
+    const previousCursor = clinicPageCursors[previousIndex] ?? null
+    setIsLoading(true)
+    const result = await loadClinics({
+      cursor: previousCursor,
+      limit: PLATFORM_CLINICS_PAGE_SIZE,
+    })
+
+    if (result.data) {
+      applyClinicPage(result.data)
+      setClinicPageCursors((current) =>
+        current.slice(0, previousIndex + 1)
+      )
+      setClinicPageIndex(previousIndex)
+    } else {
+      setErrorMessage(result.error ?? 'No pudimos cargar la página anterior.')
+    }
+    setIsLoading(false)
+  }, [
+    applyClinicPage,
+    clinicPageCursors,
+    clinicPageIndex,
+    isLoading,
+    loadClinics,
+  ])
 
   const createClinicAndRefresh = useCallback(
     (input: CreatePlatformClinicInput) =>
@@ -158,6 +293,227 @@ export function PlatformAdminView({
     },
     [refreshCreatedClinicList],
   )
+
+  const loadSelectedClinicBilling = useCallback(
+    async (
+      input: GetPlatformClinicBillingInput,
+      options: { resetPayment?: boolean; resetSubmission?: boolean } = {},
+    ) => {
+      const requestId = selectedBillingRequestId.current + 1
+      selectedBillingRequestId.current = requestId
+      setIsSelectedBillingLoading(true)
+      setSelectedBillingError('')
+
+      try {
+        const result = await loadClinicBilling(input)
+
+        if (requestId !== selectedBillingRequestId.current) {
+          return result
+        }
+
+        if (result.data) {
+          setSelectedBilling(result.data)
+          if (options.resetPayment) {
+            setPaymentPageCursors([null])
+            setPaymentPageIndex(0)
+          }
+          if (options.resetSubmission) {
+            setSubmissionPageCursors([null])
+            setSubmissionPageIndex(0)
+          }
+        } else {
+          setSelectedBillingError(
+            result.error ?? 'No pudimos cargar la gestión del consultorio.',
+          )
+        }
+
+        return result
+      } catch {
+        const result = {
+          data: null,
+          error:
+            'No pudimos comunicarnos con la gestión del consultorio. Intenta nuevamente.',
+        }
+
+        if (requestId === selectedBillingRequestId.current) {
+          setSelectedBillingError(result.error)
+        }
+
+        return result
+      } finally {
+        if (requestId === selectedBillingRequestId.current) {
+          setIsSelectedBillingLoading(false)
+        }
+      }
+    },
+    [loadClinicBilling],
+  )
+
+  const handleManageClinic = useCallback(
+    (clinicId: string) => {
+      setSelectedClinicId(clinicId)
+      setSelectedBilling(null)
+      setPaymentPageCursors([null])
+      setPaymentPageIndex(0)
+      setSubmissionPageCursors([null])
+      setSubmissionPageIndex(0)
+      void loadSelectedClinicBilling(
+        { clinicId },
+        { resetPayment: true, resetSubmission: true },
+      )
+    },
+    [loadSelectedClinicBilling],
+  )
+
+  const closeSelectedClinic = useCallback(() => {
+    selectedBillingRequestId.current += 1
+    setSelectedClinicId(null)
+    setSelectedBilling(null)
+    setSelectedBillingError('')
+    setIsSelectedBillingLoading(false)
+    setPaymentPageCursors([null])
+    setPaymentPageIndex(0)
+    setSubmissionPageCursors([null])
+    setSubmissionPageIndex(0)
+  }, [])
+
+  const handleNextPaymentPage = useCallback(async () => {
+    const nextCursor = selectedBilling?.paymentPageInfo.nextCursor
+
+    if (!selectedClinicId || !nextCursor || isSelectedBillingLoading) return
+
+    const result = await loadSelectedClinicBilling({
+      clinicId: selectedClinicId,
+      paymentCursor: nextCursor,
+      submissionCursor:
+        submissionPageCursors[submissionPageIndex] ?? null,
+    })
+
+    if (result.data) {
+      setPaymentPageCursors((current) => [
+        ...current.slice(0, paymentPageIndex + 1),
+        nextCursor,
+      ])
+      setPaymentPageIndex((current) => current + 1)
+    }
+  }, [
+    isSelectedBillingLoading,
+    loadSelectedClinicBilling,
+    paymentPageIndex,
+    selectedBilling?.paymentPageInfo.nextCursor,
+    selectedClinicId,
+    submissionPageCursors,
+    submissionPageIndex,
+  ])
+
+  const handlePreviousPaymentPage = useCallback(async () => {
+    if (
+      !selectedClinicId ||
+      paymentPageIndex === 0 ||
+      isSelectedBillingLoading
+    ) {
+      return
+    }
+
+    const previousIndex = paymentPageIndex - 1
+    const result = await loadSelectedClinicBilling({
+      clinicId: selectedClinicId,
+      paymentCursor: paymentPageCursors[previousIndex] ?? null,
+      submissionCursor:
+        submissionPageCursors[submissionPageIndex] ?? null,
+    })
+
+    if (result.data) {
+      setPaymentPageCursors((current) =>
+        current.slice(0, previousIndex + 1)
+      )
+      setPaymentPageIndex(previousIndex)
+    }
+  }, [
+    isSelectedBillingLoading,
+    loadSelectedClinicBilling,
+    paymentPageCursors,
+    paymentPageIndex,
+    selectedClinicId,
+    submissionPageCursors,
+    submissionPageIndex,
+  ])
+
+  const handleNextSubmissionPage = useCallback(async () => {
+    const nextCursor = selectedBilling?.submissionPageInfo.nextCursor
+
+    if (!selectedClinicId || !nextCursor || isSelectedBillingLoading) return
+
+    const result = await loadSelectedClinicBilling({
+      clinicId: selectedClinicId,
+      paymentCursor: paymentPageCursors[paymentPageIndex] ?? null,
+      submissionCursor: nextCursor,
+    })
+
+    if (result.data) {
+      setSubmissionPageCursors((current) => [
+        ...current.slice(0, submissionPageIndex + 1),
+        nextCursor,
+      ])
+      setSubmissionPageIndex((current) => current + 1)
+    }
+  }, [
+    isSelectedBillingLoading,
+    loadSelectedClinicBilling,
+    paymentPageCursors,
+    paymentPageIndex,
+    selectedBilling?.submissionPageInfo.nextCursor,
+    selectedClinicId,
+    submissionPageIndex,
+  ])
+
+  const handlePreviousSubmissionPage = useCallback(async () => {
+    if (
+      !selectedClinicId ||
+      submissionPageIndex === 0 ||
+      isSelectedBillingLoading
+    ) {
+      return
+    }
+
+    const previousIndex = submissionPageIndex - 1
+    const result = await loadSelectedClinicBilling({
+      clinicId: selectedClinicId,
+      paymentCursor: paymentPageCursors[paymentPageIndex] ?? null,
+      submissionCursor: submissionPageCursors[previousIndex] ?? null,
+    })
+
+    if (result.data) {
+      setSubmissionPageCursors((current) =>
+        current.slice(0, previousIndex + 1)
+      )
+      setSubmissionPageIndex(previousIndex)
+    }
+  }, [
+    isSelectedBillingLoading,
+    loadSelectedClinicBilling,
+    paymentPageCursors,
+    paymentPageIndex,
+    selectedClinicId,
+    submissionPageCursors,
+    submissionPageIndex,
+  ])
+
+  const refreshSelectedClinic = useCallback(async () => {
+    if (!selectedClinicId) return
+
+    await Promise.all([
+      loadSelectedClinicBilling(
+        { clinicId: selectedClinicId },
+        { resetPayment: true, resetSubmission: true },
+      ),
+      refreshPlatformClinicsSilently(),
+    ])
+  }, [
+    loadSelectedClinicBilling,
+    refreshPlatformClinicsSilently,
+    selectedClinicId,
+  ])
 
   const handleResendInvitation = useCallback(
     async (clinicId: string) => {
@@ -277,20 +633,23 @@ export function PlatformAdminView({
 
     let isCurrent = true
 
-    void loadClinics().then((result) => {
+    void loadClinics({ limit: PLATFORM_CLINICS_PAGE_SIZE }).then((result) => {
       if (!isCurrent) {
         return
       }
 
-      setClinics(result.data ?? [])
-      setErrorMessage(result.error ?? '')
+      if (result.data) {
+        applyClinicPage(result.data)
+      } else {
+        setErrorMessage(result.error ?? 'No pudimos cargar los consultorios.')
+      }
       setIsLoading(false)
     })
 
     return () => {
       isCurrent = false
     }
-  }, [canAccessPlatformAdmin, loadClinics])
+  }, [applyClinicPage, canAccessPlatformAdmin, loadClinics])
 
   useEffect(() => {
     if (!canAccessPlatformAdmin) return
@@ -319,7 +678,6 @@ export function PlatformAdminView({
     )
   }
 
-  const selectedClinic = clinics.find(({ clinicId }) => clinicId === selectedClinicId)
   const pendingPaymentsCount = clinics.reduce(
     (total, clinic) => total + getPendingPaymentCount(clinic),
     0,
@@ -348,17 +706,71 @@ export function PlatformAdminView({
           onCorrectOwnerEmail={handleCorrectOwnerEmail}
           onResendInvitation={handleResendInvitation}
           onRetry={loadPlatformClinics}
-          onManage={setSelectedClinicId}
+          onManage={handleManageClinic}
+          onNextPage={handleNextClinicPage}
+          onPreviousPage={handlePreviousClinicPage}
+          page={clinicPageIndex + 1}
+          pageInfo={clinicPageInfo}
           resendingClinicId={resendingClinicId}
         />
       </section>
 
-      {selectedClinic ? (
+      {selectedClinicId && isSelectedBillingLoading && !selectedBilling ? (
+        <section
+          aria-label="Cargando gestión del consultorio"
+          className="administration-panel platform-clinics-feedback"
+          role="status"
+        >
+          <strong>Cargando gestión comercial…</strong>
+          <p>Estamos consultando únicamente el detalle de este consultorio.</p>
+        </section>
+      ) : null}
+
+      {selectedClinicId && selectedBillingError && !selectedBilling ? (
+        <section
+          className="administration-panel platform-clinics-feedback"
+          role="alert"
+        >
+          <strong>No se pudo cargar la gestión</strong>
+          <p>{selectedBillingError}</p>
+          <div className="platform-detail-feedback-actions">
+            <button
+              className="secondary-action"
+              onClick={() =>
+                void loadSelectedClinicBilling({ clinicId: selectedClinicId })
+              }
+              type="button"
+            >
+              Reintentar
+            </button>
+            <button
+              className="secondary-action"
+              onClick={closeSelectedClinic}
+              type="button"
+            >
+              Cerrar
+            </button>
+          </div>
+        </section>
+      ) : null}
+
+      {selectedBilling ? (
         <SubscriptionAdministration
-          clinic={selectedClinic}
-          key={selectedClinic.clinicId}
-          onClose={() => setSelectedClinicId(null)}
-          onUpdated={loadPlatformClinics}
+          clinic={selectedBilling.clinic}
+          isPageLoading={isSelectedBillingLoading}
+          key={selectedBilling.clinic.clinicId}
+          paymentPage={paymentPageIndex + 1}
+          paymentPageInfo={selectedBilling.paymentPageInfo}
+          submissionPage={submissionPageIndex + 1}
+          submissionPageInfo={selectedBilling.submissionPageInfo}
+          onClose={closeSelectedClinic}
+          onNextPaymentPage={() => void handleNextPaymentPage()}
+          onNextSubmissionPage={() => void handleNextSubmissionPage()}
+          onPreviousPaymentPage={() => void handlePreviousPaymentPage()}
+          onPreviousSubmissionPage={() =>
+            void handlePreviousSubmissionPage()
+          }
+          onUpdated={refreshSelectedClinic}
         />
       ) : null}
 
@@ -382,7 +794,9 @@ export function PlatformPaymentOverview({ count }: { count: number }) {
   return (
     <span className="platform-payment-overview" role="status">
       <strong>{count}</strong>
-      {count === 1 ? 'pago por revisar' : 'pagos por revisar'}
+      {count === 1
+        ? 'pago por revisar en esta página'
+        : 'pagos por revisar en esta página'}
     </span>
   )
 }
@@ -397,6 +811,10 @@ export function PlatformClinicsContent({
   onResendInvitation,
   onRetry,
   onManage,
+  onNextPage,
+  onPreviousPage,
+  page = 1,
+  pageInfo = EMPTY_CLINIC_PAGE_INFO,
   resendingClinicId = null,
 }: PlatformClinicsContentProps) {
   if (isLoading) {
@@ -442,8 +860,9 @@ export function PlatformClinicsContent({
   }
 
   return (
-    <div className="platform-clinics-table-wrap">
-      <table className="platform-clinics-table">
+    <div className="platform-clinics-list">
+      <div className="platform-clinics-table-wrap">
+        <table className="platform-clinics-table">
         <thead>
           <tr>
             <th scope="col">Consultorio</th>
@@ -563,15 +982,74 @@ export function PlatformClinicsContent({
             )
           })}
         </tbody>
-      </table>
+        </table>
+      </div>
+      <PlatformClinicListPagination
+        itemCount={clinics.length}
+        page={page}
+        pageInfo={pageInfo}
+        onNext={onNextPage}
+        onPrevious={onPreviousPage}
+      />
     </div>
   )
 }
 
-function getPendingPaymentCount(clinic: PlatformClinicSummary) {
-  return clinic.paymentSubmissions.filter(
-    ({ status }) => status === 'pending_review',
-  ).length
+export function PlatformClinicListPagination({
+  itemCount,
+  onNext,
+  onPrevious,
+  page,
+  pageInfo,
+}: {
+  itemCount: number
+  onNext?: () => void
+  onPrevious?: () => void
+  page: number
+  pageInfo: PlatformPageInfo<PlatformClinicCursor>
+}) {
+  if (pageInfo.totalCount <= pageInfo.limit && page === 1) return null
+
+  const start = (page - 1) * pageInfo.limit + 1
+  const end = start + Math.max(0, itemCount - 1)
+  const pageCount = Math.max(
+    1,
+    Math.ceil(pageInfo.totalCount / pageInfo.limit),
+  )
+
+  return (
+    <div className="platform-clinics-pagination">
+      <p aria-live="polite">
+        Mostrando <strong>{start}–{end}</strong> de{' '}
+        <strong>{pageInfo.totalCount}</strong> consultorios
+      </p>
+      <nav aria-label="Paginación de consultorios">
+        <button
+          className="subscription-pagination-direction"
+          disabled={page === 1}
+          onClick={onPrevious}
+          type="button"
+        >
+          Anterior
+        </button>
+        <span>
+          Página {page} de {pageCount}
+        </span>
+        <button
+          className="subscription-pagination-direction"
+          disabled={!pageInfo.hasNextPage}
+          onClick={onNext}
+          type="button"
+        >
+          Siguiente
+        </button>
+      </nav>
+    </div>
+  )
+}
+
+function getPendingPaymentCount(clinic: PlatformClinicListItem) {
+  return clinic.pendingPaymentSubmissionsCount
 }
 
 function formatPlatformDate(value: string) {

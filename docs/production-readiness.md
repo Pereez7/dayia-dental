@@ -47,9 +47,10 @@ separación de dependencias compartidas.
   `027_membership_rls_hardening.sql` y
   `028_clinic_membership_lifecycle.sql` y
   `029_transactional_business_hours.sql` y
-  `030_platform_owner_email_correction.sql` en producción. Staging ya pasó las
+  `030_platform_owner_email_correction.sql` y
+  `031_platform_admin_server_pagination.sql` en producción. Staging ya pasó las
   pruebas de aislamiento, ciclo reversible de usuarios, guardado semanal
-  transaccional y permisos de corrección del propietario pendiente.
+  transaccional, corrección del propietario y paginación administrativa.
 - Backups probados, restauración, monitoreo, alertas y trazabilidad de incidentes.
 - Revisión legal y de seguridad para datos clínicos del país de operación.
 - Dominio productivo con TLS, headers de seguridad y fallback SPA configurado.
@@ -97,7 +98,8 @@ Function devuelve un resultado `prepared`. No configurar tokens productivos.
 
 | Function | Requerida | Observación |
 | --- | --- | --- |
-| `list-platform-clinics` | Sí para Platform Admin | Solo resumen administrativo |
+| `list-platform-clinics` | Sí para Platform Admin | Resumen paginado y contadores; no incluye historiales |
+| `get-platform-clinic-billing` | Sí para Platform Admin | Detalle comercial bajo demanda con pagos y solicitudes paginados |
 | `register-subscription-payment` | Sí para cobros | Registro confirmado por Platform Admin |
 | `reject-subscription-payment-submission` | Sí para rechazos | Motivo obligatorio y auditoría sin modificar vigencia |
 | `void-subscription-payment` | Sí para anulaciones | Anulación lógica con motivo |
@@ -136,7 +138,7 @@ La ausencia de `WHATSAPP_SEND_ENABLED` mantiene el dry-run por defecto.
 
 ## Migraciones
 
-Aplicar y verificar `001` a `030` en orden. `003_initial_clinic_setup_template`
+Aplicar y verificar `001` a `031` en orden. `003_initial_clinic_setup_template`
 es una plantilla de referencia. La lista completa está en
 `docs/supabase-setup.md`.
 
@@ -154,6 +156,14 @@ tabla de auditoría y la RPC existen, `service_role` puede ejecutarla,
 `authenticated` no puede hacerlo y el historial remoto quedó alineado de
 `001` a `030`. También quedaron activas `create-platform-clinic` versión 7 y
 `correct-platform-clinic-owner-email` versión 1, ambas con JWT obligatorio.
+
+Ese mismo día se aplicó `031` únicamente en staging y el historial remoto quedó
+alineado de `001` a `031`. Su prueba pgTAP remota supera 10 controles con
+rollback. `list-platform-clinics` fue reemplazada por la versión paginada y
+`get-platform-clinic-billing` quedó desplegada para cargar el detalle comercial
+bajo demanda. El humo autenticado devolvió `200` y confirmó transferencias
+acotadas; la latencia observada de 1.03–2.38 s continúa como deuda explícita
+antes de producción.
 
 ## Redirect URLs
 
@@ -202,11 +212,12 @@ No crear, corregir ni eliminar estos datos automáticamente desde el frontend.
 
 ## Checklist de despliegue
 
-- [x] Confirmar migraciones `001`–`030` en staging.
+- [x] Confirmar migraciones `001`–`031` en staging.
 - [x] Ejecutar las 38 pruebas RLS de `027` y `db lint` en staging.
 - [x] Ejecutar las 16 pruebas de ciclo de usuarios de `028` en staging.
 - [x] Ejecutar las 9 pruebas de guardado de horarios de `029` en staging.
 - [x] Verificar tabla, RPC, permisos e historial de `030` en staging.
+- [x] Ejecutar los 10 controles de paginación y lote de `031` en staging.
 - [ ] Desplegar únicamente las Functions necesarias.
 - [ ] Decidir si se despliega `whatsapp-webhook`; no es necesario para el flujo
   manual y actualmente falta en el remoto.

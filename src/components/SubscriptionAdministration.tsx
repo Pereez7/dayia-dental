@@ -17,6 +17,9 @@ import { isWhatsappPaymentNoticeReference } from '../services/subscriptionPaymen
 import type {
   PlatformClinicPlanId,
   PlatformClinicSummary,
+  PlatformPageInfo,
+  PlatformPaymentCursor,
+  PlatformSubmissionCursor,
   PlatformSubscriptionPayment,
   RegisterSubscriptionPaymentInput,
   UpdateClinicSubscriptionInput,
@@ -38,18 +41,23 @@ import {
   formatNumericInput,
   parseNumericInput,
 } from '../utils/numericInput'
-import {
-  getPaymentHistoryPaginationItems,
-  paginatePaymentHistory,
-} from '../utils/paymentHistoryPagination'
 import { ConfirmDialog } from './ConfirmDialog'
 import { NumericInput } from './NumericInput'
 import { Toast, type ToastTone } from './Toast'
 
 interface SubscriptionAdministrationProps {
   clinic: PlatformClinicSummary
+  isPageLoading?: boolean
   onClose: () => void
+  onNextPaymentPage?: () => void
+  onNextSubmissionPage?: () => void
+  onPreviousPaymentPage?: () => void
+  onPreviousSubmissionPage?: () => void
   onUpdated: () => Promise<void> | void
+  paymentPage?: number
+  paymentPageInfo?: PlatformPageInfo<PlatformPaymentCursor>
+  submissionPage?: number
+  submissionPageInfo?: PlatformPageInfo<PlatformSubmissionCursor>
 }
 
 const cycleLabels: Record<BillingCycle, string> = {
@@ -69,8 +77,17 @@ type PlanChangeReview = {
 
 export function SubscriptionAdministration({
   clinic,
+  isPageLoading = false,
   onClose,
+  onNextPaymentPage,
+  onNextSubmissionPage,
+  onPreviousPaymentPage,
+  onPreviousSubmissionPage,
   onUpdated,
+  paymentPage = 1,
+  paymentPageInfo,
+  submissionPage = 1,
+  submissionPageInfo,
 }: SubscriptionAdministrationProps) {
   const currentPlanId = normalizePlan(clinic.planId)
   const [planId, setPlanId] = useState<PlatformClinicPlanId>(currentPlanId)
@@ -120,7 +137,6 @@ export function SubscriptionAdministration({
     useState<PlatformClinicSummary['paymentSubmissions'][number] | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
   const [rejectionError, setRejectionError] = useState('')
-  const [paymentHistoryPage, setPaymentHistoryPage] = useState(1)
   const submissionLock = useRef(false)
   const customDays =
     parseNumericInput(customDaysInput) ?? Number.NaN
@@ -201,25 +217,29 @@ export function SubscriptionAdministration({
     clinic.currentPeriodEndsAt,
     extraDays,
   )
-  const latestRegisteredPaymentId = clinic.payments.find(
-    (payment) => payment.status === 'registered',
-  )?.id
-  const paymentHistory = paginatePaymentHistory(
-    clinic.payments,
-    paymentHistoryPage,
-  )
-  const paymentHistoryPaginationItems = getPaymentHistoryPaginationItems(
-    paymentHistory.currentPage,
-    paymentHistory.pageCount,
-  )
-  const registeredLifetimePayment = clinic.payments.find(
-    (payment) =>
-      payment.status === 'registered' &&
-      payment.billingCycle === 'lifetime',
-  )
-  const pendingSubmissions = clinic.paymentSubmissions.filter(
-    (submission) => submission.status === 'pending_review',
-  )
+  const latestRegisteredPaymentId =
+    clinic.latestRegisteredPaymentId ??
+    clinic.payments.find((payment) => payment.status === 'registered')?.id
+  const effectivePaymentPageInfo = paymentPageInfo ?? {
+    hasNextPage: false,
+    limit: Math.max(1, clinic.payments.length),
+    nextCursor: null,
+    totalCount: clinic.payments.length,
+  }
+  const effectiveSubmissionPageInfo = submissionPageInfo ?? {
+    hasNextPage: false,
+    limit: Math.max(1, clinic.paymentSubmissions.length),
+    nextCursor: null,
+    totalCount: clinic.paymentSubmissions.length,
+  }
+  const registeredLifetimePayment =
+    clinic.registeredLifetimePayment ??
+    clinic.payments.find(
+      (payment) =>
+        payment.status === 'registered' &&
+        payment.billingCycle === 'lifetime',
+    )
+  const pendingSubmissions = clinic.paymentSubmissions
   const selectedSubmission = clinic.paymentSubmissions.find(
     (submission) => submission.id === selectedSubmissionId,
   )
@@ -336,7 +356,6 @@ export function SubscriptionAdministration({
       setAmountOverride(null)
       setSelectedSubmissionId(null)
       setPaymentRegistrationError('')
-      setPaymentHistoryPage(1)
       showFeedback('Pago registrado y suscripción actualizada.', 'success')
       await onUpdated()
     } catch {
@@ -773,7 +792,9 @@ export function SubscriptionAdministration({
               <h3 id="payment-submissions-title">Avisos pendientes</h3>
               <p>El propietario informó estos pagos. Verifica el comprobante antes de aprobar.</p>
             </div>
-            <span className="subscription-count">{pendingSubmissions.length}</span>
+            <span className="subscription-count">
+              {effectiveSubmissionPageInfo.totalCount}
+            </span>
           </div>
           <div className="subscription-submission-list">
             {pendingSubmissions.map((submission) => {
@@ -830,6 +851,16 @@ export function SubscriptionAdministration({
               )
             })}
           </div>
+          <ServerHistoryPagination
+            ariaLabel="Paginación de avisos de pago"
+            isLoading={isPageLoading}
+            itemCount={pendingSubmissions.length}
+            onNext={onNextSubmissionPage}
+            onPrevious={onPreviousSubmissionPage}
+            page={submissionPage}
+            pageInfo={effectiveSubmissionPageInfo}
+            unit="avisos"
+          />
         </section>
       ) : null}
 
@@ -1054,7 +1085,7 @@ export function SubscriptionAdministration({
             <p>Los pagos anulados permanecen visibles para conservar trazabilidad.</p>
           </div>
         </div>
-        {clinic.payments.length === 0 ? (
+        {effectivePaymentPageInfo.totalCount === 0 ? (
           <div className="subscription-history-empty">
             <strong>Aún no hay pagos registrados</strong>
             <span>El primer registro aparecerá aquí después de confirmarlo.</span>
@@ -1065,7 +1096,7 @@ export function SubscriptionAdministration({
               <table className="platform-clinics-table subscription-history-table">
                 <thead><tr><th>Fecha</th><th>Plan y periodo</th><th>Monto</th><th>Estado</th><th>Registrado por</th><th>Acciones</th></tr></thead>
                 <tbody>
-                  {paymentHistory.items.map((payment) => {
+                  {clinic.payments.map((payment) => {
                     const canVoid =
                       payment.status === 'registered' &&
                       payment.id === latestRegisteredPaymentId
@@ -1103,82 +1134,16 @@ export function SubscriptionAdministration({
               </table>
             </div>
 
-            <div className="subscription-history-footer">
-              <p aria-live="polite" className="subscription-history-range">
-                Mostrando{' '}
-                <strong>
-                  {paymentHistory.startIndex + 1}–{paymentHistory.endIndex}
-                </strong>{' '}
-                de <strong>{paymentHistory.totalItems}</strong> pagos
-              </p>
-
-              {paymentHistory.pageCount > 1 ? (
-                <nav
-                  aria-label="Paginación del historial de pagos"
-                  className="subscription-history-pagination"
-                >
-                  <button
-                    aria-label="Ir a la página anterior"
-                    className="subscription-pagination-direction"
-                    disabled={paymentHistory.currentPage === 1}
-                    onClick={() =>
-                      setPaymentHistoryPage(paymentHistory.currentPage - 1)
-                    }
-                    type="button"
-                  >
-                    Anterior
-                  </button>
-
-                  <div className="subscription-pagination-pages">
-                    {paymentHistoryPaginationItems.map((item) =>
-                      typeof item === 'number' ? (
-                        <button
-                          aria-current={
-                            item === paymentHistory.currentPage
-                              ? 'page'
-                              : undefined
-                          }
-                          aria-label={`Ir a la página ${item}`}
-                          className="subscription-pagination-page"
-                          key={item}
-                          onClick={() => setPaymentHistoryPage(item)}
-                          type="button"
-                        >
-                          {item}
-                        </button>
-                      ) : (
-                        <span
-                          aria-hidden="true"
-                          className="subscription-pagination-ellipsis"
-                          key={item}
-                        >
-                          …
-                        </span>
-                      ),
-                    )}
-                  </div>
-
-                  <span className="subscription-pagination-mobile-label">
-                    Página {paymentHistory.currentPage} de{' '}
-                    {paymentHistory.pageCount}
-                  </span>
-
-                  <button
-                    aria-label="Ir a la página siguiente"
-                    className="subscription-pagination-direction"
-                    disabled={
-                      paymentHistory.currentPage === paymentHistory.pageCount
-                    }
-                    onClick={() =>
-                      setPaymentHistoryPage(paymentHistory.currentPage + 1)
-                    }
-                    type="button"
-                  >
-                    Siguiente
-                  </button>
-                </nav>
-              ) : null}
-            </div>
+            <ServerHistoryPagination
+              ariaLabel="Paginación del historial de pagos"
+              isLoading={isPageLoading}
+              itemCount={clinic.payments.length}
+              onNext={onNextPaymentPage}
+              onPrevious={onPreviousPaymentPage}
+              page={paymentPage}
+              pageInfo={effectivePaymentPageInfo}
+              unit="pagos"
+            />
           </div>
         )}
       </section>
@@ -1948,6 +1913,70 @@ function AdministrativeActions({
         </div>
       </div>
     </section>
+  )
+}
+
+export function ServerHistoryPagination({
+  ariaLabel,
+  isLoading,
+  itemCount,
+  onNext,
+  onPrevious,
+  page,
+  pageInfo,
+  unit,
+}: {
+  ariaLabel: string
+  isLoading: boolean
+  itemCount: number
+  onNext?: () => void
+  onPrevious?: () => void
+  page: number
+  pageInfo: PlatformPageInfo<unknown>
+  unit: string
+}) {
+  if (pageInfo.totalCount <= pageInfo.limit && page === 1) return null
+
+  const pageCount = Math.max(
+    1,
+    Math.ceil(pageInfo.totalCount / pageInfo.limit),
+  )
+  const start = (page - 1) * pageInfo.limit + 1
+  const end = start + Math.max(0, itemCount - 1)
+
+  return (
+    <div className="subscription-history-footer">
+      <p aria-live="polite" className="subscription-history-range">
+        Mostrando <strong>{start}–{end}</strong> de{' '}
+        <strong>{pageInfo.totalCount}</strong> {unit}
+      </p>
+      <nav
+        aria-label={ariaLabel}
+        className="subscription-history-pagination"
+      >
+        <button
+          aria-label="Ir a la página anterior"
+          className="subscription-pagination-direction"
+          disabled={isLoading || page === 1}
+          onClick={onPrevious}
+          type="button"
+        >
+          Anterior
+        </button>
+        <span className="subscription-pagination-mobile-label">
+          Página {page} de {pageCount}
+        </span>
+        <button
+          aria-label="Ir a la página siguiente"
+          className="subscription-pagination-direction"
+          disabled={isLoading || !pageInfo.hasNextPage}
+          onClick={onNext}
+          type="button"
+        >
+          Siguiente
+        </button>
+      </nav>
+    </div>
   )
 }
 

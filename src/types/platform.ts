@@ -17,38 +17,44 @@ export type PlatformOwnerMembershipStatus =
   | 'active'
   | 'pending_activation'
 
-export interface PlatformClinicSummary {
+export interface PlatformClinicListItem {
   activeMembersCount: number
-  blockedAt: string | null
   clinicId: string
   clinicName: string
   clinicStatus: PlatformClinicStatus | null
   createdAt: string
-  currency: string
-  currentPeriodEndsAt: string | null
-  graceEndsAt: string | null
-  isLifetime: boolean
-  lastPaymentAt: string | null
-  monthlyPrice: number | null
-  founderMonthlyPrice: number | null
-  planMonthlyPrices: Partial<Record<PlatformClinicPlanId, number | null>>
-  planFounderMonthlyPrices: Partial<Record<PlatformClinicPlanId, number | null>>
-  priceTier: import('../utils/subscriptionBilling').PriceTier
-  customMonthlyPrice: number | null
-  founderPriceLocked: boolean
-  scheduledPlanId: PlatformClinicPlanId | null
-  scheduledPlanStartsAt: string | null
   ownerEmail: string | null
   ownerInvitationSentAt: string | null
   ownerMembershipStatus: PlatformOwnerMembershipStatus | null
   ownerName: string | null
+  pendingPaymentSubmissionsCount: number
   planId: string | null
   planName: string | null
   subscriptionStatus: PlatformSubscriptionStatus | null
-  trialEndsAt: string | null
+}
+
+export interface PlatformClinicSummary extends PlatformClinicListItem {
+  blockedAt: string | null
+  currency: string
+  currentPeriodEndsAt: string | null
+  customMonthlyPrice: number | null
+  founderMonthlyPrice: number | null
+  founderPriceLocked: boolean
+  graceEndsAt: string | null
+  isLifetime: boolean
+  lastPaymentAt: string | null
+  latestRegisteredPaymentId: string | null
+  monthlyPrice: number | null
   paymentStatus: string | null
   payments: PlatformSubscriptionPayment[]
   paymentSubmissions: PlatformPaymentSubmission[]
+  planFounderMonthlyPrices: Partial<Record<PlatformClinicPlanId, number | null>>
+  planMonthlyPrices: Partial<Record<PlatformClinicPlanId, number | null>>
+  priceTier: import('../utils/subscriptionBilling').PriceTier
+  registeredLifetimePayment: PlatformSubscriptionPayment | null
+  scheduledPlanId: PlatformClinicPlanId | null
+  scheduledPlanStartsAt: string | null
+  trialEndsAt: string | null
 }
 
 export interface PlatformSubscriptionPayment {
@@ -144,7 +150,45 @@ export interface UpdateClinicSubscriptionInput {
 }
 
 export interface ListPlatformClinicsResponse {
-  clinics: PlatformClinicSummary[]
+  clinics: PlatformClinicListItem[]
+  pageInfo: PlatformPageInfo<PlatformClinicCursor>
+}
+
+export interface PlatformClinicCursor {
+  createdAt: string
+  id: string
+}
+
+export interface PlatformPaymentCursor extends PlatformClinicCursor {
+  paidAt: string
+}
+
+export type PlatformSubmissionCursor = PlatformClinicCursor
+
+export interface PlatformPageInfo<Cursor> {
+  hasNextPage: boolean
+  limit: number
+  nextCursor: Cursor | null
+  totalCount: number
+}
+
+export interface ListPlatformClinicsInput {
+  cursor?: PlatformClinicCursor | null
+  limit?: number
+}
+
+export interface GetPlatformClinicBillingInput {
+  clinicId: string
+  paymentCursor?: PlatformPaymentCursor | null
+  paymentLimit?: number
+  submissionCursor?: PlatformSubmissionCursor | null
+  submissionLimit?: number
+}
+
+export interface GetPlatformClinicBillingResponse {
+  clinic: PlatformClinicSummary
+  paymentPageInfo: PlatformPageInfo<PlatformPaymentCursor>
+  submissionPageInfo: PlatformPageInfo<PlatformSubmissionCursor>
 }
 
 export type PlatformClinicPlanId = 'basic' | 'medium' | 'pro'

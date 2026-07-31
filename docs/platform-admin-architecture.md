@@ -3,8 +3,10 @@
 ## Billing manual
 
 Platform Admin administra suscripciones sin consultar ni modificar información
-clínica. `list-platform-clinics` entrega resumen, precio configurable e historial
-de pagos. `register-subscription-payment` registra el pago y actualiza la
+clínica. `list-platform-clinics` entrega únicamente una página acotada de
+resúmenes y contadores; `get-platform-clinic-billing` obtiene bajo demanda el
+precio y páginas independientes de pagos y solicitudes del consultorio
+seleccionado. `register-subscription-payment` registra el pago y actualiza la
 suscripción de forma transaccional; `update-clinic-subscription` concentra
 cambio de plan, días extra, bloqueo, reactivación, cancelación y vitalicio.
 `void-subscription-payment` anula lógicamente el último pago vigente y restaura
@@ -52,10 +54,13 @@ Después consulta únicamente:
   `clinic_owner` activo;
 - `profiles` solo para nombre y email del propietario encontrado.
 
-La respuesta estable es `{ clinics: [...] }` y contiene exclusivamente el
-resumen administrativo definido por `PlatformClinicSummary`. No consulta ni
-devuelve pacientes, citas, historiales, odontogramas, recordatorios,
-configuración clínica o WhatsApp.
+La respuesta estable es
+`{ clinics: [...], pageInfo: { hasNextPage, limit, nextCursor, totalCount } }`.
+Contiene como máximo 10 filas por defecto y exclusivamente el resumen
+administrativo definido por `PlatformClinicListItem`. El cursor usa
+`created_at` e `id`, por lo que un alta nueva no desplaza ni duplica filas ya
+recorridas. No consulta ni devuelve pagos individuales, pacientes, citas,
+historiales, odontogramas, recordatorios, configuración clínica o WhatsApp.
 
 Los campos visibles son: consultorio, estado administrativo, plan, estado de
 suscripción, propietario, email del propietario, miembros activos y fecha de
@@ -78,6 +83,26 @@ Los owners creados desde Administración pueden conservar temporalmente
 frontend usa `clinic_memberships.role` como fuente principal, por lo que una
 membership activa `clinic_owner` se muestra y autoriza como propietario. No se
 modifican perfiles automáticamente para corregir el campo legacy.
+
+## Detalle comercial paginado
+
+Al pulsar `Gestionar cobro`, React invoca
+`get-platform-clinic-billing` con el `clinicId`. La Function repite la
+validación de JWT y `is_platform_admin` antes de usar `service_role`; el listado
+no se considera autorización suficiente.
+
+La respuesta incluye `PlatformClinicSummary` para un solo consultorio, una
+página de hasta cinco pagos y otra de hasta cinco solicitudes pendientes.
+Cada historial tiene su propio cursor y contador total. Cambiar de página de
+pagos conserva la página actual de solicitudes y viceversa. Los estados de
+carga bloquean navegación duplicada y una respuesta tardía de otro
+consultorio se descarta.
+
+La migración `031_platform_admin_server_pagination.sql` agrega los índices de
+orden, `list_platform_clinic_summaries` y
+`apply_due_scheduled_plans(uuid[])`. Esta última aplica los planes vencidos de
+la página en una única operación acotada y mantiene un evento de auditoría por
+suscripción; elimina el RPC N+1 anterior.
 
 ## Auditoría manual de owners
 
@@ -196,6 +221,7 @@ a React.
 ```bash
 npx supabase db push
 npx supabase functions deploy list-platform-clinics
+npx supabase functions deploy get-platform-clinic-billing
 npx supabase functions deploy create-platform-clinic
 npx supabase functions deploy correct-platform-clinic-owner-email
 ```

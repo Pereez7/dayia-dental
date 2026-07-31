@@ -181,6 +181,7 @@ vitalicio y cancelación. Pagos y cambios administrativos quedan auditados en
    `founder_monthly_price` de Basic, Medium y Pro en `public.plans`.
 3. Colocar las tres imágenes QR en `public/payment-qr/`.
 4. Desplegar `create-platform-clinic`, `list-platform-clinics`,
+   `get-platform-clinic-billing`,
    `register-subscription-payment`,
    `reject-subscription-payment-submission`,
    `void-subscription-payment`, `update-clinic-subscription` y

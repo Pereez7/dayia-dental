@@ -16,8 +16,11 @@ pruebas y verificación en staging.
 `PERF-001` cerró el 30 de julio de 2026 con una alta autenticada correlacionada
 entre frontend y Edge Function. `PERF-002` redujo la confirmación visible de
 6,143.0 ms a 4,490.5 ms al mover el refresco completo del listado a segundo
-plano. El siguiente hito es `PERF-003`: aligerar y paginar el resumen
-administrativo.
+plano. `PERF-003` ya separa resumen y detalle, pagina consultorios e historiales
+en servidor y elimina el RPC N+1. Está desplegado y probado técnicamente en
+staging. La validación autenticada confirmó respuestas acotadas de 1.5–1.7 kB y
+registró una latencia de 1.03–2.38 s que todavía debe reducirse antes de
+producción. El siguiente hito es `PERF-004`.
 
 ## Rendimiento de carga
 

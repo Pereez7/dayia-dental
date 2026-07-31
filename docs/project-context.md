@@ -15,9 +15,20 @@ autenticada en staging. El formulario confirmó a los 4,490.5 ms y
 `list-platform-clinics` terminó 2,041.7 ms después en segundo plano. Frente a
 los 6,143.0 ms bloqueantes de la línea base, el éxito apareció 1,652.5 ms antes,
 una reducción del 26.9 %. Un fallo del refresco conserva el alta exitosa,
-muestra un aviso cercano y permite reintentar. La siguiente tarea es
-`PERF-003`: separar el resumen administrativo del historial comercial y
-paginarlo en servidor.
+muestra un aviso cercano y permite reintentar.
+
+`PERF-003` cerró el 30 de julio de 2026 y está desplegado únicamente en staging. El listado
+administrativo usa páginas de servidor de 10 consultorios con cursor estable y
+solo devuelve resumen y contadores. La gestión comercial se obtiene al abrir
+un consultorio mediante `get-platform-clinic-billing`; pagos y solicitudes
+pendientes usan páginas independientes de 5. La migración `031` reemplaza el
+RPC N+1 de planes programados por una operación acotada por lote. Sus 10
+pruebas pgTAP pasan localmente y contra staging con rollback; la suite completa
+supera 714 pruebas, lint y build. La prueba autenticada devolvió `200`, con
+1.6–1.7 kB para el listado y 1.5 kB para el detalle. Diez lecturas del listado
+estuvieron entre 1.03 y 2.38 s; el detalle observado tardó 1.95 s. El tamaño
+queda acotado, pero la latencia aún supera el presupuesto y permanece
+documentada como deuda antes de producción. El siguiente hito es `PERF-004`.
 
 Antes de iniciar `PERF-003`, el alta de plataforma dejó de reutilizar correos
 existentes. Un correo registrado en Auth o `profiles` responde `409`. Para un
@@ -112,17 +123,18 @@ suscripciones y pagos manuales:
   mediante la acción administrativa.
 - Mientras vitalicio está activo se bloquean nuevos pagos y días adicionales
   para evitar sustituir accidentalmente la condición comercial.
-- El historial administrativo pagina localmente cinco pagos por vista, muestra
-  el rango consultado y conserva todos los registros anulados para auditoría.
+- El historial administrativo pagina en servidor cinco pagos por vista,
+  muestra el rango consultado y conserva todos los registros anulados para
+  auditoría.
 
 Supabase ya tiene aplicadas las migraciones `023`, `024`, `025` y `026`. Las
 Edge Functions `manage-owner-subscription-plan`,
 `reject-subscription-payment-submission`, `void-subscription-payment`,
 `update-clinic-subscription`, `register-subscription-payment` y
-`list-platform-clinics` están desplegadas. La migración `026` se validó primero
-dentro de una transacción con rollback y luego se aplicó. Las cuatro Functions
-modificadas figuran `ACTIVE` y la nueva Function rechaza llamadas sin JWT con
-`401`.
+`list-platform-clinics` están desplegadas. La gestión paginada agrega
+`get-platform-clinic-billing` y la migración `031`, también presentes solo en
+staging. La migración `026` se validó primero dentro de una transacción con
+rollback y luego se aplicó.
 
 El bloque cerró con lint, 645 pruebas y build correctos. Para continuar desde
 otro equipo se debe actualizar `main` desde `origin`, conservar su `.env` local
@@ -555,8 +567,10 @@ deshabilita el doble envío y presenta carga, éxito o error junto al propietari
 El enlace público vencido no envía correos para evitar enumeración y abuso.
 
 En staging `zjsnfgxvaimddmchrwre` están activas
-`list-platform-clinics` versión 5 y
-`resend-platform-clinic-invitation` versión 2, ambas con verificación JWT.
+`list-platform-clinics`, `get-platform-clinic-billing` y
+`resend-platform-clinic-invitation`, con autenticación obligatoria. La versión
+paginada del listado y el detalle comercial se desplegaron el 30 de julio de
+2026.
 
 ## Pulido comercial de Pacientes y Citas, 2026-07-14
 

@@ -4,7 +4,11 @@ import type {
   CorrectPlatformClinicOwnerEmailResponse,
   CreatePlatformClinicInput,
   CreatePlatformClinicResponse,
+  GetPlatformClinicBillingInput,
+  GetPlatformClinicBillingResponse,
   ListPlatformClinicsResponse,
+  ListPlatformClinicsInput,
+  PlatformClinicListItem,
   PlatformClinicStatus,
   PlatformClinicSummary,
   PlatformSubscriptionStatus,
@@ -23,7 +27,12 @@ import {
 } from '../utils/performanceTelemetry'
 
 export interface PlatformAdminServiceResult {
-  data: PlatformClinicSummary[] | null
+  data: ListPlatformClinicsResponse | null
+  error: string | null
+}
+
+export interface PlatformClinicBillingServiceResult {
+  data: GetPlatformClinicBillingResponse | null
   error: string | null
 }
 
@@ -88,9 +97,21 @@ const ownerMembershipStatuses = new Set([
   'pending_activation',
 ])
 
-export async function listPlatformClinics(): Promise<PlatformAdminServiceResult> {
+export async function listPlatformClinics(
+  input: ListPlatformClinicsInput = {},
+): Promise<PlatformAdminServiceResult> {
   return listPlatformClinicsWithClient(
     supabase as PlatformAdminFunctionClient | null,
+    input,
+  )
+}
+
+export async function getPlatformClinicBilling(
+  input: GetPlatformClinicBillingInput,
+): Promise<PlatformClinicBillingServiceResult> {
+  return getPlatformClinicBillingWithClient(
+    supabase as PlatformAdminFunctionClient | null,
+    input,
   )
 }
 
@@ -267,41 +288,146 @@ export async function createPlatformClinicWithClient(
 
 export async function listPlatformClinicsWithClient(
   client: PlatformAdminFunctionClient | null,
+  input: ListPlatformClinicsInput = {},
 ): Promise<PlatformAdminServiceResult> {
   if (!client) {
     return { data: null, error: 'Supabase no está configurado.' }
   }
 
-  const { data: sessionData, error: sessionError } =
-    await client.auth.getSession()
-  const accessToken = sessionData.session?.access_token
+  try {
+    const { data: sessionData, error: sessionError } =
+      await client.auth.getSession()
+    const accessToken = sessionData.session?.access_token
 
-  if (sessionError || !accessToken) {
+    if (sessionError || !accessToken) {
+      return {
+        data: null,
+        error: 'Tu sesión no es válida. Vuelve a iniciar sesión.',
+      }
+    }
+
+    const { data, error } = await client.functions.invoke(
+      'list-platform-clinics',
+      {
+        body: input,
+        headers: { Authorization: `Bearer ${accessToken}` },
+        method: 'POST',
+      },
+    )
+
+    if (error) {
+      return { data: null, error: getPlatformAdminErrorMessage(error) }
+    }
+
+    if (!isListPlatformClinicsResponse(data)) {
+      return { data: null, error: 'No pudimos cargar los consultorios.' }
+    }
+
+    return {
+      data: {
+        clinics: data.clinics.map(mapPlatformClinicListItem),
+        pageInfo: data.pageInfo,
+      },
+      error: null,
+    }
+  } catch {
     return {
       data: null,
-      error: 'Tu sesión no es válida. Vuelve a iniciar sesión.',
+      error:
+        'No pudimos comunicarnos con el servicio de consultorios. Intenta nuevamente.',
     }
   }
+}
 
-  const { data, error } = await client.functions.invoke(
-    'list-platform-clinics',
-    {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      method: 'POST',
-    },
-  )
-
-  if (error) {
-    return { data: null, error: getPlatformAdminErrorMessage(error) }
+export async function getPlatformClinicBillingWithClient(
+  client: PlatformAdminFunctionClient | null,
+  input: GetPlatformClinicBillingInput,
+): Promise<PlatformClinicBillingServiceResult> {
+  if (!client) {
+    return { data: null, error: 'Supabase no está configurado.' }
   }
 
-  if (!isListPlatformClinicsResponse(data)) {
-    return { data: null, error: 'No pudimos cargar los consultorios.' }
-  }
+  try {
+    const { data: sessionData, error: sessionError } =
+      await client.auth.getSession()
+    const accessToken = sessionData.session?.access_token
 
+    if (sessionError || !accessToken) {
+      return {
+        data: null,
+        error: 'Tu sesión no es válida. Vuelve a iniciar sesión.',
+      }
+    }
+
+    const { data, error } = await client.functions.invoke(
+      'get-platform-clinic-billing',
+      {
+        body: input,
+        headers: { Authorization: `Bearer ${accessToken}` },
+        method: 'POST',
+      },
+    )
+
+    if (error) {
+      return { data: null, error: getPlatformBillingErrorMessage(error) }
+    }
+
+    if (!isGetPlatformClinicBillingResponse(data)) {
+      return {
+        data: null,
+        error: 'No pudimos cargar la gestión del consultorio.',
+      }
+    }
+
+    return {
+      data: {
+        clinic: mapPlatformClinicSummary(data.clinic),
+        paymentPageInfo: data.paymentPageInfo,
+        submissionPageInfo: data.submissionPageInfo,
+      },
+      error: null,
+    }
+  } catch {
+    return {
+      data: null,
+      error:
+        'No pudimos comunicarnos con la gestión del consultorio. Intenta nuevamente.',
+    }
+  }
+}
+
+export function mapPlatformClinicListItem(
+  clinic: PlatformClinicListItem,
+): PlatformClinicListItem {
   return {
-    data: data.clinics.map(mapPlatformClinicSummary),
-    error: null,
+    activeMembersCount: Number.isFinite(clinic.activeMembersCount)
+      ? Math.max(0, clinic.activeMembersCount)
+      : 0,
+    clinicId: clinic.clinicId,
+    clinicName: clinic.clinicName.trim() || 'Consultorio sin nombre',
+    clinicStatus:
+      clinic.clinicStatus && clinicStatuses.has(clinic.clinicStatus)
+        ? clinic.clinicStatus
+        : 'unknown',
+    createdAt: clinic.createdAt,
+    ownerEmail: clinic.ownerEmail?.trim() || null,
+    ownerInvitationSentAt: clinic.ownerInvitationSentAt ?? null,
+    ownerMembershipStatus:
+      clinic.ownerMembershipStatus &&
+      ownerMembershipStatuses.has(clinic.ownerMembershipStatus)
+        ? clinic.ownerMembershipStatus
+        : null,
+    ownerName: clinic.ownerName?.trim() || null,
+    pendingPaymentSubmissionsCount: Number.isFinite(
+      clinic.pendingPaymentSubmissionsCount,
+    )
+      ? Math.max(0, clinic.pendingPaymentSubmissionsCount)
+      : 0,
+    planId: clinic.planId?.trim() || null,
+    planName: getPlatformPlanName(clinic.planId, clinic.planName),
+    subscriptionStatus: normalizePlatformSubscriptionStatus(
+      clinic.subscriptionStatus,
+    ),
   }
 }
 
@@ -430,6 +556,7 @@ export function mapPlatformClinicSummary(
     graceEndsAt: clinic.graceEndsAt ?? null,
     isLifetime: clinic.isLifetime === true,
     lastPaymentAt: clinic.lastPaymentAt ?? null,
+    latestRegisteredPaymentId: clinic.latestRegisteredPaymentId ?? null,
     monthlyPrice:
       clinic.monthlyPrice === null || clinic.monthlyPrice === undefined
         ? null
@@ -454,6 +581,11 @@ export function mapPlatformClinicSummary(
         ? clinic.ownerMembershipStatus
         : null,
     ownerName: clinic.ownerName?.trim() || null,
+    pendingPaymentSubmissionsCount: Number.isFinite(
+      clinic.pendingPaymentSubmissionsCount,
+    )
+      ? Math.max(0, clinic.pendingPaymentSubmissionsCount)
+      : 0,
     planId: clinic.planId?.trim() || null,
     planName: getPlatformPlanName(clinic.planId, clinic.planName),
     paymentStatus: clinic.paymentStatus?.trim() || null,
@@ -461,6 +593,7 @@ export function mapPlatformClinicSummary(
     paymentSubmissions: Array.isArray(clinic.paymentSubmissions)
       ? clinic.paymentSubmissions
       : [],
+    registeredLifetimePayment: clinic.registeredLifetimePayment ?? null,
     subscriptionStatus: getEffectiveSubscriptionStatus(clinic),
     trialEndsAt: clinic.trialEndsAt ?? null,
   }
@@ -469,13 +602,9 @@ export function mapPlatformClinicSummary(
 function getEffectiveSubscriptionStatus(
   clinic: PlatformClinicSummary,
 ): PlatformSubscriptionStatus | null {
-  const normalizedStatus =
-    clinic.subscriptionStatus &&
-    subscriptionStatuses.has(clinic.subscriptionStatus)
-      ? clinic.subscriptionStatus
-      : clinic.subscriptionStatus === null
-        ? null
-        : 'unknown'
+  const normalizedStatus = normalizePlatformSubscriptionStatus(
+    clinic.subscriptionStatus,
+  )
 
   if (normalizedStatus === 'canceled' || normalizedStatus === 'blocked') {
     return normalizedStatus
@@ -500,6 +629,16 @@ function getEffectiveSubscriptionStatus(
   if (access.access === 'blocked') return 'blocked'
   if (access.access === 'grace') return 'past_due'
   return normalizedStatus
+}
+
+function normalizePlatformSubscriptionStatus(
+  status: PlatformSubscriptionStatus | null,
+): PlatformSubscriptionStatus | null {
+  return status && subscriptionStatuses.has(status)
+    ? status
+    : status === null
+      ? null
+      : 'unknown'
 }
 
 async function invokeSubscriptionAction(
@@ -632,6 +771,24 @@ export function getPlatformAdminErrorMessage(error: unknown) {
   }
 
   return 'No pudimos cargar los consultorios.'
+}
+
+function getPlatformBillingErrorMessage(error: unknown) {
+  const status = getFunctionErrorStatus(error)
+
+  if (status === 401) {
+    return 'Tu sesión no es válida. Vuelve a iniciar sesión.'
+  }
+
+  if (status === 403) {
+    return 'No tienes permiso para administrar suscripciones.'
+  }
+
+  if (status === 404) {
+    return 'No encontramos el consultorio solicitado.'
+  }
+
+  return 'No pudimos cargar la gestión del consultorio.'
 }
 
 function getFunctionErrorStatus(error: unknown) {
@@ -820,7 +977,84 @@ function isListPlatformClinicsResponse(
   return Boolean(
     value &&
       typeof value === 'object' &&
-      Array.isArray((value as ListPlatformClinicsResponse).clinics),
+      Array.isArray((value as ListPlatformClinicsResponse).clinics) &&
+      isPageInfo(
+        (value as ListPlatformClinicsResponse).pageInfo,
+        isClinicCursor,
+      ),
+  )
+}
+
+function isGetPlatformClinicBillingResponse(
+  value: unknown,
+): value is GetPlatformClinicBillingResponse {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const candidate = value as Partial<GetPlatformClinicBillingResponse>
+
+  return Boolean(
+    candidate.clinic &&
+      typeof candidate.clinic.clinicId === 'string' &&
+      Array.isArray(candidate.clinic.payments) &&
+      Array.isArray(candidate.clinic.paymentSubmissions) &&
+      isPageInfo(candidate.paymentPageInfo, isPaymentCursor) &&
+      isPageInfo(candidate.submissionPageInfo, isClinicCursor),
+  )
+}
+
+function isPageInfo<Cursor>(
+  value: unknown,
+  isCursor: (cursor: unknown) => cursor is Cursor,
+): boolean {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const candidate = value as {
+    hasNextPage?: unknown
+    limit?: unknown
+    nextCursor?: unknown
+    totalCount?: unknown
+  }
+
+  return (
+    typeof candidate.hasNextPage === 'boolean' &&
+    Number.isInteger(candidate.limit) &&
+    Number(candidate.limit) > 0 &&
+    Number.isInteger(candidate.totalCount) &&
+    Number(candidate.totalCount) >= 0 &&
+    (
+      candidate.nextCursor === null ||
+      isCursor(candidate.nextCursor)
+    )
+  )
+}
+
+function isClinicCursor(value: unknown): value is {
+  createdAt: string
+  id: string
+} {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const candidate = value as { createdAt?: unknown; id?: unknown }
+  return (
+    typeof candidate.createdAt === 'string' &&
+    typeof candidate.id === 'string'
+  )
+}
+
+function isPaymentCursor(value: unknown): value is {
+  createdAt: string
+  id: string
+  paidAt: string
+} {
+  return (
+    isClinicCursor(value) &&
+    typeof (value as { paidAt?: unknown }).paidAt === 'string'
   )
 }
 
