@@ -9,6 +9,7 @@ import {
   mapAppointmentFormValuesToAppointmentInput,
   mapAppointmentInputToInsert,
   mapAppointmentRecordToAppointment,
+  parseAppointmentAgendaSnapshot,
 } from './appointmentsService'
 
 const appointmentRecord: AppointmentRecord = {
@@ -75,6 +76,7 @@ describe('appointmentsService mappers', () => {
       durationMinutes: 30,
       patient: 'Ana Salazar',
       patientId: 'patient-1',
+      patientPhone: '+59176543210',
       rescheduleReason: undefined,
       status: 'pending',
       time: '13:00',
@@ -120,5 +122,73 @@ describe('appointmentsService mappers', () => {
       status: 'pending',
       treatment_id: null,
     })
+  })
+})
+
+describe('parseAppointmentAgendaSnapshot', () => {
+  const snapshot = {
+    appointments: [
+      {
+        changeLog: [],
+        date: '2026-08-05',
+        durationMinutes: 30,
+        id: 'appointment-1',
+        patient: 'Ana Salazar',
+        patientId: 'patient-1',
+        patientPhone: '+59176543210',
+        status: 'confirmed',
+        time: '09:00',
+        treatment: 'Control',
+      },
+    ],
+    availabilityAppointments: [
+      {
+        date: '2026-08-05',
+        durationMinutes: 30,
+        id: 'appointment-1',
+        patient: '',
+        patientId: 'patient-1',
+        status: 'confirmed',
+        time: '09:00',
+        treatment: 'Control',
+      },
+    ],
+    dayOptions: ['2026-08-05', '2026-08-06'],
+    pageInfo: {
+      hasMore: true,
+      nextCursor: { id: 'appointment-1', startTime: '09:00' },
+    },
+    selectedDate: '2026-08-05',
+    statusSummary: {
+      cancelled: 0,
+      completed: 0,
+      confirmed: 21,
+      no_show: 0,
+      pending: 4,
+      rescheduled: 0,
+      total: 25,
+    },
+  }
+
+  it('accepts a bounded page whose complete daily totals are larger', () => {
+    expect(parseAppointmentAgendaSnapshot(snapshot)).toEqual(snapshot)
+  })
+
+  it('rejects a malformed or negative daily summary', () => {
+    expect(
+      parseAppointmentAgendaSnapshot({
+        ...snapshot,
+        statusSummary: { ...snapshot.statusSummary, total: -1 },
+      }),
+    ).toBeNull()
+  })
+
+  it('rejects an incomplete cursor', () => {
+    expect(
+      parseAppointmentAgendaSnapshot({
+        ...snapshot,
+        pageInfo: { hasMore: true, nextCursor: { id: 'appointment-1' } },
+      }),
+    ).toBeNull()
   })
 })

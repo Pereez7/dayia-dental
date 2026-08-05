@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type {
   Appointment,
   AppointmentId,
   AppointmentStatus,
+  AppointmentStatusSummary,
 } from '../types/Appointment'
 import type {
   BusinessHoursSettings,
@@ -32,6 +33,7 @@ import {
 } from '../utils/appointmentReasons'
 import {
   getAppointmentsForDate,
+  getAgendaDayOption,
   getDateInputValue,
   getVisibleAgendaDays,
   summarizeAppointmentsByStatus,
@@ -52,13 +54,24 @@ import { Toast, type ToastTone } from './Toast'
 
 interface AppointmentsAgendaProps {
   appointments: Appointment[]
+  availabilityAppointments?: Appointment[]
   businessHours: BusinessHoursSettings
   calendarExceptions: CalendarException[]
+  dayOptions?: string[]
   errorMessage?: string
+  hasMore?: boolean
   isLoading?: boolean
+  isLoadingMore?: boolean
   onCreateAppointment?: () => void
   patients: Patient[]
+  selectedDate?: string
+  statusSummary?: AppointmentStatusSummary
   treatments: Treatment[]
+  onDateChange?: (date: string) => void
+  onLoadAvailability?: (
+    date: string,
+  ) => Promise<{ data: Appointment[] | null; error: string | null }>
+  onLoadMore?: () => void
   onRescheduleAppointment?: (
     appointmentId: AppointmentId,
     date: string,
@@ -92,17 +105,29 @@ const emptyCancellationReasonValues: AppointmentReasonValues<AppointmentCancella
 
 export function AppointmentsAgenda({
   appointments,
+  availabilityAppointments,
   businessHours,
   calendarExceptions,
+  dayOptions,
   errorMessage = '',
+  hasMore = false,
   isLoading = false,
+  isLoadingMore = false,
   onCreateAppointment,
+  onDateChange,
+  onLoadAvailability,
+  onLoadMore,
   onRescheduleAppointment,
   onUpdateAppointmentStatus,
   patients,
+  selectedDate: controlledSelectedDate,
+  statusSummary: controlledStatusSummary,
   treatments,
 }: AppointmentsAgendaProps) {
-  const [selectedDate, setSelectedDate] = useState(() => getDateInputValue())
+  const [internalSelectedDate, setInternalSelectedDate] = useState(() =>
+    getDateInputValue(),
+  )
+  const selectedDate = controlledSelectedDate ?? internalSelectedDate
   const [rescheduleAppointmentId, setRescheduleAppointmentId] = useState<
     AppointmentId | null
   >(null)
@@ -116,6 +141,10 @@ export function AppointmentsAgenda({
   const [toastTone, setToastTone] = useState<ToastTone>('success')
   const [isToastVisible, setIsToastVisible] = useState(false)
   const [actionError, setActionError] = useState('')
+  const [isAvailabilityLoading, setIsAvailabilityLoading] = useState(false)
+  const availabilityRequestIdRef = useRef(0)
+  const [rescheduleAvailabilityAppointments, setRescheduleAvailabilityAppointments] =
+    useState<Appointment[]>(availabilityAppointments ?? appointments)
   const [appointmentIdPendingCancellation, setAppointmentIdPendingCancellation] =
     useState<AppointmentId | null>(null)
   const [cancellationReasonValues, setCancellationReasonValues] =
@@ -124,15 +153,22 @@ export function AppointmentsAgenda({
     )
   const [cancellationReasonErrors, setCancellationReasonErrors] =
     useState<AppointmentReasonErrors>({})
-  const visibleDays = useMemo(
-    () => getVisibleAgendaDays(appointments),
-    [appointments],
-  )
+  const visibleDays = useMemo(() => {
+    if (dayOptions) {
+      return dayOptions.map((date) => getAgendaDayOption(date))
+    }
+
+    return getVisibleAgendaDays(appointments)
+  }, [appointments, dayOptions])
   const selectedAppointments = useMemo(
     () => getAppointmentsForDate(appointments, selectedDate),
     [appointments, selectedDate],
   )
-  const statusSummary = summarizeAppointmentsByStatus(selectedAppointments)
+  const localStatusSummary = summarizeAppointmentsByStatus(selectedAppointments)
+  const statusSummary = controlledStatusSummary ?? {
+    ...localStatusSummary,
+    total: selectedAppointments.length,
+  }
 
   function getAppointmentPatient(appointment: Appointment) {
     if (appointment.patientId !== undefined) {
@@ -267,6 +303,9 @@ export function AppointmentsAgenda({
     }
 
     setRescheduleAppointmentId(appointment.id)
+    setRescheduleAvailabilityAppointments(
+      availabilityAppointments ?? selectedAppointments,
+    )
     setRescheduleValues({
       date: appointment.date,
       reason: '',
@@ -279,11 +318,20 @@ export function AppointmentsAgenda({
   }
 
   function selectAgendaDate(date: string) {
+    if (!date) {
+      return
+    }
+
     if (date !== selectedDate) {
       closeReschedulePanel()
     }
 
-    setSelectedDate(date)
+    if (onDateChange) {
+      onDateChange(date)
+      return
+    }
+
+    setInternalSelectedDate(date)
   }
 
   function resetRescheduleForm() {
@@ -293,15 +341,46 @@ export function AppointmentsAgenda({
   }
 
   function closeReschedulePanel() {
+    availabilityRequestIdRef.current += 1
+    setIsAvailabilityLoading(false)
     setRescheduleAppointmentId(null)
     resetRescheduleForm()
   }
 
-  function updateRescheduleDate(appointment: Appointment, date: string) {
+  async function updateRescheduleDate(appointment: Appointment, date: string) {
+    const requestId = availabilityRequestIdRef.current + 1
+    availabilityRequestIdRef.current = requestId
+    setIsAvailabilityLoading(Boolean(date))
+    let dateAppointments =
+      date === selectedDate
+        ? availabilityAppointments ?? selectedAppointments
+        : appointments.filter((item) => item.date === date)
+
+    if (date && date !== selectedDate && onLoadAvailability) {
+      const result = await onLoadAvailability(date)
+
+      if (requestId !== availabilityRequestIdRef.current) {
+        return
+      }
+
+      if (result.error) {
+        setRescheduleErrors((currentErrors) => ({
+          ...currentErrors,
+          time: result.error ?? undefined,
+        }))
+        setRescheduleAvailabilityAppointments([])
+        setIsAvailabilityLoading(false)
+        return
+      }
+
+      dateAppointments = result.data ?? []
+    }
+
+    setRescheduleAvailabilityAppointments(dateAppointments)
     const timeOptions = date
       ? getAvailableTimeOptionsByDuration(
           businessHours,
-          appointments,
+          dateAppointments,
           date,
           getAppointmentDuration(appointment, treatments),
           {
@@ -343,6 +422,7 @@ export function AppointmentsAgenda({
       patient: undefined,
       time: undefined,
     }))
+    setIsAvailabilityLoading(false)
   }
 
   function updateRescheduleTime(time: string) {
@@ -410,7 +490,7 @@ export function AppointmentsAgenda({
     const errors = validateAppointmentReschedule(
       currentAppointment,
       rescheduleValues,
-      appointments,
+      rescheduleAvailabilityAppointments,
       businessHours,
       new Date(),
       treatments,
@@ -459,7 +539,7 @@ export function AppointmentsAgenda({
     return rescheduleValues.date
         ? getAvailableTimeOptionsByDuration(
             businessHours,
-            appointments,
+            rescheduleAvailabilityAppointments,
             rescheduleValues.date,
             getAppointmentDuration(appointment, treatments),
             {
@@ -574,6 +654,19 @@ export function AppointmentsAgenda({
         </p>
       )}
 
+      <div className="agenda-date-control">
+        <label className="agenda-date-picker">
+          <span>Ir a fecha</span>
+          <input
+            className="field-control"
+            type="date"
+            value={selectedDate}
+            onChange={(event) => selectAgendaDate(event.target.value)}
+          />
+        </label>
+        <p>Mostramos solo el día elegido para mantener la agenda ágil.</p>
+      </div>
+
       <div className="agenda-date-nav" aria-label="Seleccionar día de agenda">
         {visibleDays.map((day) => (
           <button
@@ -591,7 +684,7 @@ export function AppointmentsAgenda({
 
       <div className="agenda-summary">
         <div className="agenda-kpi agenda-kpi--total">
-          <strong>{selectedAppointments.length}</strong>
+          <strong>{statusSummary.total}</strong>
           <span>Total</span>
         </div>
         <div className="agenda-kpi agenda-kpi--pending">
@@ -643,6 +736,7 @@ export function AppointmentsAgenda({
               onRescheduleReasonDetailChange={updateRescheduleReasonDetail}
               onRescheduleTimeChange={updateRescheduleTime}
               patient={getAppointmentPatient(appointment)}
+              isAvailabilityLoading={isAvailabilityLoading}
               rescheduleDateIsClosed={isRescheduleDateClosed()}
               rescheduleErrors={rescheduleErrors}
               rescheduleMinDate={getDateInputValue()}
@@ -657,6 +751,16 @@ export function AppointmentsAgenda({
               treatments={treatments}
             />
           ))}
+          {hasMore && (
+            <button
+              className="secondary-action agenda-load-more"
+              disabled={isLoadingMore}
+              type="button"
+              onClick={onLoadMore}
+            >
+              {isLoadingMore ? 'Cargando citas...' : 'Cargar más citas'}
+            </button>
+          )}
         </div>
       ) : (
         <div className="agenda-empty-state">

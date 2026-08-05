@@ -4,6 +4,24 @@ Registro breve de cambios relevantes en DayIA Dental.
 
 ## En desarrollo
 
+- PERF-005B1 reemplaza la lectura histórica de Agenda por
+  `get_clinic_agenda_snapshot`: una fecha seleccionada, páginas de 20 citas,
+  conteos completos del día, próximas fechas limitadas y solo los campos
+  mínimos de disponibilidad. La Agenda real dejó de cargar todos los pacientes
+  para mostrar nombre y teléfono; otras fechas se consultan únicamente al
+  reprogramar. `034` está aplicada en staging, supera 15 controles remotos con
+  rollback y cerró su validación móvil autenticada con respuestas `200` de
+  0.9–1.0 kB en 313–464 ms. `PERF-005B2` continúa con disponibilidad y
+  escrituras atómicas; producción permanece intacta.
+- PERF-005 comenzó con un Dashboard clínico de tamaño fijo. La migración `033`
+  agrega una RPC autorizada para seis KPIs, cinco próximas citas, cinco casos
+  de atención, cinco eventos recientes y cuatro pacientes recientes; el
+  frontend real ya no descarga colecciones completas para esa pantalla. Los
+  13 controles SQL pasan localmente y en staging con rollback, y un benchmark
+  reversible con 2.000 pacientes, 20.000 citas y 20.000 logs verifica los
+  índices. La prueba móvil limpia de staging confirmó una sola respuesta de
+  1.1 kB en 273 ms y ninguna colección completa. PERF-005A queda cerrado;
+  PERF-005B continúa por sus subbloques de lectura y escritura segura.
 - El alta de consultorios rechaza cualquier correo propietario ya registrado en
   DayIA Dental, evitando reutilizar silenciosamente cuentas de propietarios,
   doctores o recepción. En consultorios aún pendientes, Administración DayIA

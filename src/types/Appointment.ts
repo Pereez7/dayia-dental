@@ -36,10 +36,38 @@ export interface Appointment {
   durationMinutes?: number
   time: string
   patient: string
+  patientPhone?: string
   rescheduleReason?: string
   rescheduleReasonDetail?: string
   treatment: string
   status: AppointmentStatus
+}
+
+export interface AppointmentAgendaCursor {
+  id: string
+  startTime: string
+}
+
+export interface AppointmentStatusSummary {
+  cancelled: number
+  completed: number
+  confirmed: number
+  no_show: number
+  pending: number
+  rescheduled: number
+  total: number
+}
+
+export interface AppointmentAgendaSnapshot {
+  appointments: Appointment[]
+  availabilityAppointments: Appointment[]
+  dayOptions: string[]
+  pageInfo: {
+    hasMore: boolean
+    nextCursor: AppointmentAgendaCursor | null
+  }
+  selectedDate: string
+  statusSummary: AppointmentStatusSummary
 }
 
 export interface AppointmentFormValues {

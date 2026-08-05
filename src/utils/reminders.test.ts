@@ -144,6 +144,35 @@ describe('generateAppointmentReminders', () => {
     })
   })
 
+  it('uses the phone embedded in a bounded agenda row', () => {
+    const reminders = generateAppointmentReminders(
+      [
+        {
+          date: '2026-06-12',
+          id: 'appointment-bounded',
+          patient: 'Paciente Acotado',
+          patientId: 'patient-bounded',
+          patientPhone: '+59175550101',
+          status: 'pending',
+          time: '11:00',
+          treatment: 'Control',
+        },
+      ],
+      [],
+      new Date('2026-06-09T08:00:00'),
+    )
+
+    expect(reminders).toHaveLength(2)
+    expect(
+      reminders.every(
+        (reminder) =>
+          reminder.patientId === 'patient-bounded' &&
+          reminder.phone === '+59175550101' &&
+          reminder.status !== 'skipped',
+      ),
+    ).toBe(true)
+  })
+
   it('generates only the 2h reminder when the 24h reminder is already in the past', () => {
     const reminders = generateAppointmentReminders(
       [

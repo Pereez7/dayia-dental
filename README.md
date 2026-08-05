@@ -74,7 +74,9 @@ reemplazar únicamente su membresía y enviar una invitación nueva. Los pasos d
 despliegue están en `docs/supabase-setup.md`. La migración `032` hace el alta
 idempotente y confirma clínica, perfil, membership y suscripción en una sola
 transacción PostgreSQL; un reintento idéntico recupera el resultado existente
-sin volver a invitar ni duplicar registros.
+sin volver a invitar ni duplicar registros. La migración `033` sirve el
+Dashboard clínico mediante un snapshot autorizado y de tamaño fijo, sin
+descargar la historia completa del consultorio.
 
 ## Modulos actuales
 

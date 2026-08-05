@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Appointment } from '../types/Appointment'
 import type { Patient } from '../types/Patient'
 import {
+  buildDashboardSnapshot,
   getAppointmentsRequiringAttention,
   getDashboardActivityMessages,
   getDashboardSummary,
@@ -165,6 +166,23 @@ describe('dashboardMetrics', () => {
       todayConfirmedAppointments: 1,
       todayPendingAppointments: 1,
     })
+  })
+
+  it('builds the legacy demo snapshot through the same view contract', () => {
+    const snapshot = buildDashboardSnapshot(
+      appointments,
+      patients,
+      referenceDate,
+    )
+
+    expect(snapshot.summary.todayAppointments).toBe(2)
+    expect(snapshot.upcomingAppointments.map(({ id }) => id)).toEqual([4, 7])
+    expect(snapshot.attentionItems.map(({ id }) => id)).toEqual([
+      'pending-2',
+      'rescheduled-4',
+    ])
+    expect(snapshot.recentActivity).toHaveLength(5)
+    expect(snapshot.recentPatients).toHaveLength(2)
   })
 
   it('gets todays appointments sorted by time', () => {

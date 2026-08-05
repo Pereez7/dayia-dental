@@ -5,6 +5,7 @@ import type {
   AppointmentFormValues,
   AppointmentId,
   AppointmentStatus,
+  AppointmentStatusSummary,
 } from '../types/Appointment'
 import type {
   BusinessHoursSettings,
@@ -16,6 +17,12 @@ import type { AppointmentReasonPayload } from '../utils/appointmentReasons'
 
 interface AppointmentsViewProps {
   appointments: Appointment[]
+  availabilityAppointments?: Appointment[]
+  agendaDayOptions?: string[]
+  agendaHasMore?: boolean
+  agendaIsLoadingMore?: boolean
+  agendaSelectedDate?: string
+  agendaStatusSummary?: AppointmentStatusSummary
   businessHours: BusinessHoursSettings
   calendarExceptions: CalendarException[]
   draft?: AppointmentFormValues | null
@@ -30,6 +37,11 @@ interface AppointmentsViewProps {
     values: AppointmentFormValues,
   ) => Promise<{ error?: string; success: boolean }> | { error?: string; success: boolean } | void
   onNavigateToAgenda?: () => void
+  onAgendaDateChange?: (date: string) => void
+  onAgendaLoadAvailability?: (
+    date: string,
+  ) => Promise<{ data: Appointment[] | null; error: string | null }>
+  onAgendaLoadMore?: () => void
   onDraftChange?: (values: AppointmentFormValues) => void
   onNavigateToNewAppointment?: () => void
   onRescheduleAppointment?: (
@@ -47,6 +59,12 @@ interface AppointmentsViewProps {
 
 export function AppointmentsView({
   appointments,
+  availabilityAppointments,
+  agendaDayOptions,
+  agendaHasMore,
+  agendaIsLoadingMore,
+  agendaSelectedDate,
+  agendaStatusSummary,
   businessHours,
   calendarExceptions,
   draft,
@@ -58,6 +76,9 @@ export function AppointmentsView({
   treatments,
   mode = 'agenda',
   onCreateAppointment,
+  onAgendaDateChange,
+  onAgendaLoadAvailability,
+  onAgendaLoadMore,
   onNavigateToAgenda,
   onDraftChange,
   onNavigateToNewAppointment,
@@ -97,10 +118,19 @@ export function AppointmentsView({
   return (
     <AppointmentsAgenda
       appointments={appointments}
+      availabilityAppointments={availabilityAppointments}
       businessHours={businessHours}
       calendarExceptions={calendarExceptions}
       errorMessage={errorMessage}
+      dayOptions={agendaDayOptions}
+      hasMore={agendaHasMore}
       isLoading={isLoading}
+      isLoadingMore={agendaIsLoadingMore}
+      selectedDate={agendaSelectedDate}
+      statusSummary={agendaStatusSummary}
+      onDateChange={onAgendaDateChange}
+      onLoadAvailability={onAgendaLoadAvailability}
+      onLoadMore={onAgendaLoadMore}
       onCreateAppointment={onNavigateToNewAppointment}
       onRescheduleAppointment={onRescheduleAppointment}
       patients={patients}

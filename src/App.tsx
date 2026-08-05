@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import './App.css'
 import { useAuth } from './auth/AuthContext'
 import {
@@ -29,8 +29,11 @@ import {
   mapPatientFormValuesToPatientInput,
   updatePatient as updatePatientInSupabase,
 } from './services/patientsService'
+import { getDashboardSnapshot } from './services/dashboardService'
 import {
   createAppointment as createAppointmentInSupabase,
+  getAppointmentAgendaSnapshot,
+  getAppointmentAvailabilityByDate,
   getAppointmentsByClinic,
   mapAppointmentFormValuesToAppointmentInput,
   rescheduleAppointment as rescheduleAppointmentInSupabase,
@@ -82,9 +85,11 @@ import {
 } from './services/ownerEmailMigrationService'
 import type {
   Appointment,
+  AppointmentAgendaCursor,
   AppointmentFormValues,
   AppointmentId,
   AppointmentStatus,
+  AppointmentStatusSummary,
 } from './types/Appointment'
 import type {
   BusinessHoursSettings,
@@ -105,6 +110,7 @@ import type { Patient, PatientFormValues, PatientId } from './types/Patient'
 import type { Reminder } from './types/Reminder'
 import type { Treatment, TreatmentId } from './types/Treatment'
 import type { ClinicUser, ClinicUserFormValues } from './types/ClinicUser'
+import type { DashboardSnapshot } from './utils/dashboardMetrics'
 import type {
   WhatsappSettings,
   WhatsappSettingsFormValues,
@@ -125,10 +131,13 @@ import { getTreatmentDuration } from './utils/treatmentUtils'
 import { getPlanFeatures } from './utils/planFeatures'
 import { getDuplicatePatientMessage } from './utils/patientValidators'
 import { createEmptyAppointmentDraft } from './utils/appointmentDraft'
+import { getDateInputValue } from './utils/appointmentGroups'
 import {
   getStoredActiveSection,
   saveActiveSection,
 } from './utils/activeSectionStorage'
+
+const emptyAppointmentPatients: Patient[] = []
 
 const AppointmentsView = lazy(() =>
   import('./views/AppointmentsView').then((module) => ({
@@ -242,6 +251,28 @@ function App() {
     () => !isDemoMode && permissions.canAccessAppointments,
   )
   const [appointmentsError, setAppointmentsError] = useState('')
+  const [agendaSelectedDate, setAgendaSelectedDate] = useState(() =>
+    getDateInputValue(),
+  )
+  const agendaSelectedDateRef = useRef(agendaSelectedDate)
+  const agendaLoadMorePendingRef = useRef(false)
+  const agendaRequestGenerationRef = useRef(0)
+  const [agendaAvailabilityAppointments, setAgendaAvailabilityAppointments] =
+    useState<Appointment[]>([])
+  const [agendaDayOptions, setAgendaDayOptions] = useState<string[]>([])
+  const [agendaStatusSummary, setAgendaStatusSummary] =
+    useState<AppointmentStatusSummary | null>(null)
+  const [agendaNextCursor, setAgendaNextCursor] =
+    useState<AppointmentAgendaCursor | null>(null)
+  const [agendaHasMore, setAgendaHasMore] = useState(false)
+  const [isAgendaLoadingMore, setIsAgendaLoadingMore] = useState(false)
+  const [agendaRefreshVersion, setAgendaRefreshVersion] = useState(0)
+  const [dashboardSnapshot, setDashboardSnapshot] =
+    useState<DashboardSnapshot | null>(null)
+  const [isDashboardDataLoading, setIsDashboardDataLoading] = useState(
+    () => !isDemoMode && permissions.canAccessDashboard,
+  )
+  const [dashboardError, setDashboardError] = useState('')
   const [patients, setPatients] = useState<Patient[]>(() =>
     isDemoMode && permissions.canAccessPatients ? initialPatients : [],
   )
@@ -328,18 +359,81 @@ function App() {
     permissions,
     canAccessAdministration,
   )
+  const appointmentLoadPatients =
+    effectiveActiveSection === 'appointments-agenda'
+      ? emptyAppointmentPatients
+      : patients
   const activeOdontogramPatientId =
     effectiveActiveSection === 'patient-detail'
       ? selectedPatientId
       : effectiveActiveSection === 'odontogram'
         ? selectedOdontogramPatientId
         : null
-  const isDashboardDataLoading =
-    !isDemoMode && (isPatientsLoading || isAppointmentsLoading)
-
   useEffect(() => {
     saveActiveSection(effectiveActiveSection)
   }, [effectiveActiveSection])
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadDashboardSnapshot() {
+      if (
+        effectiveActiveSection !== 'dashboard' ||
+        !permissions.canAccessDashboard
+      ) {
+        setIsDashboardDataLoading(false)
+        setDashboardError('')
+        return
+      }
+
+      if (isDemoMode) {
+        setDashboardSnapshot(null)
+        setIsDashboardDataLoading(false)
+        setDashboardError('')
+        return
+      }
+
+      if (!currentClinic?.id) {
+        setDashboardSnapshot(null)
+        setIsDashboardDataLoading(false)
+        setDashboardError('No hay consultorio activo para cargar el Dashboard.')
+        return
+      }
+
+      setIsDashboardDataLoading(true)
+      setDashboardError('')
+
+      const { data, error } = await getDashboardSnapshot(currentClinic.id)
+
+      if (!isMounted) {
+        return
+      }
+
+      if (error || !data) {
+        setDashboardSnapshot(null)
+        setDashboardError(
+          error ?? 'No pudimos cargar el resumen del consultorio.',
+        )
+        setIsDashboardDataLoading(false)
+        return
+      }
+
+      setDashboardSnapshot(data)
+      setDashboardError('')
+      setIsDashboardDataLoading(false)
+    }
+
+    loadDashboardSnapshot()
+
+    return () => {
+      isMounted = false
+    }
+  }, [
+    currentClinic?.id,
+    effectiveActiveSection,
+    isDemoMode,
+    permissions.canAccessDashboard,
+  ])
 
   useEffect(() => {
     let isMounted = true
@@ -587,6 +681,13 @@ function App() {
         return
       }
 
+      if (!sectionNeedsPatients(effectiveActiveSection)) {
+        setPatients([])
+        setIsPatientsLoading(false)
+        setPatientsError('')
+        return
+      }
+
       if (!currentClinic?.id) {
         setPatients([])
         setIsPatientsLoading(false)
@@ -619,13 +720,25 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [currentClinic?.id, isDemoMode, permissions.canAccessPatients])
+  }, [
+    currentClinic?.id,
+    effectiveActiveSection,
+    isDemoMode,
+    permissions.canAccessPatients,
+  ])
 
   useEffect(() => {
     let isMounted = true
 
     async function loadReminders() {
       if (!permissions.canAccessReminders) {
+        setReminders([])
+        setIsRemindersLoading(false)
+        setRemindersError('')
+        return
+      }
+
+      if (effectiveActiveSection !== 'whatsapp-reminders') {
         setReminders([])
         setIsRemindersLoading(false)
         setRemindersError('')
@@ -682,6 +795,7 @@ function App() {
   }, [
     appointments,
     currentClinic?.id,
+    effectiveActiveSection,
     isDemoMode,
     isAppointmentsLoading,
     patients,
@@ -701,6 +815,14 @@ function App() {
 
       if (isDemoMode) {
         setAppointments(initialAppointments)
+        setAgendaStatusSummary(null)
+        setIsAppointmentsLoading(false)
+        setAppointmentsError('')
+        return
+      }
+
+      if (!sectionNeedsAppointments(effectiveActiveSection)) {
+        setAppointments([])
         setIsAppointmentsLoading(false)
         setAppointmentsError('')
         return
@@ -716,9 +838,42 @@ function App() {
       setIsAppointmentsLoading(true)
       setAppointmentsError('')
 
+      if (effectiveActiveSection === 'appointments-agenda') {
+        const { data, error } = await getAppointmentAgendaSnapshot(
+          currentClinic.id,
+          agendaSelectedDate,
+          getDateInputValue(),
+        )
+
+        if (!isMounted) {
+          return
+        }
+
+        if (error || !data) {
+          setAppointments([])
+          setAgendaAvailabilityAppointments([])
+          setAgendaDayOptions([])
+          setAgendaStatusSummary(null)
+          setAgendaNextCursor(null)
+          setAgendaHasMore(false)
+          setAppointmentsError(error ?? 'No pudimos cargar la agenda.')
+          setIsAppointmentsLoading(false)
+          return
+        }
+
+        setAppointments(data.appointments)
+        setAgendaAvailabilityAppointments(data.availabilityAppointments)
+        setAgendaDayOptions(data.dayOptions)
+        setAgendaStatusSummary(data.statusSummary)
+        setAgendaNextCursor(data.pageInfo.nextCursor)
+        setAgendaHasMore(data.pageInfo.hasMore)
+        setIsAppointmentsLoading(false)
+        return
+      }
+
       const { data, error } = await getAppointmentsByClinic(
         currentClinic.id,
-        patients,
+        appointmentLoadPatients,
       )
 
       if (!isMounted) {
@@ -742,11 +897,100 @@ function App() {
       isMounted = false
     }
   }, [
+    agendaRefreshVersion,
+    agendaSelectedDate,
     currentClinic?.id,
+    effectiveActiveSection,
     isDemoMode,
-    patients,
+    appointmentLoadPatients,
     permissions.canAccessAppointments,
   ])
+
+  async function handleLoadMoreAgenda() {
+    if (
+      isDemoMode ||
+      !currentClinic?.id ||
+      !agendaNextCursor ||
+      isAgendaLoadingMore ||
+      agendaLoadMorePendingRef.current
+    ) {
+      return
+    }
+
+    agendaLoadMorePendingRef.current = true
+    setIsAgendaLoadingMore(true)
+    const requestedDate = agendaSelectedDateRef.current
+    const requestGeneration = agendaRequestGenerationRef.current
+    const { data, error } = await getAppointmentAgendaSnapshot(
+      currentClinic.id,
+      requestedDate,
+      getDateInputValue(),
+      { cursor: agendaNextCursor },
+    )
+
+    if (
+      requestedDate !== agendaSelectedDateRef.current ||
+      requestGeneration !== agendaRequestGenerationRef.current
+    ) {
+      agendaLoadMorePendingRef.current = false
+      setIsAgendaLoadingMore(false)
+      return
+    }
+
+    if (error || !data) {
+      setAppointmentsError(error ?? 'No pudimos cargar más citas.')
+      agendaLoadMorePendingRef.current = false
+      setIsAgendaLoadingMore(false)
+      return
+    }
+
+    setAppointments((currentAppointments) => [
+      ...currentAppointments,
+      ...data.appointments.filter(
+        (appointment) =>
+          !currentAppointments.some((item) => item.id === appointment.id),
+      ),
+    ])
+    setAgendaAvailabilityAppointments(data.availabilityAppointments)
+    setAgendaDayOptions(data.dayOptions)
+    setAgendaStatusSummary(data.statusSummary)
+    setAgendaNextCursor(data.pageInfo.nextCursor)
+    setAgendaHasMore(data.pageInfo.hasMore)
+    setAppointmentsError('')
+    agendaLoadMorePendingRef.current = false
+    setIsAgendaLoadingMore(false)
+  }
+
+  function handleAgendaDateChange(date: string) {
+    agendaRequestGenerationRef.current += 1
+    agendaSelectedDateRef.current = date
+    agendaLoadMorePendingRef.current = false
+    setIsAgendaLoadingMore(false)
+    setAppointments([])
+    setAgendaAvailabilityAppointments([])
+    setAgendaStatusSummary(null)
+    setAgendaNextCursor(null)
+    setAgendaHasMore(false)
+    setAgendaSelectedDate(date)
+  }
+
+  async function handleLoadAgendaAvailability(date: string) {
+    if (isDemoMode) {
+      return {
+        data: initialAppointments.filter((appointment) => appointment.date === date),
+        error: null,
+      }
+    }
+
+    if (!currentClinic?.id) {
+      return {
+        data: null,
+        error: 'No hay consultorio activo para revisar disponibilidad.',
+      }
+    }
+
+    return getAppointmentAvailabilityByDate(currentClinic.id, date)
+  }
 
   useEffect(() => {
     let isMounted = true
@@ -1173,6 +1417,7 @@ function App() {
       }
 
       setAppointmentsError('')
+      setAgendaRefreshVersion((version) => version + 1)
 
       return { success: true }
     }
@@ -1318,6 +1563,7 @@ function App() {
       }
 
       setAppointmentsError('')
+      setAgendaRefreshVersion((version) => version + 1)
 
       return { success: true }
     }
@@ -1878,6 +2124,10 @@ function App() {
   }
 
   function handleSectionChange(section: AppSection) {
+    agendaRequestGenerationRef.current += 1
+    agendaLoadMorePendingRef.current = false
+    setIsAgendaLoadingMore(false)
+
     if (section === 'appointment-new') {
       setAppointmentPatientId(null)
       setAppointmentDraft((currentDraft) =>
@@ -2142,6 +2392,12 @@ function App() {
       return (
         <AppointmentsView
           appointments={appointments}
+          availabilityAppointments={agendaAvailabilityAppointments}
+          agendaDayOptions={agendaDayOptions}
+          agendaHasMore={agendaHasMore}
+          agendaIsLoadingMore={isAgendaLoadingMore}
+          agendaSelectedDate={agendaSelectedDate}
+          agendaStatusSummary={agendaStatusSummary ?? undefined}
           businessHours={businessHours}
           calendarExceptions={calendarExceptions}
           errorMessage={appointmentsError}
@@ -2150,6 +2406,9 @@ function App() {
           mode="agenda"
           patients={patients}
           treatments={treatments}
+          onAgendaDateChange={handleAgendaDateChange}
+          onAgendaLoadAvailability={handleLoadAgendaAvailability}
+          onAgendaLoadMore={handleLoadMoreAgenda}
           onRescheduleAppointment={handleRescheduleAppointment}
           onNavigateToNewAppointment={() =>
             handleSectionChange('appointment-new')
@@ -2300,6 +2559,8 @@ function App() {
     return (
       <DashboardView
         appointments={appointments}
+        data={dashboardSnapshot ?? undefined}
+        errorMessage={dashboardError}
         isLoading={isDashboardDataLoading}
         patients={patients}
       />
@@ -2333,6 +2594,27 @@ function getNextNumericId(items: { id: number | string }[]) {
         .map((item) => item.id)
         .filter((id): id is number => typeof id === 'number'),
     ) + 1
+  )
+}
+
+function sectionNeedsAppointments(section: AppSection) {
+  return (
+    section === 'appointments-agenda' ||
+    section === 'appointment-new' ||
+    section === 'patient-detail' ||
+    section === 'whatsapp-reminders'
+  )
+}
+
+function sectionNeedsPatients(section: AppSection) {
+  return (
+    section === 'appointment-new' ||
+    section === 'clinical-history' ||
+    section === 'odontogram' ||
+    section === 'patient-detail' ||
+    section === 'patient-new' ||
+    section === 'patients-list' ||
+    section === 'whatsapp-reminders'
   )
 }
 

@@ -404,6 +404,25 @@ export type Database = {
         Args: { target_clinic_id: string }
         Returns: boolean
       }
+      get_clinic_dashboard_snapshot: {
+        Args: {
+          target_clinic_id: string
+          target_reference_date: string
+          target_reference_time: string
+        }
+        Returns: Json
+      }
+      get_clinic_agenda_snapshot: {
+        Args: {
+          target_after_id: string | null
+          target_after_start_time: string | null
+          target_clinic_id: string
+          target_page_size: number
+          target_reference_date: string
+          target_selected_date: string
+        }
+        Returns: Json
+      }
       save_clinic_business_hours: {
         Args: {
           target_clinic_id: string

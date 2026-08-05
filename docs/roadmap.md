@@ -24,8 +24,14 @@ producción. `PERF-004` ya está desplegado técnicamente en staging: reemplaza 
 búsqueda paginada de Auth por una consulta indexada y confirma clínica, owner,
 membership y suscripción en una transacción idempotente. Cerró con una alta
 autenticada de 3,472.2 ms internos y un reintento seguro de 721.6 ms, 79.2 %
-menos, sin duplicar ninguno de los seis recursos verificados. `PERF-005` es el
-siguiente hito y producción continúa intacta.
+menos, sin duplicar ninguno de los seis recursos verificados. `PERF-005` está
+en curso: su subhito `PERF-005A` cerró técnicamente en staging con una única
+respuesta autenticada de 1.1 kB en 273 ms, sin descargar pacientes, citas y
+logs completos. `PERF-005B1` ya limita Agenda a una fecha y cursor y está
+cerrado técnicamente en staging: la carga inicial y el cambio de fecha
+respondieron con 0.9–1.0 kB en 313–464 ms y la vista móvil no presentó overflow.
+`PERF-005B2` debe cerrar la disponibilidad y escritura atómicas antes de
+promover el hito. Producción continúa intacta.
 
 ## Rendimiento de carga
 

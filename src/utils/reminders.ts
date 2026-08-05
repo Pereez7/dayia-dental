@@ -462,7 +462,7 @@ function createReminder(
   const appointmentStatus = isActiveReminderAppointmentStatus(appointment.status)
     ? appointment.status
     : 'pending'
-  const phone = patient?.phone ?? noPhoneReminderLabel
+  const phone = patient?.phone ?? appointment.patientPhone ?? noPhoneReminderLabel
 
   return {
     appointmentDate: appointment.date,

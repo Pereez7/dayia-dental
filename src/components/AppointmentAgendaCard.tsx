@@ -29,6 +29,7 @@ import type {
 
 interface AppointmentAgendaCardProps {
   appointment: Appointment
+  isAvailabilityLoading?: boolean
   onCancel: () => void
   onCloseReschedulePanel: () => void
   onConfirm: () => void
@@ -52,6 +53,7 @@ interface AppointmentAgendaCardProps {
 
 export function AppointmentAgendaCard({
   appointment,
+  isAvailabilityLoading = false,
   onCancel,
   onCloseReschedulePanel,
   onConfirm,
@@ -111,7 +113,7 @@ export function AppointmentAgendaCard({
 
         <div className="agenda-card-patient">
           <h3>{appointment.patient}</h3>
-          <p>{patient?.phone ?? 'Teléfono sin registro'}</p>
+          <p>{appointment.patientPhone ?? patient?.phone ?? 'Teléfono sin registro'}</p>
         </div>
 
         <span className={`agenda-status agenda-card-status ${statusClassName}`}>
@@ -192,6 +194,7 @@ export function AppointmentAgendaCard({
               <span>Nueva hora</span>
               <select
                 disabled={
+                  isAvailabilityLoading ||
                   !rescheduleValues.date ||
                   rescheduleDateIsClosed ||
                   rescheduleTimeOptions.length === 0
@@ -204,6 +207,8 @@ export function AppointmentAgendaCard({
                 <option value="">
                   {rescheduleDateIsClosed
                     ? 'Consultorio cerrado ese día'
+                    : isAvailabilityLoading
+                      ? 'Revisando disponibilidad'
                     : rescheduleValues.date
                       ? rescheduleTimeOptions.length > 0
                         ? 'Seleccionar horario'

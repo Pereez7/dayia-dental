@@ -7,15 +7,14 @@ import { DashboardPatientsList } from '../components/DashboardPatientsList'
 import type { Appointment } from '../types/Appointment'
 import type { Patient } from '../types/Patient'
 import {
-  getAppointmentsRequiringAttention,
-  getDashboardSummary,
-  getRecentAppointmentActivity,
-  getRecentPatients,
-  getUpcomingAppointments,
+  buildDashboardSnapshot,
+  type DashboardSnapshot,
 } from '../utils/dashboardMetrics'
 
 interface DashboardViewProps {
   appointments: Appointment[]
+  data?: DashboardSnapshot
+  errorMessage?: string
   isLoading?: boolean
   patients: Patient[]
   referenceDate?: Date
@@ -23,23 +22,21 @@ interface DashboardViewProps {
 
 export function DashboardView({
   appointments,
+  data,
+  errorMessage = '',
   isLoading = false,
   patients,
   referenceDate = new Date(),
 }: DashboardViewProps) {
-  const summary = getDashboardSummary(appointments, patients, referenceDate)
-  const upcomingAppointments = getUpcomingAppointments(
-    appointments,
-    5,
-    referenceDate,
-  )
-  const recentPatients = getRecentPatients(patients, 4)
-  const attentionItems = getAppointmentsRequiringAttention(
-    appointments,
-    5,
-    referenceDate,
-  )
-  const recentActivity = getRecentAppointmentActivity(appointments, 5)
+  const snapshot =
+    data ?? buildDashboardSnapshot(appointments, patients, referenceDate)
+  const {
+    attentionItems,
+    recentActivity,
+    recentPatients,
+    summary,
+    upcomingAppointments,
+  } = snapshot
   const dateLabel = new Intl.DateTimeFormat('es-BO', {
     day: 'numeric',
     month: 'long',
@@ -48,6 +45,12 @@ export function DashboardView({
 
   return (
     <section className="dashboard-view" aria-label="Dashboard principal">
+      {errorMessage ? (
+        <p className="form-error" role="alert">
+          {errorMessage}
+        </p>
+      ) : null}
+
       <section className="dashboard-kpi-panel" aria-label="Indicadores principales">
         <div className="section-heading dashboard-kpi-heading">
           <h2>Operación de hoy</h2>

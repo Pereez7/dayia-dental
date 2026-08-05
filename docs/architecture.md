@@ -120,9 +120,10 @@ defensa autoritativa.
 4. `Sidebar` usa el mapa de `src/layout/navigation.ts` para renderizar
    secciones principales y acciones rapidas, separadas visualmente en marca,
    acciones y modulos.
-5. `App.tsx` coordina los datos compartidos. En modo real carga pacientes,
-   citas, historial clinico y odontograma desde Supabase; en demo mantiene sus
-   colecciones mock. El odontograma se carga bajo demanda por paciente.
+5. `App.tsx` coordina los datos compartidos. En modo real carga pacientes y
+   citas solo para las secciones que los consumen, y obtiene el Dashboard desde
+   un snapshot acotado. En demo mantiene sus colecciones mock. Historial y
+   odontograma se cargan bajo demanda.
 6. `PatientsView` recibe pacientes, el callback de alta y el callback para ver
    detalle desde `App.tsx`. En modo listado prioriza `PatientsList` y deja el
    formulario debajo; en modo `new` muestra solo `PatientForm`.
@@ -133,10 +134,10 @@ defensa autoritativa.
    citas activas asociadas, historial clinico, odontograma y permite volver al
    listado.
 10. `AppointmentsView` alterna entre la agenda y el formulario de nueva cita.
-11. `DashboardView` recibe desde `App.tsx` las citas y pacientes que los
-   servicios ya limitaron al `clinic_id` activo. Calcula métricas con
-   `src/utils/dashboardMetrics.ts` y separa operación de hoy, resumen mensual,
-   próximas citas activas, atención, actividad real y pacientes recientes.
+11. `DashboardView` recibe desde `App.tsx` un `DashboardSnapshot`. En modo real,
+   `dashboardService.ts` lo obtiene mediante la RPC autorizada
+   `get_clinic_dashboard_snapshot`, con agregados y límites fijos. En demo,
+   `src/utils/dashboardMetrics.ts` construye el mismo contrato desde los mocks.
 12. `SettingsView` recibe tratamientos y excepciones del calendario desde
    `App.tsx`, carga horarios mock y compone la configuracion del consultorio.
 13. `BusinessHoursSettings` permite ajustar horario semanal, intervalo de
@@ -279,9 +280,10 @@ Participan:
 - `src/views/AppointmentsView.tsx`: compone la vista de agenda o el formulario
   de nueva cita.
 - `src/components/AppointmentsAgenda.tsx`: muestra la agenda diaria, selector
-  horizontal de dias, resumen del dia, lista de citas del dia seleccionado,
-  acciones locales, Toast, motivo temporal de cancelacion y estado temporal de
-  reprogramacion.
+  horizontal y campo para una fecha arbitraria, resumen completo del dia,
+  página visible de citas, carga incremental, acciones, Toast y estado temporal
+  de reprogramacion. En modo real recibe un snapshot acotado; en demo conserva
+  el agrupamiento local.
 - `src/components/AppointmentAgendaCard.tsx`: muestra cada cita con bloques
   separados para rango horario, paciente, estado, tratamiento, metadatos y
   acciones; tambien muestra el panel inline de reprogramacion cuando

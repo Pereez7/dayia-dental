@@ -250,8 +250,12 @@ Las citas que requieren atención se calculan desde datos existentes: pendientes
 de hoy o posteriores y reprogramaciones recientes de citas activas. Las
 canceladas nunca ingresan en esta cola.
 
-Los calculos del Dashboard viven en `src/utils/dashboardMetrics.ts` para poder
-probarlos con Vitest y mantener la vista enfocada en composicion visual.
+El Dashboard consume un contrato `DashboardSnapshot`. En modo real, los
+agregados y límites viven en `get_clinic_dashboard_snapshot` para que el costo
+no dependa de toda la historia clínica; `dashboardService.ts` valida el JSON
+antes de entregarlo a la vista. `src/utils/dashboardMetrics.ts` conserva la
+implementación equivalente para modo demo y pruebas unitarias. React no
+consulta tablas clínicas directamente.
 
 ## Botones reutilizables
 

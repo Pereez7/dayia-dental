@@ -5,7 +5,7 @@ El objetivo no es mejorar tiempos de forma aislada, sino impedir que el costo
 de las operaciones crezca sin control cuando aumenten los consultorios,
 usuarios, pacientes, citas, pagos y recordatorios.
 
-Última actualización: 30 de julio de 2026.
+Última actualización: 5 de agosto de 2026.
 
 ## Principios de trabajo
 
@@ -408,6 +408,90 @@ Estado técnico al 30 de julio de 2026:
 
 Objetivo: que el rendimiento de un consultorio no dependa de toda su historia.
 
+Estado: en curso desde el 4 de agosto de 2026. El subhito `PERF-005A`
+(Dashboard acotado) cerró técnicamente en staging el 5 de agosto;
+`PERF-005B1` (lectura diaria acotada de Agenda) está implementado, desplegado y
+cerrado técnicamente en staging después de su medición autenticada y revisión
+móvil. La disponibilidad y las
+escrituras atómicas de `PERF-005B2` continúan pendientes. El hito completo no
+se considera cerrado ni apto para producción.
+
+#### PERF-005A: Dashboard acotado
+
+- La migración `033_bounded_clinic_dashboard.sql` agrega
+  `get_clinic_dashboard_snapshot`, autorizada mediante
+  `can_access_clinic_data`. La RPC devuelve seis agregados y límites fijos: 5
+  próximas citas, 5 casos que requieren atención, 5 eventos recientes y 4
+  pacientes recientes.
+- El Dashboard real dejó de descargar las colecciones completas de pacientes,
+  citas y `appointment_change_logs`. `App.tsx` carga pacientes y citas solo al
+  entrar a módulos que realmente las consumen. El modo demo conserva los
+  cálculos locales de `dashboardMetrics.ts`.
+- Los índices ordenados cubren próximas citas activas, actividad reciente y
+  pacientes recientes. El benchmark reproducible
+  `supabase/benchmarks/033_bounded_clinic_dashboard.sql` crea 2.000 pacientes,
+  20.000 citas y 20.000 eventos ficticios dentro de una transacción; los tres
+  planes usan sus índices y el snapshot queda por debajo del presupuesto local
+  de 1.500 ms. Todos los datos se revierten.
+- La migración se recreó desde una base local vacía, pasó 13 controles pgTAP
+  localmente y contra staging con rollback, y `db lint` no reportó errores en
+  ambos entornos. La suite actual pasa 741 pruebas de aplicación y 118 pruebas
+  SQL, además de lint y build.
+Medición autenticada y móvil del 5 de agosto de 2026:
+
+- En viewport móvil de 415 × 725, cuatro respuestas autenticadas observadas de
+  `get_clinic_dashboard_snapshot` devolvieron `200`, aproximadamente 1.1 kB y
+  tiempos entre 240 y 373 ms.
+- La composición móvil del Dashboard mantuvo lectura y ancho correctos.
+- Después de limpiar Network y entrar una sola vez al Dashboard, se observó
+  exactamente una RPC: `200`, 1.1 kB y 273 ms.
+- No aparecieron lecturas de `patients`, `appointments` ni
+  `appointment_change_logs`. La entrada `invite-clinic-member` visible tenía
+  como iniciador `clinicMembersService` y pertenecía a una operación
+  independiente, no al Dashboard.
+- Los estados vacío y móvil conservaron una composición legible; carga y error
+  permanecen cubiertos por las pruebas de `DashboardView` y del servicio.
+
+#### PERF-005B1: lectura diaria acotada de Agenda
+
+Estado: cerrado técnicamente en staging el 5 de agosto de 2026 después de la
+medición autenticada y la revisión móvil.
+
+- La migración `034_bounded_clinic_agenda.sql` agrega
+  `get_clinic_agenda_snapshot`, autorizada mediante
+  `can_access_clinic_data`. Recibe una fecha y un cursor compuesto por hora e
+  identificador; devuelve como máximo 20 filas por defecto y acepta hasta 50.
+- Los KPIs cuentan el día completo aunque la lista visible esté paginada. El
+  payload incluye únicamente el último evento relevante por cita y el teléfono
+  necesario para su card; Agenda ya no carga toda la tabla de pacientes.
+- La disponibilidad se limita a estados activos del día seleccionado. Si el
+  usuario elige otra fecha para reprogramar, se solicita solo esa fecha con
+  columnas explícitas. Las respuestas tardías se descartan.
+- El selector conserva Hoy, Mañana, la fecha elegida y hasta ocho próximas
+  fechas con actividad. Un campo de fecha permite navegar a cualquier día sin
+  descargar todo el historial.
+- El pgTAP local supera 15 controles de límite, cursor, conteos, auditoría,
+  argumentos y aislamiento. El benchmark reversible usa 1.000 pacientes,
+  20.000 citas y más de 20.000 logs; confirma ambos índices y mantiene el
+  snapshot por debajo del presupuesto local de 1.500 ms.
+- La migración está aplicada únicamente en staging
+  `zjsnfgxvaimddmchrwre`. El historial remoto quedó alineado `001–034`, los 15
+  controles pasan contra el remoto con rollback y `db lint` no reporta errores
+  en `public`.
+- La regresión actual supera 751 pruebas de aplicación y 133 controles SQL;
+  lint, build y `git diff --check` también pasan.
+- La prueba autenticada en viewport 415 × 725 observó una primera respuesta
+  `200` de 0.9 kB en 464 ms y una segunda respuesta `200` de 1.0 kB en 313 ms
+  al cambiar de la fecha inicial a Mañana. El preflight inicial tardó 236 ms.
+  Son muestras individuales y no deben interpretarse como p50 o p95.
+- La interfaz mantuvo el selector de fecha, los accesos Hoy/Mañana y los KPIs
+  legibles, sin overflow horizontal ni texto cortado. El contrato estático y
+  las pruebas del servicio verifican que la rama real de Agenda no recurre a
+  la carga histórica completa de pacientes, citas o logs.
+- `PERF-005B2` debe mover la creación y reprogramación a una validación
+  transaccional de disponibilidad. Hasta cerrarlo, no se declarará Agenda
+  completamente protegida frente a escrituras concurrentes.
+
 Orden de revisión:
 
 1. Citas y Dashboard: ventana temporal, agregados y próximas citas limitadas.
@@ -503,6 +587,7 @@ reemplazarse por estimaciones.
 | PERF-002 | Confirmación de alta sin refresco bloqueante | Muestra única: 6,143.0 ms hasta confirmar | Muestra única: 4,490.5 ms hasta confirmar | Cerrado; confirmación 1,652.5 ms antes (26.9 %), refresco de 2,041.7 ms en segundo plano | 30 jul 2026 |
 | PERF-003 | Resumen y detalle administrativo paginados | Listado anterior: 2,041.7 ms en una muestra; payload completo sin límite | Listado: 1.03–2.38 s y 1.6–1.7 kB en 10 muestras; detalle: 1.95 s y 1.5 kB en una muestra | Cerrado en escalabilidad; payload acotado, sin N+1 y con deuda de latencia registrada | 30 jul 2026 |
 | PERF-004 | Alta idempotente y escritura pública atómica | Function anterior: 3,153.0 ms internos en una muestra; múltiples viajes PostgreSQL y búsqueda Auth paginada | Alta nueva: 3,472.2 ms internos; reintento idempotente: 721.6 ms | Cerrado; sin recorrido de Auth, escritura pública atómica y reintento 79.2 % más rápido sin duplicados. La invitación Auth sigue siendo el principal costo externo | 30 jul 2026 |
+| PERF-005A | Snapshot acotado del Dashboard clínico | Colecciones completas de pacientes, citas y logs en el navegador; sin límite estable | Benchmark local con 2.000 pacientes, 20.000 citas y 20.000 logs: índices verificados y snapshot menor a 1.500 ms. Staging autenticado: 273 ms y 1.1 kB en una navegación limpia | Cerrado técnicamente en staging; una RPC, sin colecciones completas y con producción intacta | 5 ago 2026 |
 
 ## Fuera de alcance
 

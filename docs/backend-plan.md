@@ -129,6 +129,11 @@ Las migraciones actuales son:
   pieza/superficie y RLS clinica.
 - `019_appointment_resolution_statuses.sql`: estados terminales `completed` y
   `no_show` para cerrar citas pasadas sin afectar disponibilidad futura.
+- `033_bounded_clinic_dashboard.sql`: snapshot autorizado y de tamaño fijo para
+  los KPIs y listados del Dashboard, con índices ordenados por consultorio.
+- `034_bounded_clinic_agenda.sql`: snapshot autorizado por fecha con cursor
+  estable, KPIs completos del día, último evento relevante y disponibilidad
+  activa mínima; evita descargar toda la historia de citas y pacientes.
 
 ## Migracion por modulos
 
@@ -702,17 +707,18 @@ La preparacion actual agrega:
 - SQL inicial y policies Auth en `supabase/migrations`.
 
 Pacientes, Citas, Historial clinico, Odontograma, Configuracion y Recordatorios consumen Supabase en modo real
-y conservan mocks en modo demo. Dashboard, Nueva Cita, Agenda, Detalle de
-paciente y Recordatorios leen esos datos desde el estado central de App.
+y conservan mocks en modo demo. Nueva Cita, Agenda, Detalle de paciente y
+Recordatorios leen sus datos desde el estado central de App.
 Odontograma carga y guarda por paciente mediante `odontogram_entries`.
 
-El Dashboard no consulta tablas directamente. `App.tsx` carga pacientes,
-citas y `appointment_change_logs` mediante servicios que aplican
-`eq('clinic_id', currentClinic.id)` antes de entregar los datos a la vista. Los
-KPIs diarios usan la fecha local del navegador; los movimientos mensuales
-priorizan el timestamp real del log y recurren al estado de la cita solo cuando
-no existe historial de ese tipo. La actividad de pacientes no incluye altas
-porque el modelo `Patient` todavía no expone `created_at`.
+El Dashboard no consulta tablas directamente ni descarga colecciones clínicas
+completas. En modo real, `dashboardService.ts` invoca una sola vez
+`get_clinic_dashboard_snapshot` con la fecha y hora local del navegador. La RPC
+de `033` autoriza el consultorio, calcula los seis KPIs en PostgreSQL y devuelve
+listados con límites fijos. Los movimientos mensuales priorizan el timestamp
+real del log y recurren al estado de la cita solo cuando no existe historial.
+En modo demo, `dashboardMetrics.ts` mantiene el cálculo equivalente sobre los
+mocks locales.
 
 ## Setup real
 

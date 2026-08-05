@@ -37,6 +37,36 @@ export interface DashboardActivityItem {
   patient: string
 }
 
+export interface DashboardSnapshot {
+  attentionItems: DashboardAttentionItem[]
+  recentActivity: DashboardActivityItem[]
+  recentPatients: Patient[]
+  summary: DashboardSummary
+  upcomingAppointments: Appointment[]
+}
+
+export function buildDashboardSnapshot(
+  appointments: Appointment[],
+  patients: Patient[],
+  referenceDate = new Date(),
+): DashboardSnapshot {
+  return {
+    attentionItems: getAppointmentsRequiringAttention(
+      appointments,
+      5,
+      referenceDate,
+    ),
+    recentActivity: getRecentAppointmentActivity(appointments, 5),
+    recentPatients: getRecentPatients(patients, 4),
+    summary: getDashboardSummary(appointments, patients, referenceDate),
+    upcomingAppointments: getUpcomingAppointments(
+      appointments,
+      5,
+      referenceDate,
+    ),
+  }
+}
+
 export function getDashboardSummary(
   appointments: Appointment[],
   patients: Patient[],

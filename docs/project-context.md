@@ -41,7 +41,7 @@ membership y suscripción en una sola transacción PostgreSQL. Si la respuesta
 del commit es ambigua, consulta primero el estado: nunca elimina Auth sin
 confirmar que PostgreSQL no completó.
 
-La suite actual supera 732 pruebas de aplicación y 105 pruebas SQL. El pgTAP
+La suite de cierre de `PERF-004` superó 732 pruebas de aplicación y 105 pruebas SQL. El pgTAP
 específico de `032` pasa sus 31 controles tanto localmente como contra staging
 con rollback; `db lint --linked --level warning`, lint y build también pasan.
 `create-platform-clinic` v8, `invite-clinic-member` v3 y
@@ -54,8 +54,44 @@ La alta autenticada controlada de `PERF-004` tardó 3,700 ms en el navegador y
 suscripción tardó 241.6 ms. El reintento idéntico terminó en 721.6 ms internos,
 una reducción del 79.2 %, y no ejecutó búsqueda del owner, invitación ni
 persistencia. La comprobación remota confirmó exactamente una solicitud, una
-clínica, un usuario Auth, un perfil, una membership y una suscripción. El
-siguiente hito es `PERF-005`; producción continúa intacta.
+clínica, un usuario Auth, un perfil, una membership y una suscripción.
+
+`PERF-005` comenzó el 4 de agosto de 2026. Su primer subhito, `PERF-005A`,
+reemplaza las colecciones completas del Dashboard real por una única RPC
+autorizada y acotada. La migración `033_bounded_clinic_dashboard.sql` devuelve
+seis KPIs, hasta 5 próximas citas, 5 casos de atención, 5 eventos recientes y
+4 pacientes recientes. `App.tsx` ya no descarga pacientes, citas ni logs
+completos mientras la sección activa es Dashboard; el modo demo conserva el
+cálculo local.
+
+`033` fue recreada desde una base local vacía y aplicada únicamente al staging
+`zjsnfgxvaimddmchrwre`. Sus 13 controles pgTAP pasan localmente y contra
+staging con rollback; `db lint` no reporta errores. Un benchmark local
+reproducible con 2.000 pacientes, 20.000 citas y 20.000 logs ficticios confirmó
+los tres índices ordenados y un snapshot por debajo de 1.500 ms. La suite
+actual alcanza 741 pruebas de aplicación y 118 SQL, con lint y build correctos.
+
+`PERF-005A` cerró técnicamente en staging el 5 de agosto. Una captura móvil
+limpia a 415 × 725 confirmó exactamente una llamada autenticada a
+`get_clinic_dashboard_snapshot`: `200`, 1.1 kB y 273 ms. No aparecieron
+lecturas de `patients`, `appointments` ni `appointment_change_logs`; el
+`invite-clinic-member` visible pertenecía a una operación independiente con
+iniciador `clinicMembersService`.
+
+`PERF-005B1` cerró técnicamente en staging el 5 de agosto de 2026. La migración
+`034_bounded_clinic_agenda.sql` agrega un snapshot autorizado por fecha, página
+de 20 filas, cursor estable, KPIs completos del día y disponibilidad mínima.
+Agenda real no descarga toda la historia ni toda la tabla de pacientes; incluye
+el teléfono en cada fila y consulta otra fecha solo al reprogramar. Sus 15
+controles SQL y el benchmark reversible con 20.000 citas pasan localmente.
+`034` está aplicada únicamente en staging, sus 15 controles remotos pasan con
+rollback y `db lint` de `public` está limpio. La regresión actual supera 751
+pruebas de aplicación y 133 controles SQL, además de lint y build. La revisión
+autenticada en 415 × 725 registró la carga inicial y el cambio a Mañana como dos
+respuestas `200`: 0.9 kB en 464 ms y 1.0 kB en 313 ms; el preflight inicial
+tardó 236 ms. Son muestras individuales, no percentiles. La composición móvil
+no presentó overflow ni texto cortado. `PERF-005B2` cubrirá disponibilidad y
+escrituras atómicas. Producción continúa intacta.
 
 Antes de iniciar `PERF-003`, el alta de plataforma dejó de reutilizar correos
 existentes. Un correo registrado en Auth o `profiles` responde `409`. Para un
@@ -218,19 +254,23 @@ Actualmente existe una pantalla principal operativa:
 - Muestra maximo 5 proximas citas futuras activas con fecha, hora, paciente,
   tratamiento y estado.
 - Excluye citas canceladas de proximas citas.
-- Muestra citas que requieren atencion: pendientes proximas, reprogramaciones
-  recientes y casos con telefono faltante cuando existe el dato del paciente.
+- Muestra hasta 5 citas que requieren atención: pendientes próximas y
+  reprogramaciones recientes.
 - Muestra actividad reciente basada en `changeLog`, ignorando eventos internos
   de creacion y mostrando confirmaciones, cancelaciones y reprogramaciones.
 - Muestra resumen del mes con total, confirmadas, canceladas y reprogramadas.
-- Mantiene pacientes recientes como bloque secundario usando el estado local
-  actual de pacientes.
+- Mantiene hasta 4 pacientes recientes como bloque secundario.
 - No muestra nuevos pacientes del mes porque los pacientes mock no tienen fecha
   real de registro.
 - Organiza los KPIs en un panel visual equilibrado para evitar huecos en
   desktop y mantener lectura clara en mobile.
-- Los calculos viven en `src/utils/dashboardMetrics.ts` y tienen pruebas
-  unitarias.
+- En modo real obtiene un snapshot fijo mediante
+  `get_clinic_dashboard_snapshot`; no descarga la historia completa de
+  pacientes, citas o logs para calcular la pantalla. La RPC autoriza la
+  membership, el consultorio y la vigencia comercial mediante
+  `can_access_clinic_data`.
+- En modo demo, los cálculos equivalentes viven en
+  `src/utils/dashboardMetrics.ts` y tienen pruebas unitarias.
 
 ## Modulo pacientes
 

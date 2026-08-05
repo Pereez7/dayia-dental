@@ -42,7 +42,8 @@ separación de dependencias compartidas.
 - Cerrar los hitos obligatorios del
   [plan de rendimiento y escalabilidad](performance-and-scalability-plan.md),
   comenzando por la medición del alta, el listado administrativo paginado y las
-  colecciones clínicas acotadas.
+  colecciones clínicas acotadas. `PERF-005B1` ya cerró su validación técnica,
+  autenticada y móvil en staging; `PERF-005B2` sigue pendiente.
 - Preparar respaldo y ventana controlada antes de aplicar
   `027_membership_rls_hardening.sql` y
   `028_clinic_membership_lifecycle.sql` y
@@ -141,7 +142,7 @@ ausencia de `WHATSAPP_SEND_ENABLED` mantiene el dry-run por defecto.
 
 ## Migraciones
 
-Aplicar y verificar `001` a `032` en orden. `003_initial_clinic_setup_template`
+Aplicar y verificar `001` a `034` en orden. `003_initial_clinic_setup_template`
 es una plantilla de referencia. La lista completa está en
 `docs/supabase-setup.md`.
 
@@ -180,6 +181,23 @@ duplicados. En staging quedaron activas `create-platform-clinic` v8,
 La Function legacy `migrate-owner-email` no permanece desplegada. Ninguno de
 estos cambios debe darse por aplicado en producción hasta ejecutar su propio
 respaldo, despliegue y verificación posterior.
+
+El 4 de agosto de 2026 se aplicó `033` únicamente en staging y el historial
+remoto quedó alineado de `001` a `033`. Su RPC entrega un snapshot clínico de
+tamaño fijo, exige acceso clínico vigente y no se concede a `anon`. El pgTAP
+específico superó 13 controles localmente y contra staging con rollback;
+`db lint` remoto no encontró errores. La navegación móvil autenticada confirmó
+una única RPC de 1.1 kB en 273 ms, sin lecturas completas de pacientes, citas o
+logs. `PERF-005A` está cerrado técnicamente en staging, pero todavía no se
+promueve a producción porque `PERF-005` continúa con Agenda.
+
+El 5 de agosto se aplicó `034` únicamente en staging y el historial remoto
+quedó alineado de `001` a `034`. Sus 15 controles pasan con rollback y
+`db lint --linked --schema public` está limpio. En 415 × 725, la carga inicial
+y el cambio a Mañana devolvieron `200`, 0.9–1.0 kB y 313–464 ms; el preflight
+inicial tardó 236 ms. La vista no presentó overflow. Estas muestras cierran
+`PERF-005B1` en staging, pero no autorizan producción mientras `PERF-005B2`
+siga pendiente.
 
 ## Redirect URLs
 
@@ -228,12 +246,14 @@ No crear, corregir ni eliminar estos datos automáticamente desde el frontend.
 
 ## Checklist de despliegue
 
-- [x] Confirmar migraciones `001`–`031` en staging.
+- [x] Confirmar migraciones `001`–`034` en staging.
 - [x] Ejecutar las 38 pruebas RLS de `027` y `db lint` en staging.
 - [x] Ejecutar las 16 pruebas de ciclo de usuarios de `028` en staging.
 - [x] Ejecutar las 9 pruebas de guardado de horarios de `029` en staging.
 - [x] Verificar tabla, RPC, permisos e historial de `030` en staging.
 - [x] Ejecutar los 10 controles de paginación y lote de `031` en staging.
+- [x] Ejecutar los 13 controles del Dashboard acotado de `033` en staging.
+- [ ] Medir Agenda autenticada y revisar móvil tras desplegar y probar `034`.
 - [ ] Desplegar únicamente las Functions necesarias.
 - [ ] Decidir si se despliega `whatsapp-webhook`; no es necesario para el flujo
   manual y actualmente falta en el remoto.
