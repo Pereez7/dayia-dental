@@ -44,7 +44,8 @@ separación de dependencias compartidas.
   comenzando por la medición del alta, el listado administrativo paginado y las
   colecciones clínicas acotadas. `PERF-005B1` ya cerró su validación técnica,
   autenticada y móvil en staging; `PERF-005B2` también cerró su validación
-  técnica, transaccional y móvil en staging.
+  técnica, transaccional y móvil en staging. `PERF-005C` también cerró su
+  validación de contrato, autenticada, de duplicados y móvil en staging.
 - Preparar respaldo y ventana controlada antes de aplicar
   `027_membership_rls_hardening.sql` y
   `028_clinic_membership_lifecycle.sql` y
@@ -143,7 +144,7 @@ ausencia de `WHATSAPP_SEND_ENABLED` mantiene el dry-run por defecto.
 
 ## Migraciones
 
-Aplicar y verificar `001` a `035` en orden. `003_initial_clinic_setup_template`
+Aplicar y verificar `001` a `036` en orden. `003_initial_clinic_setup_template`
 es una plantilla de referencia. La lista completa está en
 `docs/supabase-setup.md`.
 
@@ -207,6 +208,15 @@ móvil autenticada confirmó creación `200` en 287 ms, reprogramación `200` en
 418 ms y rechazo seguro del segundo intento sobre el mismo horario. Esto cierra
 `PERF-005B2` en staging, pero no constituye autorización de producción.
 
+El 5 de agosto se aplicó `036` únicamente en staging y el historial remoto
+quedó alineado de `001` a `036`. El preflight confirmó que no existían
+teléfonos ni correos normalizados duplicados por consultorio. Sus 26 controles
+de paginación, búsqueda, índices, aislamiento y duplicados pasan localmente y
+contra staging con rollback; el lint remoto está limpio. La prueba móvil midió
+la página inicial en 511 ms y 0.9 kB, y la búsqueda en 284 ms y 0.7 kB; el
+detalle no repitió la página y el duplicado mostró un error seguro. Esto cierra
+PERF-005C en staging, pero no constituye autorización de producción.
+
 ## Redirect URLs
 
 Registrar en Supabase Auth:
@@ -254,7 +264,7 @@ No crear, corregir ni eliminar estos datos automáticamente desde el frontend.
 
 ## Checklist de despliegue
 
-- [x] Confirmar migraciones `001`–`035` en staging.
+- [x] Confirmar migraciones `001`–`036` en staging.
 - [x] Ejecutar las 38 pruebas RLS de `027` y `db lint` en staging.
 - [x] Ejecutar las 16 pruebas de ciclo de usuarios de `028` en staging.
 - [x] Ejecutar las 9 pruebas de guardado de horarios de `029` en staging.
@@ -264,6 +274,8 @@ No crear, corregir ni eliminar estos datos automáticamente desde el frontend.
 - [x] Medir Agenda autenticada y revisar móvil tras desplegar y probar `034`.
 - [x] Ejecutar los 31 controles atómicos de citas de `035` en staging.
 - [x] Validar en UI autenticada creación, reprogramación y conflicto de `035`.
+- [x] Ejecutar preflight y los 26 controles de Pacientes de `036` en staging.
+- [x] Medir y revisar Pacientes autenticado en viewport móvil tras `036`.
 - [ ] Desplegar únicamente las Functions necesarias.
 - [ ] Decidir si se despliega `whatsapp-webhook`; no es necesario para el flujo
   manual y actualmente falta en el remoto.

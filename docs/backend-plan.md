@@ -410,9 +410,11 @@ Function; React no mantiene una copia de esa decisión.
 ## Migración de Pacientes
 
 Pacientes es el primer modulo conectado a Supabase en modo real. Despues del
-login real, la app carga pacientes desde `patients` filtrando siempre por
-`clinic_id` del consultorio actual. La busqueda visible sigue siendo local sobre
-los pacientes cargados.
+login real, la pantalla principal usa `get_clinic_patients_page`, siempre
+autorizada para el `clinic_id` del consultorio actual. Devuelve 12 filas por
+defecto con cursor estable; la búsqueda por nombre, teléfono y correo se
+normaliza y ejecuta en PostgreSQL. El detalle se carga por ID y sus citas se
+consultan por paciente.
 
 En modo demo/desarrollo, Pacientes no llama a Supabase: usa los datos mock
 locales y las altas nuevas viven solo en memoria. No se mezclan pacientes mock
@@ -424,9 +426,10 @@ en Supabase asociado al `clinic_id`. Si la operacion falla, no se crea un
 paciente local falso.
 
 La forma de datos de frontend sigue siendo compatible con `Patient`, pero los
-pacientes reales usan UUID como `id`. Las citas, historial clinico, odontograma
-y recordatorios no se migran todavia. En esta etapa pueden seguir usando datos
-mock/locales y fallbacks por nombre cuando corresponda.
+pacientes reales usan UUID como `id`. Historial clínico, odontograma y
+recordatorios conservan temporalmente sus propios cargadores hasta sus
+subhitos PERF-005D–F; no deben reutilizarse para volver a expandir la lista de
+Pacientes.
 
 Las policies de `002_auth_profiles_policies.sql` ya permiten que un usuario
 autenticado gestione solo pacientes de su consultorio. La migracion
@@ -434,6 +437,11 @@ autenticado gestione solo pacientes de su consultorio. La migracion
 documenta el contrato de Pacientes como tabla filtrada por consultorio. La app
 tambien filtra por `clinic_id` desde el frontend, pero la separacion de datos
 depende de RLS.
+
+La migración `036_bounded_clinic_patients.sql` agrega la RPC paginada, un índice
+trigram para búsqueda y unicidad normalizada de teléfono y correo por
+consultorio. La comprobación local del formulario es solo una ayuda inmediata;
+PostgreSQL decide de forma autoritativa ante datos concurrentes.
 
 ## Migración de Citas
 

@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest'
 
 import type { PatientRecord } from '../types/database'
 import {
+  getPatientServiceErrorMessage,
   mapPatientFormValuesToPatientInput,
   mapPatientInputToPatientInsert,
   mapPatientInputToPatientUpdate,
   mapPatientRecordToPatient,
+  parsePatientPage,
 } from './patientsService'
 
 const patientRecord: PatientRecord = {
@@ -99,5 +101,86 @@ describe('patientsService mappers', () => {
       notes: null,
       phone: '+491701234567',
     })
+  })
+})
+
+describe('patient page contract', () => {
+  it('parses a bounded patient page and its stable cursor', () => {
+    expect(
+      parsePatientPage({
+        pageInfo: {
+          hasMore: true,
+          nextCursor: {
+            createdAt: '2026-08-05T12:00:00Z',
+            id: 'patient-1',
+          },
+        },
+        patients: [
+          {
+            birthDate: null,
+            countryCode: '+591',
+            email: 'ana@example.com',
+            firstName: 'Ana',
+            fullName: 'Ana Salazar',
+            id: 'patient-1',
+            lastName: 'Salazar',
+            lastVisit: '2026-08-01',
+            nextAppointment: '2026-08-12',
+            phone: '+59176543210',
+            status: 'active',
+          },
+        ],
+      }),
+    ).toEqual({
+      pageInfo: {
+        hasMore: true,
+        nextCursor: {
+          createdAt: '2026-08-05T12:00:00Z',
+          id: 'patient-1',
+        },
+      },
+      patients: [
+        {
+          birthDate: undefined,
+          countryCode: '+591',
+          email: 'ana@example.com',
+          firstName: 'Ana',
+          fullName: 'Ana Salazar',
+          id: 'patient-1',
+          lastName: 'Salazar',
+          lastVisit: '2026-08-01',
+          nextAppointment: '2026-08-12',
+          phone: '+59176543210',
+          status: 'active',
+        },
+      ],
+    })
+  })
+
+  it('rejects malformed patient page payloads', () => {
+    expect(
+      parsePatientPage({
+        pageInfo: { hasMore: false, nextCursor: null },
+        patients: [{ id: 'patient-1' }],
+      }),
+    ).toBeNull()
+  })
+
+  it('maps normalized duplicate indexes to safe form messages', () => {
+    expect(
+      getPatientServiceErrorMessage({
+        code: '23505',
+        message:
+          'duplicate key value violates unique constraint "patients_clinic_phone_normalized_uidx"',
+      }),
+    ).toBe('El teléfono ya está registrado en otro paciente.')
+
+    expect(
+      getPatientServiceErrorMessage({
+        code: '23505',
+        message:
+          'duplicate key value violates unique constraint "patients_clinic_email_normalized_uidx"',
+      }),
+    ).toBe('El correo ya está registrado en otro paciente.')
   })
 })

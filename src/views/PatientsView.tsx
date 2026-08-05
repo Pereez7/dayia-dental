@@ -9,8 +9,13 @@ interface PatientsViewProps {
   emptyMessage?: string
   errorMessage?: string
   canEditPatients?: boolean
+  hasMore?: boolean
   initialMode?: 'list' | 'new'
   isLoading?: boolean
+  isLoadingMore?: boolean
+  isServerPaginated?: boolean
+  onLoadMore?: () => void
+  onSearchPatients?: (searchText: string) => void
   onViewPatient: (patientId: Patient['id']) => void
   patients: Patient[]
   onCreatePatient: (
@@ -30,8 +35,13 @@ export function PatientsView({
   emptyMessage,
   errorMessage,
   canEditPatients = false,
+  hasMore = false,
   initialMode = 'list',
   isLoading,
+  isLoadingMore = false,
+  isServerPaginated = false,
+  onLoadMore,
+  onSearchPatients,
   onViewPatient,
   patients,
   onCreatePatient,
@@ -73,6 +83,7 @@ export function PatientsView({
     if (result.success && result.patientId !== undefined) {
       setHighlightedPatientId(result.patientId)
       setSearchResetToken((currentToken) => currentToken + 1)
+      onSearchPatients?.('')
     }
 
     return result
@@ -95,7 +106,10 @@ export function PatientsView({
         emptyMessage={emptyMessage}
         errorMessage={errorMessage}
         highlightedPatientId={highlightedPatientId}
+        hasMore={hasMore}
         isLoading={isLoading}
+        isLoadingMore={isLoadingMore}
+        isServerPaginated={isServerPaginated}
         onEditPatient={
           canEditPatients
             ? (patientId) =>
@@ -104,6 +118,8 @@ export function PatientsView({
                 )
             : undefined
         }
+        onLoadMore={onLoadMore}
+        onSearchChange={onSearchPatients}
         onViewPatient={onViewPatient}
         patients={patients}
       />

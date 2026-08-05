@@ -4,11 +4,22 @@ Registro breve de cambios relevantes en DayIA Dental.
 
 ## En desarrollo
 
+- PERF-005C limita Pacientes a páginas de 12 filas con cursor estable y
+  búsqueda normalizada en PostgreSQL. La migración `036` agrega la RPC
+  autorizada `get_clinic_patients_page`, índices de búsqueda y unicidad de
+  teléfono/correo por consultorio; el detalle se solicita por ID y sus citas
+  por paciente. El benchmark reversible con 20.000 pacientes verifica los
+  planes y el presupuesto local, 768 pruebas de aplicación pasan, los 26
+  controles SQL pasan localmente y contra staging y el lint remoto está
+  limpio. La prueba autenticada en 415 × 725 registró la página inicial en
+  511 ms y 0.9 kB y la búsqueda debounced en 284 ms y 0.7 kB; el detalle no
+  repitió la página y un teléfono duplicado mostró el error controlado. El
+  subhito queda cerrado en staging. Producción permanece intacta.
 - El plan de escalabilidad mantiene los hitos principales `PERF-001`–`008` y
   formaliza las subdivisiones de `PERF-005`: A Dashboard, B1/B2 Agenda, C
   Pacientes, D Historial clínico, E Recordatorios y F
-  Odontograma/Configuración. `PERF-005C` queda como siguiente bloque y
-  `PERF-006` no comienza hasta cerrar A–F.
+  Odontograma/Configuración. `PERF-005C` está cerrado y `PERF-005D` es el
+  siguiente bloque; `PERF-006` no comienza hasta cerrar A–F.
 - PERF-005B2 protege la creación y reprogramación real de citas mediante las
   RPC `create_clinic_appointment` y `reschedule_clinic_appointment`. La
   migración `035` serializa por consultorio y fecha, valida en servidor

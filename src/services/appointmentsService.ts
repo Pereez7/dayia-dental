@@ -310,7 +310,9 @@ export async function getAppointmentsByDate(
 
   const { data, error } = await supabase
     .from('appointments')
-    .select('*')
+    .select(
+      'id, clinic_id, patient_id, treatment_id, appointment_date, start_time, duration_minutes, status, reason, cancel_reason, reschedule_reason, created_at, updated_at',
+    )
     .eq('clinic_id', clinicId)
     .eq('appointment_date', date)
     .order('start_time', { ascending: true })
@@ -338,7 +340,9 @@ export async function getAppointmentsByPatient(
 
   const { data, error } = await supabase
     .from('appointments')
-    .select('*')
+    .select(
+      'id, clinic_id, patient_id, treatment_id, appointment_date, start_time, duration_minutes, status, reason, cancel_reason, reschedule_reason, created_at, updated_at',
+    )
     .eq('clinic_id', clinicId)
     .eq('patient_id', patientId)
     .order('appointment_date', { ascending: true })

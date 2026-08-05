@@ -6,9 +6,14 @@ import { PatientCard } from './PatientCard'
 interface PatientsListProps {
   emptyMessage?: string
   errorMessage?: string
-  isLoading?: boolean
   highlightedPatientId?: Patient['id'] | null
+  hasMore?: boolean
+  isLoading?: boolean
+  isLoadingMore?: boolean
+  isServerPaginated?: boolean
   onEditPatient?: (patientId: Patient['id']) => void
+  onLoadMore?: () => void
+  onSearchChange?: (searchText: string) => void
   onViewPatient: (patientId: Patient['id']) => void
   patients: Patient[]
 }
@@ -17,13 +22,20 @@ export function PatientsList({
   emptyMessage = 'No hay pacientes registrados todavía.',
   errorMessage = '',
   highlightedPatientId = null,
+  hasMore = false,
   isLoading = false,
+  isLoadingMore = false,
+  isServerPaginated = false,
   onEditPatient,
+  onLoadMore,
+  onSearchChange,
   onViewPatient,
   patients,
 }: PatientsListProps) {
   const [searchText, setSearchText] = useState('')
-  const filteredPatients = filterPatients(patients, searchText)
+  const filteredPatients = isServerPaginated
+    ? patients
+    : filterPatients(patients, searchText)
 
   function focusPatientForm() {
     document.getElementById('patient-first-name')?.focus()
@@ -42,7 +54,11 @@ export function PatientsList({
           <input
             type="search"
             value={searchText}
-            onChange={(event) => setSearchText(event.target.value)}
+            onChange={(event) => {
+              const nextSearchText = event.target.value
+              setSearchText(nextSearchText)
+              onSearchChange?.(nextSearchText)
+            }}
             placeholder="Nombre, apellido, teléfono o email"
             autoComplete="off"
           />
@@ -64,6 +80,16 @@ export function PatientsList({
               patient={patient}
             />
           ))}
+          {hasMore && onLoadMore && (
+            <button
+              className="secondary-action patients-load-more"
+              disabled={isLoadingMore}
+              type="button"
+              onClick={onLoadMore}
+            >
+              {isLoadingMore ? 'Cargando pacientes...' : 'Cargar más pacientes'}
+            </button>
+          )}
         </div>
       )}
 
@@ -88,7 +114,12 @@ export function PatientsList({
             className="secondary-action"
             type="button"
             onClick={
-              searchText.trim() ? () => setSearchText('') : focusPatientForm
+              searchText.trim()
+                ? () => {
+                    setSearchText('')
+                    onSearchChange?.('')
+                  }
+                : focusPatientForm
             }
           >
             {searchText.trim() ? 'Limpiar búsqueda' : 'Registrar paciente'}

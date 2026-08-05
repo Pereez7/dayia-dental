@@ -1879,6 +1879,13 @@
   min-width: 170px;
 }
 
+.patients-load-more {
+  grid-column: 1 / -1;
+  justify-self: center;
+  margin-top: 4px;
+  min-width: 190px;
+}
+
 .agenda-card {
   display: grid;
   gap: 8px;

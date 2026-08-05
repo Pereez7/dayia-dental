@@ -411,7 +411,8 @@ Objetivo: que el rendimiento de un consultorio no dependa de toda su historia.
 Estado: en curso desde el 4 de agosto de 2026. El subhito `PERF-005A`
 (Dashboard acotado) cerró técnicamente en staging el 5 de agosto;
 `PERF-005B1` y `PERF-005B2` cerraron la lectura diaria y las escrituras atómicas
-de Agenda en staging. El siguiente subhito es `PERF-005C`. El hito principal
+de Agenda en staging. `PERF-005C` cerró Pacientes en staging y el siguiente
+subhito es `PERF-005D`. El hito principal
 `PERF-005` solo se considerará cerrado cuando terminen A–F; después se podrá
 iniciar `PERF-006`. Producción permanece intacta.
 
@@ -422,7 +423,7 @@ Mapa oficial de subhitos:
 | PERF-005A | Dashboard | Snapshot agregado y de tamaño fijo | Cerrado en staging |
 | PERF-005B1 | Agenda | Lectura diaria, cursor y payload acotado | Cerrado en staging |
 | PERF-005B2 | Agenda | Disponibilidad y escrituras atómicas | Cerrado en staging |
-| PERF-005C | Pacientes | Búsqueda y paginación de servidor | Siguiente |
+| PERF-005C | Pacientes | Búsqueda y paginación de servidor | Cerrado en staging |
 | PERF-005D | Historial clínico | Paginación por paciente y vista global | Pendiente |
 | PERF-005E | Recordatorios | Ventana de ejecución, estado y cursor | Pendiente |
 | PERF-005F | Odontograma y Configuración | Carga bajo demanda y columnas explícitas | Pendiente |
@@ -547,17 +548,39 @@ prueba transaccional, autenticada y móvil.
 
 #### PERF-005C: Pacientes paginados y búsqueda de servidor
 
-Estado: siguiente subhito; todavía no iniciado.
+Estado: cerrado técnicamente en staging el 5 de agosto de 2026 después de la
+medición autenticada, prueba de duplicados y revisión móvil.
 
-- Paginar el listado en servidor con límite y cursor estable.
-- Ejecutar la búsqueda normalizada en PostgreSQL sin descargar todos los
-  pacientes del consultorio.
-- Pedir únicamente las columnas necesarias para la lista y cargar el detalle
-  completo bajo demanda.
-- Conservar alta, edición, resaltado del registro confirmado, estados vacío,
-  carga y error, permisos por rol y composición móvil.
-- Verificar índices y planes con datos ficticios, aislamiento RLS, pruebas de
-  contrato y medición autenticada en staging.
+- La migración `036_bounded_clinic_patients.sql` agrega
+  `get_clinic_patients_page`, autorizada por `can_access_clinic_data`. Devuelve
+  12 pacientes por defecto, acepta hasta 30 y pagina con cursor compuesto por
+  `created_at` e ID.
+- Nombre, teléfono y correo se buscan en PostgreSQL con normalización de
+  mayúsculas, tildes y separadores. Un índice GIN trigram cubre la expresión y
+  el listado reciente usa el índice ordenado existente.
+- El payload excluye notas y agrega únicamente última visita completada y
+  próxima cita activa para las filas visibles. La ficha se carga por ID y sus
+  citas se consultan por paciente; el listado ya no descarga todo el
+  consultorio.
+- Dos índices únicos normalizados hacen autoritativo el rechazo de teléfonos y
+  correos repetidos dentro del mismo consultorio, incluso ante solicitudes
+  concurrentes. El preflight de staging confirmó que no existían duplicados
+  antes del despliegue.
+- La UI descarta respuestas tardías, espera 280 ms al buscar, bloquea cargas
+  dobles, evita repetir IDs al anexar y conserva estados de carga, error,
+  vacío, alta, edición y modo demo.
+- El benchmark reversible crea 20.000 pacientes y 20.000 citas ficticias,
+  verifica ambos planes y mantiene página y búsqueda por debajo de 1.500 ms
+  localmente. Los 26 controles pgTAP pasan localmente y contra staging con
+  rollback; `db lint --linked --level warning` está limpio. La regresión
+  completa alcanza 768 pruebas de aplicación, además de lint y build.
+- En 415 × 725, la página inicial respondió `200`, 0.9 kB y 511 ms; la búsqueda
+  debounced respondió `200`, 0.7 kB y 284 ms. El preflight inicial tardó
+  303 ms. Son muestras individuales, no percentiles.
+- Al abrir la ficha no volvió a ejecutarse `get_clinic_patients_page`. La vista
+  mantuvo ancho y lectura correctos, y un alta con teléfono repetido fue
+  rechazada con el mensaje visible «El teléfono ya está registrado en otro
+  paciente.». Producción no recibió la migración.
 
 #### PERF-005D: Historial clínico paginado
 
@@ -681,6 +704,7 @@ reemplazarse por estimaciones.
 | PERF-005A | Snapshot acotado del Dashboard clínico | Colecciones completas de pacientes, citas y logs en el navegador; sin límite estable | Benchmark local con 2.000 pacientes, 20.000 citas y 20.000 logs: índices verificados y snapshot menor a 1.500 ms. Staging autenticado: 273 ms y 1.1 kB en una navegación limpia | Cerrado técnicamente en staging; una RPC, sin colecciones completas y con producción intacta | 5 ago 2026 |
 | PERF-005B1 | Lectura diaria acotada de Agenda | Colección histórica completa de citas y pacientes | Staging móvil: 0.9–1.0 kB en 313–464 ms | Cerrado; fecha y cursor estables, KPIs completos y sin descarga histórica | 5 ago 2026 |
 | PERF-005B2 | Escritura atómica de Agenda | Validación local vulnerable a reservas concurrentes | Creación 287 ms; reprogramación 418 ms; segunda reserva concurrente rechazada | Cerrado; disponibilidad autoritativa y auditoría atómica en PostgreSQL | 5 ago 2026 |
+| PERF-005C | Listado y búsqueda de Pacientes | Colección completa por consultorio y filtrado en el navegador | Staging móvil: página inicial 0.9 kB en 511 ms; búsqueda 0.7 kB en 284 ms | Cerrado; payload paginado, detalle puntual y duplicados autoritativos | 5 ago 2026 |
 
 ## Fuera de alcance
 

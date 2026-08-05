@@ -76,16 +76,19 @@ idempotente y confirma clínica, perfil, membership y suscripción en una sola
 transacción PostgreSQL; un reintento idéntico recupera el resultado existente
 sin volver a invitar ni duplicar registros. La migración `033` sirve el
 Dashboard clínico mediante un snapshot autorizado y de tamaño fijo, sin
-descargar la historia completa del consultorio.
+descargar la historia completa del consultorio. La migración `036` limita el
+listado de pacientes a páginas con cursor, ejecuta la búsqueda normalizada en
+PostgreSQL y protege teléfono y correo duplicados por consultorio.
 
 ## Modulos actuales
 
 - **Dashboard:** operación de hoy sin citas canceladas, movimientos mensuales
   desde el historial real, próximas citas activas, seguimiento, actividad de
   citas y pacientes activos recientes.
-- **Pacientes:** listado compacto, búsqueda normalizada por nombre completo,
-  teléfono y email, alta persistente con control básico de duplicados, detalle
-  con todas las citas relacionadas y accesos rápidos condicionados por rol.
+- **Pacientes:** listado compacto paginado en servidor, búsqueda normalizada
+  por nombre completo, teléfono y email, alta y edición persistentes con
+  protección autoritativa frente a duplicados, detalle cargado bajo demanda y
+  accesos rápidos condicionados por rol. El modo demo conserva su lista local.
 - **Citas:** agenda diaria mobile-first con selector horizontal de dias, KPIs
   compactos, listado ordenado por hora, confirmacion, cancelacion con motivo en
   `ConfirmDialog`, reprogramacion inline con motivo, creación persistente,

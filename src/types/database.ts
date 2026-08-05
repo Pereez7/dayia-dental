@@ -423,6 +423,17 @@ export type Database = {
         }
         Returns: Json
       }
+      get_clinic_patients_page: {
+        Args: {
+          target_after_created_at: string | null
+          target_after_id: string | null
+          target_clinic_id: string
+          target_page_size: number
+          target_reference_date: string
+          target_search: string
+        }
+        Returns: Json
+      }
       create_clinic_appointment: {
         Args: {
           target_clinic_id: string

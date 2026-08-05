@@ -213,7 +213,8 @@ Participan:
 
 - `src/views/PatientsView.tsx`: compone listado y formulario de registro.
 - `src/views/PatientDetailView.tsx`: muestra la ficha completa del paciente.
-- `src/components/PatientsList.tsx`: filtra y lista pacientes.
+- `src/components/PatientsList.tsx`: muestra la página recibida, comunica la
+  búsqueda al servidor y solicita páginas adicionales sin duplicar IDs.
 - `src/components/PatientCard.tsx`: muestra cada paciente como ficha clinica
   escaneable y permite abrir el detalle o editar sus datos.
 - `src/components/PatientEditDialog.tsx`: contiene el flujo modal de edición y

@@ -25,8 +25,11 @@ import {
 } from './layout/navigation'
 import {
   createPatient,
+  getPatientById,
   getPatientsByClinic,
+  getPatientsPage,
   mapPatientFormValuesToPatientInput,
+  type PatientPageCursor,
   updatePatient as updatePatientInSupabase,
 } from './services/patientsService'
 import { getDashboardSnapshot } from './services/dashboardService'
@@ -35,6 +38,7 @@ import {
   getAppointmentAgendaSnapshot,
   getAppointmentAvailabilityByDate,
   getAppointmentsByClinic,
+  getAppointmentsByPatient,
   mapAppointmentFormValuesToAppointmentInput,
   rescheduleAppointment as rescheduleAppointmentInSupabase,
   updateAppointmentStatus as updateAppointmentStatusInSupabase,
@@ -276,10 +280,26 @@ function App() {
   const [patients, setPatients] = useState<Patient[]>(() =>
     isDemoMode && permissions.canAccessPatients ? initialPatients : [],
   )
+  const [patientListItems, setPatientListItems] = useState<Patient[]>(() =>
+    isDemoMode && permissions.canAccessPatients ? initialPatients : [],
+  )
   const [isPatientsLoading, setIsPatientsLoading] = useState(
     () => !isDemoMode && permissions.canAccessPatients,
   )
   const [patientsError, setPatientsError] = useState('')
+  const [patientListSearch, setPatientListSearch] = useState('')
+  const [patientListNextCursor, setPatientListNextCursor] =
+    useState<PatientPageCursor | null>(null)
+  const [patientListHasMore, setPatientListHasMore] = useState(false)
+  const [isPatientListLoading, setIsPatientListLoading] = useState(
+    () => !isDemoMode && permissions.canAccessPatients,
+  )
+  const [isPatientListLoadingMore, setIsPatientListLoadingMore] =
+    useState(false)
+  const [patientListError, setPatientListError] = useState('')
+  const [patientListRefreshVersion, setPatientListRefreshVersion] = useState(0)
+  const patientListLoadMorePendingRef = useRef(false)
+  const patientListRequestGenerationRef = useRef(0)
   const [appointmentPatientId, setAppointmentPatientId] =
     useState<PatientId | null>(null)
   const [appointmentDraft, setAppointmentDraft] =
@@ -665,6 +685,104 @@ function App() {
 
   useEffect(() => {
     let isMounted = true
+    const requestGeneration = ++patientListRequestGenerationRef.current
+
+    async function loadPatientList() {
+      if (effectiveActiveSection !== 'patients-list') {
+        setIsPatientListLoading(false)
+        setIsPatientListLoadingMore(false)
+        return
+      }
+
+      if (!permissions.canAccessPatients) {
+        setPatientListItems([])
+        setPatientListNextCursor(null)
+        setPatientListHasMore(false)
+        setIsPatientListLoading(false)
+        setIsPatientListLoadingMore(false)
+        setPatientListError('')
+        return
+      }
+
+      if (isDemoMode) {
+        setPatientListItems(initialPatients)
+        setPatientListNextCursor(null)
+        setPatientListHasMore(false)
+        setIsPatientListLoading(false)
+        setIsPatientListLoadingMore(false)
+        setPatientListError('')
+        return
+      }
+
+      if (!currentClinic?.id) {
+        setPatientListItems([])
+        setPatientListNextCursor(null)
+        setPatientListHasMore(false)
+        setIsPatientListLoading(false)
+        setPatientListError(
+          'No hay consultorio activo para cargar pacientes.',
+        )
+        return
+      }
+
+      if (patientListSearch.trim()) {
+        await new Promise((resolve) => window.setTimeout(resolve, 280))
+      }
+
+      if (
+        !isMounted ||
+        requestGeneration !== patientListRequestGenerationRef.current
+      ) {
+        return
+      }
+
+      setIsPatientListLoading(true)
+      setPatientListError('')
+
+      const { data, error } = await getPatientsPage(
+        currentClinic.id,
+        patientListSearch,
+        getDateInputValue(),
+      )
+
+      if (
+        !isMounted ||
+        requestGeneration !== patientListRequestGenerationRef.current
+      ) {
+        return
+      }
+
+      if (error || !data) {
+        setPatientListItems([])
+        setPatientListNextCursor(null)
+        setPatientListHasMore(false)
+        setPatientListError(error ?? 'No pudimos cargar los pacientes.')
+        setIsPatientListLoading(false)
+        return
+      }
+
+      setPatientListItems(data.patients)
+      setPatientListNextCursor(data.pageInfo.nextCursor)
+      setPatientListHasMore(data.pageInfo.hasMore)
+      setIsPatientListLoading(false)
+    }
+
+    loadPatientList()
+
+    return () => {
+      isMounted = false
+    }
+  }, [
+    currentClinic?.id,
+    effectiveActiveSection,
+    isDemoMode,
+    patientListRefreshVersion,
+    patientListSearch,
+    permissions.canAccessPatients,
+  ])
+
+  useEffect(() => {
+    let isMounted = true
 
     async function loadPatients() {
       if (!permissions.canAccessPatients) {
@@ -698,6 +816,40 @@ function App() {
       setIsPatientsLoading(true)
       setPatientsError('')
 
+      if (effectiveActiveSection === 'patient-detail' && selectedPatientId) {
+        const { data, error } = await getPatientById(
+          currentClinic.id,
+          String(selectedPatientId),
+        )
+
+        if (!isMounted) {
+          return
+        }
+
+        if (error || !data) {
+          setPatients([])
+          setPatientsError(error ?? 'No pudimos cargar el paciente.')
+          setIsPatientsLoading(false)
+          return
+        }
+
+        const cachedPatient = patientListItems.find(
+          (patient) => patient.id === data.id,
+        )
+
+        setPatients([
+          cachedPatient
+            ? {
+                ...data,
+                lastVisit: cachedPatient.lastVisit,
+                nextAppointment: cachedPatient.nextAppointment,
+              }
+            : data,
+        ])
+        setIsPatientsLoading(false)
+        return
+      }
+
       const { data, error } = await getPatientsByClinic(currentClinic.id)
 
       if (!isMounted) {
@@ -724,8 +876,63 @@ function App() {
     currentClinic?.id,
     effectiveActiveSection,
     isDemoMode,
+    patientListItems,
     permissions.canAccessPatients,
+    selectedPatientId,
   ])
+
+  async function handleLoadMorePatients() {
+    if (
+      isDemoMode ||
+      !currentClinic?.id ||
+      !patientListNextCursor ||
+      isPatientListLoadingMore ||
+      patientListLoadMorePendingRef.current
+    ) {
+      return
+    }
+
+    patientListLoadMorePendingRef.current = true
+    setIsPatientListLoadingMore(true)
+    const requestGeneration = patientListRequestGenerationRef.current
+    const requestedSearch = patientListSearch
+
+    const { data, error } = await getPatientsPage(
+      currentClinic.id,
+      requestedSearch,
+      getDateInputValue(),
+      { cursor: patientListNextCursor },
+    )
+
+    if (
+      requestGeneration === patientListRequestGenerationRef.current &&
+      requestedSearch === patientListSearch &&
+      effectiveActiveSection === 'patients-list'
+    ) {
+      if (error || !data) {
+        setPatientListError(error ?? 'No pudimos cargar más pacientes.')
+      } else {
+        setPatientListItems((currentPatients) => {
+          const existingIds = new Set(
+            currentPatients.map((patient) => patient.id),
+          )
+
+          return [
+            ...currentPatients,
+            ...data.patients.filter(
+              (patient) => !existingIds.has(patient.id),
+            ),
+          ]
+        })
+        setPatientListNextCursor(data.pageInfo.nextCursor)
+        setPatientListHasMore(data.pageInfo.hasMore)
+        setPatientListError('')
+      }
+    }
+
+    patientListLoadMorePendingRef.current = false
+    setIsPatientListLoadingMore(false)
+  }
 
   useEffect(() => {
     let isMounted = true
@@ -871,10 +1078,17 @@ function App() {
         return
       }
 
-      const { data, error } = await getAppointmentsByClinic(
-        currentClinic.id,
-        appointmentLoadPatients,
-      )
+      const { data, error } =
+        effectiveActiveSection === 'patient-detail' && selectedPatientId
+          ? await getAppointmentsByPatient(
+              currentClinic.id,
+              String(selectedPatientId),
+              appointmentLoadPatients,
+            )
+          : await getAppointmentsByClinic(
+              currentClinic.id,
+              appointmentLoadPatients,
+            )
 
       if (!isMounted) {
         return
@@ -904,6 +1118,7 @@ function App() {
     isDemoMode,
     appointmentLoadPatients,
     permissions.canAccessAppointments,
+    selectedPatientId,
   ])
 
   async function handleLoadMoreAgenda() {
@@ -1114,21 +1329,23 @@ function App() {
     if (isDemoMode) {
       const patientInput = mapPatientFormValuesToPatientInput(values)
       const patientId = getNextNumericPatientId(patients)
+      const newPatient: Patient = {
+        id: patientId,
+        countryCode: patientInput.countryCode,
+        firstName: patientInput.firstName,
+        fullName: `${patientInput.firstName} ${patientInput.lastName}`,
+        lastName: patientInput.lastName,
+        phone: `${patientInput.countryCode}${patientInput.localPhone}`,
+        email: patientInput.email,
+        birthDate: patientInput.birthDate,
+        lastVisit: 'Sin registro',
+        nextAppointment: null,
+        status: 'active',
+      }
 
-      setPatients((currentPatients) => [
-        {
-          id: patientId,
-          countryCode: patientInput.countryCode,
-          firstName: patientInput.firstName,
-          fullName: `${patientInput.firstName} ${patientInput.lastName}`,
-          lastName: patientInput.lastName,
-          phone: `${patientInput.countryCode}${patientInput.localPhone}`,
-          email: patientInput.email,
-          birthDate: patientInput.birthDate,
-          lastVisit: 'Sin registro',
-          nextAppointment: null,
-          status: 'active',
-        },
+      setPatients((currentPatients) => [newPatient, ...currentPatients])
+      setPatientListItems((currentPatients) => [
+        newPatient,
         ...currentPatients,
       ])
       setPatientsError('')
@@ -1156,6 +1373,12 @@ function App() {
     }
 
     setPatients((currentPatients) => [data, ...currentPatients])
+    setPatientListItems((currentPatients) => [
+      data,
+      ...currentPatients.filter((patient) => patient.id !== data.id),
+    ])
+    setPatientListSearch('')
+    setPatientListRefreshVersion((version) => version + 1)
     setPatientsError('')
 
     return { patientId: data.id, success: true }
@@ -1186,6 +1409,22 @@ function App() {
 
     if (isDemoMode) {
       setPatients((currentPatients) =>
+        currentPatients.map((patient) =>
+          patient.id === patientId
+            ? {
+                ...patient,
+                birthDate: patientInput.birthDate,
+                countryCode: patientInput.countryCode,
+                email: patientInput.email,
+                firstName: patientInput.firstName,
+                fullName: `${patientInput.firstName} ${patientInput.lastName}`,
+                lastName: patientInput.lastName,
+                phone: `${patientInput.countryCode}${patientInput.localPhone}`,
+              }
+            : patient,
+        ),
+      )
+      setPatientListItems((currentPatients) =>
         currentPatients.map((patient) =>
           patient.id === patientId
             ? {
@@ -1237,6 +1476,19 @@ function App() {
           : patient,
       ),
     )
+    setPatientListItems((currentPatients) =>
+      currentPatients.map((patient) =>
+        patient.id === patientId
+          ? {
+              ...data,
+              lastVisit: patient.lastVisit,
+              nextAppointment: patient.nextAppointment,
+              status: patient.status,
+            }
+          : patient,
+      ),
+    )
+    setPatientListRefreshVersion((version) => version + 1)
     setPatientsError('')
     return { success: true }
   }
@@ -2107,6 +2359,14 @@ function App() {
   }
 
   function handleViewPatient(patientId: PatientId) {
+    const selectedListPatient = patientListItems.find(
+      (patient) => patient.id === patientId,
+    )
+
+    if (selectedListPatient) {
+      setPatients([selectedListPatient])
+    }
+
     setSelectedPatientId(patientId)
     setActiveSection('patient-detail')
   }
@@ -2311,11 +2571,16 @@ function App() {
         <PatientsView
           canEditPatients={permissions.canAccessPatients}
           emptyMessage="No hay pacientes registrados en este consultorio."
-          errorMessage={patientsError}
+          errorMessage={patientListError}
+          hasMore={patientListHasMore}
           initialMode="list"
-          isLoading={isPatientsLoading}
+          isLoading={isPatientListLoading}
+          isLoadingMore={isPatientListLoadingMore}
+          isServerPaginated={!isDemoMode}
+          onLoadMore={handleLoadMorePatients}
+          onSearchPatients={setPatientListSearch}
           onViewPatient={handleViewPatient}
-          patients={patients}
+          patients={patientListItems}
           onCreatePatient={handleCreatePatient}
           onUpdatePatient={handleUpdatePatient}
         />
@@ -2348,11 +2613,16 @@ function App() {
           <PatientsView
             canEditPatients={permissions.canAccessPatients}
             emptyMessage="No hay pacientes registrados en este consultorio."
-            errorMessage={patientsError}
+            errorMessage={patientsError || patientListError}
+            hasMore={patientListHasMore}
             initialMode="list"
-            isLoading={isPatientsLoading}
+            isLoading={isPatientsLoading || isPatientListLoading}
+            isLoadingMore={isPatientListLoadingMore}
+            isServerPaginated={!isDemoMode}
+            onLoadMore={handleLoadMorePatients}
+            onSearchPatients={setPatientListSearch}
             onViewPatient={handleViewPatient}
-            patients={patients}
+            patients={patientListItems}
             onCreatePatient={handleCreatePatient}
             onUpdatePatient={handleUpdatePatient}
           />
@@ -2612,8 +2882,6 @@ function sectionNeedsPatients(section: AppSection) {
     section === 'clinical-history' ||
     section === 'odontogram' ||
     section === 'patient-detail' ||
-    section === 'patient-new' ||
-    section === 'patients-list' ||
     section === 'whatsapp-reminders'
   )
 }

@@ -105,11 +105,25 @@ reprogramación `200` en 418 ms y el rechazo controlado de una segunda pestaña
 con el mismo horario. `PERF-005B2` queda cerrado en staging. El historial está
 alineado `001–035`; producción continúa intacta.
 
-La subdivisión oficial restante de `PERF-005` es: `005C` Pacientes, `005D`
+`PERF-005C` está implementado y desplegado únicamente en staging. La migración
+`036_bounded_clinic_patients.sql` sirve páginas de 12 pacientes con cursor,
+búsqueda normalizada e indicadores de última visita/próxima cita para las filas
+visibles. La ficha se carga por ID y sus citas por paciente. Los índices únicos
+de teléfono y correo por consultorio protegen altas y ediciones concurrentes;
+el preflight remoto confirmó que no había duplicados antiguos. El benchmark
+reversible con 20.000 pacientes verifica los planes y presupuesto local, 768
+pruebas de aplicación pasan y los 26 controles SQL aprobaron localmente y en
+staging. El historial remoto está alineado `001–036` y el lint está limpio. La
+prueba autenticada en 415 × 725 midió 0.9 kB en 511 ms para la página inicial y
+0.7 kB en 284 ms para la búsqueda; el detalle no repitió la página y el alta
+duplicada mostró el mensaje controlado. `PERF-005C` queda cerrado en staging;
+producción continúa intacta.
+
+La subdivisión oficial restante después de cerrar Pacientes es: `005D`
 Historial clínico, `005E` Recordatorios y `005F` Odontograma/Configuración.
 Cada subhito conserva la misma puerta de pruebas, benchmark, staging,
-documentación y revisión móvil. No se inicia `PERF-006` hasta cerrar A–F. El
-siguiente bloque de trabajo es `PERF-005C`.
+documentación y revisión móvil. El siguiente bloque es `PERF-005D`. No se
+inicia `PERF-006` hasta cerrar A–F.
 
 Antes de iniciar `PERF-003`, el alta de plataforma dejó de reutilizar correos
 existentes. Un correo registrado en Auth o `profiles` responde `409`. Para un
