@@ -16,6 +16,17 @@ Registro breve de cambios relevantes en DayIA Dental.
   formulario y permite reintentar sin duplicar el consultorio. La telemetría
   separa el tiempo hasta la confirmación del tiempo del listado. La muestra de
   staging redujo la confirmación visible de 6,143.0 ms a 4,490.5 ms.
+- Administración DayIA pagina en servidor el listado de consultorios y carga
+  el detalle comercial solo al abrir una cuenta. Los pagos y solicitudes usan
+  páginas independientes de cinco filas y la aplicación de planes programados
+  dejó de ejecutar una RPC por consultorio. PERF-003 cerró en staging con
+  respuestas acotadas y mantiene documentada la latencia pendiente.
+- El alta de consultorios ya no recorre usuarios de Supabase Auth. La migración
+  `032` reserva cada solicitud con una clave idempotente y confirma clínica,
+  perfil, membership y suscripción en una transacción PostgreSQL. PERF-004
+  cerró en staging con una creación autenticada y un reintento de 721.6 ms,
+  79.2 % más rápido y sin duplicados. Producción permanece sin estos cambios
+  hasta su despliegue independiente.
 - Se creó `DESIGN.md` como contrato visual para reutilizar controles, acciones,
   feedback y reglas mobile-first. El motivo de activación o desactivación de
   usuarios ahora usa el control compartido, y las acciones repetidas se

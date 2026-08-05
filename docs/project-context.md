@@ -65,11 +65,11 @@ sustitución en `platform_clinic_owner_corrections`. La migración `030` está
 aplicada y verificada en staging; `create-platform-clinic` versión 7 y
 `correct-platform-clinic-owner-email` versión 1 están `ACTIVE` con JWT.
 
-El bloque en curso es el endurecimiento de seguridad y permisos antes de
-continuar con los CRUD pendientes. La migración
+Como antecedente, el bloque de endurecimiento de seguridad y permisos se cerró
+antes de iniciar el programa de rendimiento. La migración
 `027_membership_rls_hardening.sql` ya fue validada localmente desde una base
-vacía y aplicada al staging `zjsnfgxvaimddmchrwre`. El historial remoto quedó
-alineado de `001` a `030`; las 38 pruebas de aislamiento RLS y
+vacía y aplicada al staging `zjsnfgxvaimddmchrwre`. En esa etapa, el historial
+remoto quedó alineado de `001` a `030`; las 38 pruebas de aislamiento RLS y
 `supabase db lint --linked --level warning` finalizaron correctamente:
 
 - la autorización clínica usa membership activa, consultorio activo,

@@ -132,13 +132,16 @@ Consulta de solo lectura realizada el 20 de julio de 2026:
 - Secrets de WhatsApp ausentes: `WHATSAPP_SEND_ENABLED`,
   `WHATSAPP_VERIFY_TOKEN` y `WHATSAPP_ACCESS_TOKEN`.
 
-La CLI muestra únicamente hashes, pero el 20 de julio de 2026 se restableció
-explícitamente `DAYIA_PLATFORM_CREATE_ENABLED=false` en el proyecto enlazado.
-La ausencia de `WHATSAPP_SEND_ENABLED` mantiene el dry-run por defecto.
+La CLI muestra únicamente hashes. El 20 de julio de 2026 se restableció
+`DAYIA_PLATFORM_CREATE_ENABLED=false` en el proyecto que estaba enlazado en
+ese momento. El 30 de julio se habilitó explícitamente en staging
+`zjsnfgxvaimddmchrwre` para validar PERF-004. Esto no confirma ni modifica el
+valor de producción: debe verificarse por entorno antes de cada despliegue. La
+ausencia de `WHATSAPP_SEND_ENABLED` mantiene el dry-run por defecto.
 
 ## Migraciones
 
-Aplicar y verificar `001` a `031` en orden. `003_initial_clinic_setup_template`
+Aplicar y verificar `001` a `032` en orden. `003_initial_clinic_setup_template`
 es una plantilla de referencia. La lista completa está en
 `docs/supabase-setup.md`.
 
@@ -164,6 +167,19 @@ rollback. `list-platform-clinics` fue reemplazada por la versión paginada y
 bajo demanda. El humo autenticado devolvió `200` y confirmó transferencias
 acotadas; la latencia observada de 1.03–2.38 s continúa como deuda explícita
 antes de producción.
+
+También el 30 de julio se aplicó `032` únicamente en staging y el historial
+remoto quedó alineado de `001` a `032`. La migración incorpora el ledger
+idempotente, la unicidad global del email normalizado y la escritura atómica de
+clínica, perfil, membership y suscripción. El pgTAP específico superó 31
+controles localmente y contra staging con rollback; la suite completa alcanzó
+732 pruebas de aplicación y 105 SQL. La validación autenticada confirmó una
+alta nueva de 3,472.2 ms internos y un reintento seguro de 721.6 ms sin
+duplicados. En staging quedaron activas `create-platform-clinic` v8,
+`invite-clinic-member` v3 y `correct-platform-clinic-owner-email` v2 con JWT.
+La Function legacy `migrate-owner-email` no permanece desplegada. Ninguno de
+estos cambios debe darse por aplicado en producción hasta ejecutar su propio
+respaldo, despliegue y verificación posterior.
 
 ## Redirect URLs
 

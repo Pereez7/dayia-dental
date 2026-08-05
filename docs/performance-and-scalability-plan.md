@@ -502,7 +502,7 @@ reemplazarse por estimaciones.
 | PERF-001 | Alta autenticada de consultorio nuevo | Muestra única: 6,143 ms; sin p50/p95 | No aplica | Cerrado; Function 3,751.1 ms y refresco bloqueante 2,380.7 ms | 30 jul 2026 |
 | PERF-002 | Confirmación de alta sin refresco bloqueante | Muestra única: 6,143.0 ms hasta confirmar | Muestra única: 4,490.5 ms hasta confirmar | Cerrado; confirmación 1,652.5 ms antes (26.9 %), refresco de 2,041.7 ms en segundo plano | 30 jul 2026 |
 | PERF-003 | Resumen y detalle administrativo paginados | Listado anterior: 2,041.7 ms en una muestra; payload completo sin límite | Listado: 1.03–2.38 s y 1.6–1.7 kB en 10 muestras; detalle: 1.95 s y 1.5 kB en una muestra | Cerrado en escalabilidad; payload acotado, sin N+1 y con deuda de latencia registrada | 30 jul 2026 |
-| PERF-004 | Alta idempotente y escritura pública atómica | Function anterior: 3,153.0 ms internos en una muestra; múltiples viajes PostgreSQL y búsqueda Auth paginada | Pendiente alta autenticada; pruebas técnicas confirman una RPC transaccional y búsqueda Auth indexada | Desplegado y validado técnicamente en staging; hito abierto hasta medir la UI | 30 jul 2026 |
+| PERF-004 | Alta idempotente y escritura pública atómica | Function anterior: 3,153.0 ms internos en una muestra; múltiples viajes PostgreSQL y búsqueda Auth paginada | Alta nueva: 3,472.2 ms internos; reintento idempotente: 721.6 ms | Cerrado; sin recorrido de Auth, escritura pública atómica y reintento 79.2 % más rápido sin duplicados. La invitación Auth sigue siendo el principal costo externo | 30 jul 2026 |
 
 ## Fuera de alcance
 

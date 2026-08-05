@@ -71,7 +71,10 @@ frontend y el flujo no consulta datos clínicos. Un correo ya registrado no
 puede reutilizarse como propietario de otro consultorio. Mientras el
 consultorio siga pendiente, Administración DayIA puede corregir ese correo,
 reemplazar únicamente su membresía y enviar una invitación nueva. Los pasos de
-despliegue están en `docs/supabase-setup.md`.
+despliegue están en `docs/supabase-setup.md`. La migración `032` hace el alta
+idempotente y confirma clínica, perfil, membership y suscripción en una sola
+transacción PostgreSQL; un reintento idéntico recupera el resultado existente
+sin volver a invitar ni duplicar registros.
 
 ## Modulos actuales
 
