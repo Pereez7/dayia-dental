@@ -90,8 +90,26 @@ pruebas de aplicación y 133 controles SQL, además de lint y build. La revisió
 autenticada en 415 × 725 registró la carga inicial y el cambio a Mañana como dos
 respuestas `200`: 0.9 kB en 464 ms y 1.0 kB en 313 ms; el preflight inicial
 tardó 236 ms. Son muestras individuales, no percentiles. La composición móvil
-no presentó overflow ni texto cortado. `PERF-005B2` cubrirá disponibilidad y
-escrituras atómicas. Producción continúa intacta.
+no presentó overflow ni texto cortado.
+
+`PERF-005B2` está implementado y desplegado únicamente en staging. La migración
+`035_atomic_appointment_scheduling.sql` incorpora creación y reprogramación
+atómicas, serializa por consultorio y fecha, valida la disponibilidad completa
+en PostgreSQL y guarda cita y auditoría en la misma transacción. Revoca al
+frontend las escrituras directas de los campos de agenda. Sus 31 controles
+pgTAP pasan localmente y contra staging con rollback; el benchmark reversible
+usa 20.000 citas y confirma los índices parciales, y `db lint` remoto está
+limpio. La regresión completa alcanza 760 pruebas de aplicación y 164 controles
+SQL. La prueba móvil autenticada confirmó creación `200` en 287 ms,
+reprogramación `200` en 418 ms y el rechazo controlado de una segunda pestaña
+con el mismo horario. `PERF-005B2` queda cerrado en staging. El historial está
+alineado `001–035`; producción continúa intacta.
+
+La subdivisión oficial restante de `PERF-005` es: `005C` Pacientes, `005D`
+Historial clínico, `005E` Recordatorios y `005F` Odontograma/Configuración.
+Cada subhito conserva la misma puerta de pruebas, benchmark, staging,
+documentación y revisión móvil. No se inicia `PERF-006` hasta cerrar A–F. El
+siguiente bloque de trabajo es `PERF-005C`.
 
 Antes de iniciar `PERF-003`, el alta de plataforma dejó de reutilizar correos
 existentes. Un correo registrado en Auth o `profiles` responde `409`. Para un

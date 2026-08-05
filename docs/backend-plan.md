@@ -134,6 +134,9 @@ Las migraciones actuales son:
 - `034_bounded_clinic_agenda.sql`: snapshot autorizado por fecha con cursor
   estable, KPIs completos del día, último evento relevante y disponibilidad
   activa mínima; evita descargar toda la historia de citas y pacientes.
+- `035_atomic_appointment_scheduling.sql`: creación y reprogramación atómicas,
+  disponibilidad autoritativa en servidor, bloqueo de concurrencia por fecha e
+  índices parciales para citas activas.
 
 ## Migracion por modulos
 
@@ -438,10 +441,10 @@ Citas/Agenda consume Supabase en modo real y conserva datos mock/locales en modo
 demo. El modo real se activa solo cuando Supabase esta configurado, la app no
 esta en modo demo y existe `currentClinic.id`.
 
-En modo real, las citas se cargan desde `appointments` filtrando siempre por
-`clinic_id` del consultorio actual. Las operaciones de crear, confirmar,
-cancelar y reprogramar actualizan Supabase y registran eventos en
-`appointment_change_logs`, tambien filtrados por `clinic_id`.
+En modo real, Agenda carga una fecha mediante `get_clinic_agenda_snapshot`.
+Crear y reprogramar usan `create_clinic_appointment` y
+`reschedule_clinic_appointment`; confirmar, cancelar y resolver conservan sus
+transiciones actuales. Los eventos se asocian siempre al mismo `clinic_id`.
 
 La migracion `019_appointment_resolution_statuses.sql` amplia el constraint de
 `appointments.status` con `completed` y `no_show`. Ambos son terminales: no
@@ -461,14 +464,16 @@ El frontend conserva su forma actual de datos:
 - `date` se guarda como `appointment_date`.
 - `time` se guarda como `start_time`.
 - `durationMinutes` se guarda como `duration_minutes`.
-- `treatment` se guarda temporalmente en `appointments.reason`.
-- `treatment_id` permanece `null` hasta migrar Tratamientos.
+- `treatment` se proyecta desde el nombre autoritativo del tratamiento.
+- `treatment_id` guarda el UUID real y el servidor toma de allí la duración.
 
-Las reglas existentes de Agenda se mantienen en frontend: disponibilidad por
-duracion, validacion contra horarios del consultorio, excepciones del
-calendario, bloqueo de solapamientos, bloqueo de doble cita activa del mismo
-paciente en el mismo dia, citas canceladas que no bloquean horario y restriccion
-para no reprogramar citas canceladas.
+El frontend conserva una validación inmediata para orientar al usuario, pero
+la migración `035` decide de forma autoritativa: serializa por consultorio y
+fecha, valida horarios, excepciones, intervalo, duración completa,
+solapamientos, tratamiento activo y una cita activa por paciente y día. Crear
+o reprogramar también agrega el log dentro de la misma transacción. La
+reprogramación compara la fecha y hora esperadas para evitar sobrescrituras
+desde una vista desactualizada.
 
 Recordatorios puede resolver una cita pasada sin cierre reutilizando estos
 servicios. Completar, marcar no asistencia o cancelar cambia el estado de la
@@ -489,12 +494,12 @@ Recordatorios, Historial clinico y Detalle de paciente consumen la lista de
 citas cargada en App. Por eso en modo real ven citas reales cargadas desde
 Supabase, mientras que en modo demo siguen viendo las citas mock.
 
-Las policies de `002_auth_profiles_policies.sql` ya cubren `appointments` y
-`appointment_change_logs` con separacion por consultorio. La migracion
-`005_appointments_indexes.sql` agrega el indice
-`appointment_change_logs(clinic_id, appointment_id)` para consultar el historial
-de cambios por cita y documenta que `reason` es el campo temporal para el
-tratamiento visible hasta migrar Tratamientos.
+Las policies conservan la separación por consultorio. `035` revoca a
+`authenticated` la inserción directa y la actualización directa de paciente,
+tratamiento, fecha, hora, duración y motivo de reprogramación; estas escrituras
+pasan por RPC. Los cambios de estado permanecen temporalmente en el contrato
+existente. Los índices parciales cubren solapamientos por consultorio/fecha y
+la regla activa por paciente/día.
 
 ## Migración de Configuración
 

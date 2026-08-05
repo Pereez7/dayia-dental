@@ -275,20 +275,29 @@ graficos, librerias, animaciones complejas ni cambios de arquitectura todavia.
 Los ajustes viven principalmente en `src/App.css` y `src/index.css`, con cambios
 JSX solo para wrappers o clases visuales.
 
-## Citas con datos mock por ahora
+## Citas reales con modo demo aislado
 
-El modulo Citas se mantiene en frontend usando datos mock. Esto permite validar
-la experiencia de agenda, estados y jerarquia visual antes de integrar base de
-datos, permisos o flujos de edicion.
+El módulo Citas usa Supabase cuando existe una sesión clínica real y conserva
+datos mock únicamente en modo demo. Ambos caminos comparten la experiencia de
+agenda, pero nunca mezclan registros. En modo real, la lectura diaria usa un
+snapshot acotado y las escrituras sensibles se validan en PostgreSQL.
 
 ## Agenda visual antes de acciones completas de citas
 
-Primero se implemento una agenda visual de proximas citas. Luego se agrego la
-creacion local de citas para validar el flujo de registro. Despues se agregaron
-confirmacion, cancelacion con motivo y reprogramacion inline con motivo. La
-edicion general, eliminacion fisica, historial completo de cambios y
-persistencia quedan pendientes hasta que el modelo de agenda sea mas claro y
-estable.
+Primero se implementó una agenda visual y creación local para validar el flujo.
+La versión real ya persiste creación, confirmación, cancelación y
+reprogramación con historial. La edición general y la eliminación física no se
+habilitan: se prioriza trazabilidad y cambios explícitos de estado.
+
+## Disponibilidad y escritura atómicas de citas
+
+La validación visual del frontend es orientativa; PostgreSQL toma la decisión
+final. `create_clinic_appointment` y `reschedule_clinic_appointment` adquieren
+un bloqueo transaccional por consultorio y fecha, validan horario efectivo,
+intervalo, rango completo, tratamiento activo, solapamientos y una cita activa
+por paciente y día. El guardado de la cita y su evento de auditoría es atómico.
+Una reprogramación también compara la fecha y hora que vio el usuario para no
+sobrescribir silenciosamente un cambio realizado desde otra sesión.
 
 ## Agenda diaria antes que calendario mensual
 

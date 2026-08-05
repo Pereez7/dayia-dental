@@ -15,11 +15,11 @@ por consultorio sobre Supabase.
   activas, seguimiento y actividad reciente, siempre limitado al consultorio
   activo y con estados de carga explícitos.
 - Modulo de citas con agenda diaria operativa y formulario de nueva cita.
-- Citas con confirmacion, cancelacion y reprogramacion local, incluyendo
-  motivos simples de cancelacion y reprogramacion, con validacion para exigir
-  cambio real de fecha u hora al reprogramar.
-- Historial simple de cambios de cita en memoria para creacion, confirmacion,
-  cancelacion y reprogramacion.
+- Citas reales con creación y reprogramación atómicas en PostgreSQL,
+  confirmación y cancelación persistentes, motivos operativos y protección
+  frente a horarios ocupados o formularios desactualizados.
+- Historial persistente de cambios de cita; creación y reprogramación guardan
+  la cita y su auditoría dentro de la misma transacción.
 - Nueva cita con seleccion real de paciente, horarios disponibles segun
   horarios del consultorio, duracion del tratamiento, bloqueo de rangos
   solapados y validaciones de campos.
@@ -88,12 +88,16 @@ descargar la historia completa del consultorio.
   con todas las citas relacionadas y accesos rápidos condicionados por rol.
 - **Citas:** agenda diaria mobile-first con selector horizontal de dias, KPIs
   compactos, listado ordenado por hora, confirmacion, cancelacion con motivo en
-  `ConfirmDialog`, reprogramacion inline con motivo, creacion local de citas,
+  `ConfirmDialog`, reprogramacion inline con motivo, creación persistente,
   seleccion de paciente, horarios disponibles segun configuracion del
   consultorio, duracion del tratamiento, bloqueo de rangos solapados, bloqueo
   de horarios que exceden el cierre y bloqueo de doble cita activa del mismo
   paciente en el dia. Reprogramar exige cambiar fecha u hora, no solo el motivo,
-  y tambien valida disponibilidad por duracion ignorando la cita actual. Mientras
+  y también valida disponibilidad por duración ignorando la cita actual. En
+  modo real, la migración `035` repite estas reglas dentro de una transacción,
+  serializa escrituras concurrentes por consultorio y fecha, resuelve el
+  tratamiento activo y su duración en servidor y registra la auditoría de
+  creación o reprogramación de forma atómica. Mientras
   el panel de reprogramacion esta abierto, la card se enfoca en guardar o
   cancelar esa edicion y oculta acciones externas de la cita. Las cards separan
   rango horario, datos del paciente, estado y acciones para evitar solapamientos;

@@ -6,6 +6,7 @@ import type {
 } from '../types/database'
 import type { Patient } from '../types/Patient'
 import {
+  getAppointmentServiceErrorMessage,
   mapAppointmentFormValuesToAppointmentInput,
   mapAppointmentInputToInsert,
   mapAppointmentRecordToAppointment,
@@ -98,6 +99,32 @@ describe('appointmentsService mappers', () => {
     ).toBeNull()
   })
 
+  it('maps the selected real treatment id for the atomic scheduling RPC', () => {
+    expect(
+      mapAppointmentFormValuesToAppointmentInput(
+        {
+          date: '2026-06-22',
+          durationMinutes: 30,
+          patient: 'Ana Salazar',
+          patientId: 'patient-1',
+          status: 'pending',
+          time: '13:00',
+          treatment: 'Evaluación inicial',
+        },
+        [
+          {
+            durationMinutes: 30,
+            id: 'treatment-1',
+            isActive: true,
+            name: 'Evaluación inicial',
+          },
+        ],
+      ),
+    ).toMatchObject({
+      treatmentId: 'treatment-1',
+    })
+  })
+
   it('maps appointment input to a clinic-scoped insert payload', () => {
     expect(
       mapAppointmentInputToInsert('clinic-1', {
@@ -122,6 +149,29 @@ describe('appointmentsService mappers', () => {
       status: 'pending',
       treatment_id: null,
     })
+  })
+})
+
+describe('appointment scheduling errors', () => {
+  it.each([
+    [
+      'APPOINTMENT_SLOT_CONFLICT',
+      'Ese horario acaba de ser ocupado. Elige otra hora.',
+    ],
+    [
+      'APPOINTMENT_PATIENT_DAY_CONFLICT',
+      'Este paciente ya tiene una cita activa ese día.',
+    ],
+    [
+      'APPOINTMENT_STALE',
+      'La cita cambió mientras la revisabas. Actualiza la agenda e inténtalo nuevamente.',
+    ],
+    [
+      'APPOINTMENT_CLOSED_DAY',
+      'El consultorio está cerrado ese día.',
+    ],
+  ])('maps %s to a safe message', (message, expected) => {
+    expect(getAppointmentServiceErrorMessage({ message })).toBe(expected)
   })
 })
 

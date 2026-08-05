@@ -4,6 +4,23 @@ Registro breve de cambios relevantes en DayIA Dental.
 
 ## En desarrollo
 
+- El plan de escalabilidad mantiene los hitos principales `PERF-001`–`008` y
+  formaliza las subdivisiones de `PERF-005`: A Dashboard, B1/B2 Agenda, C
+  Pacientes, D Historial clínico, E Recordatorios y F
+  Odontograma/Configuración. `PERF-005C` queda como siguiente bloque y
+  `PERF-006` no comienza hasta cerrar A–F.
+- PERF-005B2 protege la creación y reprogramación real de citas mediante las
+  RPC `create_clinic_appointment` y `reschedule_clinic_appointment`. La
+  migración `035` serializa por consultorio y fecha, valida en servidor
+  horarios, excepciones, intervalos, duración autoritativa, solapamientos y la
+  regla de una cita activa por paciente y día; la cita y su auditoría se
+  confirman en una sola transacción. También revoca al frontend la escritura
+  directa de los campos de agenda. Sus 31 controles pasan localmente y contra
+  staging con rollback, el benchmark reversible usa 20.000 citas y el lint
+  remoto está limpio. La prueba móvil autenticada confirmó creación `200` en
+  287 ms, reprogramación `200` en 418 ms y el rechazo controlado de una segunda
+  pestaña que intentó reservar el mismo horario. El subhito queda cerrado en
+  staging; producción permanece intacta.
 - PERF-005B1 reemplaza la lectura histórica de Agenda por
   `get_clinic_agenda_snapshot`: una fecha seleccionada, páginas de 20 citas,
   conteos completos del día, próximas fechas limitadas y solo los campos
@@ -11,8 +28,7 @@ Registro breve de cambios relevantes en DayIA Dental.
   para mostrar nombre y teléfono; otras fechas se consultan únicamente al
   reprogramar. `034` está aplicada en staging, supera 15 controles remotos con
   rollback y cerró su validación móvil autenticada con respuestas `200` de
-  0.9–1.0 kB en 313–464 ms. `PERF-005B2` continúa con disponibilidad y
-  escrituras atómicas; producción permanece intacta.
+  0.9–1.0 kB en 313–464 ms. Producción permanece intacta.
 - PERF-005 comenzó con un Dashboard clínico de tamaño fijo. La migración `033`
   agrega una RPC autorizada para seis KPIs, cinco próximas citas, cinco casos
   de atención, cinco eventos recientes y cuatro pacientes recientes; el

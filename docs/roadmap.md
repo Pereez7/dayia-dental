@@ -30,8 +30,13 @@ respuesta autenticada de 1.1 kB en 273 ms, sin descargar pacientes, citas y
 logs completos. `PERF-005B1` ya limita Agenda a una fecha y cursor y está
 cerrado técnicamente en staging: la carga inicial y el cambio de fecha
 respondieron con 0.9–1.0 kB en 313–464 ms y la vista móvil no presentó overflow.
-`PERF-005B2` debe cerrar la disponibilidad y escritura atómicas antes de
-promover el hito. Producción continúa intacta.
+`PERF-005B2` está cerrado técnicamente en staging con disponibilidad y
+escritura atómicas: supera 31 controles remotos con rollback y la prueba móvil
+autenticada confirmó creación, reprogramación y rechazo de doble reserva.
+El siguiente subhito formal es `PERF-005C`, búsqueda y paginación de Pacientes
+en servidor. Después siguen `PERF-005D` Historial clínico, `PERF-005E`
+Recordatorios y `PERF-005F` Odontograma/Configuración. Solo entonces se cierra
+`PERF-005` y comienza `PERF-006`. Producción continúa intacta.
 
 ## Rendimiento de carga
 

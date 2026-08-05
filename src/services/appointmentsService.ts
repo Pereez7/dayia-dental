@@ -19,10 +19,9 @@ import {
   createAppointmentCancelledLog,
   createAppointmentCompletedLog,
   createAppointmentConfirmedLog,
-  createAppointmentCreatedLog,
   createAppointmentNoShowLog,
-  createAppointmentRescheduledLog,
 } from '../utils/appointmentChangeLog'
+import type { Treatment } from '../types/Treatment'
 
 export interface AppointmentInput {
   date: string
@@ -52,6 +51,18 @@ interface AppointmentAvailabilityRecord {
   reason: string | null
   start_time: string
   status: AppointmentStatus
+}
+
+interface AppointmentSchedulingRpcClient {
+  rpc: (
+    functionName:
+      | 'create_clinic_appointment'
+      | 'reschedule_clinic_appointment',
+    args: Record<string, string>,
+  ) => PromiseLike<{
+    data: unknown
+    error: { code?: string; message?: string } | null
+  }>
 }
 
 type AppointmentInsert = Omit<
@@ -91,10 +102,15 @@ export function mapAppointmentRecordToAppointment(
 
 export function mapAppointmentFormValuesToAppointmentInput(
   values: AppointmentFormValues,
+  treatments: Treatment[] = [],
 ): AppointmentInput | null {
   if (typeof values.patientId !== 'string') {
     return null
   }
+
+  const treatment = treatments.find(
+    (item) => item.name === values.treatment && typeof item.id === 'string',
+  )
 
   return {
     date: values.date,
@@ -104,7 +120,7 @@ export function mapAppointmentFormValuesToAppointmentInput(
     status: values.status,
     time: values.time,
     treatment: values.treatment,
-    treatmentId: null,
+    treatmentId: typeof treatment?.id === 'string' ? treatment.id : null,
   }
 }
 
@@ -348,32 +364,44 @@ export async function createAppointment(
     return { data: null, error: 'Supabase is not configured yet.' }
   }
 
-  const { data, error } = await supabase
-    .from('appointments')
-    .insert([mapAppointmentInputToInsert(clinicId, appointmentInput)] as never[])
-    .select('*')
-    .single()
+  if (!appointmentInput.treatmentId) {
+    return {
+      data: null,
+      error: 'Selecciona un tratamiento activo antes de guardar la cita.',
+    }
+  }
+
+  const schedulingClient = supabase as unknown as AppointmentSchedulingRpcClient
+  const { data, error } = await schedulingClient.rpc('create_clinic_appointment', {
+    target_clinic_id: clinicId,
+    target_date: appointmentInput.date,
+    target_patient_id: appointmentInput.patientId,
+    target_start_time: appointmentInput.time,
+    target_status: appointmentInput.status,
+    target_treatment_id: appointmentInput.treatmentId,
+  })
 
   if (error) {
     return { data: null, error: getAppointmentServiceErrorMessage(error) }
   }
 
+  const mutation = parseAppointmentMutationResult(data)
+
+  if (!mutation) {
+    return {
+      data: null,
+      error: 'No pudimos confirmar la cita registrada.',
+    }
+  }
+
   const appointment = mapAppointmentRecordToAppointment(
-    data as AppointmentRecord,
+    mutation.appointment,
     patients,
+    [mutation.changeLog],
   )
-  const logEntry = createAppointmentCreatedLog(appointment)
-  await createAppointmentChangeLog(clinicId, appointment.id, {
-    description: logEntry.description,
-    metadata: logEntry.metadata,
-    type: logEntry.type,
-  })
 
   return {
-    data: {
-      ...appointment,
-      changeLog: [logEntry],
-    },
+    data: appointment,
     error: null,
   }
 }
@@ -425,35 +453,66 @@ export async function rescheduleAppointment(
   appointmentId: AppointmentId,
   rescheduleData: {
     date: string
-    durationMinutes: number
     reasonPayload?: AppointmentReasonPayload
     time: string
   },
   currentAppointment: Appointment,
 ) {
-  const logEntry = createAppointmentRescheduledLog(
-    currentAppointment,
+  if (!supabase || typeof appointmentId !== 'string') {
+    return { data: null, error: 'Supabase is not configured yet.' }
+  }
+
+  const reason =
+    rescheduleData.reasonPayload?.reasonDetail ??
+    rescheduleData.reasonPayload?.reason ??
+    ''
+
+  const schedulingClient = supabase as unknown as AppointmentSchedulingRpcClient
+  const { data, error } = await schedulingClient.rpc(
+    'reschedule_clinic_appointment',
     {
-      date: rescheduleData.date,
-      time: rescheduleData.time,
+      target_appointment_id: appointmentId,
+      target_clinic_id: clinicId,
+      target_date: rescheduleData.date,
+      target_expected_date: currentAppointment.date,
+      target_expected_start_time: currentAppointment.time,
+      target_reason: reason,
+      target_start_time: rescheduleData.time,
     },
-    rescheduleData.reasonPayload,
   )
 
-  return updateAppointment(clinicId, appointmentId, {
-    logEntry,
-    updateValues: {
-      date: rescheduleData.date,
-      durationMinutes: rescheduleData.durationMinutes,
-      rescheduleReason:
-        rescheduleData.reasonPayload?.reasonDetail ??
-        rescheduleData.reasonPayload?.reason ??
-        null,
-      status: 'rescheduled',
-      time: rescheduleData.time,
+  if (error) {
+    return { data: null, error: getAppointmentServiceErrorMessage(error) }
+  }
+
+  const mutation = parseAppointmentMutationResult(data)
+
+  if (!mutation) {
+    return {
+      data: null,
+      error: 'No pudimos confirmar la reprogramación.',
+    }
+  }
+
+  const appointment = mapAppointmentRecordToAppointment(
+    mutation.appointment,
+    [],
+    [mutation.changeLog],
+  )
+
+  return {
+    data: {
+      ...appointment,
+      patient: currentAppointment.patient,
+      patientPhone: currentAppointment.patientPhone,
+      treatment: currentAppointment.treatment,
+      changeLog: [
+        ...(currentAppointment.changeLog ?? []),
+        mapAppointmentChangeLogRecordToEntry(mutation.changeLog),
+      ],
     },
-    currentAppointment,
-  })
+    error: null,
+  }
 }
 
 export async function createAppointmentChangeLog(
@@ -635,7 +694,97 @@ function asRecord(value: unknown): Record<string, unknown> | null {
     : null
 }
 
-function getAppointmentServiceErrorMessage(error?: { code?: string }) {
+function parseAppointmentMutationResult(value: unknown): {
+  appointment: AppointmentRecord
+  changeLog: AppointmentChangeLogRecord
+} | null {
+  const payload = asRecord(value)
+  const appointment = asRecord(payload?.appointment)
+  const changeLog = asRecord(payload?.changeLog)
+
+  if (
+    !appointment ||
+    typeof appointment.id !== 'string' ||
+    typeof appointment.clinic_id !== 'string' ||
+    typeof appointment.patient_id !== 'string' ||
+    typeof appointment.appointment_date !== 'string' ||
+    typeof appointment.start_time !== 'string' ||
+    typeof appointment.duration_minutes !== 'number' ||
+    typeof appointment.status !== 'string' ||
+    !changeLog ||
+    typeof changeLog.id !== 'string' ||
+    typeof changeLog.appointment_id !== 'string' ||
+    typeof changeLog.clinic_id !== 'string' ||
+    typeof changeLog.created_at !== 'string' ||
+    typeof changeLog.type !== 'string'
+  ) {
+    return null
+  }
+
+  return {
+    appointment: appointment as unknown as AppointmentRecord,
+    changeLog: changeLog as unknown as AppointmentChangeLogRecord,
+  }
+}
+
+export function getAppointmentServiceErrorMessage(error?: {
+  code?: string
+  message?: string
+}) {
+  const errorMessage = error?.message ?? ''
+
+  if (errorMessage.includes('APPOINTMENT_SLOT_CONFLICT')) {
+    return 'Ese horario acaba de ser ocupado. Elige otra hora.'
+  }
+
+  if (errorMessage.includes('APPOINTMENT_PATIENT_DAY_CONFLICT')) {
+    return 'Este paciente ya tiene una cita activa ese día.'
+  }
+
+  if (errorMessage.includes('APPOINTMENT_CLOSED_DAY')) {
+    return 'El consultorio está cerrado ese día.'
+  }
+
+  if (errorMessage.includes('APPOINTMENT_OUTSIDE_BUSINESS_HOURS')) {
+    return 'La cita queda fuera del horario de atención.'
+  }
+
+  if (errorMessage.includes('APPOINTMENT_INVALID_SLOT')) {
+    return 'La hora elegida no coincide con el intervalo del consultorio.'
+  }
+
+  if (errorMessage.includes('APPOINTMENT_SCHEDULE_NOT_CONFIGURED')) {
+    return 'Configura los horarios del consultorio antes de registrar citas.'
+  }
+
+  if (errorMessage.includes('APPOINTMENT_INVALID_TREATMENT')) {
+    return 'El tratamiento seleccionado ya no está disponible.'
+  }
+
+  if (errorMessage.includes('APPOINTMENT_STALE')) {
+    return 'La cita cambió mientras la revisabas. Actualiza la agenda e inténtalo nuevamente.'
+  }
+
+  if (errorMessage.includes('APPOINTMENT_CANNOT_RESCHEDULE')) {
+    return 'Esta cita ya no admite reprogramación.'
+  }
+
+  if (errorMessage.includes('APPOINTMENT_NO_SCHEDULE_CHANGE')) {
+    return 'Selecciona una fecha o una hora diferente.'
+  }
+
+  if (
+    errorMessage.includes('APPOINTMENT_INVALID_INPUT') ||
+    errorMessage.includes('APPOINTMENT_INVALID_STATUS') ||
+    errorMessage.includes('APPOINTMENT_INVALID_REASON')
+  ) {
+    return 'Revisa los datos de la cita antes de continuar.'
+  }
+
+  if (errorMessage.includes('APPOINTMENT_NOT_FOUND')) {
+    return 'No encontramos la cita seleccionada.'
+  }
+
   if (error?.code === '23514') {
     return 'La base de datos todavía no admite este estado de cita. Aplica la migración pendiente e intenta nuevamente.'
   }

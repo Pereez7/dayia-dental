@@ -1250,7 +1250,10 @@ function App() {
         }
       }
 
-      const appointmentInput = mapAppointmentFormValuesToAppointmentInput(values)
+      const appointmentInput = mapAppointmentFormValuesToAppointmentInput(
+        values,
+        treatments,
+      )
 
       if (!appointmentInput) {
         return {
@@ -1512,10 +1515,6 @@ function App() {
         appointmentId,
         {
           date,
-          durationMinutes: getTreatmentDuration(
-            treatments,
-            currentAppointment.treatment,
-          ),
           reasonPayload,
           time,
         },
@@ -1523,6 +1522,7 @@ function App() {
       )
 
       if (error || !data) {
+        setAgendaRefreshVersion((version) => version + 1)
         return {
           error: error ?? 'No pudimos reprogramar la cita.',
           success: false,

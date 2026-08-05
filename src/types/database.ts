@@ -423,6 +423,29 @@ export type Database = {
         }
         Returns: Json
       }
+      create_clinic_appointment: {
+        Args: {
+          target_clinic_id: string
+          target_date: string
+          target_patient_id: string
+          target_start_time: string
+          target_status: string
+          target_treatment_id: string
+        }
+        Returns: Json
+      }
+      reschedule_clinic_appointment: {
+        Args: {
+          target_appointment_id: string
+          target_clinic_id: string
+          target_date: string
+          target_expected_date: string
+          target_expected_start_time: string
+          target_reason: string
+          target_start_time: string
+        }
+        Returns: Json
+      }
       save_clinic_business_hours: {
         Args: {
           target_clinic_id: string

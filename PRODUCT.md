@@ -84,6 +84,10 @@ de backend antes de validar la experiencia local.
 - Reprogramar debe mover la cita: cambiar solo el motivo no cuenta como
   reprogramacion y debera resolverse mas adelante con una accion especifica de
   edicion de motivo.
+- En modo real, la disponibilidad mostrada por el frontend no autoriza el
+  guardado. El servidor debe volver a validar el horario y serializar creación
+  y reprogramación para impedir dobles reservas concurrentes; la cita y su
+  auditoría se confirman o se revierten juntas.
 - Pedir motivo en acciones que cambian la operacion de agenda, como cancelar o
   reprogramar, sin convertirlo todavia en historial completo de auditoria.
 - Registrar trazabilidad simple de cambios de cita sin saturar la agenda: la

@@ -410,11 +410,26 @@ Objetivo: que el rendimiento de un consultorio no dependa de toda su historia.
 
 Estado: en curso desde el 4 de agosto de 2026. El subhito `PERF-005A`
 (Dashboard acotado) cerró técnicamente en staging el 5 de agosto;
-`PERF-005B1` (lectura diaria acotada de Agenda) está implementado, desplegado y
-cerrado técnicamente en staging después de su medición autenticada y revisión
-móvil. La disponibilidad y las
-escrituras atómicas de `PERF-005B2` continúan pendientes. El hito completo no
-se considera cerrado ni apto para producción.
+`PERF-005B1` y `PERF-005B2` cerraron la lectura diaria y las escrituras atómicas
+de Agenda en staging. El siguiente subhito es `PERF-005C`. El hito principal
+`PERF-005` solo se considerará cerrado cuando terminen A–F; después se podrá
+iniciar `PERF-006`. Producción permanece intacta.
+
+Mapa oficial de subhitos:
+
+| Subhito | Superficie | Alcance | Estado |
+| --- | --- | --- | --- |
+| PERF-005A | Dashboard | Snapshot agregado y de tamaño fijo | Cerrado en staging |
+| PERF-005B1 | Agenda | Lectura diaria, cursor y payload acotado | Cerrado en staging |
+| PERF-005B2 | Agenda | Disponibilidad y escrituras atómicas | Cerrado en staging |
+| PERF-005C | Pacientes | Búsqueda y paginación de servidor | Siguiente |
+| PERF-005D | Historial clínico | Paginación por paciente y vista global | Pendiente |
+| PERF-005E | Recordatorios | Ventana de ejecución, estado y cursor | Pendiente |
+| PERF-005F | Odontograma y Configuración | Carga bajo demanda y columnas explícitas | Pendiente |
+
+Las letras no reemplazan los hitos principales `PERF-001`–`PERF-008`. Son
+unidades verificables dentro de `PERF-005`; B1 y B2 separan lectura y escritura
+porque tienen riesgos, contratos y pruebas diferentes.
 
 #### PERF-005A: Dashboard acotado
 
@@ -488,17 +503,93 @@ medición autenticada y la revisión móvil.
   legibles, sin overflow horizontal ni texto cortado. El contrato estático y
   las pruebas del servicio verifican que la rama real de Agenda no recurre a
   la carga histórica completa de pacientes, citas o logs.
-- `PERF-005B2` debe mover la creación y reprogramación a una validación
-  transaccional de disponibilidad. Hasta cerrarlo, no se declarará Agenda
-  completamente protegida frente a escrituras concurrentes.
+- La creación y reprogramación ya no dependen de esta lectura para autorizar el
+  guardado; `PERF-005B2` vuelve a validar dentro de PostgreSQL.
 
-Orden de revisión:
+#### PERF-005B2: disponibilidad y escritura atómicas
 
-1. Citas y Dashboard: ventana temporal, agregados y próximas citas limitadas.
-2. Pacientes: búsqueda y paginación de servidor.
-3. Historial clínico: paginación por paciente y global.
-4. Recordatorios: ventana de ejecución, estado y cursor.
-5. Odontograma y configuración: carga bajo demanda y columnas explícitas.
+Estado: cerrado técnicamente en staging el 5 de agosto de 2026 después de la
+prueba transaccional, autenticada y móvil.
+
+- La migración `035_atomic_appointment_scheduling.sql` agrega
+  `create_clinic_appointment` y `reschedule_clinic_appointment`.
+- Ambas RPC autorizan el consultorio, adquieren un bloqueo transaccional por
+  consultorio y fecha y validan horario semanal o excepción, intervalo,
+  duración completa, tratamiento activo, solapamientos y una cita activa por
+  paciente y día.
+- El servidor resuelve `treatment_id`, nombre y duración; no confía en una
+  duración enviada por React. Crear o reprogramar guarda la cita y su evento de
+  auditoría en la misma transacción.
+- Reprogramar compara la fecha y hora esperadas por el cliente y rechaza una
+  vista desactualizada, evitando sobrescribir cambios concurrentes.
+- Se revocó a `authenticated` la inserción directa de citas y la actualización
+  directa de paciente, tratamiento, fecha, hora, duración y motivo de
+  reprogramación. Las transiciones de estado mantienen temporalmente el flujo
+  existente.
+- Dos índices parciales cubren citas activas por paciente/día y rangos activos
+  por consultorio/fecha. El benchmark reversible usa 1.000 pacientes y 20.000
+  citas, confirma ambos planes y mantiene creación y reprogramación por debajo
+  del presupuesto local de 1.500 ms.
+- Los 31 controles pgTAP pasan localmente y contra staging con rollback. La
+  migración remota está alineada `001–035` y `db lint` de `public` está limpio.
+- La regresión completa alcanza 760 pruebas de aplicación y 164 controles SQL;
+  lint, build y `git diff --check` pasan.
+- El frontend traduce conflictos, horario cerrado, tratamiento inválido y
+  vistas desactualizadas a mensajes seguros; nunca muestra el error técnico de
+  PostgreSQL.
+- En viewport 415 × 725, la creación respondió `200`, 1.1 kB y 287 ms; su
+  preflight tardó 66 ms. La reprogramación respondió `200`, 1.2 kB y 418 ms;
+  su preflight tardó 64 ms. Son muestras individuales, no percentiles.
+- Dos pestañas conservaron el mismo horario libre con pacientes diferentes. La
+  primera creación fue aceptada y la segunda fue rechazada de forma controlada
+  por PostgreSQL; la Agenda conservó una sola reserva. La interfaz no presentó
+  overflow durante las pruebas.
+
+#### PERF-005C: Pacientes paginados y búsqueda de servidor
+
+Estado: siguiente subhito; todavía no iniciado.
+
+- Paginar el listado en servidor con límite y cursor estable.
+- Ejecutar la búsqueda normalizada en PostgreSQL sin descargar todos los
+  pacientes del consultorio.
+- Pedir únicamente las columnas necesarias para la lista y cargar el detalle
+  completo bajo demanda.
+- Conservar alta, edición, resaltado del registro confirmado, estados vacío,
+  carga y error, permisos por rol y composición móvil.
+- Verificar índices y planes con datos ficticios, aislamiento RLS, pruebas de
+  contrato y medición autenticada en staging.
+
+#### PERF-005D: Historial clínico paginado
+
+Estado: pendiente; comienza únicamente después de cerrar `PERF-005C`.
+
+- Paginar registros por paciente y la vista global mediante cursor estable.
+- Resolver búsqueda y filtros temporales en servidor.
+- Evitar descargar el historial completo o todos los pacientes para construir
+  resúmenes.
+- Mantener aislamiento clínico, permisos, estados de interfaz y validación
+  móvil.
+
+#### PERF-005E: Recordatorios acotados
+
+Estado: pendiente; comienza únicamente después de cerrar `PERF-005D`.
+
+- Consultar una ventana operativa y estados relevantes mediante cursor.
+- Evitar reconstruir la cola desde todo el historial de citas y recordatorios.
+- Mantener reconciliación, trazabilidad, fallback manual y aislamiento por
+  consultorio.
+
+#### PERF-005F: Odontograma y Configuración bajo demanda
+
+Estado: pendiente; último subhito de `PERF-005`.
+
+- Cargar odontograma únicamente para el paciente abierto.
+- Seleccionar columnas explícitas en horarios, excepciones, tratamientos y
+  configuración asociada.
+- Revisar índices, evitar consultas duplicadas y conservar permisos y estados
+  responsive.
+- Al cerrar este subhito, ejecutar la regresión conjunta A–F y decidir el cierre
+  de `PERF-005` antes de iniciar `PERF-006`.
 
 Criterio de cierre por módulo:
 
@@ -588,6 +679,8 @@ reemplazarse por estimaciones.
 | PERF-003 | Resumen y detalle administrativo paginados | Listado anterior: 2,041.7 ms en una muestra; payload completo sin límite | Listado: 1.03–2.38 s y 1.6–1.7 kB en 10 muestras; detalle: 1.95 s y 1.5 kB en una muestra | Cerrado en escalabilidad; payload acotado, sin N+1 y con deuda de latencia registrada | 30 jul 2026 |
 | PERF-004 | Alta idempotente y escritura pública atómica | Function anterior: 3,153.0 ms internos en una muestra; múltiples viajes PostgreSQL y búsqueda Auth paginada | Alta nueva: 3,472.2 ms internos; reintento idempotente: 721.6 ms | Cerrado; sin recorrido de Auth, escritura pública atómica y reintento 79.2 % más rápido sin duplicados. La invitación Auth sigue siendo el principal costo externo | 30 jul 2026 |
 | PERF-005A | Snapshot acotado del Dashboard clínico | Colecciones completas de pacientes, citas y logs en el navegador; sin límite estable | Benchmark local con 2.000 pacientes, 20.000 citas y 20.000 logs: índices verificados y snapshot menor a 1.500 ms. Staging autenticado: 273 ms y 1.1 kB en una navegación limpia | Cerrado técnicamente en staging; una RPC, sin colecciones completas y con producción intacta | 5 ago 2026 |
+| PERF-005B1 | Lectura diaria acotada de Agenda | Colección histórica completa de citas y pacientes | Staging móvil: 0.9–1.0 kB en 313–464 ms | Cerrado; fecha y cursor estables, KPIs completos y sin descarga histórica | 5 ago 2026 |
+| PERF-005B2 | Escritura atómica de Agenda | Validación local vulnerable a reservas concurrentes | Creación 287 ms; reprogramación 418 ms; segunda reserva concurrente rechazada | Cerrado; disponibilidad autoritativa y auditoría atómica en PostgreSQL | 5 ago 2026 |
 
 ## Fuera de alcance
 

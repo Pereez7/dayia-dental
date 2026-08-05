@@ -266,8 +266,8 @@ el detalle y en la vista global con selector de paciente.
 
 `Citas`
 
-Incluye datos mock, agenda diaria mobile-first, resumen visual del dia
-seleccionado y creacion local de citas en memoria.
+Incluye modo demo con datos mock y modo real sobre Supabase, agenda diaria
+mobile-first, resumen acotado del día y creación persistente.
 
 Participan:
 
@@ -291,15 +291,17 @@ Participan:
 - `src/components/ConfirmDialog.tsx`: muestra confirmaciones reutilizables para
   acciones sensibles, acepta contenido adicional opcional, tiene variantes
   visuales, Escape para cancelar y atributos basicos de accesibilidad.
-- `src/components/AppointmentForm.tsx`: registra una cita nueva en el estado
-  local de la aplicacion.
+- `src/components/AppointmentForm.tsx`: registra una cita nueva en memoria para
+  demo o solicita su creación atómica mediante el servicio real.
+- `src/services/appointmentsService.ts`: adapta el modelo de interfaz y usa las
+  RPC atómicas para crear o reprogramar en modo real, con errores seguros.
 - `src/utils/appointmentActions.ts`: define que acciones estan disponibles para
   una cita segun su estado actual y reglas puras para cerrar el panel de
   reprogramacion.
 - `src/utils/appointmentReasons.ts`: define motivos permitidos, valida motivo y
   detalle `Otro`, normaliza detalles y arma el texto guardado en la cita.
-- `src/utils/appointmentReschedule.ts`: valida y aplica la reprogramacion local
-  de citas, incluyendo cambio real de fecha u hora y motivo guardado.
+- `src/utils/appointmentReschedule.ts`: valida y aplica la reprogramación del
+  modo demo; el modo real vuelve a validar y escribe mediante PostgreSQL.
 - `src/utils/appointmentChangeLog.ts`: crea eventos simples de historial,
   agrega eventos de forma inmutable y formatea el ultimo cambio visible en la
   card.
@@ -338,7 +340,7 @@ asistir nuevamente, se crea una nueva cita. Mas adelante, cuando exista
 integracion real con WhatsApp, se evaluaran estados intermedios como
 `Solicitud de cancelacion` para evitar cancelaciones accidentales.
 
-La reprogramacion local vive como panel inline dentro de la card. El panel es
+La reprogramacion vive como panel inline dentro de la card. El panel es
 contextual: se cierra al cambiar el dia seleccionado, al volver a pulsar
 `Reprogramar`, al cancelar el formulario o al cancelar la cita. El cierre usa
 una funcion explicita para limpiar fecha, hora, motivo, detalle de `Otro` y
@@ -358,9 +360,8 @@ la derecha para estado y acciones. En mobile se apila para conservar lectura y
 evitar desbordes.
 
 Al reprogramar se solicita un motivo obligatorio. Si el motivo es `Otro`, se
-requiere un detalle breve, se normaliza y se guarda en la cita. Por ahora una
-nueva reprogramacion sobrescribe el ultimo motivo y no crea historial acumulado
-de cambios.
+requiere un detalle breve, se normaliza y se guarda en la cita. En modo real,
+cada reprogramación agrega un evento persistente a la auditoría.
 
 La reprogramacion solo se guarda si cambia la fecha o la hora respecto a la cita
 actual. Si ambos valores son iguales, `validateAppointmentReschedule` devuelve
@@ -373,10 +374,11 @@ y usa un textarea de altura fija para no afectar la composicion de la agenda. En
 las cards, el motivo se muestra como texto secundario truncado para conservar la
 lectura rapida de hora, paciente, tratamiento, estado y acciones.
 
-Las citas pueden incluir `changeLog` opcional. `App.tsx` agrega eventos al crear,
-confirmar y cancelar citas; `appointmentReschedule.ts` agrega eventos al
-reprogramar. Los eventos existentes se conservan con append inmutable y no se
-exponen acciones de edicion o borrado en la UI.
+Las citas pueden incluir `changeLog` opcional. En demo, `App.tsx` y las
+utilidades agregan los eventos en memoria. En modo real, creación y
+reprogramación confirman cita y evento en una misma transacción; las demás
+transiciones conservan su persistencia actual. No se ofrecen acciones para
+editar o borrar la auditoría.
 
 La card de agenda muestra solo un resumen del ultimo cambio relevante. El evento
 `created` se conserva internamente para trazabilidad, pero no se muestra como
@@ -407,12 +409,21 @@ Reprogramar usa la misma regla de disponibilidad por duracion, pasando
 antiguas sin `durationMinutes` usan la duracion del tratamiento cuando se puede
 resolver y, si no, el fallback seguro de 30 minutos.
 
+La migración `035_atomic_appointment_scheduling.sql` hace autoritativas estas
+reglas en modo real. Sus RPC bloquean transaccionalmente el consultorio y la
+fecha, validan horario semanal o excepción, intervalo, rango completo,
+tratamiento activo y duración, solapamientos y una cita activa por paciente y
+día. Reprogramar compara además la fecha y hora esperadas para detectar una
+vista desactualizada. La cita y su evento se confirman o revierten juntos, y el
+frontend ya no puede insertar ni modificar directamente los campos de agenda.
+
 La logica de ordenamiento, agrupacion, resumen, horarios, conflictos y
 validacion debe mantenerse fuera de los componentes para poder probarse con
 Vitest.
 
-La edicion general, eliminacion, historial completo de cambios y persistencia
-siguen pendientes.
+La edición general y la eliminación física siguen fuera del alcance. La
+persistencia real y la trazabilidad de creación y reprogramación ya están
+implementadas; el modo demo permanece intencionalmente en memoria.
 
 `Configuracion`
 
