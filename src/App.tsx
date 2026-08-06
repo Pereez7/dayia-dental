@@ -45,8 +45,13 @@ import {
 } from './services/appointmentsService'
 import {
   createClinicalRecord as createClinicalRecordInSupabase,
-  listClinicalRecordsByClinic,
+  getClinicClinicalHistoryPage,
+  getPatientClinicalRecordsPage,
   mapClinicalRecordFormToCreateInput,
+  type ClinicalRecordPageCursor,
+  type ClinicalRecordPageSummary,
+  type GlobalClinicalHistoryCursor,
+  type GlobalClinicalHistorySummary,
 } from './services/clinicalRecordsService'
 import {
   listOdontogramEntries,
@@ -105,6 +110,10 @@ import type {
   ClinicalRecord,
   ClinicalRecordFormValues,
 } from './types/ClinicalRecord'
+import type {
+  ClinicalHistoryPeriodFilter,
+  ClinicalRecordPatientGroup,
+} from './utils/clinicalRecords'
 import type {
   OdontogramEntry,
   OdontogramFormValues,
@@ -358,9 +367,40 @@ function App() {
         : [],
     )
   const [isClinicalRecordsLoading, setIsClinicalRecordsLoading] = useState(
-    () => !isDemoMode && sensitiveDataAccess.canLoadClinicalRecords,
+    false,
   )
+  const [isClinicalRecordsLoadingMore, setIsClinicalRecordsLoadingMore] =
+    useState(false)
   const [clinicalRecordsError, setClinicalRecordsError] = useState('')
+  const [clinicalRecordPageCursor, setClinicalRecordPageCursor] =
+    useState<ClinicalRecordPageCursor | null>(null)
+  const [clinicalRecordHasMore, setClinicalRecordHasMore] = useState(false)
+  const [clinicalRecordSummary, setClinicalRecordSummary] =
+    useState<ClinicalRecordPageSummary | null>(null)
+  const [clinicalRecordRefreshVersion, setClinicalRecordRefreshVersion] =
+    useState(0)
+  const clinicalRecordRequestGenerationRef = useRef(0)
+  const clinicalRecordLoadMorePendingRef = useRef(false)
+  const [globalClinicalHistoryGroups, setGlobalClinicalHistoryGroups] =
+    useState<ClinicalRecordPatientGroup[]>([])
+  const [globalClinicalHistorySummary, setGlobalClinicalHistorySummary] =
+    useState<GlobalClinicalHistorySummary | null>(null)
+  const [globalClinicalHistorySearch, setGlobalClinicalHistorySearch] =
+    useState('')
+  const [globalClinicalHistoryPeriod, setGlobalClinicalHistoryPeriod] =
+    useState<ClinicalHistoryPeriodFilter>('all')
+  const [globalClinicalHistoryCursor, setGlobalClinicalHistoryCursor] =
+    useState<GlobalClinicalHistoryCursor | null>(null)
+  const [globalClinicalHistoryHasMore, setGlobalClinicalHistoryHasMore] =
+    useState(false)
+  const [isGlobalClinicalHistoryLoading, setIsGlobalClinicalHistoryLoading] =
+    useState(false)
+  const [isGlobalClinicalHistoryLoadingMore, setIsGlobalClinicalHistoryLoadingMore] =
+    useState(false)
+  const [globalClinicalHistoryError, setGlobalClinicalHistoryError] =
+    useState('')
+  const globalClinicalHistoryRequestGenerationRef = useRef(0)
+  const globalClinicalHistoryLoadMorePendingRef = useRef(false)
   const [odontogramEntries, setOdontogramEntries] =
     useState<OdontogramEntry[]>(
       isDemoMode && sensitiveDataAccess.canLoadOdontogram
@@ -537,24 +577,50 @@ function App() {
 
   useEffect(() => {
     let isMounted = true
+    const requestGeneration = ++clinicalRecordRequestGenerationRef.current
 
-    async function loadClinicalRecords() {
+    async function loadPatientClinicalRecords() {
       if (!sensitiveDataAccess.canLoadClinicalRecords) {
         setClinicalRecords([])
+        setClinicalRecordPageCursor(null)
+        setClinicalRecordHasMore(false)
+        setClinicalRecordSummary(null)
         setIsClinicalRecordsLoading(false)
+        setIsClinicalRecordsLoadingMore(false)
         setClinicalRecordsError('')
         return
       }
 
       if (isDemoMode) {
         setClinicalRecords(initialClinicalRecords)
+        setClinicalRecordPageCursor(null)
+        setClinicalRecordHasMore(false)
+        setClinicalRecordSummary(null)
         setIsClinicalRecordsLoading(false)
+        setIsClinicalRecordsLoadingMore(false)
+        setClinicalRecordsError('')
+        return
+      }
+
+      if (
+        effectiveActiveSection !== 'patient-detail' ||
+        !selectedPatientId
+      ) {
+        setClinicalRecords([])
+        setClinicalRecordPageCursor(null)
+        setClinicalRecordHasMore(false)
+        setClinicalRecordSummary(null)
+        setIsClinicalRecordsLoading(false)
+        setIsClinicalRecordsLoadingMore(false)
         setClinicalRecordsError('')
         return
       }
 
       if (!currentClinic?.id) {
         setClinicalRecords([])
+        setClinicalRecordPageCursor(null)
+        setClinicalRecordHasMore(false)
+        setClinicalRecordSummary(null)
         setIsClinicalRecordsLoading(false)
         setClinicalRecordsError(
           'No hay consultorio activo para cargar el historial clínico.',
@@ -567,7 +633,11 @@ function App() {
 
       const loadResult = await runSensitiveLoader(
         sensitiveDataAccess.canLoadClinicalRecords,
-        () => listClinicalRecordsByClinic(currentClinic.id),
+        () =>
+          getPatientClinicalRecordsPage(
+            currentClinic.id,
+            selectedPatientId,
+          ),
       )
 
       if (!loadResult.called) {
@@ -576,28 +646,146 @@ function App() {
 
       const { data, error } = loadResult.result
 
-      if (!isMounted) {
+      if (
+        !isMounted ||
+        requestGeneration !== clinicalRecordRequestGenerationRef.current
+      ) {
         return
       }
 
-      if (error) {
+      if (error || !data) {
         setClinicalRecords([])
-        setClinicalRecordsError(error)
+        setClinicalRecordPageCursor(null)
+        setClinicalRecordHasMore(false)
+        setClinicalRecordSummary(null)
+        setClinicalRecordsError(
+          error ?? 'No pudimos cargar el historial clínico.',
+        )
         setIsClinicalRecordsLoading(false)
         return
       }
 
-      setClinicalRecords(data ?? [])
+      setClinicalRecords(data.records)
+      setClinicalRecordPageCursor(data.pageInfo.nextCursor)
+      setClinicalRecordHasMore(data.pageInfo.hasMore)
+      setClinicalRecordSummary(data.summary)
       setIsClinicalRecordsLoading(false)
     }
 
-    loadClinicalRecords()
+    loadPatientClinicalRecords()
 
     return () => {
       isMounted = false
     }
   }, [
     currentClinic?.id,
+    clinicalRecordRefreshVersion,
+    effectiveActiveSection,
+    isDemoMode,
+    selectedPatientId,
+    sensitiveDataAccess.canLoadClinicalRecords,
+  ])
+
+  useEffect(() => {
+    let isMounted = true
+    const requestGeneration =
+      ++globalClinicalHistoryRequestGenerationRef.current
+
+    async function loadGlobalClinicalHistory() {
+      if (
+        !sensitiveDataAccess.canLoadClinicalRecords ||
+        isDemoMode ||
+        effectiveActiveSection !== 'clinical-history'
+      ) {
+        setGlobalClinicalHistoryGroups([])
+        setGlobalClinicalHistorySummary(null)
+        setGlobalClinicalHistoryCursor(null)
+        setGlobalClinicalHistoryHasMore(false)
+        setIsGlobalClinicalHistoryLoading(false)
+        setIsGlobalClinicalHistoryLoadingMore(false)
+        setGlobalClinicalHistoryError('')
+        return
+      }
+
+      if (!currentClinic?.id) {
+        setGlobalClinicalHistoryGroups([])
+        setGlobalClinicalHistorySummary(null)
+        setGlobalClinicalHistoryCursor(null)
+        setGlobalClinicalHistoryHasMore(false)
+        setIsGlobalClinicalHistoryLoading(false)
+        setGlobalClinicalHistoryError(
+          'No hay consultorio activo para cargar el historial clínico.',
+        )
+        return
+      }
+
+      if (globalClinicalHistorySearch.trim()) {
+        await new Promise((resolve) => window.setTimeout(resolve, 280))
+      }
+
+      if (
+        !isMounted ||
+        requestGeneration !== globalClinicalHistoryRequestGenerationRef.current
+      ) {
+        return
+      }
+
+      setIsGlobalClinicalHistoryLoading(true)
+      setGlobalClinicalHistoryError('')
+
+      const loadResult = await runSensitiveLoader(
+        sensitiveDataAccess.canLoadClinicalRecords,
+        () =>
+          getClinicClinicalHistoryPage(
+            currentClinic.id,
+            globalClinicalHistorySearch,
+            globalClinicalHistoryPeriod,
+            getDateInputValue(),
+          ),
+      )
+
+      if (!loadResult.called) {
+        return
+      }
+
+      const { data, error } = loadResult.result
+
+      if (
+        !isMounted ||
+        requestGeneration !== globalClinicalHistoryRequestGenerationRef.current
+      ) {
+        return
+      }
+
+      if (error || !data) {
+        setGlobalClinicalHistoryGroups([])
+        setGlobalClinicalHistorySummary(null)
+        setGlobalClinicalHistoryCursor(null)
+        setGlobalClinicalHistoryHasMore(false)
+        setGlobalClinicalHistoryError(
+          error ?? 'No pudimos cargar el historial clínico.',
+        )
+        setIsGlobalClinicalHistoryLoading(false)
+        return
+      }
+
+      setGlobalClinicalHistoryGroups(data.groups)
+      setGlobalClinicalHistorySummary(data.summary)
+      setGlobalClinicalHistoryCursor(data.pageInfo.nextCursor)
+      setGlobalClinicalHistoryHasMore(data.pageInfo.hasMore)
+      setIsGlobalClinicalHistoryLoading(false)
+    }
+
+    loadGlobalClinicalHistory()
+
+    return () => {
+      isMounted = false
+    }
+  }, [
+    currentClinic?.id,
+    effectiveActiveSection,
+    globalClinicalHistoryPeriod,
+    globalClinicalHistorySearch,
     isDemoMode,
     sensitiveDataAccess.canLoadClinicalRecords,
   ])
@@ -932,6 +1120,120 @@ function App() {
 
     patientListLoadMorePendingRef.current = false
     setIsPatientListLoadingMore(false)
+  }
+
+  async function handleLoadMoreClinicalRecords() {
+    if (
+      isDemoMode ||
+      !currentClinic?.id ||
+      !selectedPatientId ||
+      !clinicalRecordPageCursor ||
+      isClinicalRecordsLoadingMore ||
+      clinicalRecordLoadMorePendingRef.current
+    ) {
+      return
+    }
+
+    clinicalRecordLoadMorePendingRef.current = true
+    setIsClinicalRecordsLoadingMore(true)
+    const requestGeneration = clinicalRecordRequestGenerationRef.current
+    const requestedPatientId = selectedPatientId
+
+    const { data, error } = await getPatientClinicalRecordsPage(
+      currentClinic.id,
+      requestedPatientId,
+      { cursor: clinicalRecordPageCursor },
+    )
+
+    if (
+      requestGeneration === clinicalRecordRequestGenerationRef.current &&
+      requestedPatientId === selectedPatientId &&
+      effectiveActiveSection === 'patient-detail'
+    ) {
+      if (error || !data) {
+        setClinicalRecordsError(
+          error ?? 'No pudimos cargar más registros clínicos.',
+        )
+      } else {
+        setClinicalRecords((currentRecords) => {
+          const existingIds = new Set(
+            currentRecords.map((record) => record.id),
+          )
+
+          return [
+            ...currentRecords,
+            ...data.records.filter((record) => !existingIds.has(record.id)),
+          ]
+        })
+        setClinicalRecordPageCursor(data.pageInfo.nextCursor)
+        setClinicalRecordHasMore(data.pageInfo.hasMore)
+        setClinicalRecordSummary(data.summary)
+        setClinicalRecordsError('')
+      }
+    }
+
+    clinicalRecordLoadMorePendingRef.current = false
+    setIsClinicalRecordsLoadingMore(false)
+  }
+
+  async function handleLoadMoreGlobalClinicalHistory() {
+    if (
+      isDemoMode ||
+      !currentClinic?.id ||
+      !globalClinicalHistoryCursor ||
+      isGlobalClinicalHistoryLoadingMore ||
+      globalClinicalHistoryLoadMorePendingRef.current
+    ) {
+      return
+    }
+
+    globalClinicalHistoryLoadMorePendingRef.current = true
+    setIsGlobalClinicalHistoryLoadingMore(true)
+    const requestGeneration =
+      globalClinicalHistoryRequestGenerationRef.current
+    const requestedSearch = globalClinicalHistorySearch
+    const requestedPeriod = globalClinicalHistoryPeriod
+
+    const { data, error } = await getClinicClinicalHistoryPage(
+      currentClinic.id,
+      requestedSearch,
+      requestedPeriod,
+      getDateInputValue(),
+      { cursor: globalClinicalHistoryCursor },
+    )
+
+    if (
+      requestGeneration === globalClinicalHistoryRequestGenerationRef.current &&
+      requestedSearch === globalClinicalHistorySearch &&
+      requestedPeriod === globalClinicalHistoryPeriod &&
+      effectiveActiveSection === 'clinical-history'
+    ) {
+      if (error || !data) {
+        setGlobalClinicalHistoryError(
+          error ?? 'No pudimos cargar más historiales clínicos.',
+        )
+      } else {
+        setGlobalClinicalHistoryGroups((currentGroups) => {
+          const existingPatientIds = new Set(
+            currentGroups.map((group) => group.patientId),
+          )
+
+          return [
+            ...currentGroups,
+            ...data.groups.filter(
+              (group) => !existingPatientIds.has(group.patientId),
+            ),
+          ]
+        })
+        setGlobalClinicalHistoryCursor(data.pageInfo.nextCursor)
+        setGlobalClinicalHistoryHasMore(data.pageInfo.hasMore)
+        setGlobalClinicalHistorySummary(data.summary)
+        setGlobalClinicalHistoryError('')
+      }
+    }
+
+    globalClinicalHistoryLoadMorePendingRef.current = false
+    setIsGlobalClinicalHistoryLoadingMore(false)
   }
 
   useEffect(() => {
@@ -2387,6 +2689,12 @@ function App() {
     agendaRequestGenerationRef.current += 1
     agendaLoadMorePendingRef.current = false
     setIsAgendaLoadingMore(false)
+    clinicalRecordRequestGenerationRef.current += 1
+    clinicalRecordLoadMorePendingRef.current = false
+    setIsClinicalRecordsLoadingMore(false)
+    globalClinicalHistoryRequestGenerationRef.current += 1
+    globalClinicalHistoryLoadMorePendingRef.current = false
+    setIsGlobalClinicalHistoryLoadingMore(false)
 
     if (section === 'appointment-new') {
       setAppointmentPatientId(null)
@@ -2448,6 +2756,7 @@ function App() {
     }
 
     setClinicalRecords((currentRecords) => [data, ...currentRecords])
+    setClinicalRecordRefreshVersion((version) => version + 1)
     setClinicalRecordsError('')
     return { success: true }
   }
@@ -2636,8 +2945,11 @@ function App() {
           canAccessOdontogram={permissions.canAccessOdontogram}
           canEditPatient={permissions.canAccessPatients}
           clinicalRecords={clinicalRecords}
+          clinicalRecordsHasMore={clinicalRecordHasMore}
+          clinicalRecordsSummary={clinicalRecordSummary}
           clinicalRecordsError={clinicalRecordsError}
           isClinicalRecordsLoading={isClinicalRecordsLoading}
+          isClinicalRecordsLoadingMore={isClinicalRecordsLoadingMore}
           isOdontogramLoading={isOdontogramLoading}
           odontogramError={odontogramError}
           odontogramEntries={odontogramEntries}
@@ -2648,6 +2960,7 @@ function App() {
             handleSaveOdontogramTooth(selectedPatient.id, toothCode, values)
           }
           onBackToList={handleBackToPatientsList}
+          onLoadMoreClinicalRecords={handleLoadMoreClinicalRecords}
           onCreateAppointment={() =>
             handleCreateAppointmentForPatient(selectedPatient.id)
           }
@@ -2731,9 +3044,25 @@ function App() {
       return (
         <ClinicalHistoryView
           clinicalRecords={clinicalRecords}
-          errorMessage={clinicalRecordsError}
-          isLoading={isClinicalRecordsLoading}
+          errorMessage={
+            isDemoMode
+              ? clinicalRecordsError
+              : globalClinicalHistoryError
+          }
+          hasMore={globalClinicalHistoryHasMore}
+          isLoading={
+            isDemoMode
+              ? isClinicalRecordsLoading
+              : isGlobalClinicalHistoryLoading
+          }
+          isLoadingMore={isGlobalClinicalHistoryLoadingMore}
+          isServerPaginated={!isDemoMode}
+          onLoadMore={handleLoadMoreGlobalClinicalHistory}
+          onPeriodChange={setGlobalClinicalHistoryPeriod}
+          onSearchChange={setGlobalClinicalHistorySearch}
           patients={patients}
+          serverGroups={globalClinicalHistoryGroups}
+          serverSummary={globalClinicalHistorySummary}
           onViewPatient={handleViewPatient}
         />
       )
@@ -2879,7 +3208,6 @@ function sectionNeedsAppointments(section: AppSection) {
 function sectionNeedsPatients(section: AppSection) {
   return (
     section === 'appointment-new' ||
-    section === 'clinical-history' ||
     section === 'odontogram' ||
     section === 'patient-detail' ||
     section === 'whatsapp-reminders'

@@ -426,10 +426,10 @@ en Supabase asociado al `clinic_id`. Si la operacion falla, no se crea un
 paciente local falso.
 
 La forma de datos de frontend sigue siendo compatible con `Patient`, pero los
-pacientes reales usan UUID como `id`. Historial clínico, odontograma y
-recordatorios conservan temporalmente sus propios cargadores hasta sus
-subhitos PERF-005D–F; no deben reutilizarse para volver a expandir la lista de
-Pacientes.
+pacientes reales usan UUID como `id`. Historial clínico ya usa sus páginas
+acotadas de `PERF-005D`; odontograma y recordatorios conservan temporalmente
+sus propios cargadores hasta `PERF-005E–F`. Ninguno debe reutilizarse para
+volver a expandir la lista de Pacientes.
 
 Las policies de `002_auth_profiles_policies.sql` ya permiten que un usuario
 autenticado gestione solo pacientes de su consultorio. La migracion
@@ -442,6 +442,13 @@ La migración `036_bounded_clinic_patients.sql` agrega la RPC paginada, un índi
 trigram para búsqueda y unicidad normalizada de teléfono y correo por
 consultorio. La comprobación local del formulario es solo una ayuda inmediata;
 PostgreSQL decide de forma autoritativa ante datos concurrentes.
+
+La migración `037_bounded_clinical_history.sql` separa el historial real en una
+página por paciente y una página global agrupada por paciente. Ambas usan
+cursores estables, resumen exacto y autorización clínica; la global resuelve
+búsqueda y periodos en servidor y limita cada grupo a tres vistas previas. El
+frontend no necesita descargar toda la tabla `clinical_records` ni el listado
+completo de pacientes para representar el módulo.
 
 ## Migración de Citas
 

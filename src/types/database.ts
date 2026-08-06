@@ -434,6 +434,28 @@ export type Database = {
         }
         Returns: Json
       }
+      get_clinic_clinical_history_page: {
+        Args: {
+          target_after_latest_record_date: string | null
+          target_after_patient_id: string | null
+          target_clinic_id: string
+          target_page_size: number
+          target_period: string
+          target_reference_date: string
+          target_search: string
+        }
+        Returns: Json
+      }
+      get_patient_clinical_records_page: {
+        Args: {
+          target_after_id: string | null
+          target_after_record_date: string | null
+          target_clinic_id: string
+          target_page_size: number
+          target_patient_id: string
+        }
+        Returns: Json
+      }
       create_clinic_appointment: {
         Args: {
           target_clinic_id: string

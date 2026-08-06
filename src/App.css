@@ -7401,6 +7401,18 @@
   min-width: 0;
 }
 
+.clinical-record-load-more,
+.clinical-history-load-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.clinical-record-load-more .secondary-action,
+.clinical-history-load-more .secondary-action {
+  width: min(100%, 288px);
+}
+
 .clinical-record-summary {
   margin: 0;
   color: var(--color-text-muted);

@@ -225,8 +225,8 @@ Participan:
   paciente.
 - `src/components/ClinicalRecordForm.tsx`: registra una evolucion clinica
   basica.
-- `src/components/ClinicalRecordsList.tsx`: muestra registros clinicos del
-  paciente.
+- `src/components/ClinicalRecordsList.tsx`: muestra la página de registros
+  clínicos del paciente, el resumen completo y la carga del cursor siguiente.
 - `src/components/PatientOdontogram.tsx`: muestra y actualiza estados basicos
   de piezas dentales.
 - `src/utils/patientFilters.ts`: filtra pacientes por busqueda.

@@ -1,7 +1,7 @@
 # Production readiness
 
 Checklist de DayIA Dental para demo comercial y revisión preproducción.
-Última revisión documental: 27 de julio de 2026.
+Última revisión documental: 5 de agosto de 2026.
 
 ## Estado del MVP
 
@@ -46,6 +46,8 @@ separación de dependencias compartidas.
   autenticada y móvil en staging; `PERF-005B2` también cerró su validación
   técnica, transaccional y móvil en staging. `PERF-005C` también cerró su
   validación de contrato, autenticada, de duplicados y móvil en staging.
+  `PERF-005D` también cerró sus pruebas de contrato, aislamiento, carga y
+  validación autenticada móvil en staging.
 - Preparar respaldo y ventana controlada antes de aplicar
   `027_membership_rls_hardening.sql` y
   `028_clinic_membership_lifecycle.sql` y
@@ -144,7 +146,7 @@ ausencia de `WHATSAPP_SEND_ENABLED` mantiene el dry-run por defecto.
 
 ## Migraciones
 
-Aplicar y verificar `001` a `036` en orden. `003_initial_clinic_setup_template`
+Aplicar y verificar `001` a `037` en orden. `003_initial_clinic_setup_template`
 es una plantilla de referencia. La lista completa está en
 `docs/supabase-setup.md`.
 
@@ -217,6 +219,15 @@ la página inicial en 511 ms y 0.9 kB, y la búsqueda en 284 ms y 0.7 kB; el
 detalle no repitió la página y el duplicado mostró un error seguro. Esto cierra
 PERF-005C en staging, pero no constituye autorización de producción.
 
+El 5 de agosto se aplicó `037` únicamente en staging y el historial remoto
+quedó alineado de `001` a `037`. Sus 40 controles de paginación, búsqueda,
+cursores, permisos y aislamiento pasan localmente y contra staging; el lint
+remoto está limpio. El benchmark reversible con 2.000 pacientes y 20.000
+registros verifica los índices y el presupuesto local. La prueba autenticada
+en 415 × 725 midió la carga global en 222 ms y 0.9 kB, búsquedas/filtros entre
+211 y 518 ms y la ficha en 251 ms y 0.9 kB, sin overflow. Esto cierra
+PERF-005D en staging, pero no constituye autorización de producción.
+
 ## Redirect URLs
 
 Registrar en Supabase Auth:
@@ -264,7 +275,7 @@ No crear, corregir ni eliminar estos datos automáticamente desde el frontend.
 
 ## Checklist de despliegue
 
-- [x] Confirmar migraciones `001`–`036` en staging.
+- [x] Confirmar migraciones `001`–`037` en staging.
 - [x] Ejecutar las 38 pruebas RLS de `027` y `db lint` en staging.
 - [x] Ejecutar las 16 pruebas de ciclo de usuarios de `028` en staging.
 - [x] Ejecutar las 9 pruebas de guardado de horarios de `029` en staging.

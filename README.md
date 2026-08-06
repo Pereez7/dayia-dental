@@ -79,6 +79,9 @@ Dashboard clínico mediante un snapshot autorizado y de tamaño fijo, sin
 descargar la historia completa del consultorio. La migración `036` limita el
 listado de pacientes a páginas con cursor, ejecuta la búsqueda normalizada en
 PostgreSQL y protege teléfono y correo duplicados por consultorio.
+La migración `037` pagina el historial de cada paciente y la vista global,
+resuelve búsqueda y periodos en PostgreSQL y evita cargar todos los pacientes o
+registros para construir el resumen.
 
 ## Modulos actuales
 
@@ -89,6 +92,10 @@ PostgreSQL y protege teléfono y correo duplicados por consultorio.
   por nombre completo, teléfono y email, alta y edición persistentes con
   protección autoritativa frente a duplicados, detalle cargado bajo demanda y
   accesos rápidos condicionados por rol. El modo demo conserva su lista local.
+- **Historial clínico:** ficha paginada por paciente y resumen global paginado
+  por pacientes, con búsqueda y filtros temporales de servidor. La vista real
+  conserva resúmenes completos sin descargar toda la historia; el modo demo
+  mantiene el cálculo local.
 - **Citas:** agenda diaria mobile-first con selector horizontal de dias, KPIs
   compactos, listado ordenado por hora, confirmacion, cancelacion con motivo en
   `ConfirmDialog`, reprogramacion inline con motivo, creación persistente,

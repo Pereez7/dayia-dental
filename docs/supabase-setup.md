@@ -96,6 +96,7 @@ Ejecuta en Supabase SQL Editor, en orden, los archivos de
 34. `034_bounded_clinic_agenda.sql`
 35. `035_atomic_appointment_scheduling.sql`
 36. `036_bounded_clinic_patients.sql`
+37. `037_bounded_clinical_history.sql`
 
 Si usas Supabase CLI en el futuro, puedes adaptar este flujo a `supabase db
 push`, pero esta guia asume SQL Editor para una primera prueba controlada.
@@ -103,7 +104,7 @@ push`, pero esta guia asume SQL Editor para una primera prueba controlada.
 ### Inventario de preproducción
 
 Antes de una demo con Supabase real, confirma en el proyecto remoto que están
-aplicadas las migraciones `001` a `036`. El repositorio solo contiene los
+aplicadas las migraciones `001` a `037`. El repositorio solo contiene los
 archivos; no garantiza el estado del entorno remoto. La migración `003` es una
 plantilla de setup y no debe reemplazar un seed revisado.
 

@@ -1,8 +1,12 @@
 import { useMemo, useState } from 'react'
+import type {
+  GlobalClinicalHistorySummary,
+} from '../services/clinicalRecordsService'
 import type { ClinicalRecord } from '../types/ClinicalRecord'
 import type { Patient, PatientId } from '../types/Patient'
 import {
   type ClinicalHistoryPeriodFilter,
+  type ClinicalRecordPatientGroup,
   type GlobalClinicalRecord,
   filterClinicalRecordGroups,
   formatClinicalRecordDisplayText,
@@ -16,8 +20,16 @@ import { formatClinicalHistoryDate } from '../utils/dateFormatters'
 interface ClinicalHistoryViewProps {
   clinicalRecords: ClinicalRecord[]
   errorMessage?: string
+  hasMore?: boolean
   isLoading?: boolean
+  isLoadingMore?: boolean
+  isServerPaginated?: boolean
+  onLoadMore?: () => void
+  onPeriodChange?: (period: ClinicalHistoryPeriodFilter) => void
+  onSearchChange?: (searchText: string) => void
   patients: Patient[]
+  serverGroups?: ClinicalRecordPatientGroup[]
+  serverSummary?: GlobalClinicalHistorySummary | null
   onViewPatient: (patientId: PatientId) => void
 }
 
@@ -33,8 +45,16 @@ const periodFilters: Array<{
 export function ClinicalHistoryView({
   clinicalRecords,
   errorMessage = '',
+  hasMore = false,
   isLoading = false,
+  isLoadingMore = false,
+  isServerPaginated = false,
+  onLoadMore,
+  onPeriodChange,
+  onSearchChange,
   patients,
+  serverGroups = [],
+  serverSummary = null,
   onViewPatient,
 }: ClinicalHistoryViewProps) {
   const [searchText, setSearchText] = useState('')
@@ -54,18 +74,24 @@ export function ClinicalHistoryView({
     () => groupClinicalRecordsByPatient(recordsByPeriod),
     [recordsByPeriod],
   )
-  const filteredGroups = useMemo(
+  const locallyFilteredGroups = useMemo(
     () => filterClinicalRecordGroups(patientGroups, searchText),
     [patientGroups, searchText],
   )
+  const filteredGroups = isServerPaginated
+    ? serverGroups
+    : locallyFilteredGroups
   const visibleRecords = useMemo(
     () => filteredGroups.flatMap((group) => group.matchingRecords),
     [filteredGroups],
   )
-  const summary = useMemo(
+  const localSummary = useMemo(
     () => getClinicalHistorySummary(visibleRecords),
     [visibleRecords],
   )
+  const summary = isServerPaginated && serverSummary
+    ? serverSummary
+    : localSummary
 
   function togglePatientRecords(patientId: PatientId) {
     setExpandedPatientIds((currentIds) =>
@@ -75,7 +101,10 @@ export function ClinicalHistoryView({
     )
   }
 
-  const hasRecords = globalRecords.length > 0
+  const hasActiveFilters = Boolean(searchText.trim()) || periodFilter !== 'all'
+  const hasRecords = isServerPaginated
+    ? summary.totalRecords > 0 || hasActiveFilters
+    : globalRecords.length > 0
   const hasSearchResults = filteredGroups.length > 0
 
   return (
@@ -111,7 +140,12 @@ export function ClinicalHistoryView({
             <input
               type="search"
               value={searchText}
-              onChange={(event) => setSearchText(event.target.value)}
+              onChange={(event) => {
+                const nextSearchText = event.target.value
+                setSearchText(nextSearchText)
+                setExpandedPatientIds([])
+                onSearchChange?.(nextSearchText)
+              }}
               placeholder="Paciente, diagnóstico, tratamiento, motivo u observación"
             />
           </label>
@@ -123,7 +157,11 @@ export function ClinicalHistoryView({
                 className="clinical-history-filter"
                 key={filter.value}
                 aria-pressed={periodFilter === filter.value}
-                onClick={() => setPeriodFilter(filter.value)}
+                onClick={() => {
+                  setPeriodFilter(filter.value)
+                  setExpandedPatientIds([])
+                  onPeriodChange?.(filter.value)
+                }}
               >
                 {filter.label}
               </button>
@@ -166,9 +204,9 @@ export function ClinicalHistoryView({
             {filteredGroups.map((group) => {
               const isExpanded = expandedPatientIds.includes(group.patientId)
               const displayedRecords = isExpanded
-                ? group.matchingRecords.slice(0, 3)
+                ? group.matchingRecords
                 : [group.matchingRecords[0]]
-              const hasMoreRecords = group.matchingRecords.length > 1
+              const hasMoreRecords = group.totalRecords > 1
 
               return (
                 <article className="clinical-history-card" key={group.patientId}>
@@ -272,15 +310,28 @@ export function ClinicalHistoryView({
                       ))}
                     </div>
 
-                    {isExpanded && group.matchingRecords.length > 3 ? (
+                    {isExpanded && group.totalRecords > 3 ? (
                       <p className="clinical-history-record-limit">
-                        Mostrando 3 de {group.matchingRecords.length} registros.
+                        Mostrando 3 de {group.totalRecords} registros.
                       </p>
                     ) : null}
                   </div>
                 </article>
               )
             })}
+          </div>
+        ) : null}
+
+        {!isLoading && !errorMessage && hasSearchResults && hasMore && onLoadMore ? (
+          <div className="clinical-history-load-more">
+            <button
+              className="secondary-action"
+              disabled={isLoadingMore}
+              type="button"
+              onClick={onLoadMore}
+            >
+              {isLoadingMore ? 'Cargando pacientes...' : 'Cargar más pacientes'}
+            </button>
           </div>
         ) : null}
       </div>

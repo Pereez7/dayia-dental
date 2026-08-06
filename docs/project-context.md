@@ -119,10 +119,26 @@ prueba autenticada en 415 × 725 midió 0.9 kB en 511 ms para la página inicial
 duplicada mostró el mensaje controlado. `PERF-005C` queda cerrado en staging;
 producción continúa intacta.
 
-La subdivisión oficial restante después de cerrar Pacientes es: `005D`
-Historial clínico, `005E` Recordatorios y `005F` Odontograma/Configuración.
+`PERF-005D` está implementado y desplegado únicamente en staging. La migración
+`037_bounded_clinical_history.sql` pagina por separado la ficha del paciente y
+la vista global. La ficha devuelve 8 registros, cursor estable y resumen
+exacto; la vista global devuelve 8 grupos de paciente, hasta 3 vistas previas,
+KPIs completos y búsqueda/filtros temporales de servidor. La aplicación real
+ya no carga todo el historial ni todos los pacientes para construir esa vista;
+el modo demo conserva el cálculo local.
+
+El benchmark reversible con 2.000 pacientes y 20.000 registros valida los tres
+índices y el presupuesto local. Los 40 controles SQL pasan localmente y contra
+staging, el lint remoto está limpio, la regresión alcanza 779 pruebas y las
+migraciones están alineadas `001–037`. La prueba autenticada en 415 × 725 midió
+la carga global en 222 ms y 0.9 kB, búsqueda/filtros entre 211 y 518 ms y la
+ficha en 251 ms y 0.9 kB, sin desbordamiento. `PERF-005D` queda cerrado en
+staging; producción continúa intacta.
+
+La subdivisión oficial restante es: `005E` Recordatorios y `005F`
+Odontograma/Configuración.
 Cada subhito conserva la misma puerta de pruebas, benchmark, staging,
-documentación y revisión móvil. El siguiente bloque es `PERF-005D`. No se
+documentación y revisión móvil. El siguiente bloque es `PERF-005E`. No se
 inicia `PERF-006` hasta cerrar A–F.
 
 Antes de iniciar `PERF-003`, el alta de plataforma dejó de reutilizar correos

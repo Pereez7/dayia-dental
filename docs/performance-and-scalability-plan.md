@@ -411,8 +411,8 @@ Objetivo: que el rendimiento de un consultorio no dependa de toda su historia.
 Estado: en curso desde el 4 de agosto de 2026. El subhito `PERF-005A`
 (Dashboard acotado) cerró técnicamente en staging el 5 de agosto;
 `PERF-005B1` y `PERF-005B2` cerraron la lectura diaria y las escrituras atómicas
-de Agenda en staging. `PERF-005C` cerró Pacientes en staging y el siguiente
-subhito es `PERF-005D`. El hito principal
+de Agenda en staging. `PERF-005C` cerró Pacientes y `PERF-005D` cerró Historial
+clínico en staging. El siguiente subhito es `PERF-005E`. El hito principal
 `PERF-005` solo se considerará cerrado cuando terminen A–F; después se podrá
 iniciar `PERF-006`. Producción permanece intacta.
 
@@ -424,7 +424,7 @@ Mapa oficial de subhitos:
 | PERF-005B1 | Agenda | Lectura diaria, cursor y payload acotado | Cerrado en staging |
 | PERF-005B2 | Agenda | Disponibilidad y escrituras atómicas | Cerrado en staging |
 | PERF-005C | Pacientes | Búsqueda y paginación de servidor | Cerrado en staging |
-| PERF-005D | Historial clínico | Paginación por paciente y vista global | Pendiente |
+| PERF-005D | Historial clínico | Paginación por paciente y vista global | Cerrado en staging |
 | PERF-005E | Recordatorios | Ventana de ejecución, estado y cursor | Pendiente |
 | PERF-005F | Odontograma y Configuración | Carga bajo demanda y columnas explícitas | Pendiente |
 
@@ -584,14 +584,30 @@ medición autenticada, prueba de duplicados y revisión móvil.
 
 #### PERF-005D: Historial clínico paginado
 
-Estado: pendiente; comienza únicamente después de cerrar `PERF-005C`.
+Estado: cerrado técnicamente en staging el 5 de agosto de 2026 después de la
+medición autenticada y revisión móvil.
 
-- Paginar registros por paciente y la vista global mediante cursor estable.
-- Resolver búsqueda y filtros temporales en servidor.
-- Evitar descargar el historial completo o todos los pacientes para construir
-  resúmenes.
-- Mantener aislamiento clínico, permisos, estados de interfaz y validación
-  móvil.
+- La migración `037_bounded_clinical_history.sql` agrega dos RPC autorizadas.
+  `get_patient_clinical_records_page` devuelve 8 registros por defecto, cursor
+  por `record_date` e ID y resumen exacto. `get_clinic_clinical_history_page`
+  devuelve 8 pacientes por defecto, cursor por último registro e ID de
+  paciente, hasta 3 vistas previas por grupo y KPIs completos.
+- La búsqueda normalizada abarca paciente, teléfono, correo y contenido
+  clínico. Los periodos `all`, `this-month` y `last-30-days` se resuelven en
+  PostgreSQL. La vista global ya no solicita todos los pacientes ni todos los
+  registros; la ficha carga solo al paciente abierto.
+- Tres índices cubren los cursores global/por paciente y el contenido clínico
+  normalizado. El benchmark reversible con 2.000 pacientes y 20.000 registros
+  verifica sus planes y mantiene ficha, resumen global y búsqueda bajo 1.500 ms
+  localmente.
+- Los 40 controles pgTAP pasan localmente y contra staging con rollback; el
+  lint remoto está limpio y el historial de migraciones está alineado
+  `001–037`. La regresión completa pasa 779 pruebas, lint y build.
+- En 415 × 725, la carga global respondió `200`, 0.9 kB y 222 ms. Las llamadas
+  posteriores de búsqueda y filtros se mantuvieron en 0.9 kB y entre 211 y
+  518 ms. La ficha respondió `200`, 0.9 kB y 251 ms; su preflight tardó 138 ms.
+  La composición no mostró desbordamiento. Son muestras individuales, no
+  percentiles. Producción no recibió la migración.
 
 #### PERF-005E: Recordatorios acotados
 
@@ -705,6 +721,7 @@ reemplazarse por estimaciones.
 | PERF-005B1 | Lectura diaria acotada de Agenda | Colección histórica completa de citas y pacientes | Staging móvil: 0.9–1.0 kB en 313–464 ms | Cerrado; fecha y cursor estables, KPIs completos y sin descarga histórica | 5 ago 2026 |
 | PERF-005B2 | Escritura atómica de Agenda | Validación local vulnerable a reservas concurrentes | Creación 287 ms; reprogramación 418 ms; segunda reserva concurrente rechazada | Cerrado; disponibilidad autoritativa y auditoría atómica en PostgreSQL | 5 ago 2026 |
 | PERF-005C | Listado y búsqueda de Pacientes | Colección completa por consultorio y filtrado en el navegador | Staging móvil: página inicial 0.9 kB en 511 ms; búsqueda 0.7 kB en 284 ms | Cerrado; payload paginado, detalle puntual y duplicados autoritativos | 5 ago 2026 |
+| PERF-005D | Historial clínico por paciente y global | Colección completa de registros y pacientes para filtrar y resumir en el navegador | Benchmark local con 2.000 pacientes y 20.000 registros bajo 1.500 ms; staging móvil: global 0.9 kB/222 ms, filtros 211–518 ms y ficha 0.9 kB/251 ms | Cerrado; payload, filtros y resúmenes acotados, 40 controles remotos correctos | 5 ago 2026 |
 
 ## Fuera de alcance
 

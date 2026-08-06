@@ -5,6 +5,7 @@ import { PatientAppointmentsList } from '../components/PatientAppointmentsList'
 import { PatientOdontogram } from '../components/PatientOdontogram'
 import { PatientEditDialog } from '../components/PatientEditDialog'
 import { Toast } from '../components/Toast'
+import type { ClinicalRecordPageSummary } from '../services/clinicalRecordsService'
 import type { Appointment } from '../types/Appointment'
 import type {
   ClinicalRecord,
@@ -37,8 +38,11 @@ interface PatientDetailViewProps {
   canAccessOdontogram: boolean
   canEditPatient?: boolean
   clinicalRecords: ClinicalRecord[]
+  clinicalRecordsHasMore?: boolean
+  clinicalRecordsSummary?: ClinicalRecordPageSummary | null
   clinicalRecordsError?: string
   isClinicalRecordsLoading?: boolean
+  isClinicalRecordsLoadingMore?: boolean
   isOdontogramLoading?: boolean
   odontogramError?: string
   odontogramEntries: OdontogramEntry[]
@@ -52,6 +56,7 @@ interface PatientDetailViewProps {
     values: OdontogramFormValues,
   ) => Promise<OdontogramSaveResult> | OdontogramSaveResult
   onBackToList: () => void
+  onLoadMoreClinicalRecords?: () => void
   onCreateAppointment?: () => void
   onUpdatePatient?: (
     patientId: Patient['id'],
@@ -67,14 +72,18 @@ export function PatientDetailView({
   canAccessOdontogram,
   canEditPatient = false,
   clinicalRecords,
+  clinicalRecordsHasMore = false,
+  clinicalRecordsSummary = null,
   clinicalRecordsError = '',
   isClinicalRecordsLoading = false,
+  isClinicalRecordsLoadingMore = false,
   isOdontogramLoading = false,
   odontogramError = '',
   odontogramEntries,
   onCreateClinicalRecord,
   onSaveOdontogramTooth,
   onBackToList,
+  onLoadMoreClinicalRecords,
   onCreateAppointment,
   onUpdatePatient,
   patient,
@@ -239,7 +248,13 @@ export function PatientDetailView({
             ) : (
               <>
                 <ClinicalRecordForm onCreateRecord={onCreateClinicalRecord} />
-                <ClinicalRecordsList records={patientClinicalRecords} />
+                <ClinicalRecordsList
+                  hasMore={clinicalRecordsHasMore}
+                  isLoadingMore={isClinicalRecordsLoadingMore}
+                  onLoadMore={onLoadMoreClinicalRecords}
+                  records={patientClinicalRecords}
+                  summary={clinicalRecordsSummary}
+                />
               </>
             )}
           </article>

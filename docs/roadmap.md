@@ -34,8 +34,9 @@ respondieron con 0.9–1.0 kB en 313–464 ms y la vista móvil no presentó ove
 escritura atómicas: supera 31 controles remotos con rollback y la prueba móvil
 autenticada confirmó creación, reprogramación y rechazo de doble reserva.
 `PERF-005C` pagina y busca Pacientes en servidor, protege duplicados y cerró su
-validación autenticada y móvil en staging. El siguiente bloque es `PERF-005D`
-Historial clínico; después siguen `PERF-005E`
+validación autenticada y móvil en staging. `PERF-005D` pagina el Historial
+clínico por paciente y en su vista global y cerró su validación autenticada y
+móvil en staging. El siguiente bloque es `PERF-005E`
 Recordatorios y `PERF-005F` Odontograma/Configuración. Solo entonces se cierra
 `PERF-005` y comienza `PERF-006`. Producción continúa intacta.
 

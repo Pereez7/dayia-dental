@@ -44,4 +44,52 @@ describe('ClinicalHistoryView states', () => {
       'No tienes permiso para acceder al historial clínico.',
     )
   })
+
+  it('renders bounded server summaries and a load-more action', () => {
+    const record = {
+      date: '2026-08-05',
+      diagnosis: 'Gingivitis',
+      hasPatient: true,
+      id: 'record-1',
+      notes: '',
+      patientId: 'patient-1',
+      patientName: '',
+      patientPhone: '',
+      reason: 'Control',
+      treatment: 'Profilaxis',
+    }
+    const markup = renderToStaticMarkup(
+      <ClinicalHistoryView
+        clinicalRecords={[]}
+        hasMore
+        isServerPaginated
+        onLoadMore={vi.fn()}
+        patients={[]}
+        serverGroups={[
+          {
+            hasPatient: true,
+            latestRecord: record,
+            matchingRecords: [record],
+            patientId: 'patient-1',
+            patientName: 'Paciente Uno',
+            patientPhone: '+59170000001',
+            records: [record],
+            totalRecords: 7,
+          },
+        ]}
+        serverSummary={{
+          patientsWithHistory: 5,
+          recordsThisMonth: 12,
+          totalRecords: 30,
+        }}
+        onViewPatient={vi.fn()}
+      />,
+    )
+
+    expect(markup).toContain('>30<')
+    expect(markup).toContain('>12<')
+    expect(markup).toContain('>5<')
+    expect(markup).toContain('Cargar más pacientes')
+    expect(markup).toContain('7 registros clínicos')
+  })
 })

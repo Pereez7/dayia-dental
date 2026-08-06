@@ -1,15 +1,28 @@
 import type { ClinicalRecord } from '../types/ClinicalRecord'
+import type { ClinicalRecordPageSummary } from '../services/clinicalRecordsService'
 import {
   getClinicalRecordsTimelineSummary,
 } from '../utils/clinicalRecords'
 import { formatCompactDateWithYear } from '../utils/dateFormatters'
 
 interface ClinicalRecordsListProps {
+  hasMore?: boolean
+  isLoadingMore?: boolean
+  onLoadMore?: () => void
   records: ClinicalRecord[]
+  summary?: ClinicalRecordPageSummary | null
 }
 
-export function ClinicalRecordsList({ records }: ClinicalRecordsListProps) {
-  const timelineSummary = getClinicalRecordsTimelineSummary(records)
+export function ClinicalRecordsList({
+  hasMore = false,
+  isLoadingMore = false,
+  onLoadMore,
+  records,
+  summary = null,
+}: ClinicalRecordsListProps) {
+  const timelineSummary = summary
+    ? getBoundedTimelineSummary(summary)
+    : getClinicalRecordsTimelineSummary(records)
 
   if (records.length === 0) {
     return (
@@ -51,6 +64,37 @@ export function ClinicalRecordsList({ records }: ClinicalRecordsListProps) {
           </article>
         ))}
       </div>
+
+      {hasMore && onLoadMore ? (
+        <div className="clinical-record-load-more">
+          <button
+            className="secondary-action"
+            disabled={isLoadingMore}
+            type="button"
+            onClick={onLoadMore}
+          >
+            {isLoadingMore ? 'Cargando registros...' : 'Cargar más registros'}
+          </button>
+        </div>
+      ) : null}
     </>
   )
+}
+
+function getBoundedTimelineSummary(summary: ClinicalRecordPageSummary) {
+  if (summary.totalRecords === 0) {
+    return ''
+  }
+
+  if (summary.totalRecords === 1) {
+    return '1 registro clínico'
+  }
+
+  if (!summary.firstRecordDate || !summary.lastRecordDate) {
+    return `${summary.totalRecords} registros clínicos`
+  }
+
+  return `${summary.totalRecords} registros · Desde ${formatCompactDateWithYear(
+    summary.firstRecordDate,
+  )} hasta ${formatCompactDateWithYear(summary.lastRecordDate)}`
 }
