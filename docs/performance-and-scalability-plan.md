@@ -412,7 +412,8 @@ Estado: en curso desde el 4 de agosto de 2026. El subhito `PERF-005A`
 (Dashboard acotado) cerró técnicamente en staging el 5 de agosto;
 `PERF-005B1` y `PERF-005B2` cerraron la lectura diaria y las escrituras atómicas
 de Agenda en staging. `PERF-005C` cerró Pacientes y `PERF-005D` cerró Historial
-clínico en staging. El siguiente subhito es `PERF-005E`. El hito principal
+clínico en staging. `PERF-005E` cerró su validación autenticada y móvil en
+staging el 6 de agosto. El hito principal
 `PERF-005` solo se considerará cerrado cuando terminen A–F; después se podrá
 iniciar `PERF-006`. Producción permanece intacta.
 
@@ -425,7 +426,7 @@ Mapa oficial de subhitos:
 | PERF-005B2 | Agenda | Disponibilidad y escrituras atómicas | Cerrado en staging |
 | PERF-005C | Pacientes | Búsqueda y paginación de servidor | Cerrado en staging |
 | PERF-005D | Historial clínico | Paginación por paciente y vista global | Cerrado en staging |
-| PERF-005E | Recordatorios | Ventana de ejecución, estado y cursor | Pendiente |
+| PERF-005E | Recordatorios | Ventana de ejecución, estado y cursor | Cerrado en staging |
 | PERF-005F | Odontograma y Configuración | Carga bajo demanda y columnas explícitas | Pendiente |
 
 Las letras no reemplazan los hitos principales `PERF-001`–`PERF-008`. Son
@@ -611,12 +612,57 @@ medición autenticada y revisión móvil.
 
 #### PERF-005E: Recordatorios acotados
 
-Estado: pendiente; comienza únicamente después de cerrar `PERF-005D`.
+Estado: cerrado en staging el 6 de agosto de 2026 tras la prueba autenticada y
+la revisión móvil.
 
-- Consultar una ventana operativa y estados relevantes mediante cursor.
-- Evitar reconstruir la cola desde todo el historial de citas y recordatorios.
-- Mantener reconciliación, trazabilidad, fallback manual y aislamiento por
-  consultorio.
+- La migración `038_bounded_clinic_reminders.sql` agrega
+  `get_clinic_reminder_queue_page`. La RPC limita la operación a 7 días hacia
+  atrás y 30 hacia adelante, devuelve 8 ocurrencias de cita por página y usa
+  cursor estable por hora e ID de grupo. Los dos recordatorios de una misma
+  ocurrencia nunca se separan entre páginas.
+- Fecha, estado de recordatorio, estado de cita y búsqueda se resuelven en
+  PostgreSQL. La búsqueda acepta términos distribuidos entre paciente,
+  teléfono y tratamiento. Los KPIs de la ventana y de la fecha seleccionada se
+  calculan sin transferir las filas que no son visibles.
+- `reconcile_clinic_reminders` reemplaza el recorrido completo y las
+  actualizaciones por fila de React. En una sola operación autorizada marca
+  `cancelled` las citas terminales y `skipped` las citas vencidas usando
+  `America/La_Paz`.
+- Los omitidos conservan en `metadata` la fecha, hora y estado de la ocurrencia
+  original. El listado reconstruye esa instantánea aunque la cita actual haya
+  sido reprogramada.
+- La rama real de Recordatorios ya no activa las cargas completas de
+  `appointments` ni `patients`. Solo recibe las citas necesarias para resolver
+  las ocurrencias visibles. El modo demo continúa calculando localmente.
+- La validación autenticada reveló que la escritura todavía intentaba generar
+  recordatorios desde la antigua colección completa de pacientes. La migración
+  `039_atomic_appointment_reminders.sql` elimina esa dependencia: un trigger
+  crea, actualiza, reprograma o cancela la cola dentro de la transacción de la
+  cita. Su backfill idempotente reparó las citas futuras activas sin cola.
+- Owner, admin y recepción conservan acceso mediante
+  `can_manage_reminder_queue`; doctor, anónimo y otro consultorio son
+  rechazados. No se expone `service_role` ni se relajan las policies RLS.
+- El fallback `wa.me`, marcar enviado/fallido, resolver una cita pasada,
+  estados de carga/error/vacío y bloqueo de doble acción permanecen activos.
+- Los 27 controles de lectura y los 17 de sincronización atómica pasan desde
+  una base local recreada y contra staging con rollback. La suite SQL completa
+  suma 276 controles y la regresión 787 pruebas de aplicación. El contrato
+  estático impide volver a añadir Recordatorios a los cargadores históricos o
+  sincronizarlos desde React.
+- El benchmark reversible crea 2.000 pacientes, 20.000 citas y 40.000
+  recordatorios. La primera página fría respondió en 881 ms, la búsqueda en
+  169 ms y el lookup indexado en 0,067 ms; los tres quedan bajo el presupuesto
+  local de 1.500 ms. Son muestras individuales, no p50/p95.
+
+Las migraciones `038–039` están aplicadas únicamente en staging. Sus 44
+controles específicos remotos pasan con rollback, `db lint` no reporta errores
+y el historial está alineado `001–039`. La comprobación sobre datos existentes
+confirmó cero citas futuras activas sin recordatorio. La validación final en
+415 × 725 mostró la cita reparada con sus dos recordatorios y respuestas de
+1.4 kB en 224–228 ms, sin desbordamiento. Fecha, filtros, búsqueda y lectura de
+una fila real quedaron verificados; `Cargar más` permanece cubierto por el
+contrato SQL y el benchmark porque staging no alcanza 9 ocurrencias visibles.
+Producción permanece intacta.
 
 #### PERF-005F: Odontograma y Configuración bajo demanda
 
@@ -722,6 +768,7 @@ reemplazarse por estimaciones.
 | PERF-005B2 | Escritura atómica de Agenda | Validación local vulnerable a reservas concurrentes | Creación 287 ms; reprogramación 418 ms; segunda reserva concurrente rechazada | Cerrado; disponibilidad autoritativa y auditoría atómica en PostgreSQL | 5 ago 2026 |
 | PERF-005C | Listado y búsqueda de Pacientes | Colección completa por consultorio y filtrado en el navegador | Staging móvil: página inicial 0.9 kB en 511 ms; búsqueda 0.7 kB en 284 ms | Cerrado; payload paginado, detalle puntual y duplicados autoritativos | 5 ago 2026 |
 | PERF-005D | Historial clínico por paciente y global | Colección completa de registros y pacientes para filtrar y resumir en el navegador | Benchmark local con 2.000 pacientes y 20.000 registros bajo 1.500 ms; staging móvil: global 0.9 kB/222 ms, filtros 211–518 ms y ficha 0.9 kB/251 ms | Cerrado; payload, filtros y resúmenes acotados, 40 controles remotos correctos | 5 ago 2026 |
+| PERF-005E | Cola operativa de Recordatorios | Tres colecciones completas y reconciliación por fila desde React | Benchmark local con 2.000 pacientes, 20.000 citas y 40.000 recordatorios: página fría 881 ms, búsqueda 169 ms y lookup 0,067 ms. Staging móvil con datos reales: 1.4 kB en 224–228 ms | Cerrado en staging; ventana, cursor, resúmenes y sincronización atómica, sin colecciones completas en React | 6 ago 2026 |
 
 ## Fuera de alcance
 

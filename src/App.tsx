@@ -70,11 +70,10 @@ import {
   updateTreatment as updateTreatmentInSupabase,
 } from './services/settingsService'
 import {
-  cancelRemindersForAppointment,
-  getReconciledRemindersByClinic,
+  getReminderQueuePage,
   markReminderFailed,
   markReminderSent,
-  upsertRemindersForAppointment,
+  reconcileClinicReminders,
 } from './services/remindersService'
 import {
   getWhatsappSettingsByClinic,
@@ -120,7 +119,14 @@ import type {
   ToothCode,
 } from './types/Odontogram'
 import type { Patient, PatientFormValues, PatientId } from './types/Patient'
-import type { Reminder } from './types/Reminder'
+import type {
+  Reminder,
+  ReminderDateOption,
+  ReminderQueueCursor,
+  ReminderQueueSummary,
+  ReminderStatusFilter,
+} from './types/Reminder'
+import type { ReminderAppointmentStatusFilter } from './utils/reminderView'
 import type { Treatment, TreatmentId } from './types/Treatment'
 import type { ClinicUser, ClinicUserFormValues } from './types/ClinicUser'
 import type { DashboardSnapshot } from './utils/dashboardMetrics'
@@ -342,6 +348,31 @@ function App() {
     permissions.canAccessReminders,
   )
   const [remindersError, setRemindersError] = useState('')
+  const [reminderDateOptions, setReminderDateOptions] = useState<
+    ReminderDateOption[]
+  >([])
+  const [reminderSelectedDate, setReminderSelectedDate] = useState<
+    string | null
+  >(null)
+  const [reminderEffectiveSelectedDate, setReminderEffectiveSelectedDate] =
+    useState<string | null>(null)
+  const [reminderStatusFilter, setReminderStatusFilter] =
+    useState<ReminderStatusFilter>('all')
+  const [reminderAppointmentStatusFilter, setReminderAppointmentStatusFilter] =
+    useState<ReminderAppointmentStatusFilter>('all')
+  const [reminderSearch, setReminderSearch] = useState('')
+  const [reminderSummary, setReminderSummary] =
+    useState<ReminderQueueSummary | null>(null)
+  const [reminderSelectedDateSummary, setReminderSelectedDateSummary] =
+    useState<ReminderQueueSummary | null>(null)
+  const [reminderNextCursor, setReminderNextCursor] =
+    useState<ReminderQueueCursor | null>(null)
+  const [reminderHasMore, setReminderHasMore] = useState(false)
+  const [isRemindersLoadingMore, setIsRemindersLoadingMore] = useState(false)
+  const [reminderRefreshVersion, setReminderRefreshVersion] = useState(0)
+  const reminderLoadMorePendingRef = useRef(false)
+  const reminderRequestGenerationRef = useRef(0)
+  const reminderReconciliationKeyRef = useRef('')
   const [whatsappSettings, setWhatsappSettings] =
     useState<WhatsappSettings | null>(null)
   const [whatsappSettingsError, setWhatsappSettingsError] = useState('')
@@ -1238,24 +1269,38 @@ function App() {
 
   useEffect(() => {
     let isMounted = true
+    const requestGeneration = ++reminderRequestGenerationRef.current
 
     async function loadReminders() {
-      if (!permissions.canAccessReminders) {
+      if (
+        !permissions.canAccessReminders ||
+        effectiveActiveSection !== 'whatsapp-reminders'
+      ) {
+        reminderReconciliationKeyRef.current = ''
         setReminders([])
+        setReminderDateOptions([])
+        setReminderSelectedDate(null)
+        setReminderEffectiveSelectedDate(null)
+        setReminderStatusFilter('all')
+        setReminderAppointmentStatusFilter('all')
+        setReminderSearch('')
+        setReminderSummary(null)
+        setReminderSelectedDateSummary(null)
+        setReminderNextCursor(null)
+        setReminderHasMore(false)
         setIsRemindersLoading(false)
-        setRemindersError('')
-        return
-      }
-
-      if (effectiveActiveSection !== 'whatsapp-reminders') {
-        setReminders([])
-        setIsRemindersLoading(false)
+        setIsRemindersLoadingMore(false)
         setRemindersError('')
         return
       }
 
       if (isDemoMode) {
         setReminders([])
+        setReminderDateOptions([])
+        setReminderSummary(null)
+        setReminderSelectedDateSummary(null)
+        setReminderNextCursor(null)
+        setReminderHasMore(false)
         setIsRemindersLoading(false)
         setRemindersError('')
         return
@@ -1263,36 +1308,84 @@ function App() {
 
       if (!currentClinic?.id) {
         setReminders([])
+        setReminderDateOptions([])
+        setReminderSummary(null)
+        setReminderSelectedDateSummary(null)
+        setReminderNextCursor(null)
+        setReminderHasMore(false)
         setIsRemindersLoading(false)
         setRemindersError('No hay consultorio activo para cargar recordatorios.')
         return
       }
 
-      if (isAppointmentsLoading) {
+      if (reminderSearch.trim()) {
+        await new Promise((resolve) => window.setTimeout(resolve, 280))
+      }
+
+      if (
+        !isMounted ||
+        requestGeneration !== reminderRequestGenerationRef.current
+      ) {
         return
       }
 
       setIsRemindersLoading(true)
       setRemindersError('')
 
-      const { data, error } = await getReconciledRemindersByClinic(
-        currentClinic.id,
-        appointments,
-        patients,
-      )
+      const reconciliationKey = `${currentClinic.id}:${reminderRefreshVersion}`
 
-      if (!isMounted) {
+      if (reminderReconciliationKeyRef.current !== reconciliationKey) {
+        const reconciliationResult = await reconcileClinicReminders(
+          currentClinic.id,
+        )
+
+        if (reconciliationResult.error) {
+          if (
+            isMounted &&
+            requestGeneration === reminderRequestGenerationRef.current
+          ) {
+            setReminders([])
+            setRemindersError(reconciliationResult.error)
+            setIsRemindersLoading(false)
+          }
+          return
+        }
+
+        reminderReconciliationKeyRef.current = reconciliationKey
+      }
+
+      const { data, error } = await getReminderQueuePage(currentClinic.id, {
+        appointmentStatus: reminderAppointmentStatusFilter,
+        referenceDate: getDateInputValue(),
+        search: reminderSearch,
+        selectedDate: reminderSelectedDate,
+        status: reminderStatusFilter,
+      })
+
+      if (
+        !isMounted ||
+        requestGeneration !== reminderRequestGenerationRef.current
+      ) {
         return
       }
 
-      if (error) {
+      if (error || !data) {
         setReminders([])
-        setRemindersError(error)
+        setReminderNextCursor(null)
+        setReminderHasMore(false)
+        setRemindersError(error ?? 'No pudimos cargar los recordatorios.')
         setIsRemindersLoading(false)
         return
       }
 
-      setReminders(data ?? [])
+      setReminders(data.reminders)
+      setAppointments(data.appointments)
+      setReminderDateOptions(data.dateOptions)
+      setReminderEffectiveSelectedDate(data.selectedDate)
+      setReminderSummary(data.summary)
+      setReminderSelectedDateSummary(data.selectedDateSummary)
+      setReminderNextCursor(data.pageInfo.nextCursor)
+      setReminderHasMore(data.pageInfo.hasMore)
       setIsRemindersLoading(false)
     }
 
@@ -1302,14 +1395,90 @@ function App() {
       isMounted = false
     }
   }, [
-    appointments,
     currentClinic?.id,
     effectiveActiveSection,
     isDemoMode,
-    isAppointmentsLoading,
-    patients,
     permissions.canAccessReminders,
+    reminderAppointmentStatusFilter,
+    reminderRefreshVersion,
+    reminderSearch,
+    reminderSelectedDate,
+    reminderStatusFilter,
   ])
+
+  async function handleLoadMoreReminders() {
+    if (
+      isDemoMode ||
+      !currentClinic?.id ||
+      !reminderNextCursor ||
+      isRemindersLoadingMore ||
+      reminderLoadMorePendingRef.current
+    ) {
+      return
+    }
+
+    reminderLoadMorePendingRef.current = true
+    setIsRemindersLoadingMore(true)
+    const requestGeneration = reminderRequestGenerationRef.current
+    const requestedCursor = reminderNextCursor
+    const requestedDate = reminderEffectiveSelectedDate
+    const requestedSearch = reminderSearch
+    const requestedStatus = reminderStatusFilter
+    const requestedAppointmentStatus = reminderAppointmentStatusFilter
+
+    const { data, error } = await getReminderQueuePage(currentClinic.id, {
+      appointmentStatus: requestedAppointmentStatus,
+      cursor: requestedCursor,
+      referenceDate: getDateInputValue(),
+      search: requestedSearch,
+      selectedDate: requestedDate,
+      status: requestedStatus,
+    })
+
+    if (
+      requestGeneration === reminderRequestGenerationRef.current &&
+      requestedDate === reminderEffectiveSelectedDate &&
+      requestedSearch === reminderSearch &&
+      requestedStatus === reminderStatusFilter &&
+      requestedAppointmentStatus === reminderAppointmentStatusFilter &&
+      effectiveActiveSection === 'whatsapp-reminders'
+    ) {
+      if (error || !data) {
+        setRemindersError(error ?? 'No pudimos cargar más recordatorios.')
+      } else {
+        setReminders((currentReminders) => {
+          const existingIds = new Set(
+            currentReminders.map((reminder) => reminder.id),
+          )
+
+          return [
+            ...currentReminders,
+            ...data.reminders.filter(
+              (reminder) => !existingIds.has(reminder.id),
+            ),
+          ]
+        })
+        setAppointments((currentAppointments) => {
+          const existingIds = new Set(
+            currentAppointments.map((appointment) => appointment.id),
+          )
+
+          return [
+            ...currentAppointments,
+            ...data.appointments.filter(
+              (appointment) => !existingIds.has(appointment.id),
+            ),
+          ]
+        })
+        setReminderNextCursor(data.pageInfo.nextCursor)
+        setReminderHasMore(data.pageInfo.hasMore)
+        setRemindersError('')
+      }
+    }
+
+    reminderLoadMorePendingRef.current = false
+    setIsRemindersLoadingMore(false)
+  }
 
   useEffect(() => {
     let isMounted = true
@@ -1831,27 +2000,10 @@ function App() {
       }
 
       const nextAppointments = [...appointments, data]
-      const patient = patients.find((item) => item.id === data.patientId)
-      const remindersResult = await upsertRemindersForAppointment(
-        currentClinic.id,
-        data,
-        patient,
-        nextAppointments,
-        patients,
-      )
-
-      if (remindersResult.error) {
-        setRemindersError(remindersResult.error)
-      } else {
-        setReminders((currentReminders) => [
-          ...currentReminders,
-          ...(remindersResult.data ?? []),
-        ])
-        setRemindersError('')
-      }
 
       setAppointments(nextAppointments)
       setAppointmentsError('')
+      setReminderRefreshVersion((version) => version + 1)
       setAppointmentPatientId(null)
       setAppointmentDraft(createEmptyAppointmentDraft())
 
@@ -1923,58 +2075,9 @@ function App() {
         ),
       )
 
-      if (
-        status === 'cancelled' ||
-        status === 'completed' ||
-        status === 'no_show'
-      ) {
-        await cancelRemindersForAppointment(currentClinic.id, appointmentId)
-        setReminders((currentReminders) =>
-          currentReminders.map((reminder) =>
-            reminder.appointmentId === appointmentId
-              ? {
-                  ...reminder,
-                  appointmentStatus: status,
-                  status:
-                    reminder.status === 'pending' ||
-                    reminder.status === 'scheduled'
-                      ? 'cancelled'
-                      : reminder.status,
-                }
-              : reminder,
-          ),
-        )
-      } else {
-        const nextAppointments = appointments.map((appointment) =>
-          appointment.id === appointmentId ? data : appointment,
-        )
-        const patient = patients.find((item) => item.id === data.patientId)
-        const remindersResult = await upsertRemindersForAppointment(
-          currentClinic.id,
-          data,
-          patient,
-          nextAppointments,
-          patients,
-        )
-
-        if (remindersResult.error) {
-          setRemindersError(remindersResult.error)
-        } else {
-          setReminders((currentReminders) => [
-            ...currentReminders.filter(
-              (reminder) =>
-                reminder.appointmentId !== data.id ||
-                (reminder.status !== 'pending' &&
-                  reminder.status !== 'scheduled'),
-            ),
-            ...(remindersResult.data ?? []),
-          ])
-          setRemindersError('')
-        }
-      }
-
       setAppointmentsError('')
       setAgendaRefreshVersion((version) => version + 1)
+      setReminderRefreshVersion((version) => version + 1)
 
       return { success: true }
     }
@@ -2089,35 +2192,9 @@ function App() {
         ),
       )
 
-      const nextAppointments = appointments.map((appointment) =>
-        appointment.id === appointmentId ? data : appointment,
-      )
-      const patient = patients.find((item) => item.id === data.patientId)
-      const remindersResult = await upsertRemindersForAppointment(
-        currentClinic.id,
-        data,
-        patient,
-        nextAppointments,
-        patients,
-      )
-
-      if (remindersResult.error) {
-        setRemindersError(remindersResult.error)
-      } else {
-        setReminders((currentReminders) => [
-          ...currentReminders.filter(
-            (reminder) =>
-              reminder.appointmentId !== data.id ||
-              (reminder.status !== 'pending' &&
-                reminder.status !== 'scheduled'),
-          ),
-          ...(remindersResult.data ?? []),
-        ])
-        setRemindersError('')
-      }
-
       setAppointmentsError('')
       setAgendaRefreshVersion((version) => version + 1)
+      setReminderRefreshVersion((version) => version + 1)
 
       return { success: true }
     }
@@ -2603,6 +2680,9 @@ function App() {
       }
     }
 
+    const previousReminder = reminders.find(
+      (reminder) => reminder.id === reminderId,
+    )
     const { data, error } = await markReminderSent(
       currentClinic.id,
       reminderId,
@@ -2618,11 +2698,38 @@ function App() {
     }
 
     setReminders((currentReminders) =>
-      currentReminders.map((reminder) =>
-        reminder.id === reminderId ? data : reminder,
-      ),
+      currentReminders
+        .map((reminder) =>
+          reminder.id === reminderId
+            ? {
+                ...reminder,
+                failedReason: data.failedReason,
+                sentAt: data.sentAt,
+                status: data.status,
+              }
+            : reminder,
+        )
+        .filter(
+          (reminder) =>
+            reminderStatusFilter === 'all' ||
+            reminder.status === reminderStatusFilter,
+        ),
     )
     setRemindersError('')
+    setReminderSummary((currentSummary) =>
+      moveReminderSummaryStatus(currentSummary, previousReminder?.status, 'sent'),
+    )
+    if (
+      previousReminder?.appointmentDate === reminderEffectiveSelectedDate
+    ) {
+      setReminderSelectedDateSummary((currentSummary) =>
+        moveReminderSummaryStatus(
+          currentSummary,
+          previousReminder.status,
+          'sent',
+        ),
+      )
+    }
 
     return { success: true }
   }
@@ -2635,6 +2742,9 @@ function App() {
       }
     }
 
+    const previousReminder = reminders.find(
+      (reminder) => reminder.id === reminderId,
+    )
     const { data, error } = await markReminderFailed(
       currentClinic.id,
       reminderId,
@@ -2651,11 +2761,42 @@ function App() {
     }
 
     setReminders((currentReminders) =>
-      currentReminders.map((reminder) =>
-        reminder.id === reminderId ? data : reminder,
-      ),
+      currentReminders
+        .map((reminder) =>
+          reminder.id === reminderId
+            ? {
+                ...reminder,
+                failedReason: data.failedReason,
+                sentAt: data.sentAt,
+                status: data.status,
+              }
+            : reminder,
+        )
+        .filter(
+          (reminder) =>
+            reminderStatusFilter === 'all' ||
+            reminder.status === reminderStatusFilter,
+        ),
     )
     setRemindersError('')
+    setReminderSummary((currentSummary) =>
+      moveReminderSummaryStatus(
+        currentSummary,
+        previousReminder?.status,
+        'failed',
+      ),
+    )
+    if (
+      previousReminder?.appointmentDate === reminderEffectiveSelectedDate
+    ) {
+      setReminderSelectedDateSummary((currentSummary) =>
+        moveReminderSummaryStatus(
+          currentSummary,
+          previousReminder.status,
+          'failed',
+        ),
+      )
+    }
 
     return { success: true }
   }
@@ -3090,17 +3231,36 @@ function App() {
           businessHours={businessHours}
           calendarExceptions={calendarExceptions}
           errorMessage={remindersError}
+          hasMore={!isDemoMode && reminderHasMore}
           isLoading={
             !isDemoMode &&
             (isRemindersLoading || isOperationalSettingsLoading)
           }
+          isLoadingMore={!isDemoMode && isRemindersLoadingMore}
+          isServerPaginated={!isDemoMode}
+          onAppointmentStatusFilterChange={setReminderAppointmentStatusFilter}
+          onLoadMore={handleLoadMoreReminders}
           onMarkReminderFailed={handleMarkReminderFailed}
           onMarkReminderSent={handleMarkReminderSent}
+          onSearchChange={setReminderSearch}
+          onSelectedDateChange={(selectedDate) => {
+            setReminderSelectedDate(selectedDate)
+            setReminderEffectiveSelectedDate(selectedDate)
+          }}
+          onStatusFilterChange={setReminderStatusFilter}
           onRescheduleAppointment={handleRescheduleAppointment}
           onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
           patients={patients}
           planId={currentPlanId}
           reminders={isDemoMode ? undefined : reminders}
+          serverDateOptions={isDemoMode ? undefined : reminderDateOptions}
+          serverSelectedDate={
+            isDemoMode ? undefined : reminderEffectiveSelectedDate
+          }
+          serverSelectedDateSummary={
+            isDemoMode ? undefined : reminderSelectedDateSummary
+          }
+          serverSummary={isDemoMode ? undefined : reminderSummary}
           treatments={treatments}
         />
       )
@@ -3196,12 +3356,27 @@ function getNextNumericId(items: { id: number | string }[]) {
   )
 }
 
+function moveReminderSummaryStatus(
+  summary: ReminderQueueSummary | null,
+  previousStatus: Reminder['status'] | undefined,
+  nextStatus: Reminder['status'],
+) {
+  if (!summary || !previousStatus || previousStatus === nextStatus) {
+    return summary
+  }
+
+  return {
+    ...summary,
+    [previousStatus]: Math.max(0, summary[previousStatus] - 1),
+    [nextStatus]: summary[nextStatus] + 1,
+  }
+}
+
 function sectionNeedsAppointments(section: AppSection) {
   return (
     section === 'appointments-agenda' ||
     section === 'appointment-new' ||
-    section === 'patient-detail' ||
-    section === 'whatsapp-reminders'
+    section === 'patient-detail'
   )
 }
 
@@ -3209,8 +3384,7 @@ function sectionNeedsPatients(section: AppSection) {
   return (
     section === 'appointment-new' ||
     section === 'odontogram' ||
-    section === 'patient-detail' ||
-    section === 'whatsapp-reminders'
+    section === 'patient-detail'
   )
 }
 

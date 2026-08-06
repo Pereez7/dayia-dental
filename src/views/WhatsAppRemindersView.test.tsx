@@ -78,4 +78,52 @@ describe('WhatsAppRemindersView', () => {
       message: 'No hay recordatorios omitidos para esta fecha.',
     })
   })
+
+  it('uses server summaries and exposes bounded pagination', () => {
+    const markup = renderToStaticMarkup(
+      <WhatsAppRemindersView
+        appointments={[]}
+        businessHours={businessHours}
+        calendarExceptions={[]}
+        hasMore
+        isServerPaginated
+        onLoadMore={() => undefined}
+        patients={[]}
+        reminders={[createReminder('visible', 'scheduled')]}
+        serverDateOptions={[
+          {
+            appointmentDate: '2027-01-15',
+            dateLabel: '15 ene',
+            fullLabel: 'Viernes, 15 enero',
+            weekdayLabel: 'vie',
+          },
+        ]}
+        serverSelectedDate="2027-01-15"
+        serverSelectedDateSummary={{
+          cancelled: 0,
+          failed: 0,
+          pending: 1,
+          scheduled: 3,
+          sent: 2,
+          skipped: 0,
+          total: 6,
+        }}
+        serverSummary={{
+          cancelled: 1,
+          failed: 1,
+          pending: 4,
+          scheduled: 5,
+          sent: 7,
+          skipped: 2,
+          total: 20,
+        }}
+        treatments={treatments}
+      />,
+    )
+
+    expect(markup).toContain('>20</strong>')
+    expect(markup).toContain('Todos (6)')
+    expect(markup).toContain('Programado (3)')
+    expect(markup).toContain('Cargar más')
+  })
 })

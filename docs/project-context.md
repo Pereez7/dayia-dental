@@ -135,11 +135,28 @@ la carga global en 222 ms y 0.9 kB, búsqueda/filtros entre 211 y 518 ms y la
 ficha en 251 ms y 0.9 kB, sin desbordamiento. `PERF-005D` queda cerrado en
 staging; producción continúa intacta.
 
-La subdivisión oficial restante es: `005E` Recordatorios y `005F`
-Odontograma/Configuración.
-Cada subhito conserva la misma puerta de pruebas, benchmark, staging,
-documentación y revisión móvil. El siguiente bloque es `PERF-005E`. No se
-inicia `PERF-006` hasta cerrar A–F.
+`PERF-005E` está cerrado en staging. La migración
+`038_bounded_clinic_reminders.sql` limita la cola
+real a 7 días pasados y 30 futuros, pagina 8 ocurrencias de cita con cursor y
+resuelve fecha, estados, búsqueda y KPIs en PostgreSQL. La reconciliación pasó
+de un recorrido por filas en React a una operación atómica autorizada; la rama
+real ya no carga colecciones completas de recordatorios, citas o pacientes.
+La prueba autenticada detectó que la escritura aún dependía del paciente en
+memoria. `039_atomic_appointment_reminders.sql` mueve la sincronización al
+trigger transaccional de la cita y repara las citas futuras sin cola. Los 27
+controles de lectura y 17 de sincronización pasan localmente y contra staging
+con rollback; el lint remoto está limpio y el historial está alineado
+`001–039`. El benchmark
+reversible con 2.000 pacientes, 20.000 citas y 40.000 recordatorios midió
+881 ms para la primera página fría y 169 ms para búsqueda. La validación final
+autenticada en 415 × 725 mostró una cita real con sus dos recordatorios y
+respuestas de 1.4 kB en 224–228 ms, sin overflow. La paginación adicional queda
+cubierta por contrato y benchmark porque staging no alcanza 9 ocurrencias.
+
+La única subdivisión pendiente es `005F` Odontograma/Configuración. Cada
+subhito conserva la misma puerta de pruebas, benchmark, staging, documentación
+y revisión móvil. `PERF-006` no comienza hasta cerrar A–F. Producción continúa
+intacta.
 
 Antes de iniciar `PERF-003`, el alta de plataforma dejó de reutilizar correos
 existentes. Un correo registrado en Auth o `profiles` responde `409`. Para un

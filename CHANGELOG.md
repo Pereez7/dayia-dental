@@ -4,6 +4,24 @@ Registro breve de cambios relevantes en DayIA Dental.
 
 ## En desarrollo
 
+- PERF-005E acota la cola real de Recordatorios a una ventana de 7 días
+  pasados y 30 futuros, con 8 ocurrencias de cita por página, cursor estable,
+  filtros y búsqueda en PostgreSQL. La reconciliación de vencidos y citas
+  terminales ahora es una operación atómica autorizada; React ya no descarga
+  recordatorios, citas y pacientes completos ni actualiza la cola fila por
+  fila. La migración `038` y sus 27 controles pasan localmente desde una base
+  recreada. El benchmark reversible con 2.000 pacientes, 20.000 citas y 40.000
+  recordatorios midió 881 ms para la primera página fría, 169 ms para búsqueda
+  y 0,067 ms para el lookup indexado. La prueba autenticada descubrió que la
+  creación aún dependía de encontrar al paciente en una colección completa de
+  React. La migración `039` mueve creación, actualización, reprogramación y
+  cancelación de recordatorios al trigger transaccional de la cita y repara las
+  citas futuras que habían quedado sin cola. `038–039` están aplicadas solo en
+  staging; 27 controles de lectura y 17 de sincronización pasan remotamente con
+  rollback, el lint está limpio y el historial está alineado `001–039`. La
+  validación final en 415 × 725 mostró una cita real con sus dos recordatorios
+  y respuestas de 1.4 kB en 224–228 ms, sin desbordamiento. El subhito queda
+  cerrado en staging y producción permanece intacta.
 - PERF-005D reemplaza la descarga completa del historial clínico real por dos
   lecturas acotadas. La ficha del paciente recibe páginas de 8 registros con
   cursor estable y resumen completo; la vista global recibe páginas de 8
@@ -30,9 +48,8 @@ Registro breve de cambios relevantes en DayIA Dental.
 - El plan de escalabilidad mantiene los hitos principales `PERF-001`–`008` y
   formaliza las subdivisiones de `PERF-005`: A Dashboard, B1/B2 Agenda, C
   Pacientes, D Historial clínico, E Recordatorios y F
-  Odontograma/Configuración. `PERF-005C` y `PERF-005D` están cerrados en
-  staging; el siguiente bloque es `PERF-005E` y `PERF-006` no comienza hasta
-  cerrar A–F.
+  Odontograma/Configuración. `PERF-005C`, `PERF-005D` y `PERF-005E` están
+  cerrados en staging. `PERF-006` no comienza hasta cerrar A–F.
 - PERF-005B2 protege la creación y reprogramación real de citas mediante las
   RPC `create_clinic_appointment` y `reschedule_clinic_appointment`. La
   migración `035` serializa por consultorio y fecha, valida en servidor

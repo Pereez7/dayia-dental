@@ -64,3 +64,29 @@ export interface ReminderDateOption {
   fullLabel: string
   weekdayLabel: string
 }
+
+export interface ReminderQueueCursor {
+  groupId: string
+  startTime: string
+}
+
+export interface ReminderQueueSummary extends ReminderSummary {
+  total: number
+}
+
+export interface ReminderQueuePage {
+  appointments: import('./Appointment').Appointment[]
+  dateOptions: ReminderDateOption[]
+  pageInfo: {
+    hasMore: boolean
+    nextCursor: ReminderQueueCursor | null
+  }
+  reminders: Reminder[]
+  selectedDate: string | null
+  selectedDateSummary: ReminderQueueSummary
+  summary: ReminderQueueSummary
+  window: {
+    from: string
+    to: string
+  }
+}

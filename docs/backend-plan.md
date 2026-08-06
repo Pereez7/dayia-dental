@@ -426,10 +426,10 @@ en Supabase asociado al `clinic_id`. Si la operacion falla, no se crea un
 paciente local falso.
 
 La forma de datos de frontend sigue siendo compatible con `Patient`, pero los
-pacientes reales usan UUID como `id`. Historial clínico ya usa sus páginas
-acotadas de `PERF-005D`; odontograma y recordatorios conservan temporalmente
-sus propios cargadores hasta `PERF-005E–F`. Ninguno debe reutilizarse para
-volver a expandir la lista de Pacientes.
+pacientes reales usan UUID como `id`. Historial clínico y Recordatorios ya usan
+las lecturas acotadas de `PERF-005D–E`; odontograma conserva temporalmente su
+cargador hasta `PERF-005F`. Ninguno debe reutilizarse para volver a expandir la
+lista de Pacientes.
 
 Las policies de `002_auth_profiles_policies.sql` ya permiten que un usuario
 autenticado gestione solo pacientes de su consultorio. La migracion
@@ -559,9 +559,11 @@ consultorio. La migracion `006_settings_indexes.sql` agrega el unique faltante
 ## Migración de Recordatorios
 
 Recordatorios consume Supabase en modo real y conserva la generacion mock/local
-en modo demo. En modo real, la app carga la cola desde `reminders` filtrando
-siempre por `clinic_id`, y en modo demo la vista sigue calculando recordatorios
-desde las citas y pacientes en memoria.
+en modo demo. En modo real, `get_clinic_reminder_queue_page` devuelve una
+ventana de 7 días pasados y 30 futuros, 8 ocurrencias de cita por página,
+resúmenes agregados y solo las citas visibles. Fecha, estados y búsqueda se
+resuelven en PostgreSQL; la pantalla no carga toda la tabla de recordatorios,
+citas ni pacientes.
 
 La generacion mantiene las reglas actuales:
 
@@ -571,14 +573,17 @@ La generacion mantiene las reglas actuales:
 - Usa recordatorio inmediato cuando la cita esta demasiado cerca.
 - Si no hay telefono valido, el recordatorio queda como `skipped`.
 
-Cuando se crea una cita real, la app crea sus recordatorios en Supabase. Cuando
-se confirma una cita, actualiza/reemplaza los recordatorios pendientes para que
-el mensaje refleje el estado confirmado. Cuando se reprograma una cita, cancela
-recordatorios pendientes/programados anteriores y crea una nueva cola para la
-fecha/hora vigente. Cuando se cancela una cita, no borra registros: marca como
-`cancelled` los recordatorios pendientes/programados de esa cita.
+La migración `039_atomic_appointment_reminders.sql` sincroniza la cola mediante
+un trigger de PostgreSQL en la misma transacción de la cita. Crear una cita
+genera `24h`, `2h` o `immediate`; confirmar actualiza el mensaje sin duplicar;
+reprogramar conserva la ocurrencia anterior como cancelada y crea la nueva; y
+los estados terminales cancelan lo mutable. El servidor obtiene paciente,
+teléfono y tratamiento por sus UUID, por lo que no depende de colecciones
+cargadas en React. Un backfill idempotente repara citas futuras activas que
+hubieran quedado sin recordatorios antes de `039`.
 
-Antes de listar la cola real, el frontend reconcilia los estados mutables. Un
+Antes de listar la cola real, `reconcile_clinic_reminders` reconcilia los
+estados mutables atómicamente en PostgreSQL. Un
 recordatorio `pending` o `scheduled` cuya fecha y hora de cita ya paso cambia a
 `skipped`, con `metadata.reason = 'appointment_passed'`; si la cita esta
 cancelada cambia a `cancelled`. La comparacion se hace con fecha y hora completas
@@ -596,8 +601,9 @@ recordatorio omitido sin intento, por ejemplo porque la cita ya paso.
 `process-due-reminders` repite esta validacion antes de preparar cada entrega:
 no intenta enviar citas pasadas ni canceladas y persiste `skipped` o
 `cancelled`. `send-whatsapp-reminder` aplica la misma defensa para las llamadas
-directas. La reconciliacion de React usa la sesion y RLS; no expone
-`service_role` en frontend.
+directas. La reconciliación exige `can_manage_reminder_queue`, usa la sesión y
+RLS y no expone `service_role` en frontend. React no recorre ni actualiza la
+cola por fila.
 
 Cuando un recordatorio cambia a `skipped` por cita pasada, `metadata` conserva
 fecha, hora y estado de la ocurrencia original. Esa instantanea evita que un

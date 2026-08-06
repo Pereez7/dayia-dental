@@ -34,8 +34,9 @@ por consultorio sobre Supabase.
   guardado, observaciones limitadas y piezas sin registro tratadas como sanas.
 - Formato global de fechas con `formatAppDate`: muestra año solo cuando la
   fecha no pertenece al año actual y mantiene hora en formato 24 horas.
-- Recordatorios WhatsApp con persistencia, reconciliación de vencidos, filtros,
-  vista previa, resolución de citas pasadas y fallback manual mediante `wa.me`.
+- Recordatorios WhatsApp con persistencia, cola real paginada, reconciliación
+  atómica de vencidos, filtros de servidor, vista previa, resolución de citas
+  pasadas y fallback manual mediante `wa.me`.
 - Configuracion con horarios del consultorio y tratamientos locales.
 - Tratamientos con alta, busqueda, edicion, activacion, desactivacion y Toast
   flotante de feedback.
@@ -81,7 +82,9 @@ listado de pacientes a páginas con cursor, ejecuta la búsqueda normalizada en
 PostgreSQL y protege teléfono y correo duplicados por consultorio.
 La migración `037` pagina el historial de cada paciente y la vista global,
 resuelve búsqueda y periodos en PostgreSQL y evita cargar todos los pacientes o
-registros para construir el resumen.
+registros para construir el resumen. Las migraciones `038` y `039` sirven una
+cola de recordatorios acotada y sincronizan su creación/ciclo de vida dentro de
+la misma transacción de la cita, sin depender de pacientes cargados en React.
 
 ## Modulos actuales
 
@@ -127,10 +130,10 @@ registros para construir el resumen.
   por estado, edicion simple por pieza, observaciones normalizadas y fecha de
   ultima actualizacion con formato global. Usa siete estados canonicos:
   `healthy`, `caries`, `restored`, `missing`, `pending`, `watch` y `other`.
-- **Recordatorios WhatsApp:** generacion local de recordatorios `24h`, `2h` y
-  confirmacion inmediata solo para citas activas, con selector por fecha,
-  filtros por estado, mensajes sugeridos segun cita pendiente, confirmada o
-  reprogramada, formato corto 24h, vista previa y Toast de feedback.
+- **Recordatorios WhatsApp:** en modo real usa una ventana paginada con filtros
+  y búsqueda en servidor; en demo conserva la generación local `24h`, `2h` y
+  confirmación inmediata. Incluye mensajes según el estado de la cita, formato
+  corto 24h, vista previa y Toast de feedback.
 - **Configuracion:** horarios semanales del consultorio, intervalo de atencion,
   excepciones del calendario para cierres y horarios especiales, y gestion
   local de tratamientos disponibles para Nueva Cita. Horarios, Excepciones y

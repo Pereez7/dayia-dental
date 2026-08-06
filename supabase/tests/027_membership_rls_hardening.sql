@@ -347,6 +347,11 @@ values
     30
   );
 
+-- This security fixture supplies its own reminder row. The production trigger
+-- is covered independently by 039_atomic_appointment_reminders.sql.
+alter table public.appointments
+  disable trigger sync_appointment_reminders_after_write;
+
 insert into public.appointments (
   id,
   clinic_id,
@@ -388,6 +393,9 @@ values (
   'scheduled',
   'Appointment reminder'
 );
+
+alter table public.appointments
+  enable trigger sync_appointment_reminders_after_write;
 
 insert into public.clinical_records (
   clinic_id,

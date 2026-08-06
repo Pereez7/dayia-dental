@@ -7,6 +7,7 @@ import {
   mapReminderInputToInsert,
   mapReminderRecordToReminder,
   mapReminderToInput,
+  parseReminderQueuePage,
 } from './remindersService'
 
 const appointment: Appointment = {
@@ -163,6 +164,112 @@ describe('remindersService mappers', () => {
         status: 'scheduled',
         treatment: 'Consulta',
       }),
+    ).toBeNull()
+  })
+
+  it('parses one bounded queue page with summaries and cursor', () => {
+    expect(
+      parseReminderQueuePage(
+        {
+          appointments: [
+            {
+              date: '2026-08-05',
+              durationMinutes: 30,
+              id: 'appointment-1',
+              patient: 'Ana Salazar',
+              patientId: 'patient-1',
+              patientPhone: '+59176543210',
+              status: 'confirmed',
+              time: '13:00',
+              treatment: 'Consulta de emergencia',
+            },
+          ],
+          dateOptions: ['2026-08-05', '2026-08-06'],
+          pageInfo: {
+            hasMore: true,
+            nextCursor: {
+              groupId: '38000000-0000-4000-9200-000000000001',
+              startTime: '13:00',
+            },
+          },
+          reminders: [
+            {
+              appointmentDate: '2026-08-05',
+              appointmentId: 'appointment-1',
+              appointmentStatus: 'confirmed',
+              appointmentTime: '13:00',
+              failedReason: null,
+              id: 'reminder-1',
+              message: 'Hola Ana',
+              patientId: 'patient-1',
+              patientName: 'Ana Salazar',
+              phone: '+59176543210',
+              reminderType: '24h',
+              rescheduleReason: null,
+              scheduledFor: '2026-08-04T17:00:00Z',
+              sentAt: null,
+              status: 'scheduled',
+              statusNote: null,
+              treatment: 'Consulta de emergencia',
+            },
+          ],
+          selectedDate: '2026-08-05',
+          selectedDateSummary: {
+            cancelled: 0,
+            failed: 0,
+            pending: 0,
+            scheduled: 1,
+            sent: 0,
+            skipped: 0,
+            total: 1,
+          },
+          summary: {
+            cancelled: 0,
+            failed: 0,
+            pending: 1,
+            scheduled: 1,
+            sent: 0,
+            skipped: 0,
+            total: 2,
+          },
+          window: { from: '2026-07-29', to: '2026-09-04' },
+        },
+        '2026-08-05',
+      ),
+    ).toMatchObject({
+      appointments: [{ id: 'appointment-1', patient: 'Ana Salazar' }],
+      dateOptions: [
+        { appointmentDate: '2026-08-05' },
+        { appointmentDate: '2026-08-06' },
+      ],
+      pageInfo: {
+        hasMore: true,
+        nextCursor: {
+          groupId: '38000000-0000-4000-9200-000000000001',
+          startTime: '13:00',
+        },
+      },
+      reminders: [{ id: 'reminder-1', patientName: 'Ana Salazar' }],
+      selectedDate: '2026-08-05',
+      summary: { total: 2 },
+    })
+  })
+
+  it('rejects malformed bounded queue payloads', () => {
+    expect(
+      parseReminderQueuePage(
+        {
+          appointments: [],
+          dateOptions: [],
+          pageInfo: { hasMore: false, nextCursor: null },
+          reminders: [{ id: 'incomplete' }],
+          selectedDate: null,
+          selectedDateSummary: {},
+          summary: {},
+          window: { from: '2026-07-29', to: '2026-09-04' },
+        },
+        '2026-08-05',
+      ),
     ).toBeNull()
   })
 })

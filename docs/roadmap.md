@@ -36,9 +36,12 @@ autenticada confirmó creación, reprogramación y rechazo de doble reserva.
 `PERF-005C` pagina y busca Pacientes en servidor, protege duplicados y cerró su
 validación autenticada y móvil en staging. `PERF-005D` pagina el Historial
 clínico por paciente y en su vista global y cerró su validación autenticada y
-móvil en staging. El siguiente bloque es `PERF-005E`
-Recordatorios y `PERF-005F` Odontograma/Configuración. Solo entonces se cierra
-`PERF-005` y comienza `PERF-006`. Producción continúa intacta.
+móvil en staging. `PERF-005E` cerró en staging con ventana, cursor, filtros y
+sincronización atómica de Recordatorios. La validación móvil autenticada mostró
+una cita real con dos recordatorios y respuestas de 1.4 kB en 224–228 ms.
+Después sigue `PERF-005F`
+Odontograma/Configuración. Solo entonces se cierra `PERF-005` y comienza
+`PERF-006`. Producción continúa intacta.
 
 ## Rendimiento de carga
 
@@ -391,8 +394,16 @@ Implementado:
 - KPIs de todos, pendientes, programados, enviados simulados, fallidos y
   omitidos, ademas de cancelados.
 - KPIs calculados solo desde recordatorios validos de citas activas.
-- Reconciliacion real al cargar: recordatorios mutables de citas pasadas pasan
-  a `skipped` y los de citas canceladas a `cancelled`.
+- Reconciliación real atómica en PostgreSQL: recordatorios mutables de citas
+  pasadas pasan a `skipped` y los de citas terminales a `cancelled`, sin
+  recorrer ni actualizar la cola por fila desde React.
+- Sincronización transaccional al crear, confirmar, reprogramar o cerrar citas;
+  PostgreSQL obtiene el paciente y tratamiento por UUID y repara de forma
+  idempotente las citas futuras que hubieran quedado sin cola.
+- Cola real acotada a 7 días pasados y 30 futuros, con 8 ocurrencias por
+  página, cursor estable, filtros y búsqueda en servidor y KPIs agregados sin
+  transferir filas invisibles. Esta mejora está cerrada en staging tras la
+  validación autenticada y móvil.
 - Proteccion equivalente en `process-due-reminders` y en el envio directo, con
   comparacion de fecha y hora en `America/La_Paz`.
 - Resolucion de citas pasadas sin cierre como atendida, no asistio,

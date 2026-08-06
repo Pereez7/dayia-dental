@@ -121,6 +121,14 @@ export function getReminderDateOptions(
     new Set(reminders.map((reminder) => reminder.appointmentDate)),
   ).sort((firstDate, secondDate) => firstDate.localeCompare(secondDate))
 
+  return getReminderDateOptionsFromDates(appointmentDates, referenceDate)
+}
+
+export function getReminderDateOptionsFromDates(
+  appointmentDates: string[],
+  referenceDate = new Date(),
+): ReminderDateOption[] {
+
   return appointmentDates.map((appointmentDate) => ({
     appointmentDate,
     dateLabel: formatCompactReminderDate(appointmentDate),

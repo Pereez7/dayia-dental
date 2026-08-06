@@ -16,6 +16,8 @@ import type {
 import type { Patient } from '../types/Patient'
 import type {
   Reminder,
+  ReminderDateOption,
+  ReminderQueueSummary,
   ReminderStatus,
   ReminderStatusFilter,
 } from '../types/Reminder'
@@ -44,9 +46,16 @@ interface WhatsAppRemindersViewProps {
   calendarExceptions: CalendarException[]
   errorMessage?: string
   isLoading?: boolean
+  hasMore?: boolean
+  isLoadingMore?: boolean
+  isServerPaginated?: boolean
   patients: Patient[]
   planId?: string | null
   reminders?: Reminder[]
+  serverDateOptions?: ReminderDateOption[]
+  serverSelectedDate?: string | null
+  serverSelectedDateSummary?: ReminderQueueSummary | null
+  serverSummary?: ReminderQueueSummary | null
   treatments: Treatment[]
   onMarkReminderFailed?: (
     reminderId: string,
@@ -54,6 +63,13 @@ interface WhatsAppRemindersViewProps {
   onMarkReminderSent?: (
     reminderId: string,
   ) => Promise<ReminderActionResult> | ReminderActionResult
+  onAppointmentStatusFilterChange?: (
+    filter: ReminderAppointmentStatusFilter,
+  ) => void
+  onLoadMore?: () => void
+  onSearchChange?: (search: string) => void
+  onSelectedDateChange?: (date: string) => void
+  onStatusFilterChange?: (status: ReminderStatusFilter) => void
   onRescheduleAppointment?: (
     appointmentId: AppointmentId,
     date: string,
@@ -77,13 +93,25 @@ export function WhatsAppRemindersView({
   businessHours,
   calendarExceptions,
   errorMessage = '',
+  hasMore = false,
   isLoading = false,
+  isLoadingMore = false,
+  isServerPaginated = false,
   patients,
   planId = null,
   reminders: persistedReminders,
+  serverDateOptions,
+  serverSelectedDate = null,
+  serverSelectedDateSummary = null,
+  serverSummary = null,
   treatments,
   onMarkReminderFailed,
   onMarkReminderSent,
+  onAppointmentStatusFilterChange,
+  onLoadMore,
+  onSearchChange,
+  onSelectedDateChange,
+  onStatusFilterChange,
   onRescheduleAppointment,
   onUpdateAppointmentStatus,
 }: WhatsAppRemindersViewProps) {
@@ -125,20 +153,28 @@ export function WhatsAppRemindersView({
       })),
     [sourceReminders, statusOverrides],
   )
-  const summary = summarizeRemindersByStatus(reminders)
-  const reminderDateOptions = useMemo(
+  const localSummary = summarizeRemindersByStatus(reminders)
+  const summary = serverSummary ?? {
+    ...localSummary,
+    total: reminders.length,
+  }
+  const localReminderDateOptions = useMemo(
     () => getReminderDateOptions(reminders),
     [reminders],
   )
+  const reminderDateOptions = serverDateOptions ?? localReminderDateOptions
   const activeAppointmentDate = getActiveAppointmentDate(
     reminderDateOptions,
-    selectedAppointmentDate,
+    serverSelectedDate ?? selectedAppointmentDate,
   )
-  const dateFilteredReminders = filterRemindersByAppointmentDate(
-    reminders,
-    activeAppointmentDate,
-  )
-  const activeDateSummary = summarizeRemindersByStatus(dateFilteredReminders)
+  const dateFilteredReminders = isServerPaginated
+    ? reminders
+    : filterRemindersByAppointmentDate(reminders, activeAppointmentDate)
+  const localActiveDateSummary = summarizeRemindersByStatus(dateFilteredReminders)
+  const activeDateSummary = serverSelectedDateSummary ?? {
+    ...localActiveDateSummary,
+    total: dateFilteredReminders.length,
+  }
   const statusFilteredReminders = filterRemindersByStatus(
     dateFilteredReminders,
     statusFilter,
@@ -147,16 +183,15 @@ export function WhatsAppRemindersView({
     statusFilteredReminders,
     appointmentStatusFilter,
   )
-  const filteredReminders = filterRemindersBySearch(
-    appointmentFilteredReminders,
-    searchTerm,
-  )
+  const filteredReminders = isServerPaginated
+    ? reminders
+    : filterRemindersBySearch(appointmentFilteredReminders, searchTerm)
   const reminderDateGroups =
     groupRemindersByAppointmentDate(filteredReminders)
   const selectedReminder =
     filteredReminders.find((reminder) => reminder.id === selectedReminderId)
   const emptyListCopy = getReminderEmptyStateCopy(
-    reminders.length > 0,
+    (serverSummary?.total ?? reminders.length) > 0,
     statusFilter,
   )
   const isProPlan = planId === 'pro'
@@ -289,7 +324,7 @@ export function WhatsAppRemindersView({
           <ReminderKpiCard
             label="Todos"
             tone="slate"
-            value={reminders.length}
+            value={summary.total}
           />
           <ReminderKpiCard
             label="Pendientes"
@@ -402,6 +437,7 @@ export function WhatsAppRemindersView({
                   type="button"
                   onClick={() => {
                     setSelectedAppointmentDate(dateOption.appointmentDate)
+                    onSelectedDateChange?.(dateOption.appointmentDate)
                     setSelectedReminderId(null)
                     setIsToastVisible(false)
                   }}
@@ -426,19 +462,20 @@ export function WhatsAppRemindersView({
                   type="button"
                   onClick={() => {
                     setStatusFilter(filter)
+                    onStatusFilterChange?.(filter)
                     setSelectedReminderId(null)
                     setIsToastVisible(false)
                   }}
                 >
                   {filter === 'all'
-                    ? `Todos (${dateFilteredReminders.length})`
+                    ? `Todos (${activeDateSummary.total})`
                     : `${getReminderStatusLabel(filter)} (${activeDateSummary[filter]})`}
                 </button>
               ))}
             </div>
           )}
 
-          {!isLoading && reminders.length > 0 && (
+          {!isLoading && (serverSummary?.total ?? reminders.length) > 0 && (
             <div className="reminder-secondary-filters">
               <label className="reminder-search-field">
                 <span>Buscar en recordatorios</span>
@@ -448,6 +485,7 @@ export function WhatsAppRemindersView({
                   value={searchTerm}
                   onChange={(event) => {
                     setSearchTerm(event.target.value)
+                    onSearchChange?.(event.target.value)
                     setSelectedReminderId(null)
                   }}
                 />
@@ -458,6 +496,9 @@ export function WhatsAppRemindersView({
                   value={appointmentStatusFilter}
                   onChange={(event) => {
                     setAppointmentStatusFilter(
+                      event.target.value as ReminderAppointmentStatusFilter,
+                    )
+                    onAppointmentStatusFilterChange?.(
                       event.target.value as ReminderAppointmentStatusFilter,
                     )
                     setSelectedReminderId(null)
@@ -504,6 +545,19 @@ export function WhatsAppRemindersView({
               }}
             />
           )}
+
+          {!isLoading && !errorMessage && hasMore && onLoadMore ? (
+            <div className="pagination-action">
+              <button
+                className="secondary-action"
+                disabled={isLoadingMore}
+                type="button"
+                onClick={onLoadMore}
+              >
+                {isLoadingMore ? 'Cargando recordatorios...' : 'Cargar más'}
+              </button>
+            </div>
+          ) : null}
         </article>
 
         <ReminderMessagePreview

@@ -74,9 +74,20 @@ zona horaria para evitar desplazamientos entre Bolivia y UTC.
 - `cancelled`: dejo de aplicar porque la cita fue cancelada.
 - `skipped`: se omitio sin envio, por ejemplo porque la cita ya paso.
 
-Al abrir Recordatorios, el frontend aplica la misma reconciliacion antes de
-mostrar la lista. Los omitidos no cuentan como pendientes ni ofrecen "Abrir
+Al abrir Recordatorios, una RPC autorizada aplica la misma reconciliación en
+PostgreSQL antes de solicitar la página acotada. Los omitidos no cuentan como
+pendientes ni ofrecen "Abrir
 WhatsApp", pero permanecen visibles en Todos y Omitido para conservar trazabilidad.
+
+La cola manual muestra una ventana operativa de 7 días pasados y 30 futuros,
+con 8 ocurrencias por página. Fecha, estados y búsqueda se filtran en servidor;
+los KPIs siguen siendo completos para la ventana y la fecha elegida. Esta
+lectura acotada prepara el crecimiento sin activar todavía el envío automático.
+
+La cola se sincroniza en PostgreSQL dentro de cada escritura de cita mediante
+la migración `039`. Crear, confirmar, reprogramar o cerrar una cita ya no
+depende de que React tenga cargado al paciente. Un backfill idempotente cubre
+las citas futuras creadas antes de este contrato.
 
 Un recordatorio omitido y una cita pasada sin cierre son conceptos distintos.
 El omitido es historico y nunca vuelve a `pending`. La cita asociada se resuelve

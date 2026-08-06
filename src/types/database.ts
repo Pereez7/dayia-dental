@@ -456,6 +456,28 @@ export type Database = {
         }
         Returns: Json
       }
+      get_clinic_reminder_queue_page: {
+        Args: {
+          target_after_group_id: string | null
+          target_after_start_time: string | null
+          target_appointment_status: string
+          target_clinic_id: string
+          target_page_size: number
+          target_reference_date: string
+          target_reference_time: string
+          target_search: string
+          target_selected_date: string | null
+          target_status: string
+        }
+        Returns: Json
+      }
+      reconcile_clinic_reminders: {
+        Args: {
+          target_clinic_id: string
+          target_reference_at: string
+        }
+        Returns: Json
+      }
       create_clinic_appointment: {
         Args: {
           target_clinic_id: string
